@@ -16,7 +16,7 @@ val generateI18nBundles by tasks.registering {
     outputs.dir(outputDir)
 
     doLast {
-        val outFile = outputDir.get().file("com/reqlab/ui/shared/i18n/GeneratedTranslationBundles.kt").asFile
+        val outFile = outputDir.get().file("io/github/crustack/ui/shared/i18n/GeneratedTranslationBundles.kt").asFile
         outFile.parentFile.mkdirs()
 
         fun encodeKotlinString(raw: String): String {
@@ -43,7 +43,7 @@ val generateI18nBundles by tasks.registering {
 
         outFile.writeText(
             """
-            package com.reqlab.ui.shared.i18n
+            package io.github.crustack.ui.shared.i18n
 
             internal object GeneratedTranslationBundles {
                 private val bundles: Map<String, String> = mapOf(
@@ -68,12 +68,12 @@ val generateBuildInfo by tasks.registering {
     outputs.dir(outputDir)
 
     doLast {
-        val outFile = outputDir.get().file("com/reqlab/ui/shared/build/GeneratedBuildInfo.kt").asFile
+        val outFile = outputDir.get().file("io/github/crustack/ui/shared/build/GeneratedBuildInfo.kt").asFile
         outFile.parentFile.mkdirs()
 
         outFile.writeText(
             """
-            package com.reqlab.ui.shared.build
+            package io.github.crustack.ui.shared.build
 
             internal object GeneratedBuildInfo {
                 const val APP_VERSION: String = "$appVersion"

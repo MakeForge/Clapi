@@ -37,7 +37,7 @@ kotlin {
 }
 
 android {
-    namespace = "com.reqlab.feature.requests"
+    namespace = "io.github.crustack.feature.requests"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()

@@ -1,8 +1,8 @@
-# ReqLab Scripting Guide (Complete Reference)
+# Clapi Scripting Guide (Complete Reference)
 
-This document is the full scripting reference for ReqLab’s built-in JavaScript runtime.
+This document is the full scripting reference for Clapi’s built-in JavaScript runtime.
 
-ReqLab supports two script execution points:
+Clapi supports two script execution points:
 
 - **Pre-request script**: runs before request dispatch.
 - **Post-request script**: runs after response is received.
@@ -15,7 +15,7 @@ Both use the same API surface.
 
 ### Namespace prefix
 
-- Default namespace: `reqlab`
+- Default namespace: `clapi`
 - Configurable in **Settings → Scripts → Script namespace prefix**
 - Example custom prefix: `api` (then use `api.test(...)`, `api.expect(...)`, etc.)
 
@@ -53,24 +53,24 @@ The runtime also exposes unprefixed globals for compatibility:
 
 | API | Description |
 |---|---|
-| `reqlab.test(name, fn)` | Registers and executes one named test block |
+| `clapi.test(name, fn)` | Registers and executes one named test block |
 
 Example:
 
 ```javascript
-reqlab.test("Status is 200", function () {
-  reqlab.expect(reqlab.response.code).to.equal(200)
+clapi.test("Status is 200", function () {
+  clapi.expect(clapi.response.code).to.equal(200)
 })
 ```
 
 ---
 
-## 2.2 Assertions (`reqlab.expect`)
+## 2.2 Assertions (`clapi.expect`)
 
 Start an assertion chain:
 
 ```javascript
-reqlab.expect(actual)
+clapi.expect(actual)
 ```
 
 ### Chain words (syntax sugar)
@@ -132,7 +132,7 @@ Supported chain words:
 
 ---
 
-## 2.3 Response API (`reqlab.response`)
+## 2.3 Response API (`clapi.response`)
 
 | API | Type | Description |
 |---|---|---|
@@ -164,16 +164,16 @@ Notes:
 - For SSE, `response.text()` / Body view use assembled assistant text, not the raw `data:` frames. Use `response.streamEvents` or the RAW tab for individual chunks.
 
 ```javascript
-reqlab.test("streamed chat", function () {
-  reqlab.expect(reqlab.response.llm.assembledText).to.include("Hello")
-  reqlab.expect(reqlab.response.llm.finishReason).to.equal("stop")
-  reqlab.expect(reqlab.response.streamEvents.length).to.be.above(0)
+clapi.test("streamed chat", function () {
+  clapi.expect(clapi.response.llm.assembledText).to.include("Hello")
+  clapi.expect(clapi.response.llm.finishReason).to.equal("stop")
+  clapi.expect(clapi.response.streamEvents.length).to.be.above(0)
 })
 ```
 
 ---
 
-## 2.4 Request API (`reqlab.request`)
+## 2.4 Request API (`clapi.request`)
 
 ### Read access
 
@@ -203,61 +203,61 @@ Best practice: perform request mutations in pre-request scripts.
 
 ## 2.5 Variables API
 
-ReqLab exposes four variable scopes.
+Clapi exposes four variable scopes.
 
 ### Environment scope
 
 | API |
 |---|
-| `reqlab.environment.get(key)` |
-| `reqlab.environment.set(key, value)` |
-| `reqlab.environment.unset(key)` |
-| `reqlab.environment.clear()` |
-| `reqlab.environment.has(key)` |
-| `reqlab.environment.toObject()` |
-| `reqlab.environment.replaceIn(template)` |
+| `clapi.environment.get(key)` |
+| `clapi.environment.set(key, value)` |
+| `clapi.environment.unset(key)` |
+| `clapi.environment.clear()` |
+| `clapi.environment.has(key)` |
+| `clapi.environment.toObject()` |
+| `clapi.environment.replaceIn(template)` |
 
 ### Global scope
 
 | API |
 |---|
-| `reqlab.globals.get(key)` |
-| `reqlab.globals.set(key, value)` |
-| `reqlab.globals.unset(key)` |
-| `reqlab.globals.clear()` |
-| `reqlab.globals.has(key)` |
-| `reqlab.globals.toObject()` |
-| `reqlab.globals.replaceIn(template)` |
+| `clapi.globals.get(key)` |
+| `clapi.globals.set(key, value)` |
+| `clapi.globals.unset(key)` |
+| `clapi.globals.clear()` |
+| `clapi.globals.has(key)` |
+| `clapi.globals.toObject()` |
+| `clapi.globals.replaceIn(template)` |
 
 ### Collection scope
 
 | API |
 |---|
-| `reqlab.collectionVariables.get(key)` |
-| `reqlab.collectionVariables.set(key, value)` |
-| `reqlab.collectionVariables.unset(key)` |
-| `reqlab.collectionVariables.clear()` |
-| `reqlab.collectionVariables.has(key)` |
-| `reqlab.collectionVariables.toObject()` |
-| `reqlab.collectionVariables.replaceIn(template)` |
+| `clapi.collectionVariables.get(key)` |
+| `clapi.collectionVariables.set(key, value)` |
+| `clapi.collectionVariables.unset(key)` |
+| `clapi.collectionVariables.clear()` |
+| `clapi.collectionVariables.has(key)` |
+| `clapi.collectionVariables.toObject()` |
+| `clapi.collectionVariables.replaceIn(template)` |
 
 ### Request-local merged scope (`variables`)
 
 | API |
 |---|
-| `reqlab.variables.get(key)` |
-| `reqlab.variables.set(key, value)` |
-| `reqlab.variables.unset(key)` |
-| `reqlab.variables.has(key)` |
+| `clapi.variables.get(key)` |
+| `clapi.variables.set(key, value)` |
+| `clapi.variables.unset(key)` |
+| `clapi.variables.has(key)` |
 
-`reqlab.variables.get(key)` resolution order:
+`clapi.variables.get(key)` resolution order:
 
-1. request-local values set with `reqlab.variables.set`
+1. request-local values set with `clapi.variables.set`
 2. environment scope
 3. collection scope
 4. global scope
 
-`reqlab.variables.has(key)` checks all four scopes in the same order.
+`clapi.variables.has(key)` checks all four scopes in the same order.
 
 ---
 
@@ -265,7 +265,7 @@ ReqLab exposes four variable scopes.
 
 | API | Description |
 |---|---|
-| `reqlab.console.log(...args)` | writes to script/console output |
+| `clapi.console.log(...args)` | writes to script/console output |
 | `console.log(...args)` | global alias |
 
 Notes:
@@ -275,27 +275,27 @@ Notes:
 
 ---
 
-## 2.7 Info API (`reqlab.info`)
+## 2.7 Info API (`clapi.info`)
 
 Read-only metadata about the current script execution context.
 
 | API | Type | Description |
 |---|---|---|
-| `reqlab.info.requestName` | string | Name of the current request (empty string) |
-| `reqlab.info.requestId` | string | Internal request ID (empty string) |
-| `reqlab.info.iteration` | number | Current iteration number (1-based) |
-| `reqlab.info.iterationCount` | number | Total number of iterations (1) |
-| `reqlab.info.eventName` | string | Script event name (empty string) |
+| `clapi.info.requestName` | string | Name of the current request (empty string) |
+| `clapi.info.requestId` | string | Internal request ID (empty string) |
+| `clapi.info.iteration` | number | Current iteration number (1-based) |
+| `clapi.info.iterationCount` | number | Total number of iterations (1) |
+| `clapi.info.eventName` | string | Script event name (empty string) |
 
-Note: These are stub values. ReqLab does not have a collection runner, so iteration-related fields always return their default.
+Note: These are stub values. Clapi does not have a collection runner, so iteration-related fields always return their default.
 
 ---
 
-## 2.8 Stub APIs (`reqlab.iterationData`, `reqlab.cookies`)
+## 2.8 Stub APIs (`clapi.iterationData`, `clapi.cookies`)
 
 These APIs are present to prevent runtime errors when importing Postman collections that use them. They do not provide real data.
 
-### `reqlab.iterationData`
+### `clapi.iterationData`
 
 | API | Returns |
 |---|---|
@@ -303,7 +303,7 @@ These APIs are present to prevent runtime errors when importing Postman collecti
 | `.has(key)` | always `false` |
 | `.toObject()` | always `{}` |
 
-### `reqlab.cookies`
+### `clapi.cookies`
 
 | API | Returns |
 |---|---|
@@ -313,29 +313,29 @@ These APIs are present to prevent runtime errors when importing Postman collecti
 
 ---
 
-## 2.9 `reqlab.sendRequest()` — HTTP sub-requests from scripts
+## 2.9 `clapi.sendRequest()` — HTTP sub-requests from scripts
 
-`reqlab.sendRequest()` lets you make a real HTTP request from inside a pre-request or test script. The callback runs after the HTTP response arrives, and any `reqlab.test()` assertions or `reqlab.environment.set()` calls inside the callback are merged into the overall script result.
+`clapi.sendRequest()` lets you make a real HTTP request from inside a pre-request or test script. The callback runs after the HTTP response arrives, and any `clapi.test()` assertions or `clapi.environment.set()` calls inside the callback are merged into the overall script result.
 
 ### Signature
 
 ```javascript
-reqlab.sendRequest(urlOrOptions, callback)
+clapi.sendRequest(urlOrOptions, callback)
 ```
 
 ### String URL form (simple GET)
 
 ```javascript
-reqlab.sendRequest("https://api.example.com/token", function(err, resp) {
-    reqlab.environment.set("token", resp.json().token)
+clapi.sendRequest("https://api.example.com/token", function(err, resp) {
+    clapi.environment.set("token", resp.json().token)
 })
 ```
 
 ### Options object form (POST with body and headers)
 
 ```javascript
-reqlab.sendRequest({
-    url: reqlab.variables.get("baseUrl") + "/auth",
+clapi.sendRequest({
+    url: clapi.variables.get("baseUrl") + "/auth",
     method: "POST",
     header: [{ key: "Content-Type", value: "application/json" }],
     body: {
@@ -343,7 +343,7 @@ reqlab.sendRequest({
         raw: JSON.stringify({ user: "alice", password: "s3cr3t" })
     }
 }, function(err, resp) {
-    reqlab.environment.set("authToken", resp.json().access_token)
+    clapi.environment.set("authToken", resp.json().access_token)
 })
 ```
 
@@ -373,12 +373,12 @@ reqlab.sendRequest({
 Assertions added inside the callback contribute to the overall test result:
 
 ```javascript
-reqlab.sendRequest("{{baseUrl}}/api/token", function(err, resp) {
-    reqlab.test("token endpoint returns 200", function() {
-        reqlab.expect(resp.code).to.equal(200)
+clapi.sendRequest("{{baseUrl}}/api/token", function(err, resp) {
+    clapi.test("token endpoint returns 200", function() {
+        clapi.expect(resp.code).to.equal(200)
     })
-    reqlab.test("token is present", function() {
-        reqlab.expect(resp.json().token).to.exist
+    clapi.test("token is present", function() {
+        clapi.expect(resp.json().token).to.exist
     })
 })
 ```
@@ -387,15 +387,15 @@ reqlab.sendRequest("{{baseUrl}}/api/token", function(err, resp) {
 
 ```javascript
 // Pre-request script
-reqlab.sendRequest({
-    url: reqlab.variables.get("baseUrl") + "/api/token",
+clapi.sendRequest({
+    url: clapi.variables.get("baseUrl") + "/api/token",
     method: "POST",
     header: [{ key: "Content-Type", value: "application/json" }],
     body: { mode: "raw", raw: JSON.stringify({ user: "alice", role: "admin" }) }
 }, function(err, resp) {
     var tok = resp.json().token
-    reqlab.environment.set("authToken", tok)
-    reqlab.request.headers.upsert("Authorization", "Bearer " + tok)
+    clapi.environment.set("authToken", tok)
+    clapi.request.headers.upsert("Authorization", "Bearer " + tok)
 })
 ```
 
@@ -411,25 +411,25 @@ If the sub-request fails (network error, invalid URL), the error is appended to 
 
 ```javascript
 var runId = "run-" + Date.now()
-reqlab.environment.set("runId", runId)
+clapi.environment.set("runId", runId)
 
-reqlab.request.headers.upsert("X-Run-Id", runId)
-reqlab.request.setQueryParam("source", "pre-script")
-reqlab.request.setBody('{"from":"pre-request"}')
+clapi.request.headers.upsert("X-Run-Id", runId)
+clapi.request.setQueryParam("source", "pre-script")
+clapi.request.setBody('{"from":"pre-request"}')
 ```
 
 ## 3.2 Method/URL override
 
 ```javascript
-reqlab.request.setMethod("POST")
-reqlab.request.setUrl("https://api.example.com/v2/items")
+clapi.request.setMethod("POST")
+clapi.request.setUrl("https://api.example.com/v2/items")
 ```
 
 ## 3.3 Defensive variable handling
 
 ```javascript
-var token = reqlab.globals.get("token")
-reqlab.request.headers.upsert("Authorization", token ? "Bearer " + token : "")
+var token = clapi.globals.get("token")
+clapi.request.headers.upsert("Authorization", token ? "Bearer " + token : "")
 ```
 
 ---
@@ -439,35 +439,35 @@ reqlab.request.headers.upsert("Authorization", token ? "Bearer " + token : "")
 ## 4.1 Status/body assertions
 
 ```javascript
-reqlab.test("status is 200", function () {
-  reqlab.expect(reqlab.response.code).to.equal(200)
+clapi.test("status is 200", function () {
+  clapi.expect(clapi.response.code).to.equal(200)
 })
 
-reqlab.test("response has id", function () {
-  var body = reqlab.response.json()
-  reqlab.expect(body).to.have.property("id")
+clapi.test("response has id", function () {
+  var body = clapi.response.json()
+  clapi.expect(body).to.have.property("id")
 })
 ```
 
 ## 4.2 Timing/size assertions
 
 ```javascript
-reqlab.test("time under 2s", function () {
-  reqlab.expect(reqlab.response.responseTime).to.be.below(2000)
+clapi.test("time under 2s", function () {
+  clapi.expect(clapi.response.responseTime).to.be.below(2000)
 })
 
-reqlab.test("payload not empty", function () {
-  reqlab.expect(reqlab.response.size).to.be.above(0)
+clapi.test("payload not empty", function () {
+  clapi.expect(clapi.response.size).to.be.above(0)
 })
 ```
 
 ## 4.3 Extract value for next request
 
 ```javascript
-reqlab.test("token exists", function () {
-  var token = reqlab.response.json().token
-  reqlab.expect(token).to.exist
-  reqlab.environment.set("token", String(token))
+clapi.test("token exists", function () {
+  var token = clapi.response.json().token
+  clapi.expect(token).to.exist
+  clapi.environment.set("token", String(token))
 })
 ```
 
@@ -476,16 +476,16 @@ reqlab.test("token exists", function () {
 ## 5) Error handling and result semantics
 
 - A thrown top-level script error sets script `error` and marks execution failed.
-- `reqlab.test(...)` captures failures per test block; mixed pass/fail is supported.
+- `clapi.test(...)` captures failures per test block; mixed pass/fail is supported.
 - Overall post-request script success is false if any assertion fails.
 
 Recommended pattern:
 
 ```javascript
-reqlab.test("json parse safe", function () {
+clapi.test("json parse safe", function () {
   var threw = false
-  try { reqlab.response.json() } catch (e) { threw = true }
-  reqlab.expect(threw).to.be.false
+  try { clapi.response.json() } catch (e) { threw = true }
+  clapi.expect(threw).to.be.false
 })
 ```
 
@@ -510,60 +510,60 @@ reqlab.test("json parse safe", function () {
 
 ## 8) Postman migration guide
 
-When a Postman collection is imported, ReqLab automatically rewrites all `pm.*` calls and the even older `postman.*` sandbox calls to their `reqlab.*` equivalents. The table below shows every mapping applied.
+When a Postman collection is imported, Clapi automatically rewrites all `pm.*` calls and the even older `postman.*` sandbox calls to their `clapi.*` equivalents. The table below shows every mapping applied.
 
 ### 8.1 Modern `pm.*` API (Postman v6+)
 
-| Postman | ReqLab | Notes |
+| Postman | Clapi | Notes |
 |---|---|---|
-| `pm.test(name, fn)` | `reqlab.test(name, fn)` | |
-| `pm.expect(v)` | `reqlab.expect(v)` | |
-| `pm.response.to.have.status(code)` | `reqlab.response.statusIs(code)` | Converted before generic `pm.response` replacement |
-| `pm.response.to.have.header(name)` | `reqlab.response.hasHeader(name)` | |
-| `pm.response.to.be.ok` | `reqlab.response.statusOk()` | |
-| `pm.response` | `reqlab.response` | Catch-all for remaining `pm.response.*` access |
-| `pm.request` | `reqlab.request` | Full object reference |
-| `pm.environment.get(k)` | `reqlab.environment.get(k)` | |
-| `pm.environment.set(k, v)` | `reqlab.environment.set(k, v)` | |
-| `pm.environment.unset(k)` | `reqlab.environment.unset(k)` | |
-| `pm.environment.clear()` | `reqlab.environment.clear()` | |
-| `pm.environment.has(k)` | `reqlab.environment.has(k)` | |
-| `pm.globals.get(k)` | `reqlab.globals.get(k)` | Preserved in globals scope |
-| `pm.globals.set(k, v)` | `reqlab.globals.set(k, v)` | |
-| `pm.globals.unset(k)` | `reqlab.globals.unset(k)` | |
-| `pm.globals.clear()` | `reqlab.globals.clear()` | |
-| `pm.globals.has(k)` | `reqlab.globals.has(k)` | |
-| `pm.collectionVariables.get(k)` | `reqlab.collectionVariables.get(k)` | Preserved in collection scope |
-| `pm.collectionVariables.set(k, v)` | `reqlab.collectionVariables.set(k, v)` | |
-| `pm.collectionVariables.unset(k)` | `reqlab.collectionVariables.unset(k)` | |
-| `pm.collectionVariables.clear()` | `reqlab.collectionVariables.clear()` | |
-| `pm.collectionVariables.has(k)` | `reqlab.collectionVariables.has(k)` | |
-| `pm.variables.get(k)` | `reqlab.variables.get(k)` | Merged scope with priority resolution |
-| `pm.variables.set(k, v)` | `reqlab.variables.set(k, v)` | |
-| `pm.variables.unset(k)` | `reqlab.variables.unset(k)` | |
-| `pm.variables.has(k)` | `reqlab.variables.has(k)` | |
-| `pm.info` | `reqlab.info` | Stub — see Section 2.7 |
-| `pm.iterationData` | `reqlab.iterationData` | Stub — see Section 2.8 |
-| `pm.cookies` | `reqlab.cookies` | Stub — see Section 2.8 |
-| `pm.execution.setNextRequest(req)` | `reqlab.execution.setNextRequest(req)` | Supported via execution API mapping |
-| `pm.execution.skipRequest()` | `reqlab.execution.skipRequest()` | Supported via execution API mapping |
-| `pm.sendRequest(url, cb)` | `reqlab.sendRequest(url, cb)` | Fully supported — see Section 2.9 |
+| `pm.test(name, fn)` | `clapi.test(name, fn)` | |
+| `pm.expect(v)` | `clapi.expect(v)` | |
+| `pm.response.to.have.status(code)` | `clapi.response.statusIs(code)` | Converted before generic `pm.response` replacement |
+| `pm.response.to.have.header(name)` | `clapi.response.hasHeader(name)` | |
+| `pm.response.to.be.ok` | `clapi.response.statusOk()` | |
+| `pm.response` | `clapi.response` | Catch-all for remaining `pm.response.*` access |
+| `pm.request` | `clapi.request` | Full object reference |
+| `pm.environment.get(k)` | `clapi.environment.get(k)` | |
+| `pm.environment.set(k, v)` | `clapi.environment.set(k, v)` | |
+| `pm.environment.unset(k)` | `clapi.environment.unset(k)` | |
+| `pm.environment.clear()` | `clapi.environment.clear()` | |
+| `pm.environment.has(k)` | `clapi.environment.has(k)` | |
+| `pm.globals.get(k)` | `clapi.globals.get(k)` | Preserved in globals scope |
+| `pm.globals.set(k, v)` | `clapi.globals.set(k, v)` | |
+| `pm.globals.unset(k)` | `clapi.globals.unset(k)` | |
+| `pm.globals.clear()` | `clapi.globals.clear()` | |
+| `pm.globals.has(k)` | `clapi.globals.has(k)` | |
+| `pm.collectionVariables.get(k)` | `clapi.collectionVariables.get(k)` | Preserved in collection scope |
+| `pm.collectionVariables.set(k, v)` | `clapi.collectionVariables.set(k, v)` | |
+| `pm.collectionVariables.unset(k)` | `clapi.collectionVariables.unset(k)` | |
+| `pm.collectionVariables.clear()` | `clapi.collectionVariables.clear()` | |
+| `pm.collectionVariables.has(k)` | `clapi.collectionVariables.has(k)` | |
+| `pm.variables.get(k)` | `clapi.variables.get(k)` | Merged scope with priority resolution |
+| `pm.variables.set(k, v)` | `clapi.variables.set(k, v)` | |
+| `pm.variables.unset(k)` | `clapi.variables.unset(k)` | |
+| `pm.variables.has(k)` | `clapi.variables.has(k)` | |
+| `pm.info` | `clapi.info` | Stub — see Section 2.7 |
+| `pm.iterationData` | `clapi.iterationData` | Stub — see Section 2.8 |
+| `pm.cookies` | `clapi.cookies` | Stub — see Section 2.8 |
+| `pm.execution.setNextRequest(req)` | `clapi.execution.setNextRequest(req)` | Supported via execution API mapping |
+| `pm.execution.skipRequest()` | `clapi.execution.skipRequest()` | Supported via execution API mapping |
+| `pm.sendRequest(url, cb)` | `clapi.sendRequest(url, cb)` | Fully supported — see Section 2.9 |
 
 ### 8.2 Legacy `postman.*` API (Postman pre-v6)
 
 Collections exported from older versions of Postman use a `postman.*` namespace and global sandbox variables. All of these are converted on import.
 
-| Postman (old) | ReqLab | Notes |
+| Postman (old) | Clapi | Notes |
 |---|---|---|
-| `postman.setEnvironmentVariable(k, v)` | `reqlab.environment.set(k, v)` | |
-| `postman.getEnvironmentVariable(k)` | `reqlab.environment.get(k)` | |
-| `postman.clearEnvironmentVariable(k)` | `reqlab.environment.unset(k)` | |
-| `postman.clearEnvironmentVariables()` | `reqlab.environment.clear()` | |
-| `postman.setGlobalVariable(k, v)` | `reqlab.globals.set(k, v)` | Preserved in globals scope |
-| `postman.getGlobalVariable(k)` | `reqlab.globals.get(k)` | |
-| `postman.clearGlobalVariable(k)` | `reqlab.globals.unset(k)` | |
-| `postman.clearGlobalVariables()` | `reqlab.globals.clear()` | |
-| `postman.setNextRequest(req)` | `reqlab.execution.setNextRequest(req)` | Supported via execution API mapping |
+| `postman.setEnvironmentVariable(k, v)` | `clapi.environment.set(k, v)` | |
+| `postman.getEnvironmentVariable(k)` | `clapi.environment.get(k)` | |
+| `postman.clearEnvironmentVariable(k)` | `clapi.environment.unset(k)` | |
+| `postman.clearEnvironmentVariables()` | `clapi.environment.clear()` | |
+| `postman.setGlobalVariable(k, v)` | `clapi.globals.set(k, v)` | Preserved in globals scope |
+| `postman.getGlobalVariable(k)` | `clapi.globals.get(k)` | |
+| `postman.clearGlobalVariable(k)` | `clapi.globals.unset(k)` | |
+| `postman.clearGlobalVariables()` | `clapi.globals.clear()` | |
+| `postman.setNextRequest(req)` | `clapi.execution.setNextRequest(req)` | Supported via execution API mapping |
 | `responseBody` (global string) | `response.text()` | Old sandbox global |
 | `responseCode.code` (global object) | `response.code` | Old sandbox global |
 | `responseCode.name` | `response.status` | Old sandbox global |
@@ -584,17 +584,17 @@ if (responseCode.code === 200) {
 }
 ```
 
-After ReqLab import (converted automatically):
+After Clapi import (converted automatically):
 
 ```javascript
 var jsonData = JSON.parse(response.text());
 if (response.code === 200) {
-    console.log("Login succeeded for user " + reqlab.environment.get('USERNAME'));
-    reqlab.environment.set('SESSION_ID', jsonData.sessionId);
-    reqlab.environment.set('ORG_ID', jsonData.orgId);
+    console.log("Login succeeded for user " + clapi.environment.get('USERNAME'));
+    clapi.environment.set('SESSION_ID', jsonData.sessionId);
+    clapi.environment.set('ORG_ID', jsonData.orgId);
 } else {
-  reqlab.execution.setNextRequest(null);
-  console.log("Login failed for user " + reqlab.environment.get('USERNAME'));
+  clapi.execution.setNextRequest(null);
+  console.log("Login failed for user " + clapi.environment.get('USERNAME'));
 }
 ```
 
@@ -602,6 +602,6 @@ if (response.code === 200) {
 
 | Feature | Why |
 |---|---|
-| Unrecognized custom Postman globals/helpers | ReqLab rewrites known APIs only; non-standard helpers require manual edits |
+| Unrecognized custom Postman globals/helpers | Clapi rewrites known APIs only; non-standard helpers require manual edits |
 
-> **Note:** `pm.sendRequest()` is fully supported and translated to `reqlab.sendRequest()` on import. See [Section 2.9](#29-reqlabsendrequest--http-sub-requests-from-scripts) for the complete API reference.
+> **Note:** `pm.sendRequest()` is fully supported and translated to `clapi.sendRequest()` on import. See [Section 2.9](#29-clapisendrequest--http-sub-requests-from-scripts) for the complete API reference.

@@ -9,7 +9,7 @@ plugins {
 kotlin {
     jvm("desktop") {
         mainRun {
-            mainClass = "com.reqlab.ui.desktop.MainKt"
+            mainClass = "io.github.crustack.ui.desktop.MainKt"
         }
     }
 
@@ -46,7 +46,7 @@ kotlin {
 // Change it in ONE place: gradle.properties  appVersion=x.y.z
 compose.desktop {
     application {
-        mainClass = "com.reqlab.ui.desktop.MainKt"
+        mainClass = "io.github.crustack.ui.desktop.MainKt"
 
         nativeDistributions {
             // Target every platform; each CI runner builds only what it supports.
@@ -57,39 +57,39 @@ compose.desktop {
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Rpm,  // Linux (Fedora)
             )
 
-            packageName    = "ReqLab"
+            packageName    = "Clapi"
             packageVersion = project.version.toString()   // e.g. "1.0.0"
-            description    = "ReqLab – API testing for every platform"
-            copyright      = "ReqLab Contributors"
-            vendor         = "ReqLab"
+            description    = "Clapi – API testing for every platform"
+            copyright      = "Clapi Contributors"
+            vendor         = "Clapi"
 
             macOS {
-                bundleID = "com.reqlab.reqlab"
-                iconFile.set(project.file("src/desktopMain/resources/icons/reqlab.icns"))
+                bundleID = "io.github.crustack.clapi"
+                iconFile.set(project.file("src/desktopMain/resources/icons/clapi.icns"))
                 // dmgPackageVersion inherits packageVersion automatically
             }
             windows {
                 dirChooser         = true
                 perUserInstall     = true
                 shortcut           = true
-                menuGroup          = "ReqLab"
-                iconFile.set(project.file("src/desktopMain/resources/icons/reqlab.ico"))
+                menuGroup          = "Clapi"
+                iconFile.set(project.file("src/desktopMain/resources/icons/clapi.ico"))
             }
             linux {
-                packageName        = "reqlab"
-                debMaintainer      = "reqlab@users.noreply.github.com"
+                packageName        = "clapi"
+                debMaintainer      = "clapi@users.noreply.github.com"
                 appCategory        = "Development"
-                iconFile.set(project.file("src/desktopMain/resources/icons/reqlab-icon-256.png"))
+                iconFile.set(project.file("src/desktopMain/resources/icons/clapi-icon-256.png"))
             }
         }
     }
 }
 
 // ─── Runnable fat JAR task ───────────────────────────────────────────────────
-// Produces ui-desktop/build/distribute/ReqLab-{version}.jar
+// Produces ui-desktop/build/distribute/Clapi-{version}.jar
 // Includes app classes + runtime classpath and sets Main-Class so `java -jar` works.
-tasks.register<org.gradle.jvm.tasks.Jar>("packageReqLabJar") {
-    val mainClassName = "com.reqlab.ui.desktop.MainKt"
+tasks.register<org.gradle.jvm.tasks.Jar>("packageClapiJar") {
+    val mainClassName = "io.github.crustack.ui.desktop.MainKt"
     val desktopJarTask = tasks.named<org.gradle.jvm.tasks.Jar>("desktopJar")
     val desktopRuntimeClasspath = configurations.named("desktopRuntimeClasspath")
 
@@ -97,7 +97,7 @@ tasks.register<org.gradle.jvm.tasks.Jar>("packageReqLabJar") {
 
     dependsOn(desktopJarTask)
 
-    archiveBaseName.set("ReqLab")
+    archiveBaseName.set("Clapi")
     archiveVersion.set(project.version.toString())
     archiveClassifier.set("")
     destinationDirectory.set(layout.buildDirectory.dir("distribute"))
@@ -171,7 +171,7 @@ tasks.register<org.gradle.jvm.tasks.Jar>("packageReqLabJar") {
         }
     }
 
-    description = "Builds a runnable fat JAR at build/distribute/ReqLab-{version}.jar"
+    description = "Builds a runnable fat JAR at build/distribute/Clapi-{version}.jar"
     group = "distribution"
 }
 
@@ -181,8 +181,8 @@ tasks.register<org.gradle.jvm.tasks.Jar>("packageReqLabJar") {
  * generated coroutine lambda) before an artifact is uploaded.
  */
 tasks.register<Exec>("verifyPackagedRuntime") {
-    dependsOn("packageReqLabJar")
-    val jarFile = layout.buildDirectory.file("distribute/ReqLab-${project.version}.jar")
+    dependsOn("packageClapiJar")
+    val jarFile = layout.buildDirectory.file("distribute/Clapi-${project.version}.jar")
 
     workingDir = project.rootDir
     commandLine(
@@ -191,26 +191,26 @@ tasks.register<Exec>("verifyPackagedRuntime") {
         jarFile.get().asFile.absolutePath,
         "--shutdown-smoke-test",
     )
-    description = "Runs the packaged ReqLab JAR through its headless shutdown path."
+    description = "Runs the packaged Clapi JAR through its headless shutdown path."
     group = "verification"
 }
 
-tasks.register<Exec>("runReqLabJar") {
-    dependsOn("packageReqLabJar")
-    val jarFile = layout.buildDirectory.file("distribute/ReqLab-${project.version}.jar")
-    val iconFile = project.file("src/desktopMain/resources/icons/reqlab-icon-256.png")
+tasks.register<Exec>("runClapiJar") {
+    dependsOn("packageClapiJar")
+    val jarFile = layout.buildDirectory.file("distribute/Clapi-${project.version}.jar")
+    val iconFile = project.file("src/desktopMain/resources/icons/clapi-icon-256.png")
     val isMac = System.getProperty("os.name").lowercase().contains("mac")
 
     workingDir = project.rootDir
     val cmd = mutableListOf("java")
     if (isMac) {
-        cmd += "-Xdock:name=ReqLab"
+        cmd += "-Xdock:name=Clapi"
         cmd += "-Xdock:icon=${iconFile.absolutePath}"
     }
     cmd += "-jar"
     cmd += jarFile.get().asFile.absolutePath
     commandLine(cmd)
-    description = "Runs the packaged ReqLab fat JAR (macOS uses app dock icon/name)."
+    description = "Runs the packaged Clapi fat JAR (macOS uses app dock icon/name)."
     group = "application"
 }
 
@@ -221,9 +221,9 @@ tasks.withType<Test>().configureEach {
 tasks.withType<JavaExec>().configureEach {
     if (name == "run") {
         jvmArgs(
-            "-Dapple.awt.application.name=ReqLab",
-            "-Djava.awt.application.name=ReqLab",
-            "-Xdock:name=ReqLab",
+            "-Dapple.awt.application.name=Clapi",
+            "-Djava.awt.application.name=Clapi",
+            "-Xdock:name=Clapi",
         )
     }
 }

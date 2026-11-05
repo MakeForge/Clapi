@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="ui-desktop/src/desktopMain/resources/icons/reqlab-icon-128.png" alt="ReqLab" width="100" />
+  <img src="ui-desktop/src/desktopMain/resources/icons/clapi-icon-128.png" alt="Clapi" width="100" />
 </p>
 
-<h1 align="center">ReqLab</h1>
+<h1 align="center">Clapi</h1>
 
 <p align="center">
   <strong>A desktop-first API client built with Kotlin and Compose Multiplatform.</strong><br/>
@@ -13,39 +13,39 @@
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey.svg)]()
 [![Kotlin](https://img.shields.io/badge/kotlin-2.1.21-purple.svg)](https://kotlinlang.org)
 [![Compose Multiplatform](https://img.shields.io/badge/compose--multiplatform-1.8.1-orange.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
-[![Build](https://github.com/snj07/req-lab/actions/workflows/release.yml/badge.svg)](https://github.com/snj07/req-lab/actions)
+[![Build](https://github.com/snj07/clapi/actions/workflows/release.yml/badge.svg)](https://github.com/snj07/clapi/actions)
 
 ---
 
 <p align="center">
-  <img src="docs/screenshots/reqlab-screenshot.png" alt="ReqLab — dark theme" width="100%" />
+  <img src="docs/screenshots/clapi-screenshot.png" alt="Clapi — dark theme" width="100%" />
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/reqlab-screenshot-light.png" alt="ReqLab — light theme" width="49%" />
-  <img src="docs/screenshots/reqlab-screenshot-light-2.png" alt="ReqLab — light theme GraphQL" width="49%" />
+  <img src="docs/screenshots/clapi-screenshot-light.png" alt="Clapi — light theme" width="49%" />
+  <img src="docs/screenshots/clapi-screenshot-light-2.png" alt="Clapi — light theme GraphQL" width="49%" />
 </p>
 
 ---
 
-## What is ReqLab?
+## What is Clapi?
 
-ReqLab is a Kotlin + Compose Multiplatform API client for desktop (macOS, Linux, Windows) and web. It is designed for fast request iteration, scriptable validations, and reproducible API test workflows — running entirely offline with no accounts required.
+Clapi is a Kotlin + Compose Multiplatform API client for desktop (macOS, Linux, Windows) and web. It is designed for fast request iteration, scriptable validations, and reproducible API test workflows — running entirely offline with no accounts required.
 
 ## Quick Start
 
 Requirements: JDK 17+ (JDK 21 recommended).
 
 ```bash
-git clone https://github.com/snj07/req-lab.git
-cd req-lab
+git clone https://github.com/snj07/clapi.git
+cd clapi
 ./gradlew :ui-desktop:run
 ```
 
 To build and verify the self-contained desktop JAR, start from a clean build:
 
 ```bash
-./gradlew clean :ui-desktop:packageReqLabJar :ui-desktop:verifyPackagedRuntime
+./gradlew clean :ui-desktop:packageClapiJar :ui-desktop:verifyPackagedRuntime
 ```
 
 The `verifyPackagedRuntime` task launches the exact packaged JAR in a headless
@@ -63,8 +63,8 @@ Note for macOS users: If you see a warning that the app "cannot be opened becaus
 
 You can import these sample fixtures from the repo:
 
-- Collection sample: [qa-tests/fixtures/reqlab-test-collection.json](qa-tests/fixtures/reqlab-test-collection.json)
-- Environment sample: [qa-tests/fixtures/reqlab-test-environment.json](qa-tests/fixtures/reqlab-test-environment.json)
+- Collection sample: [qa-tests/fixtures/clapi-test-collection.json](qa-tests/fixtures/clapi-test-collection.json)
+- Environment sample: [qa-tests/fixtures/clapi-test-environment.json](qa-tests/fixtures/clapi-test-environment.json)
 
 The collection includes an **LLM (OpenAI-compatible)** folder, an **SSE** folder, and an **MCP (Model Context Protocol)** folder. Start the sample server, then send **LLM Chat Completions Stream (visible)** or an SSE item to watch events arrive, or open an MCP item and Connect. See [docs/mcp.md](docs/mcp.md).
 
@@ -83,9 +83,9 @@ The collection includes an **LLM (OpenAI-compatible)** folder, an **SSE** folder
 
 ### 🧩 Model Context Protocol (MCP)
 
-ReqLab brings [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server testing into the same local-first workspace as your HTTP APIs. Configure a server once, keep it with its collection, and reuse the environments, variable resolution, authentication, and response tooling you already use for REST.
+Clapi brings [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server testing into the same local-first workspace as your HTTP APIs. Configure a server once, keep it with its collection, and reuse the environments, variable resolution, authentication, and response tooling you already use for REST.
 
-![ReqLab MCP client showing a connected server, its tools, typed arguments, and a JSON-RPC result](docs/images/mcp-tools.png)
+![Clapi MCP client showing a connected server, its tools, typed arguments, and a JSON-RPC result](docs/images/mcp-tools.png)
 
 **Connect with confidence**
 
@@ -102,7 +102,7 @@ ReqLab brings [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) s
 **Test the host boundary**
 
 - Configure roots, sampling responses, and elicitation behavior in the Client tab.
-- Save MCP connections in ReqLab collections and carry them through ReqLab collection import and export.
+- Save MCP connections in Clapi collections and carry them through Clapi collection import and export.
 
 [Read the MCP guide →](docs/mcp.md) · [Run the included MCP fixtures →](docs/tests.md#mcp-fixtures)
 
@@ -130,22 +130,22 @@ A full-featured Compose-native code editor — no WebView, no Electron.
 
 ### 📜 Scripting
 
-JavaScript pre-request and post-request scripts through the `reqlab` namespace.
+JavaScript pre-request and post-request scripts through the `clapi` namespace.
 
 - **Pre-request**: mutate URL, headers, body, query params, and auth before dispatch
 - **Post-request**: assert status, headers, timing, body, assembled stream text, and LLM fields (`finish_reason`, token usage); persist extracted values
-- Console logging via `reqlab.console.log(...)`
-- **HTTP sub-requests** via `reqlab.sendRequest()` — make real HTTP calls from within scripts (fetch tokens, look up resources, chain requests)
+- Console logging via `clapi.console.log(...)`
+- **HTTP sub-requests** via `clapi.sendRequest()` — make real HTTP calls from within scripts (fetch tokens, look up resources, chain requests)
 
 ```javascript
 // Pre-request: fetch a token and inject it as a header
-reqlab.sendRequest({
+clapi.sendRequest({
     url: "https://api.example.com/auth/token",
     method: "POST",
     header: [{ key: "Content-Type", value: "application/json" }],
     body: { mode: "raw", raw: JSON.stringify({ username: "alice", password: "secret" }) }
 }, function(err, resp) {
-    reqlab.request.headers.upsert("Authorization", "Bearer " + resp.json().token)
+    clapi.request.headers.upsert("Authorization", "Bearer " + resp.json().token)
 })
 ```
 
@@ -157,18 +157,18 @@ Four scopes, all interpolated as `{{variable}}` in URL, headers, body, and auth:
 
 | Scope | API | Lifetime |
 |---|---|---|
-| Environment | `reqlab.environment.*` | Persisted with selected environment |
-| Global | `reqlab.globals.*` | Persisted workspace-wide |
-| Collection | `reqlab.collectionVariables.*` | Session-scoped runtime map |
-| Request | `reqlab.variables.*` | Read-only merged view (request → collection → env → global) |
+| Environment | `clapi.environment.*` | Persisted with selected environment |
+| Global | `clapi.globals.*` | Persisted workspace-wide |
+| Collection | `clapi.collectionVariables.*` | Session-scoped runtime map |
+| Request | `clapi.variables.*` | Read-only merged view (request → collection → env → global) |
 
 ### ✅ Assertions
 
 Named test blocks with a rich assertion chain:
 
 ```javascript
-reqlab.test("status is 200", () => {
-    reqlab.expect(reqlab.response.status).to.equal(200);
+clapi.test("status is 200", () => {
+    clapi.expect(clapi.response.status).to.equal(200);
 });
 ```
 
@@ -179,7 +179,7 @@ Assertions: `equal`, `eql`, `include`, `match`, `above`, `below`, `at.least`, `a
 - Unlimited collections with nested folders
 - Multi-tab request workflow with tab reorder and persistence
 - Request history with badge counts and sidebar sync
-- Export and import as JSON (ReqLab-native or Postman format)
+- Export and import as JSON (Clapi-native or Postman format)
 
 ### 📥 Postman Import
 
@@ -188,11 +188,11 @@ Assertions: `equal`, `eql`, `include`, `match`, `above`, `below`, `at.least`, `a
 Import **Postman Collection v2 / v2.1** and **Postman Environment** files directly.
 
 - All folders, requests, URLs, methods, headers, bodies, and auth types
-- `pm.*` script calls are automatically rewritten to `reqlab.*` equivalents
+- `pm.*` script calls are automatically rewritten to `clapi.*` equivalents
 - Legacy `postman.*` API calls (pre-v6) are also converted on import
 - Disabled headers and variables are skipped on import
-- `pm.sendRequest` is **fully supported** — translated to `reqlab.sendRequest()` automatically
-- `pm.execution.setNextRequest`, `pm.execution.skipRequest`, and `postman.setNextRequest` are translated to `reqlab.execution.*`
+- `pm.sendRequest` is **fully supported** — translated to `clapi.sendRequest()` automatically
+- `pm.execution.setNextRequest`, `pm.execution.skipRequest`, and `postman.setNextRequest` are translated to `clapi.execution.*`
 - See [docs/scripts.md](docs/scripts.md#8-postman-migration-guide) for the full conversion reference
 
 ### ⌨️ Keyboard Shortcuts
@@ -244,9 +244,9 @@ For larger changes, open an issue first to align on approach and scope.
 
 ## Continuous Integration
 
-ReqLab uses [GitHub Actions](https://github.com/features/actions) for CI. Push to `main` runs the quality gate; tags matching `v*` run the full desktop, network, web, and QA test gate, then build and publish a GitHub Release.
+Clapi uses [GitHub Actions](https://github.com/features/actions) for CI. Push to `main` runs the quality gate; tags matching `v*` run the full desktop, network, web, and QA test gate, then build and publish a GitHub Release.
 
-See the workflow: [`.github/workflows/release.yml`](https://github.com/snj07/req-lab/actions)
+See the workflow: [`.github/workflows/release.yml`](https://github.com/snj07/clapi/actions)
 
 ## License
 

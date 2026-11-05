@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Launches the ReqLab sample MCP mock over stdio (MCP 2025-06-18).
+# Launches the Clapi sample MCP mock over stdio (MCP 2025-06-18).
 # Used by the test collection env var mcpStdioCommand.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

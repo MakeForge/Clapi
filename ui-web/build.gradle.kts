@@ -9,7 +9,7 @@ kotlin {
     wasmJs {
         browser {
             commonWebpackConfig {
-                outputFileName = "reqlab-web.js"
+                outputFileName = "clapi-web.js"
             }
         }
         binaries.executable()

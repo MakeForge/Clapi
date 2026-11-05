@@ -33,7 +33,7 @@ kotlin {
 }
 
 android {
-    namespace = "com.reqlab.core.model"
+    namespace = "io.github.crustack.core.model"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()

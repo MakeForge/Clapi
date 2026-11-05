@@ -1,4 +1,4 @@
-rootProject.name = "ReqLab"
+rootProject.name = "Clapi"
 
 pluginManagement {
     repositories {

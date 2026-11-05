@@ -1,6 +1,6 @@
-# ReqLab Scripts
+# Clapi Scripts
 
-ReqLab scripts use a namespaced API under the `reqlab` prefix (configurable in **Settings → Scripts**).
+Clapi scripts use a namespaced API under the `clapi` prefix (configurable in **Settings → Scripts**).
 
 ## Where scripts run
 
@@ -10,7 +10,7 @@ ReqLab scripts use a namespaced API under the `reqlab` prefix (configurable in *
 
 ## Namespace prefix
 
-The default namespace is `reqlab`. You can change it in **Settings → Scripts → Script namespace prefix**. Any identifier (letters, digits, `_`) is valid, e.g. `api`, `rl`, or `myns`.
+The default namespace is `clapi`. You can change it in **Settings → Scripts → Script namespace prefix**. Any identifier (letters, digits, `_`) is valid, e.g. `api`, `rl`, or `myns`.
 
 The global (prefix-free) API is also supported for backward compatibility.
 
@@ -18,32 +18,32 @@ The global (prefix-free) API is also supported for backward compatibility.
 
 | Namespaced form | Description |
 |---|---|
-| `reqlab.test(name, fn)` | Register a named test block |
-| `reqlab.expect(value)` | Begin a Chai-style assertion chain |
-| `reqlab.response.code` | HTTP status code (number) |
-| `reqlab.response.status` | HTTP status text |
-| `reqlab.response.responseTime` | Round-trip time in ms |
-| `reqlab.response.size` | Response body size in bytes |
-| `reqlab.response.text()` | Response body as plain text |
-| `reqlab.response.json()` | Response body parsed as JSON |
-| `reqlab.response.headers.get(name)` | Response header value |
-| `reqlab.response.streamEvents` | Raw SSE/NDJSON event payloads |
-| `reqlab.response.llm.assembledText` | Assembled assistant / stream text |
-| `reqlab.response.llm.finishReason` | Chat `finish_reason` |
-| `reqlab.response.llm.usage` | Token usage object |
-| `reqlab.response.llm.jsonContent()` | Parse assembled text as JSON |
-| `reqlab.request.url` | Request URL |
-| `reqlab.request.method` | Request method |
-| `reqlab.request.body` | Request body |
-| `reqlab.request.headers.add(name, value)` | Add a request header |
-| `reqlab.request.headers.upsert(name, value)` | Set/replace a request header |
-| `reqlab.environment.get/set/unset(key)` | Environment variables |
-| `reqlab.globals.get/set/unset(key)` | Global variables |
-| `reqlab.collectionVariables.get/set/unset(key)` | Collection variables |
-| `reqlab.variables.get/set/unset(key)` | Merged variable lookup + request-local overrides |
-| `reqlab.console.log(...)` | Log to the script output panel |
-| `reqlab.execution.setNextRequest(nameOrIdOrRef)` | Chain to another saved request |
-| `reqlab.execution.skipRequest()` | Skip current request from pre-request script |
+| `clapi.test(name, fn)` | Register a named test block |
+| `clapi.expect(value)` | Begin a Chai-style assertion chain |
+| `clapi.response.code` | HTTP status code (number) |
+| `clapi.response.status` | HTTP status text |
+| `clapi.response.responseTime` | Round-trip time in ms |
+| `clapi.response.size` | Response body size in bytes |
+| `clapi.response.text()` | Response body as plain text |
+| `clapi.response.json()` | Response body parsed as JSON |
+| `clapi.response.headers.get(name)` | Response header value |
+| `clapi.response.streamEvents` | Raw SSE/NDJSON event payloads |
+| `clapi.response.llm.assembledText` | Assembled assistant / stream text |
+| `clapi.response.llm.finishReason` | Chat `finish_reason` |
+| `clapi.response.llm.usage` | Token usage object |
+| `clapi.response.llm.jsonContent()` | Parse assembled text as JSON |
+| `clapi.request.url` | Request URL |
+| `clapi.request.method` | Request method |
+| `clapi.request.body` | Request body |
+| `clapi.request.headers.add(name, value)` | Add a request header |
+| `clapi.request.headers.upsert(name, value)` | Set/replace a request header |
+| `clapi.environment.get/set/unset(key)` | Environment variables |
+| `clapi.globals.get/set/unset(key)` | Global variables |
+| `clapi.collectionVariables.get/set/unset(key)` | Collection variables |
+| `clapi.variables.get/set/unset(key)` | Merged variable lookup + request-local overrides |
+| `clapi.console.log(...)` | Log to the script output panel |
+| `clapi.execution.setNextRequest(nameOrIdOrRef)` | Chain to another saved request |
+| `clapi.execution.skipRequest()` | Skip current request from pre-request script |
 
 ## Runtime behavior summary
 
@@ -58,38 +58,38 @@ The global (prefix-free) API is also supported for backward compatibility.
 
 ```javascript
 var runId = "run-" + Date.now()
-reqlab.environment.set("runId", runId)
-reqlab.request.headers.upsert("X-Run-Id", runId)
-reqlab.request.setQueryParam("source", "script")
-reqlab.request.setBody('{"from":"pre-request"}')
-reqlab.console.log("Prepared request", reqlab.request.method, reqlab.request.url)
+clapi.environment.set("runId", runId)
+clapi.request.headers.upsert("X-Run-Id", runId)
+clapi.request.setQueryParam("source", "script")
+clapi.request.setBody('{"from":"pre-request"}')
+clapi.console.log("Prepared request", clapi.request.method, clapi.request.url)
 ```
 
 ## Example — post-request script
 
 ```javascript
-reqlab.test("Status is 200", function() {
-  reqlab.expect(reqlab.response.code).to.equal(200)
+clapi.test("Status is 200", function() {
+  clapi.expect(clapi.response.code).to.equal(200)
 })
 
-reqlab.test("Response time is acceptable", function() {
-  reqlab.expect(reqlab.response.responseTime).to.be.below(2000)
+clapi.test("Response time is acceptable", function() {
+  clapi.expect(clapi.response.responseTime).to.be.below(2000)
 })
 
-reqlab.test("Payload shape is valid", function() {
-  var body = reqlab.response.json()
-  reqlab.expect(body).to.have.property("id")
-  reqlab.expect(typeof body.id).to.equal("string")
-  reqlab.expect(body.type).to.be.oneOf(["Subscriber", "Admin"])
+clapi.test("Payload shape is valid", function() {
+  var body = clapi.response.json()
+  clapi.expect(body).to.have.property("id")
+  clapi.expect(typeof body.id).to.equal("string")
+  clapi.expect(body.type).to.be.oneOf(["Subscriber", "Admin"])
 })
 
-reqlab.test("streamed assistant text", function() {
-  reqlab.expect(reqlab.response.llm.assembledText).to.include("Hello")
-  reqlab.expect(reqlab.response.streamEvents.length).to.be.above(0)
+clapi.test("streamed assistant text", function() {
+  clapi.expect(clapi.response.llm.assembledText).to.include("Hello")
+  clapi.expect(clapi.response.streamEvents.length).to.be.above(0)
 })
 
-reqlab.environment.set("lastStatus", String(reqlab.response.code))
-reqlab.console.log("Captured lastStatus", reqlab.environment.get("lastStatus"))
+clapi.environment.set("lastStatus", String(clapi.response.code))
+clapi.console.log("Captured lastStatus", clapi.environment.get("lastStatus"))
 ```
 
 ## Alternative prefix
@@ -104,17 +104,17 @@ api.test("Status is 200", function() {
 ## Undefined / empty-safe usage
 
 ```javascript
-var g = reqlab.globals.get("suiteGlobal")
-var c = reqlab.collectionVariables.get("suiteCollection")
-var l = reqlab.variables.get("requestOnly")
+var g = clapi.globals.get("suiteGlobal")
+var c = clapi.collectionVariables.get("suiteCollection")
+var l = clapi.variables.get("requestOnly")
 
-reqlab.environment.set("safeGlobal", g == null ? "" : String(g))
-reqlab.environment.set("safeCollection", c == null ? "" : String(c))
-reqlab.environment.set("safeLocal", l == null ? "" : String(l))
+clapi.environment.set("safeGlobal", g == null ? "" : String(g))
+clapi.environment.set("safeCollection", c == null ? "" : String(c))
+clapi.environment.set("safeLocal", l == null ? "" : String(l))
 
-reqlab.test("undefined getters are safe", function() {
-  reqlab.expect(reqlab.globals.get("missingGlobal")).to.be.undefined
-  reqlab.expect(reqlab.collectionVariables.get("missingCollection")).to.be.undefined
-  reqlab.expect(reqlab.variables.get("missingVar")).to.be.undefined
+clapi.test("undefined getters are safe", function() {
+  clapi.expect(clapi.globals.get("missingGlobal")).to.be.undefined
+  clapi.expect(clapi.collectionVariables.get("missingCollection")).to.be.undefined
+  clapi.expect(clapi.variables.get("missingVar")).to.be.undefined
 })
 ```

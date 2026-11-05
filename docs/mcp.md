@@ -1,10 +1,10 @@
-# Model Context Protocol (MCP) in ReqLab
+# Model Context Protocol (MCP) in Clapi
 
-ReqLab is a local-first [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) **client**. It lets you configure, inspect, and exercise MCP servers beside the HTTP APIs they depend on—using the same collections, environments, `{{variables}}`, authentication editors, and response tooling.
+Clapi is a local-first [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) **client**. It lets you configure, inspect, and exercise MCP servers beside the HTTP APIs they depend on—using the same collections, environments, `{{variables}}`, authentication editors, and response tooling.
 
 Save a connection, connect to the server, and work with its tools, resources, and prompts. When something needs diagnosing, the session's JSON-RPC traffic remains available in Activity without mixing it into script output.
 
-> **Scope:** ReqLab connects to MCP servers; it does not expose an MCP server. It supports MCP 2025-06-18 over Streamable HTTP and stdio, plus the 2024-11-05 legacy HTTP+SSE transport.
+> **Scope:** Clapi connects to MCP servers; it does not expose an MCP server. It supports MCP 2025-06-18 over Streamable HTTP and stdio, plus the 2024-11-05 legacy HTTP+SSE transport.
 
 This is the product guide. For the local mock server, PATH shim, and end-to-end commands, see [DEVELOPMENT.md](../DEVELOPMENT.md) and [the test guide](tests.md).
 
@@ -15,7 +15,7 @@ This is the product guide. For the local mock server, PATH shim, and end-to-end 
 1. Create a connection from the sidebar: **Add → MCP connection**.
 2. In **Client**, select **HTTP** or **stdio**. For an HTTP server, start with **Auto**; it tries the current Streamable HTTP transport and falls back to legacy HTTP+SSE when appropriate.
 3. Enter the server URL or desktop stdio command. Variables resolve here just as they do in HTTP requests.
-4. Click **Connect**. Confirm before ReqLab starts a local stdio process.
+4. Click **Connect**. Confirm before Clapi starts a local stdio process.
 5. Select a tool, resource, or prompt. Results open in the shared Response pane; use **Activity** for the complete protocol exchange.
 
 If you change connection settings while connected, reconnect before testing again.
@@ -38,13 +38,13 @@ If you change connection settings while connected, reconnect before testing agai
 | Client callbacks | Sampling (mock or review + optional LLM), roots list, elicitation form, ping (always handled) |
 | Persistence | Collection item `kind: MCP`; import/export of transport, HTTP mode, headers, auth, roots, sampling, and elicitation settings |
 
-The Response pane is the same viewer as REST (status, timing, size, and pretty JSON). Nested JSON stored as a string is unwrapped for display. ReqLab does not show a Cookies tab for MCP responses.
+The Response pane is the same viewer as REST (status, timing, size, and pretty JSON). Nested JSON stored as a string is unwrapped for display. Clapi does not show a Cookies tab for MCP responses.
 
 ---
 
 ## Connection lifecycle
 
-An MCP tab retains its active session while you work elsewhere in ReqLab. It disconnects when you close the tab or select **Disconnect**.
+An MCP tab retains its active session while you work elsewhere in Clapi. It disconnects when you close the tab or select **Disconnect**.
 
 - Open an MCP collection item (identified by an **MCP** badge), then choose **HTTP** or desktop **stdio** in the **Client** tab. HTTP exposes **Auto**, **2025-06-18**, and **Legacy** modes.
 - Put the URL or command in the top bar. `{{variable}}` interpolation works here, including in headers and configured authentication.
@@ -62,18 +62,18 @@ Reconnect if Client-tab settings change while you are connected (transport, URL/
 
 Pick a tool, fill arguments, Run. The screenshot is a connected Streamable HTTP session calling `add` with JSON arguments; the Response body is the JSON-RPC result.
 
-![ReqLab MCP tools workspace — connected session, tool list, Form/JSON arguments, JSON-RPC result](images/mcp-tools.png)
+![Clapi MCP tools workspace — connected session, tool list, Form/JSON arguments, JSON-RPC result](images/mcp-tools.png)
 
 - Tab label includes the tool count. Search filters by name and description. Drag the list/detail split.
 - **Form** builds arguments from the JSON Schema (string, number, boolean, enum). **JSON** is a raw editor. Required fields must be filled before Run is enabled.
 - Tools may show **Read-only** or **Destructive** chips from server annotations.
-- **Run** / **Stop** sit on the tool pane. Stop cancels the in-flight call in ReqLab (it does not send a protocol cancel notification).
+- **Run** / **Stop** sit on the tool pane. Stop cancels the in-flight call in Clapi (it does not send a protocol cancel notification).
 - Success and tool errors use the shared Response viewer.
 
 ### Resources
 
 - Search the list, select a resource, **Read**. Contents appear in Response.
-- If the server advertises `resources.subscribe`, **Subscribe** asks it to notify on change. ReqLab re-reads subscribed URIs on `notifications/resources/updated` and shows the new contents in Response. **Unsubscribe** stops that.
+- If the server advertises `resources.subscribe`, **Subscribe** asks it to notify on change. Clapi re-reads subscribed URIs on `notifications/resources/updated` and shows the new contents in Response. **Unsubscribe** stops that.
 
 ### Prompts
 
@@ -96,9 +96,9 @@ Use Activity when you need the payload; use Logs for a compact trail.
 
 ---
 
-## Client tab: how ReqLab answers the server
+## Client tab: how Clapi answers the server
 
-Servers can call **back** into the client. Configure how ReqLab responds before connecting; these settings are stored on the tab and round-trip in collection JSON.
+Servers can call **back** into the client. Configure how Clapi responds before connecting; these settings are stored on the tab and round-trip in collection JSON.
 
 ### Connection
 
@@ -109,18 +109,18 @@ Servers can call **back** into the client. Configure how ReqLab responds before 
 
 | Setting | Behavior |
 |---|---|
-| Auto-respond sampling **on** | Silent mock reply (`mock reply from ReqLab`). |
+| Auto-respond sampling **on** | Silent mock reply (`mock reply from Clapi`). |
 | Auto-respond sampling **off** | Response pane: review `sampling/createMessage` → optionally **Approve generate** (LLM URL / token / max tokens) → edit `content`, `role`, `model`, `stopReason` → **Approve send**. Cancel sends `stopReason: cancelled`. Empty URL or a failed generate still opens the editable result. |
 | Auto-accept elicitation **on** | Silent `accept`. |
 | Auto-accept elicitation **off** | Schema form in Response; Accept or Decline. |
 
-Ping has no switch: ReqLab always answers `ping` with an empty result.
+Ping has no switch: Clapi always answers `ping` with an empty result.
 
-For unfamiliar servers, leave automatic sampling and elicitation disabled. That keeps each server-initiated request visible for review before ReqLab responds.
+For unfamiliar servers, leave automatic sampling and elicitation disabled. That keeps each server-initiated request visible for review before Clapi responds.
 
 ### Roots
 
-URI and optional name rows. ReqLab returns them on `roots/list`. Empty state is “No folders yet” plus Add.
+URI and optional name rows. Clapi returns them on `roots/list`. Empty state is “No folders yet” plus Add.
 
 ---
 
@@ -138,7 +138,7 @@ OAuth 2.1 is not an Auth-tab option yet. If a server expects a bearer token you 
 
 ## Transports
 
-| Spec | In ReqLab |
+| Spec | In Clapi |
 |---|---|
 | MCP 2025-06-18 | Streamable HTTP: `POST` JSON-RPC (`Accept: application/json, text/event-stream`). Optional `Mcp-Session-Id`; `DELETE` on disconnect; optional GET SSE after handshake. |
 | MCP 2024-11-05 | Legacy HTTP+SSE: `GET` for the `endpoint` event, then `POST` JSON-RPC. Replies are correlated by JSON-RPC `id` on the SSE stream. |
@@ -148,7 +148,7 @@ OAuth 2.1 is not an Auth-tab option yet. If a server expects a bearer token you 
 
 HTTP example (test environment): `{{mcpBaseUrl}}` → `http://localhost:8080/mcp`. Legacy: `{{mcpLegacyUrl}}` → `http://localhost:8080/mcp/sse`.
 
-stdio is a **full command line** (executable plus arguments), for example `npx -y @modelcontextprotocol/server-everything` or `sample-server` after the PATH shim. Quoted paths with spaces work. Because the command starts a local process, ReqLab asks for confirmation before connecting. Review the resolved command and its variables before approving it. How ReqLab resolves PATH and installs the sample shim: [DEVELOPMENT.md](../DEVELOPMENT.md).
+stdio is a **full command line** (executable plus arguments), for example `npx -y @modelcontextprotocol/server-everything` or `sample-server` after the PATH shim. Quoted paths with spaces work. Because the command starts a local process, Clapi asks for confirmation before connecting. Review the resolved command and its variables before approving it. How Clapi resolves PATH and installs the sample shim: [DEVELOPMENT.md](../DEVELOPMENT.md).
 
 ---
 
@@ -186,7 +186,7 @@ Connect / Disconnect is the connection-bar button, not Send.
 
 ## Try the sample collection
 
-Import [qa-tests/fixtures/reqlab-test-collection.json](../qa-tests/fixtures/reqlab-test-collection.json) and [qa-tests/fixtures/reqlab-test-environment.json](../qa-tests/fixtures/reqlab-test-environment.json). Folder **MCP (Model Context Protocol)** covers Streamable HTTP, auth variants, query params, legacy SSE, stdio, sampling, roots, and elicitation.
+Import [qa-tests/fixtures/clapi-test-collection.json](../qa-tests/fixtures/clapi-test-collection.json) and [qa-tests/fixtures/clapi-test-environment.json](../qa-tests/fixtures/clapi-test-environment.json). Folder **MCP (Model Context Protocol)** covers Streamable HTTP, auth variants, query params, legacy SSE, stdio, sampling, roots, and elicitation.
 
 Start the mock with `./gradlew :sample-server:run`. Routes, mock tools (`echo`, `add`, `trigger_*`, …), and stdio install: [DEVELOPMENT.md](../DEVELOPMENT.md). How tests assert this: [docs/tests.md](tests.md).
 

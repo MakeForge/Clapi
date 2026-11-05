@@ -67,7 +67,7 @@ jobs:
             package-task: packageDmg
             artifact-ext: dmg
             artifact-subdir: dmg
-            include-jar: "true"   # packageReqLabJar already outputs to build/distribute; flag just controls verification
+            include-jar: "true"   # packageClapiJar already outputs to build/distribute; flag just controls verification
 
           - os: ubuntu-latest
             platform: linux
@@ -124,7 +124,7 @@ jobs:
           ./gradlew \
             clean \
             :ui-desktop:${{ matrix.package-task }} \
-            :ui-desktop:packageReqLabJar \
+            :ui-desktop:packageClapiJar \
             :ui-desktop:verifyPackagedRuntime \
             --no-daemon --stacktrace
 
@@ -136,16 +136,16 @@ jobs:
           .\gradlew.bat `
             clean `
             :ui-desktop:${{ matrix.package-task }} `
-            :ui-desktop:packageReqLabJar `
+            :ui-desktop:packageClapiJar `
             :ui-desktop:verifyPackagedRuntime `
             --no-daemon --stacktrace
 
       # ── 7. Collect, rename, and stage artifacts ───────────────────────────────
-      #    packageReqLabJar already writes ReqLab-{VERSION}.jar to build/distribute/.
+      #    packageClapiJar already writes Clapi-{VERSION}.jar to build/distribute/.
       #    This step adds the renamed native package alongside it.
       #    Final layout of ui-desktop/build/distribute/:
-      #      ReqLab-{VERSION}-{PLATFORM}.{EXT}
-      #      ReqLab-{VERSION}.jar            (macOS runner only; others omit jar)
+      #      Clapi-{VERSION}-{PLATFORM}.{EXT}
+      #      Clapi-{VERSION}.jar            (macOS runner only; others omit jar)
       - name: Collect and rename artifacts
         shell: bash
         run: |
@@ -167,18 +167,18 @@ jobs:
             exit 1
           fi
 
-          TARGET="${DIST}/ReqLab-${VERSION}-${PLATFORM}.${EXT}"
+          TARGET="${DIST}/Clapi-${VERSION}-${PLATFORM}.${EXT}"
           cp "${SRC}" "${TARGET}"
           echo "Staged: ${TARGET}"
 
           # ── JAR ──────────────────────────────────────────────────────────────
-          # packageReqLabJar already wrote it to build/distribute/ReqLab-{VERSION}.jar.
+          # packageClapiJar already wrote it to build/distribute/Clapi-{VERSION}.jar.
           # On non-macOS runners we remove it so each runner only uploads its own artifact.
           if [[ "${{ matrix.include-jar }}" != "true" ]]; then
-            rm -f "${DIST}/ReqLab-${VERSION}.jar"
+            rm -f "${DIST}/Clapi-${VERSION}.jar"
             echo "Removed JAR from non-macOS runner (will be uploaded by macOS runner only)"
           else
-            JAR="${DIST}/ReqLab-${VERSION}.jar"
+            JAR="${DIST}/Clapi-${VERSION}.jar"
             if [[ ! -f "${JAR}" ]]; then
               echo "ERROR: JAR not found at ${JAR}"
               ls -lh "${DIST}/" || true
@@ -212,7 +212,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: reqlab-${{ matrix.platform }}-${{ github.sha }}
+          name: clapi-${{ matrix.platform }}-${{ github.sha }}
           path: ui-desktop/build/distribute/
           if-no-files-found: error
 
@@ -277,7 +277,7 @@ jobs:
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          name: "ReqLab ${{ github.ref_name }}"
+          name: "Clapi ${{ github.ref_name }}"
           body_path: RELEASE_NOTES.md
           generate_release_notes: false
           fail_on_unmatched_files: true
