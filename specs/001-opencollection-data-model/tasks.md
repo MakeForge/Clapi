@@ -22,11 +22,11 @@ Multi-module Kotlin project. Paths are relative to the repository root (see plan
 
 **Purpose**: Dependencies and module scaffolding required by all stories
 
-- [ ] T001 Add `com.networknt:json-schema-validator` (Draft-07) to the core-storage module dependencies in `core-storage/build.gradle.kts`
-- [ ] T002 [P] Add `com.charleskorn.kaml:kaml` to the core-storage module dependencies in `core-storage/build.gradle.kts`
-- [ ] T003 [P] Create the `opencollection` package directory `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/`
-- [ ] T004 [P] Create the `opencollection` package directory `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/`
-- [ ] T005 [P] Copy the official schema `docs/Clapi/todos/opencollection_v1.0.0.json` into a bundled resource at `core-storage/src/commonMain/resources/opencollection/opencollection_v1.0.0.json` (the resource is loaded by the schema validator)
+- [X] T001 Add `com.networknt:json-schema-validator` (Draft-07) to the core-storage module dependencies in `core-storage/build.gradle.kts`
+- [X] T002 [P] Add `com.charleskorn.kaml:kaml` to the core-storage module dependencies in `core-storage/build.gradle.kts`
+- [X] T003 [P] Create the `opencollection` package directory `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/`
+- [X] T004 [P] Create the `opencollection` package directory `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/`
+- [X] T005 [P] Copy the official schema `docs/Clapi/todos/opencollection_v1.0.0.json` into a bundled resource at `core-storage/src/commonMain/resources/opencollection/opencollection_v1.0.0.json` (the resource is loaded by the schema validator)
 
 ---
 
