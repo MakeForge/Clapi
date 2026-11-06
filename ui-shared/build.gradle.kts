@@ -86,11 +86,6 @@ val generateBuildInfo by tasks.registering {
 kotlin {
     jvm("desktop")
 
-    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
-    wasmJs {
-        browser()
-    }
-
     sourceSets {
         val commonMain by getting {
             kotlin.srcDir(generatedI18nDir)
@@ -124,11 +119,6 @@ kotlin {
             dependencies {
                 implementation(libs.ktor.client.cio)
                 implementation(libs.coroutines.swing)
-            }
-        }
-        val wasmJsMain by getting {
-            dependencies {
-                implementation(libs.ktor.client.js)
             }
         }
     }
