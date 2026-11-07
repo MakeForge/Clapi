@@ -15,14 +15,33 @@ actual class OpenCollectionSchemaValidator actual constructor() {
 
     actual fun validate(rawJson: String): List<ValidationIssue> {
         return try {
-            val errors = schema.validate(rawJson, InputFormat.JSON)
-            errors.map { err ->
+            val errors = schema.validate(rawJson, InputFormat.JSON).toMutableList()
+            val issues = errors.map { err ->
                 ValidationIssue(
                     path = err.instanceLocation.toString().ifBlank { "$" },
                     message = err.message ?: "Schema validation failed",
                     keyword = err.keyword
                 )
-            }
+            }.toMutableList()
+
+            // Check opencollection version constraint (FR-002: must be "1.0.0")
+            try {
+                val element = kotlinx.serialization.json.Json.parseToJsonElement(rawJson)
+                val version = (element as? kotlinx.serialization.json.JsonObject)
+                    ?.get("opencollection")
+                    ?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
+                if (version != null && version != "1.0.0") {
+                    issues.add(
+                        ValidationIssue(
+                            path = "$.opencollection",
+                            message = "OpenCollection version '$version' is unsupported. Only '1.0.0' is supported.",
+                            keyword = "const"
+                        )
+                    )
+                }
+            } catch (_: Exception) {}
+
+            issues
         } catch (e: Exception) {
             listOf(
                 ValidationIssue(
@@ -36,14 +55,30 @@ actual class OpenCollectionSchemaValidator actual constructor() {
 
     actual fun validateYaml(rawYaml: String): List<ValidationIssue> {
         return try {
-            val errors = schema.validate(rawYaml, InputFormat.YAML)
-            errors.map { err ->
+            val errors = schema.validate(rawYaml, InputFormat.YAML).toMutableList()
+            val issues = errors.map { err ->
                 ValidationIssue(
                     path = err.instanceLocation.toString().ifBlank { "$" },
                     message = err.message ?: "Schema validation failed",
                     keyword = err.keyword
                 )
-            }
+            }.toMutableList()
+
+            try {
+                val node = com.charleskorn.kaml.Yaml.default.parseToYamlNode(rawYaml)
+                val version = ((node as? com.charleskorn.kaml.YamlMap)?.get<com.charleskorn.kaml.YamlScalar>("opencollection"))?.content
+                if (version != null && version != "1.0.0") {
+                    issues.add(
+                        ValidationIssue(
+                            path = "$.opencollection",
+                            message = "OpenCollection version '$version' is unsupported. Only '1.0.0' is supported.",
+                            keyword = "const"
+                        )
+                    )
+                }
+            } catch (_: Exception) {}
+
+            issues
         } catch (e: Exception) {
             listOf(
                 ValidationIssue(

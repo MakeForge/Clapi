@@ -31,6 +31,9 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import io.github.crustack.core.storage.opencollection.ExportFormat
+import io.github.crustack.core.storage.opencollection.OpenCollectionSerializer
+import io.github.crustack.core.storage.opencollection.OpenCollectionSchemaValidator
 import io.github.crustack.ui.shared.platform.generateUuid
 
 class ImportExportException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
@@ -136,27 +139,57 @@ data class WorkspaceImportResult(
 object ImportExportRepository {
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true; isLenient = true }
 
-    fun exportCollectionToString(collectionRoot: CollectionNode): String {
-        val root = collectionNodeToCollectionJson(collectionRoot)
-        return json.encodeToString(kotlinx.serialization.json.JsonElement.serializer(), root)
+    fun exportCollectionToString(
+        collectionRoot: CollectionNode,
+        format: ExportFormat = ExportFormat.JSON,
+    ): String {
+        val doc = collectionRoot.toOpenCollectionDocument()
+        return when (format) {
+            ExportFormat.JSON -> OpenCollectionSerializer.serializeJson(doc)
+            ExportFormat.YAML -> OpenCollectionSerializer.serializeYaml(doc)
+        }
     }
 
-    fun importCollectionFromString(state: AppState, rawJson: String): String {
-        val root = parseJsonString(rawJson)
-        val dto = when {
-            root["type"]?.jsonPrimitive?.contentOrNull == "clapiCollection" -> {
-                validateVersion(root)
-                collectionDtoFromJson(root)
+    fun importCollectionFromString(state: AppState, rawContent: String): String {
+        val trimmed = rawContent.trim()
+        if (trimmed.startsWith("{")) {
+            val root = parseJsonString(trimmed)
+            if (root["opencollection"] != null) {
+                OpenCollectionSchemaValidator().validateOrThrow(trimmed)
+                val doc = OpenCollectionSerializer.deserializeJson(trimmed)
+                val existingNames = state.collections.map { it.name }.toMutableSet()
+                val uniqueName = ImportExportNaming.generateUniqueCollectionName(doc.info.name, existingNames)
+                val node = doc.toCollectionNode(nameOverride = uniqueName, preserveIds = false)
+                state.collections.add(node)
+                return uniqueName
             }
-            PostmanImporter.isPostmanCollection(root) -> PostmanImporter.importCollection(root)
-            else -> throw ImportExportException(
-                "Unrecognized collection format. Expected a Clapi or Postman v2/v2.1 collection."
+            val dto = when {
+                root["type"]?.jsonPrimitive?.contentOrNull == "clapiCollection" -> {
+                    validateVersion(root)
+                    collectionDtoFromJson(root)
+                }
+                PostmanImporter.isPostmanCollection(root) -> PostmanImporter.importCollection(root)
+                else -> throw ImportExportException(
+                    "Unrecognized collection format. Expected an OpenCollection, Clapi, or Postman v2/v2.1 collection."
+                )
+            }
+            val existingNames = state.collections.map { it.name }.toMutableSet()
+            val uniqueName = ImportExportNaming.generateUniqueCollectionName(dto.name, existingNames)
+            state.collections.add(collectionDtoToNode(dto, uniqueName, preserveIds = false))
+            return uniqueName
+        } else if (trimmed.contains("opencollection:")) {
+            OpenCollectionSchemaValidator().validateYamlOrThrow(trimmed)
+            val doc = OpenCollectionSerializer.deserializeYaml(trimmed)
+            val existingNames = state.collections.map { it.name }.toMutableSet()
+            val uniqueName = ImportExportNaming.generateUniqueCollectionName(doc.info.name, existingNames)
+            val node = doc.toCollectionNode(nameOverride = uniqueName, preserveIds = false)
+            state.collections.add(node)
+            return uniqueName
+        } else {
+            throw ImportExportException(
+                "Unrecognized collection format. Expected an OpenCollection, Clapi, or Postman v2/v2.1 collection."
             )
         }
-        val existingNames = state.collections.map { it.name }.toMutableSet()
-        val uniqueName = ImportExportNaming.generateUniqueCollectionName(dto.name, existingNames)
-        state.collections.add(collectionDtoToNode(dto, uniqueName, preserveIds = false))
-        return uniqueName
     }
 
     fun exportEnvironmentToString(environment: EnvState): String {

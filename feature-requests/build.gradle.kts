@@ -12,6 +12,7 @@ kotlin {
             implementation(project(":core-network"))
             implementation(project(":core-storage"))
             implementation(project(":core-scripting"))
+            implementation(libs.serialization.json)
             implementation(libs.coroutines.core)
             implementation(libs.koin.core)
         }

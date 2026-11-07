@@ -75,15 +75,10 @@ object OpenCollectionSerializer {
     ): JsonElement {
         val rootObj = rootElement.jsonObject.toMutableMap()
 
-        // If document extensions contains extra top-level fields (not under extensions property), restore them
-        for ((k, v) in document.extensions) {
-            if (k !in KNOWN_DOCUMENT_KEYS) {
-                rootObj[k] = v
-            }
-        }
-
-        // If document.extensions is empty, remove "extensions" from root
-        if (document.extensions.isEmpty()) {
+        // Document level: extensions must be placed under the "extensions" property
+        if (document.extensions.isNotEmpty()) {
+            rootObj["extensions"] = JsonObject(document.extensions)
+        } else {
             rootObj.remove("extensions")
         }
 
@@ -104,18 +99,14 @@ object OpenCollectionSerializer {
             val baseItemObj = itemsJson.getOrNull(index)?.jsonObject?.toMutableMap() ?: mutableMapOf()
             when (item) {
                 is FolderItem -> {
-                    for ((k, v) in item.extensions) {
-                        baseItemObj[k] = v
-                    }
                     val subItems = baseItemObj["items"]?.jsonArray
                     if (subItems != null && item.items.isNotEmpty()) {
                         baseItemObj["items"] = JsonArray(enrichItemsForSerialization(subItems, item.items))
                     }
                 }
                 is HttpRequestItem -> {
-                    for ((k, v) in item.extensions) {
-                        baseItemObj[k] = v
-                    }
+                    // OpenCollection HttpRequest schema has additionalProperties: false;
+                    // item extensions are not written into the item object directly.
                 }
             }
             JsonObject(baseItemObj)

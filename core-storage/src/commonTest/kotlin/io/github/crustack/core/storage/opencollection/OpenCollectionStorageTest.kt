@@ -248,4 +248,63 @@ class OpenCollectionStorageTest {
         assertEquals("Nested A", folder.items[0].info.name)
         assertEquals("Nested B", folder.items[1].info.name)
     }
+
+    @Test
+    fun testBundledStorageDriverMemoryKeyRoundTrip() = kotlinx.coroutines.test.runTest {
+        val driver = BundledCollectionStorageDriver()
+        val doc = createSampleDocument()
+        val location = StorageLocation.MemoryKey("test-key")
+
+        driver.write(location, doc)
+        val readDoc = driver.read(location)
+
+        assertEquals(doc.info.name, readDoc.info.name)
+        assertEquals(1, readDoc.items.size)
+
+        driver.delete(location)
+        assertFailsWith<StorageReadException> {
+            driver.read(location)
+        }
+    }
+
+    @Test
+    fun testBundledStorageDriverInvalidDocumentFailsPreSave() = kotlinx.coroutines.test.runTest {
+        val driver = BundledCollectionStorageDriver()
+        // Invalid opencollection version "2.0.0" (schema requires 1.0.0)
+        val invalidDoc = createSampleDocument().copy(opencollection = "2.0.0")
+        val location = StorageLocation.MemoryKey("invalid-key")
+
+        assertFailsWith<CollectionValidationException> {
+            driver.write(location, invalidDoc)
+        }
+    }
+
+    @Test
+    fun testCanonicalCollectionRepositoryCrud() = kotlinx.coroutines.test.runTest {
+        val repository = DefaultCanonicalCollectionRepository()
+        val doc = createSampleDocument()
+
+        repository.saveCollection(doc)
+        val fetched = repository.getCollection(doc.info.name)
+        assertEquals(doc.info.name, fetched?.info?.name)
+
+        // Export JSON
+        val exportedJson = repository.exportCollection(doc, ExportFormat.JSON)
+        assertTrue(exportedJson.contains("\"opencollection\": \"1.0.0\""))
+
+        // Export YAML
+        val exportedYaml = repository.exportCollection(doc, ExportFormat.YAML)
+        assertTrue(exportedYaml.contains("opencollection: 1.0.0") || exportedYaml.contains("opencollection: \"1.0.0\""))
+
+        // Import
+        val imported = repository.importCollection(exportedJson)
+        // Since name already existed, it should get a unique name
+        assertEquals("Sample Collection (1)", imported.info.name)
+
+        // Delete
+        repository.deleteCollection(doc.info.name)
+        val afterDelete = repository.getCollection(doc.info.name)
+        assertEquals(null, afterDelete)
+    }
 }
+

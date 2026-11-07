@@ -87,14 +87,37 @@ class ImportExportRepositoryTest {
         val collection = source.collections.first()
 
         val content = ImportExportRepository.exportCollectionToString(collection)
-        assertTrue(content.contains("\"type\": \"clapiCollection\""))
-        assertTrue(content.contains("\"folders\""))
-        assertTrue(content.contains("\"requests\""))
+        assertTrue(content.contains("\"opencollection\": \"1.0.0\""))
+        assertTrue(content.contains("\"info\""))
+        assertTrue(content.contains("\"items\""))
 
         val target = AppState().also { it.collections.clear() }
         val importedName = ImportExportRepository.importCollectionFromString(target, content)
 
         assertEquals(collection.name, importedName)
+        assertEquals(1, target.collections.size)
+    }
+
+    @Test
+    fun importLegacyClapiCollection_succeeds() {
+        val legacyJson = """
+            {
+              "type": "clapiCollection",
+              "version": "1.0",
+              "name": "Legacy Col",
+              "folders": [],
+              "requests": [
+                {
+                  "name": "Req1",
+                  "method": "GET",
+                  "url": "https://example.com"
+                }
+              ]
+            }
+        """.trimIndent()
+        val target = AppState().also { it.collections.clear() }
+        val importedName = ImportExportRepository.importCollectionFromString(target, legacyJson)
+        assertEquals("Legacy Col", importedName)
         assertEquals(1, target.collections.size)
     }
 

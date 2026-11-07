@@ -63,11 +63,11 @@ Multi-module Kotlin project. Paths are relative to the repository root (see plan
 
 **Contracts**: `opencollection-document.contract.md`, `collection-repository.contract.md`
 
-- [ ] T020 [US1] Implement `BundledCollectionStorageDriver` (single-file read/write/delete for `FilePath`) in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/CollectionStorageDriver.kt`. Only the bundled layout is implemented (FR-034)
-- [ ] T021 [US1] Implement `CanonicalCollectionRepository` with `observeCollections`, `getCollection`, `saveCollection`, and `deleteCollection` in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/CanonicalCollectionRepository.kt`. Validate before write; invalid documents are never written (FR-006); no runtime state (FR-024); no filesystem leakage (FR-033)
-- [ ] T022 [US1] Implement `importCollection` and `exportCollection(ExportFormat JSON|YAML)` in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/CanonicalCollectionRepository.kt`
-- [ ] T023 [US1] Wire the workspace to the canonical repository so collections load and save through it, in `ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/persistence/WorkspaceRepository.kt`. Keep open tabs and runtime state out of the document (FR-024)
-- [ ] T024 [US1] Update import and export to read and write OpenCollection documents in `ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/persistence/ImportExportRepository.kt`
+- [X] T020 [US1] Implement `BundledCollectionStorageDriver` (single-file read/write/delete for `FilePath`) in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/CollectionStorageDriver.kt`. Only the bundled layout is implemented (FR-034)
+- [X] T021 [US1] Implement `CanonicalCollectionRepository` with `observeCollections`, `getCollection`, `saveCollection`, and `deleteCollection` in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/CanonicalCollectionRepository.kt`. Validate before write; invalid documents are never written (FR-006); no runtime state (FR-024); no filesystem leakage (FR-033)
+- [X] T022 [US1] Implement `importCollection` and `exportCollection(ExportFormat JSON|YAML)` in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/CanonicalCollectionRepository.kt`
+- [X] T023 [US1] Wire the workspace to the canonical repository so collections load and save through it, in `ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/persistence/WorkspaceRepository.kt`. Keep open tabs and runtime state out of the document (FR-024)
+- [X] T024 [US1] Update import and export to read and write OpenCollection documents in `ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/persistence/ImportExportRepository.kt`
 
 **Checkpoint**: US1 is independently testable. Open, edit, and save round-trips a collection.
 
@@ -81,11 +81,11 @@ Multi-module Kotlin project. Paths are relative to the repository root (see plan
 
 **Contracts**: `http-execution-adapter.contract.md`
 
-- [ ] T025 [US2] Implement `HttpExecutionAdapter.toExecutableRequest(requestItem, parentHierarchy, collectionRoot): RequestDefinition` in `feature-requests/src/commonMain/kotlin/io/github/crustack/feature/requests/HttpExecutionAdapter.kt`. Must produce identical wire requests (FR-035, SC-003)
-- [ ] T026 [US2] Implement auth and header inheritance in `HttpExecutionAdapter.kt`. `AuthInherit` traverses parents up to the collection root. Precedence: request > folder > collection defaults (FR-035)
-- [ ] T027 [US2] Implement variable resolution precedence in `HttpExecutionAdapter.kt`: request/runtime > environment > collection > global (research §7)
-- [ ] T028 [US2] Keep the adapter free of Compose and platform dependencies in `feature-requests/src/commonMain/kotlin/io/github/crustack/feature/requests/HttpExecutionAdapter.kt`
-- [ ] T029 [US2] Route the existing request execution path through the adapter in `feature-requests/src/commonMain/kotlin/io/github/crustack/feature/requests/HttpExecutionAdapter.kt` callers (search `feature-requests` for the current `RequestDefinition` construction and replace it)
+- [X] T025 [US2] Implement `HttpExecutionAdapter.toExecutableRequest(requestItem, parentHierarchy, collectionRoot): RequestDefinition` in `feature-requests/src/commonMain/kotlin/io/github/crustack/feature/requests/HttpExecutionAdapter.kt`. Must produce identical wire requests (FR-035, SC-003)
+- [X] T026 [US2] Implement auth and header inheritance in `HttpExecutionAdapter.kt`. `AuthInherit` traverses parents up to the collection root. Precedence: request > folder > collection defaults (FR-035)
+- [X] T027 [US2] Implement variable resolution precedence in `HttpExecutionAdapter.kt`: request/runtime > environment > collection > global (research §7)
+- [X] T028 [US2] Keep the adapter free of Compose and platform dependencies in `feature-requests/src/commonMain/kotlin/io/github/crustack/feature/requests/HttpExecutionAdapter.kt`
+- [X] T029 [US2] Route the existing request execution path through the adapter in `feature-requests/src/commonMain/kotlin/io/github/crustack/feature/requests/HttpExecutionAdapter.kt` callers (search `feature-requests` for the current `RequestDefinition` construction and replace it)
 
 **Checkpoint**: US2 is independently testable. Execution output is unchanged for equivalent collections.
 
