@@ -20,8 +20,11 @@ import io.github.crustack.core.model.opencollection.SecretVariable
 import io.github.crustack.core.model.opencollection.VariableValue
 import io.github.crustack.core.model.opencollection.getClapiExtensionData
 import io.github.crustack.core.model.opencollection.withClapiExtensionData
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -403,6 +406,82 @@ class OpenCollectionStorageTest {
         assertFailsWith<CollectionValidationException> { driver.write(location, invalidDoc) }
 
         assertEquals("Sample Collection", driver.read(location).info.name)
+    }
+
+    @Test
+    fun testFolderExtensionsKeyIsRejectedBySchema() {
+        val json = """
+            {
+                "opencollection": "1.0.0",
+                "info": { "name": "Workspace" },
+                "items": [
+                    {
+                        "info": { "name": "Collection A", "type": "folder" },
+                        "extensions": { "id": "id-a" },
+                        "items": []
+                    }
+                ]
+            }
+        """.trimIndent()
+
+        val issues = validator.validate(json)
+        assertFalse(issues.isEmpty(), "Schema must reject an extensions key on a folder item: $issues")
+    }
+
+    @Test
+    fun testTopLevelFolderIdsSurviveSaveAndReload() = kotlinx.coroutines.test.runTest {
+        val original = OpenCollectionDocument(
+            opencollection = "1.0.0",
+            info = CollectionInfo(name = "Workspace"),
+            items = listOf(
+                FolderItem(
+                    info = FolderInfo(name = "Alpha", type = "folder"),
+                    extensions = mapOf("id" to JsonPrimitive("id-alpha")),
+                ),
+                FolderItem(
+                    info = FolderInfo(name = "Beta", type = "folder"),
+                    extensions = mapOf("id" to JsonPrimitive("id-beta")),
+                    items = listOf(
+                        FolderItem(
+                            info = FolderInfo(name = "Nested", type = "folder"),
+                            extensions = mapOf("id" to JsonPrimitive("id-nested")),
+                        )
+                    ),
+                ),
+            ),
+        )
+
+        val json = OpenCollectionSerializer.serializeJson(original)
+        validator.validateOrThrow(json)
+        val root = OpenCollectionSerializer.json.parseToJsonElement(json).jsonObject
+        val firstItem = root["items"]!!.jsonArray[0].jsonObject
+        assertFalse(firstItem.containsKey("extensions"), "Folder item must not contain extensions: $firstItem")
+        val folderIds = root["extensions"]!!.jsonObject["folderIds"]!!.jsonObject
+        assertEquals(JsonPrimitive("id-alpha"), folderIds["0"])
+        assertEquals(JsonPrimitive("id-beta"), folderIds["1"])
+
+        val driver = BundledCollectionStorageDriver()
+        val location = StorageLocation.MemoryKey(GLOBAL_COLLECTION_FILENAME)
+        driver.write(location, original)
+        val reloaded = driver.read(location)
+
+        val alpha = assertIs<FolderItem>(reloaded.items[0])
+        val beta = assertIs<FolderItem>(reloaded.items[1])
+        val nested = assertIs<FolderItem>(beta.items[0])
+        assertEquals("id-alpha", (alpha.extensions["id"] as JsonPrimitive).content)
+        assertEquals("id-beta", (beta.extensions["id"] as JsonPrimitive).content)
+        assertEquals("id-nested", (nested.extensions["id"] as JsonPrimitive).content)
+        assertFalse(reloaded.extensions.containsKey(OpenCollectionSerializer.FOLDER_IDS_KEY))
+
+        val repository = DefaultCanonicalCollectionRepository(storageDriver = driver)
+        val observed = repository.observeCollections().first()
+        assertEquals(listOf("id-alpha", "id-beta"), observed.map { (it.extensions["id"] as JsonPrimitive).content })
+
+        val reopened = DefaultCanonicalCollectionRepository(storageDriver = driver).loadGlobalCollection()
+        val reopenedAlpha = assertIs<FolderItem>(reopened!!.items[0])
+        val reopenedBeta = assertIs<FolderItem>(reopened.items[1])
+        assertEquals("id-alpha", (reopenedAlpha.extensions["id"] as JsonPrimitive).content)
+        assertEquals("id-beta", (reopenedBeta.extensions["id"] as JsonPrimitive).content)
     }
 }
 

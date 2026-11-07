@@ -62,9 +62,13 @@ All NEEDS CLARIFICATION items are resolved. Decisions 1 and 2 come from user ans
 ## 9. Folder id persistence (found during the data model revision)
 
 - **Finding**: `FolderItem.extensions` is `@Transient` (`core-model/.../OpenCollectionItem.kt:50`). `OpenCollectionSerializer.enrichItemsForSerialization` (`core-storage/.../OpenCollectionSerializer.kt:~115-130`) writes nothing for folders. So a folder's `extensions["id"]` is lost on save. Reload then generates a new id.
+- **Schema check (T003)**: The OpenCollection schema loaded by `OpenCollectionSchemaValidator` (`core-storage/src/commonMain/resources/opencollection/opencollection_v1.0.0.json`, the resource used by `OpenCollectionStorageTest`) defines `Folder` with `additionalProperties: false` and no `extensions` property. `OpenCollectionSchemaValidator.validate` rejects a folder item that contains `"extensions": {"id": "..."}` (`OpenCollectionStorageTest.testFolderExtensionsKeyIsRejectedBySchema`). The same document with ids under the document-level `extensions` object validates. Writing folder `extensions` into the item object would also fail `BundledCollectionStorageDriver.write`.
 - **Impact**: With one global document, each Clapi collection is a folder. Its id must survive reload (FR-019), or expanded state and history lose their target.
-- **Decision**: Write folder extensions in `enrichItemsForSerialization`, and keep the deserialize path (`enrichItems`) that already reads extra folder keys.
-- **Alternatives considered**: Store the id in the folder `info` or a new field. Rejected to avoid changing the public OpenCollection model.
+- **Decision** (replaces the earlier "write folder extensions onto the item" decision, which the schema rejects): Persist each folder id in the document-level `extensions["folderIds"]` map. Keys are item index paths (`"0"`, `"0/1"`). Values are the id strings. On deserialize, copy each id back into that folder's in-memory `extensions["id"]`. Do not write an `extensions` property on the folder item. Do not change the public OpenCollection model or the embedded schema.
+- **Alternatives considered**:
+  - Write `extensions` on the folder item. Rejected by T003: the schema validator rejects it.
+  - Store the id in folder `info` or a new field. Rejected: `FolderInfo` also has `additionalProperties: false`, and a new field would change the public model.
+  - Patch the embedded schema to allow folder `extensions`. Rejected: that would make saved documents fail the official OpenCollection schema.
 
 ## 10. Global document storage (found during the data model revision)
 

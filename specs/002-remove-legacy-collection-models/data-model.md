@@ -9,7 +9,7 @@ Source: `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencoll
 | `OpenCollectionDocument` | `opencollection`, `info: CollectionInfo`, `config: CollectionConfig?`, `items`, `request: RequestDefaults?`, `docs`, `bundled`, `extensions` | The single global workspace document. Each top-level folder is one Clapi collection. `config.environments` holds the global environments (FR-014, FR-015). |
 | `CollectionInfo` | `name`, `summary`, `version`, `authors` | Global document name. Not shown to users. |
 | `CollectionConfig` | `environments: List<Environment>`, `proxy`, `clientCertificates` | Global environments (FR-015). |
-| `FolderItem` | `info: FolderInfo`, `items`, `request`, `docs`, `extensions` | A top-level folder is one Clapi collection. Nested folders are Clapi folders. Folder `extensions["id"]` must persist (FR-019). |
+| `FolderItem` | `info: FolderInfo`, `items`, `request`, `docs`, `extensions` | A top-level folder is one Clapi collection. Nested folders are Clapi folders. The schema rejects an `extensions` key on the folder item, so the id is persisted in the document-level `extensions["folderIds"]` map and restored to in-memory `extensions["id"]` (FR-019). |
 | `HttpRequestItem` | `info: HttpRequestInfo`, `http: HttpRequestDetails`, `runtime`, `settings`, `docs`, `examples`, `extensions` | Requests. Order is `items` list order. |
 | `ClapiExtensionData` | `mcp: List<McpConnectionConfigDto>`, `authType` | Stored under the `clapi` key in `extensions`. Holds Clapi-only data such as MCP connections. |
 
@@ -40,7 +40,7 @@ Workspace metadata is saved through `WorkspaceRepository` (see research.md, item
 - An import whose root `type` is `clapiCollection`, or a load whose stored blob is `clapiWorkspace`, is rejected with `ImportExportException`. Nothing is written (FR-005).
 - A collection is saved only if it passes `OpenCollectionSchemaValidator` (existing behavior).
 - Environment names are unique in the global list. An imported environment with an existing name is merged: variables and fields missing from the existing environment are added, nothing is removed (FR-016).
-- A collection's id is persisted on its top-level folder (FR-019).
+- A collection's id survives save and reload (FR-019). It is stored in the document-level `extensions["folderIds"]` map (index path to id), because the OpenCollection schema rejects `extensions` on a folder item. After load it is on the folder's in-memory `extensions["id"]`.
 
 ## State transitions
 
