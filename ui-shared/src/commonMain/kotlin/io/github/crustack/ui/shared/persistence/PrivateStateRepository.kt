@@ -84,7 +84,10 @@ data class PrivateWorkspaceState(
 )
 
 fun MutableKeyValue.toStoredVariable(): StoredVariable =
-    StoredVariable(name = key, value = value, enabled = enabled, secret = secret)
+    StoredVariable(name = key.trim(), value = value, enabled = enabled, secret = secret)
+
+fun StoredVariable.toMutableKeyValue(): MutableKeyValue =
+    MutableKeyValue(key = name, value = value, enabled = enabled, secret = secret)
 
 fun HistoryItem.toStoredHistoryItem(): StoredHistoryItem =
     StoredHistoryItem(
