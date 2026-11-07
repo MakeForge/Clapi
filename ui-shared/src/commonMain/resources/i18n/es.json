@@ -204,6 +204,7 @@
   "oauth2_coming_soon": "Configuración OAuth 2.0 (próximamente)",
   "system": "Sistema",
   "user": "Usuario",
+  "inherited": "Heredado",
   "system_header": "Encabezado del sistema",
   "remove": "Quitar",
   "secret_value_hint": "Usa el tipo Secreto para valores sensibles. El icono de ojo alterna la visibilidad.",

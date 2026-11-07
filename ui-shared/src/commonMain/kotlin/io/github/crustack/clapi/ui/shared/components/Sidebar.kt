@@ -1408,8 +1408,7 @@ private fun CollectionTreeNode(
                 }
                 .clickable {
                     if (node.isFolder) {
-                        state.collectionExpandedState[node.id] = !expanded
-                        if (isCollectionRoot) state.selectedCollectionId = node.id
+                        state.openFolder(node.id)
                     } else if (node.method != null && node.url != null) {
                         state.openRequest(requestId = node.id, name = node.name, method = node.method, url = node.url)
                     }
@@ -1429,20 +1428,35 @@ private fun CollectionTreeNode(
                         modifier = Modifier.size(12.dp).testTag("folder-drag-handle-${node.id}"),
                     )
                 }
-                Icon(
-                    if (expanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = ClapiColors.OnSurfaceDim,
-                    modifier = Modifier.size(14.dp),
-                )
-                Icon(
-                    imageVector = if (depth == 0) Icons.Default.FolderOpen else Icons.Default.Folder,
-                    contentDescription = null,
-                    tint = ClapiColors.Tertiary,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier
-                        .size(14.dp)
-                        .testTag(if (depth == 0) "collection-root-icon-${node.id}" else "collection-subfolder-icon-${node.id}"),
-                )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {
+                                state.collectionExpandedState[node.id] = !expanded
+                                if (isCollectionRoot) state.selectedCollectionId = node.id
+                            },
+                        )
+                        .testTag("folder-toggle-${node.id}"),
+                ) {
+                    Icon(
+                        if (expanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = ClapiColors.OnSurfaceDim,
+                        modifier = Modifier.size(14.dp).testTag("folder-chevron-${node.id}"),
+                    )
+                    Icon(
+                        imageVector = if (depth == 0) Icons.Default.FolderOpen else Icons.Default.Folder,
+                        contentDescription = null,
+                        tint = ClapiColors.Tertiary,
+                        modifier = Modifier
+                            .size(14.dp)
+                            .testTag(if (depth == 0) "collection-root-icon-${node.id}" else "collection-subfolder-icon-${node.id}"),
+                    )
+                }
             } else if (node.kind == RequestKind.MCP) {
                 Icon(
                     Icons.Default.DragIndicator,
@@ -1473,7 +1487,21 @@ private fun CollectionTreeNode(
                 color = ClapiColors.OnSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .then(
+                        if (node.isFolder) {
+                            Modifier
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = { state.openFolder(node.id) },
+                                )
+                                .testTag("folder-name-${node.id}")
+                        } else {
+                            Modifier
+                        }
+                    ),
             )
             if (isSelectedRequest) {
                 Box(

@@ -58,6 +58,7 @@ object Strings {
 
     val params: String @Composable @ReadOnlyComposable get() = t("params")
     val headers: String @Composable @ReadOnlyComposable get() = t("headers")
+    val inherited: String @Composable @ReadOnlyComposable get() = t("inherited")
     val body: String @Composable @ReadOnlyComposable get() = t("body")
     val auth: String @Composable @ReadOnlyComposable get() = t("auth")
     val preRequest: String @Composable @ReadOnlyComposable get() = t("pre_request")

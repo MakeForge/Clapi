@@ -257,6 +257,7 @@
   "oauth2_coming_soon": "OAuth 2.0 configuration (coming soon)",
   "system": "System",
   "user": "User",
+  "inherited": "Inherited",
   "system_header": "System header",
   "remove": "Remove",
   "secret_value_hint": "Use Secret type for sensitive values. The eye icon toggles visibility.",

@@ -204,6 +204,7 @@
   "oauth2_coming_soon": "OAuth 2.0-Konfiguration (in Kürze)",
   "system": "System",
   "user": "Benutzer",
+  "inherited": "Geerbt",
   "system_header": "System-Header",
   "remove": "Entfernen",
   "secret_value_hint": "Verwenden Sie den Typ Geheim für sensible Werte. Das Augensymbol schaltet die Sichtbarkeit um.",

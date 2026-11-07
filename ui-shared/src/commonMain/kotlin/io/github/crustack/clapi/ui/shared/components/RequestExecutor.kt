@@ -28,6 +28,7 @@ import io.github.crustack.clapi.ui.shared.network.NetworkClientFactory
 import io.github.crustack.clapi.ui.shared.persistence.TabsRepository
 import io.github.crustack.clapi.ui.shared.persistence.WorkspaceRepository
 import io.github.crustack.clapi.ui.shared.state.AppState
+import io.github.crustack.clapi.ui.shared.state.HeaderKind
 import io.github.crustack.clapi.ui.shared.state.LogLevel
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
 import io.github.crustack.clapi.ui.shared.state.TestResultEntry
@@ -242,6 +243,7 @@ private fun sendRequestInternal(scope: CoroutineScope, state: AppState, tab: Req
                 queryParams = effectiveQueryParams,
                 headers = effectiveHeaders,
                 bodyContent = effectiveBodyContent,
+                state = state,
             ).toRequestDefinition()
 
             val logger = object : NetworkLogger {
@@ -424,7 +426,7 @@ fun saveRequest(
         // TabsRepository.save ran first, so an immediate reload restored a dirty tab.
         tab.markSaved()
         val tabsSaved = withContext(ioDispatcher) { TabsRepository.save(state) }
-        val workspaceSaved = if (tab.collectionName != null && collectionSynced) {
+        val workspaceSaved = if ((tab.isFolderTab || tab.collectionName != null) && collectionSynced) {
             withContext(ioDispatcher) { WorkspaceRepository.save(state) }
         } else {
             collectionSynced
@@ -487,6 +489,7 @@ internal fun prepareTabRequest(
         .map { KeyValueEntry(it.key, it.value, secret = it.secret) },
     headers: List<KeyValueEntry> = enabledHeadersForSend(tab),
     bodyContent: String = tab.bodyContent,
+    state: AppState? = null,
 ): PreparedTabRequest {
     val parts = splitRequestUrl(url)
     return PreparedTabRequest(
@@ -497,25 +500,50 @@ internal fun prepareTabRequest(
         fragment = parts.fragment,
         queryParams = queryParams,
         headers = headers,
-        auth = buildAuthConfig(tab),
+        auth = buildAuthConfig(tab, state),
         body = buildRequestBody(tab, bodyContent),
     )
 }
 
-fun buildAuthConfig(tab: RequestTabState): AuthConfig {
-    val params = when (tab.authType) {
-        AuthType.BASIC   -> mapOf("username" to tab.authUsername, "password" to tab.authPassword)
-        AuthType.BEARER  -> mapOf("token" to tab.authToken)
-        AuthType.JWT     -> mapOf("token" to tab.authToken)
-        AuthType.API_KEY -> mapOf("key" to tab.authApiKey, "value" to tab.authApiValue)
-        else             -> emptyMap()
+fun buildAuthConfig(tab: RequestTabState, state: AppState? = null): AuthConfig {
+    val effectiveAuthType: AuthType
+    val effectiveParams: Map<String, String>
+    val effectivePlacement: String?
+    if (tab.authType == AuthType.INHERIT && state != null) {
+        val resolved = state.resolveInheritedAuth(tab)
+        if (resolved != null && resolved.authType != AuthType.NONE && resolved.authType != AuthType.INHERIT) {
+            effectiveAuthType = resolved.authType
+            effectiveParams = when (resolved.authType) {
+                AuthType.BASIC -> mapOf("username" to (resolved.username ?: ""), "password" to (resolved.password ?: ""))
+                AuthType.BEARER, AuthType.JWT -> mapOf("token" to (resolved.token ?: ""))
+                AuthType.API_KEY -> mapOf("key" to (resolved.apiKey ?: ""), "value" to (resolved.apiValue ?: ""))
+                else -> emptyMap()
+            }
+            effectivePlacement = if (resolved.authType == AuthType.API_KEY) {
+                io.github.crustack.clapi.ui.shared.state.normalizeApiKeyPlacement(resolved.apiPlacement)
+            } else null
+        } else {
+            effectiveAuthType = AuthType.NONE
+            effectiveParams = emptyMap()
+            effectivePlacement = null
+        }
+    } else {
+        effectiveAuthType = tab.authType
+        effectiveParams = when (tab.authType) {
+            AuthType.BASIC   -> mapOf("username" to tab.authUsername, "password" to tab.authPassword)
+            AuthType.BEARER  -> mapOf("token" to tab.authToken)
+            AuthType.JWT     -> mapOf("token" to tab.authToken)
+            AuthType.API_KEY -> mapOf("key" to tab.authApiKey, "value" to tab.authApiValue)
+            else             -> emptyMap()
+        }
+        effectivePlacement = if (tab.authType == AuthType.API_KEY) {
+            io.github.crustack.clapi.ui.shared.state.normalizeApiKeyPlacement(tab.authApiPlacement)
+        } else null
     }
     return AuthConfig(
-        type = tab.authType,
-        params = params,
-        placement = if (tab.authType == AuthType.API_KEY) {
-            io.github.crustack.clapi.ui.shared.state.normalizeApiKeyPlacement(tab.authApiPlacement)
-        } else null,
+        type = effectiveAuthType,
+        params = effectiveParams,
+        placement = effectivePlacement,
     )
 }
 
@@ -601,8 +629,9 @@ fun buildCurlCommand(
     tab: RequestTabState,
     variableLayers: List<Map<String, String>> = emptyList(),
     allowJson5: Boolean = true,
+    state: AppState? = null,
 ): String {
-    val request = prepareTabRequest(tab)
+    val request = prepareTabRequest(tab, state = state)
     val parts = mutableListOf("curl", "-X ${request.method.name}")
 
     preparedHeaderList(request, variableLayers).forEach { (key, value) ->
@@ -621,10 +650,14 @@ fun buildCurlCommand(
     return parts.joinToString(" \\\n  ")
 }
 
-internal fun enabledHeadersForSend(tab: RequestTabState): List<KeyValueEntry> =
-    tab.headers
-        .filter { it.enabled && it.key.isNotBlank() }
-        .map { KeyValueEntry(it.key, it.value, secret = it.secret) }
+fun enabledHeadersForSend(tab: RequestTabState): List<KeyValueEntry> {
+    val enabled = tab.headers.filter { it.enabled && it.key.isNotBlank() }
+    val userHeaders = enabled.filter { it.kind != HeaderKind.INHERITED }
+    val inheritedHeaders = enabled.filter { it.kind == HeaderKind.INHERITED }
+    val userKeys = userHeaders.map { it.key.lowercase() }.toSet()
+    val activeInherited = inheritedHeaders.filter { it.key.lowercase() !in userKeys }
+    return (userHeaders + activeInherited).map { KeyValueEntry(it.key, it.value, secret = it.secret) }
+}
 
 internal fun resolveUrlForLog(
     url: String,
@@ -648,8 +681,9 @@ fun buildPythonCommand(
     tab: RequestTabState,
     variableLayers: List<Map<String, String>> = emptyList(),
     allowJson5: Boolean = true,
+    state: AppState? = null,
 ): String {
-    val request = prepareTabRequest(tab)
+    val request = prepareTabRequest(tab, state = state)
     val sb = StringBuilder()
     sb.appendLine("import requests")
     sb.appendLine()
@@ -691,8 +725,9 @@ fun buildHTTPieCommand(
     tab: RequestTabState,
     variableLayers: List<Map<String, String>> = emptyList(),
     allowJson5: Boolean = true,
+    state: AppState? = null,
 ): String {
-    val request = prepareTabRequest(tab)
+    val request = prepareTabRequest(tab, state = state)
     val parts = mutableListOf("http", tab.method.name)
     val url = buildUrlWithParams(request, variableLayers, removeUnresolved = true)
     parts += shellQuote(url)
@@ -712,8 +747,9 @@ fun buildPowerShellCommand(
     tab: RequestTabState,
     variableLayers: List<Map<String, String>> = emptyList(),
     allowJson5: Boolean = true,
+    state: AppState? = null,
 ): String {
-    val request = prepareTabRequest(tab)
+    val request = prepareTabRequest(tab, state = state)
     val sb = StringBuilder()
     val url = buildUrlWithParams(request, variableLayers, removeUnresolved = true)
     val headers = preparedHeaderList(request, variableLayers)

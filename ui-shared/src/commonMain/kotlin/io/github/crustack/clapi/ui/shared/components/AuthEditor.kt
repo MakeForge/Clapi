@@ -50,7 +50,10 @@ import io.github.crustack.clapi.ui.shared.theme.ClapiColors
  */
 @Composable
 fun AuthEditor(tab: RequestTabState, state: AppState, onDirty: () -> Unit) {
-    val selectableAuthTypes = AuthType.entries.filterNot { it == AuthType.OAUTH2 }
+    val hasFolderAncestor = tab.folderPath.isNotEmpty() || tab.collectionId != null || state.getAncestorFolders(tab).isNotEmpty()
+    val selectableAuthTypes = AuthType.entries.filterNot {
+        it == AuthType.OAUTH2 || (!hasFolderAncestor && it == AuthType.INHERIT)
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(12.dp),
@@ -74,7 +77,8 @@ fun AuthEditor(tab: RequestTabState, state: AppState, onDirty: () -> Unit) {
                                 onDirty()
                             }
                         }
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .testTag("auth-chip-${at.name.lowercase()}"),
                 )
             }
         }
@@ -117,7 +121,53 @@ fun AuthEditor(tab: RequestTabState, state: AppState, onDirty: () -> Unit) {
                 Text(Strings.t("oauth2_coming_soon"), color = ClapiColors.OnSurfaceDim, style = MaterialTheme.typography.bodySmall)
             }
             AuthType.INHERIT -> {
-                Text("Inheriting authentication from folder defaults", color = ClapiColors.OnSurfaceDim, style = MaterialTheme.typography.bodySmall)
+                val resolved = state.resolveInheritedAuth(tab)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(ClapiColors.SurfaceContainer)
+                        .border(1.dp, ClapiColors.Border, RoundedCornerShape(6.dp))
+                        .padding(12.dp)
+                        .testTag("auth-inherit-panel"),
+                ) {
+                    if (resolved == null || resolved.authType == AuthType.NONE) {
+                        Text(
+                            text = if (resolved?.folderName?.isNotBlank() == true) "Inheriting from folder ${resolved.folderName}" else "Inheriting from folder",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = ClapiColors.Primary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            text = "Folder has no authentication configured",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = ClapiColors.OnSurfaceDim,
+                        )
+                    } else {
+                        Text(
+                            text = "Inheriting from folder ${resolved.folderName} (${resolved.authType.name.replace('_', ' ')})",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = ClapiColors.Primary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        when (resolved.authType) {
+                            AuthType.BASIC -> {
+                                Text("Username: ${resolved.username ?: ""}", style = MaterialTheme.typography.bodySmall, color = ClapiColors.OnSurface)
+                                Text("Password: ••••••••", style = MaterialTheme.typography.bodySmall, color = ClapiColors.OnSurface)
+                            }
+                            AuthType.BEARER, AuthType.JWT -> {
+                                Text("Token: ${resolved.token ?: ""}", style = MaterialTheme.typography.bodySmall, color = ClapiColors.OnSurface)
+                            }
+                            AuthType.API_KEY -> {
+                                Text("Key: ${resolved.apiKey ?: ""}", style = MaterialTheme.typography.bodySmall, color = ClapiColors.OnSurface)
+                                Text("Value: ${resolved.apiValue ?: ""}", style = MaterialTheme.typography.bodySmall, color = ClapiColors.OnSurface)
+                                Text("Placement: ${resolved.apiPlacement ?: "header"}", style = MaterialTheme.typography.bodySmall, color = ClapiColors.OnSurface)
+                            }
+                            else -> Unit
+                        }
+                    }
+                }
             }
         }
     }

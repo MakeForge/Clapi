@@ -239,13 +239,13 @@ internal fun buildCopyFormats(tab: RequestTabState, state: AppState): List<CopyF
     ) "Duplicate multipart field names cannot be represented by PowerShell -Form" else null
     return listOf(
         CopyFormatOption("cURL", fileReason == null, fileReason) {
-            copyToClipboard(buildCurlCommand(tab, layers, state.settings.allowJson5InJsonBodies))
+            copyToClipboard(buildCurlCommand(tab, layers, state.settings.allowJson5InJsonBodies, state))
         },
         CopyFormatOption("Python", mapReason == null, mapReason) {
-            copyToClipboard(buildPythonCommand(tab, layers, state.settings.allowJson5InJsonBodies))
+            copyToClipboard(buildPythonCommand(tab, layers, state.settings.allowJson5InJsonBodies, state))
         },
         CopyFormatOption("PowerShell", powerShellReason == null, powerShellReason) {
-            copyToClipboard(buildPowerShellCommand(tab, layers, state.settings.allowJson5InJsonBodies))
+            copyToClipboard(buildPowerShellCommand(tab, layers, state.settings.allowJson5InJsonBodies, state))
         },
     )
 }
@@ -253,11 +253,12 @@ internal fun buildCopyFormats(tab: RequestTabState, state: AppState): List<CopyF
 // ── Editor Tab Bar ──────────────────────────────────────────────
 
 @Composable
-private fun EditorTabBar(
+internal fun EditorTabBar(
     selectedTab: RequestEditorTab,
     onTabSelected: (RequestEditorTab) -> Unit,
     paramCount: Int,
     headerCount: Int,
+    availableTabs: List<RequestEditorTab> = RequestEditorTab.entries,
 ) {
     val icons = mapOf(
         RequestEditorTab.PARAMS      to null,
@@ -277,15 +278,16 @@ private fun EditorTabBar(
             .fillMaxWidth()
             .background(ClapiColors.Surface)
     ) {
+        val selectedIndex = availableTabs.indexOf(selectedTab).coerceAtLeast(0)
         ScrollableTabRow(
-            selectedTabIndex = selectedTab.ordinal,
+            selectedTabIndex = selectedIndex,
             containerColor = Color.Transparent,
             contentColor = ClapiColors.OnSurface,
             edgePadding = 0.dp,
             divider = {},
             indicator = {},
         ) {
-            RequestEditorTab.entries.forEach { tab ->
+            availableTabs.forEach { tab ->
                 val selected = tab == selectedTab
                 val label = when (tab) {
                     RequestEditorTab.PARAMS -> Strings.params

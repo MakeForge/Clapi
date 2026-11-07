@@ -61,13 +61,13 @@
 
 ### Implementation for User Story 2
 
-- [ ] T011 [US2] Implement `AppState.openFolder(folderId: String)` to open or focus a `RequestKind.FOLDER` tab in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt
-- [ ] T012 [US2] Update `CollectionTreeNode` in `Sidebar.kt` to distinguish clicking folder name text (which invokes `openFolder`) vs chevron/folder icon (which toggles expand/collapse) in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt
-- [ ] T013 [US2] Update `RequestTabsBar.kt` to render `Icons.Default.Folder` (instead of method badge) and handle tab close/rename for `RequestKind.FOLDER` tabs in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestTabsBar.kt
-- [ ] T014 [US2] Create `FolderEditor.kt` composable reusing `EditorTabBar`, `KeyValueEditor`, `AuthEditor`, and `ScriptEditor` for editing `RequestDefaults` in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/FolderEditor.kt
-- [ ] T015 [US2] Wire `FolderEditor` into `MainScreen.kt` when `activeTab.kind == RequestKind.FOLDER`, omitting URL bar and ResponseViewer in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/MainScreen.kt
-- [ ] T016 [US2] Implement save handling for `RequestKind.FOLDER` tabs in `MainScreen.kt` and `AppState.kt` to persist defaults to `CollectionNode` and trigger workspace saving in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/MainScreen.kt
-- [ ] T017 [P] [US2] Add unit tests for opening, focusing, and saving folder settings tabs in ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/TabManagementUiTest.kt
+- [x] T011 [US2] Implement `AppState.openFolder(folderId: String)` to open or focus a `RequestKind.FOLDER` tab in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt
+- [x] T012 [US2] Update `CollectionTreeNode` in `Sidebar.kt` to distinguish clicking folder name text (which invokes `openFolder`) vs chevron/folder icon (which toggles expand/collapse) in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt
+- [x] T013 [US2] Update `RequestTabsBar.kt` to render `Icons.Default.Folder` (instead of method badge) and handle tab close/rename for `RequestKind.FOLDER` tabs in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestTabsBar.kt
+- [x] T014 [US2] Create `FolderEditor.kt` composable reusing `EditorTabBar`, `KeyValueEditor`, `AuthEditor`, and `ScriptEditor` for editing `RequestDefaults` in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/FolderEditor.kt
+- [x] T015 [US2] Wire `FolderEditor` into `MainScreen.kt` when `activeTab.kind == RequestKind.FOLDER`, omitting URL bar and ResponseViewer in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/MainScreen.kt
+- [x] T016 [US2] Implement save handling for `RequestKind.FOLDER` tabs in `MainScreen.kt` and `AppState.kt` to persist defaults to `CollectionNode` and trigger workspace saving in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/MainScreen.kt
+- [x] T017 [P] [US2] Add unit tests for opening, focusing, and saving folder settings tabs in ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/TabManagementUiTest.kt
 
 **Checkpoint**: Users can open, edit, and persist folder request defaults via dedicated editor tabs.
 
@@ -81,11 +81,11 @@
 
 ### Implementation for User Story 3
 
-- [ ] T018 [US3] Implement inherited defaults resolution in `AppState.kt` to traverse ancestor folders along `folderPath` and populate inherited headers and auth defaults in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt
-- [ ] T019 [US3] Update `KeyValueEditor.kt` to display an "Inherited" badge for `HeaderKind.INHERITED` rows and lock their fields as read-only in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/KeyValueEditor.kt
-- [ ] T020 [US3] Update `AuthEditor.kt` to include `AuthType.INHERIT` chip when the request is in a folder, showing resolved parent auth in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/AuthEditor.kt
-- [ ] T021 [US3] Update `RequestExecutor.kt` to merge inherited headers on HTTP dispatch with case-insensitive user overrides, and apply resolved folder authentication when `authType == AuthType.INHERIT` in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt
-- [ ] T022 [P] [US3] Add unit tests for inherited headers display, case-insensitive overrides, and auth inheritance in ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/state/RequestTabStateTest.kt
+- [x] T018 [US3] Implement inherited defaults resolution in `AppState.kt` to traverse ancestor folders along `folderPath` and populate inherited headers and auth defaults in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt
+- [x] T019 [US3] Update `KeyValueEditor.kt` to display an "Inherited" badge for `HeaderKind.INHERITED` rows and lock their fields as read-only in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/KeyValueEditor.kt
+- [x] T020 [US3] Update `AuthEditor.kt` to include `AuthType.INHERIT` chip when the request is in a folder, showing resolved parent auth in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/AuthEditor.kt
+- [x] T021 [US3] Update `RequestExecutor.kt` to merge inherited headers on HTTP dispatch with case-insensitive user overrides, and apply resolved folder authentication when `authType == AuthType.INHERIT` in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt
+- [x] T022 [P] [US3] Add unit tests for inherited headers display, case-insensitive overrides, and auth inheritance in ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/state/RequestTabStateTest.kt
 
 **Checkpoint**: Requests inside folders visually display inherited headers/auth and correctly execute with effective settings.
 
