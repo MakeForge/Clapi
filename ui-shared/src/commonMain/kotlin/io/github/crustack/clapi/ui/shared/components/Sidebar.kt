@@ -412,7 +412,7 @@ fun Sidebar(state: AppState) {
             item {
                 SectionHeader(
                     icon = Icons.Default.FolderOpen,
-                    title = Strings.collections,
+                    title = Strings.folders,
                     expanded = state.collectionsExpanded,
                     onToggle = {
                         state.collectionsExpanded = !state.collectionsExpanded
@@ -423,7 +423,7 @@ fun Sidebar(state: AppState) {
                             IconButton(
                                 onClick = {
                                     pickFileForImport { content ->
-                                        launchTracked("Importing collection", "Importing collection...") {
+                                        launchTracked("Importing folder", "Importing folder...") {
                                             val existingIds = state.collections.map { it.id }.toSet()
                                             val importedName = ImportExportRepository.importCollectionFromString(state, content)
                                             state.collections.firstOrNull { it.id !in existingIds }?.let { imported ->
@@ -432,7 +432,7 @@ fun Sidebar(state: AppState) {
                                             }
                                             withContext(kotlinx.coroutines.Dispatchers.Main) {
                                                 WorkspaceRepository.save(state)
-                                                state.log("Collection imported: $importedName", LogLevel.SUCCESS)
+                                                state.log("Folder imported: $importedName", LogLevel.SUCCESS)
                                             }
                                         }
                                     }
@@ -441,7 +441,7 @@ fun Sidebar(state: AppState) {
                             ) {
                                 Icon(
                                     Icons.AutoMirrored.Filled.Input,
-                                    contentDescription = Strings.importCollection,
+                                    contentDescription = Strings.importFolder,
                                     tint = ClapiColors.OnSurfaceDim,
                                     modifier = Modifier.size(14.dp).testTag("collection-import-icon"),
                                 )
@@ -449,7 +449,7 @@ fun Sidebar(state: AppState) {
                             IconButton(
                                 onClick = {
                                     val names = state.collections.map { it.name }.toSet()
-                                    val name = ImportExportNaming.generateUniqueCollectionName("New Collection", names)
+                                    val name = ImportExportNaming.generateUniqueCollectionName("New Folder", names)
                                     state.collections.add(
                                         CollectionNode(
                                             id = generateUuid(),
@@ -463,7 +463,7 @@ fun Sidebar(state: AppState) {
                                 },
                                 modifier = Modifier.size(24.dp),
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = Strings.t("new_collection"), tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Add, contentDescription = Strings.newFolder, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
                             }
                         }
                     },
@@ -523,7 +523,7 @@ fun Sidebar(state: AppState) {
                                         state.closeTabsByIds(deletedIds)
                                         state.notifyCollectionsChanged()
                                         persistWorkspaceAsync()
-                                        state.log("Collection deleted: ${target.name}", LogLevel.INFO)
+                                        state.log("Folder deleted: ${target.name}", LogLevel.INFO)
                                     }
                                 }
                                 if (state.settings.confirmBeforeDelete) {
@@ -533,7 +533,7 @@ fun Sidebar(state: AppState) {
                                         "Delete \"${target.name}\"? This cannot be undone."
                                     }
                                     state.showConfirm(
-                                        title = "Delete collection?",
+                                        title = "Delete folder?",
                                         message = message,
                                         action = action,
                                     )
@@ -1170,7 +1170,7 @@ private fun HistoryRow(state: AppState, item: HistoryItem, onClick: () -> Unit) 
                     },
                 )
                 DropdownMenuItem(
-                    text = { Text(Strings.t("go_to_collection")) },
+                    text = { Text(Strings.goToFolder) },
                     onClick = {
                         showMenu = false
                         state.goToCollectionFromHistory(item)
@@ -1515,7 +1515,7 @@ private fun CollectionTreeNode(
                 ) {
                     Icon(
                         Icons.Default.MoreVert,
-                        contentDescription = if (isCollectionRoot) Strings.t("collection_actions") else Strings.t("request_actions"),
+                        contentDescription = if (isCollectionRoot) Strings.folderActions else Strings.t("request_actions"),
                         tint = ClapiColors.OnSurfaceDim,
                         modifier = Modifier.size(14.dp),
                     )
@@ -1590,12 +1590,12 @@ private fun CollectionTreeNode(
                         )
                         if (isCollectionRoot) {
                             DropdownMenuItem(
-                                text = { Text(Strings.exportCollection) },
+                                text = { Text(Strings.exportFolder) },
                                 leadingIcon = { Icon(Icons.AutoMirrored.Filled.Input, contentDescription = null, modifier = Modifier.size(16.dp)) },
                                 onClick = { showMenu = false; onExportCollection(node) },
                             )
                             DropdownMenuItem(
-                                text = { Text(Strings.t("duplicate_collection")) },
+                                text = { Text(Strings.duplicateFolder) },
                                 leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp)) },
                                 onClick = { showMenu = false; onDuplicateCollection(node) },
                             )

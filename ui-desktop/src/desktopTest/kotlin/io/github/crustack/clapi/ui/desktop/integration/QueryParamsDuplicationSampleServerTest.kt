@@ -3,7 +3,7 @@ package io.github.crustack.clapi.ui.desktop.integration
 import io.github.crustack.clapi.core.model.HttpMethodType
 import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.core.model.BodyType
-import io.github.crustack.server.module
+import io.github.crustack.clapi.server.module
 import io.github.crustack.clapi.ui.shared.components.sendRequest
 import io.github.crustack.clapi.ui.shared.components.syncParamsFromUrl
 import io.github.crustack.clapi.ui.shared.persistence.ImportExportRepository

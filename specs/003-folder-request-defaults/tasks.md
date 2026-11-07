@@ -16,7 +16,7 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Inspect and verify multi-module dependencies across `core-model`, `ui-shared`, and `ui-desktop` in settings.gradle.kts
+- [x] T001 Inspect and verify multi-module dependencies across `core-model`, `ui-shared`, and `ui-desktop` in settings.gradle.kts
 
 ---
 
@@ -26,11 +26,11 @@
 
 ⚠️ **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T002 [P] Add `INHERIT` to `AuthType` enum in core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/RequestModels.kt
-- [ ] T003 [P] Add `FOLDER` to `RequestKind` enum in core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/McpModels.kt
-- [ ] T004 [P] Add `INHERITED` to `HeaderKind` enum in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt
-- [ ] T005 Map `FolderItem.request` (headers, params, auth, scripts) to and from `CollectionNode` in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt
-- [ ] T006 Update `TabsRepository.kt` to serialize and deserialize `RequestKind.FOLDER` tabs preserving folder defaults in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/TabsRepository.kt
+- [x] T002 [P] Add `INHERIT` to `AuthType` enum in core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/RequestModels.kt
+- [x] T003 [P] Add `FOLDER` to `RequestKind` enum in core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/McpModels.kt
+- [x] T004 [P] Add `INHERITED` to `HeaderKind` enum in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt
+- [x] T005 Map `FolderItem.request` (headers, params, auth, scripts) to and from `CollectionNode` in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt
+- [x] T006 Update `TabsRepository.kt` to serialize and deserialize `RequestKind.FOLDER` tabs preserving folder defaults in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/TabsRepository.kt
 
 **Checkpoint**: Core enums and serialization foundations ready. User story implementation can now begin.
 
@@ -44,10 +44,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T007 [P] [US1] Update localization strings and translation values for collections to folders in ui-shared/src/commonMain/resources/i18n/en.json, de.json, es.json, fr.json
-- [ ] T008 [P] [US1] Update `Strings.kt` string accessors for folder terminology in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/i18n/Strings.kt
-- [ ] T009 [US1] Update sidebar section headers, context menu labels, and dialog prompts from "Collection" to "Folder" in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt
-- [ ] T010 [P] [US1] Update or add unit tests for folder terminology in ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/components/SidebarCollectionHelpersTest.kt
+- [x] T007 [P] [US1] Update localization strings and translation values for collections to folders in ui-shared/src/commonMain/resources/i18n/en.json, de.json, es.json, fr.json
+- [x] T008 [P] [US1] Update `Strings.kt` string accessors for folder terminology in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/i18n/Strings.kt
+- [x] T009 [US1] Update sidebar section headers, context menu labels, and dialog prompts from "Collection" to "Folder" in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt
+- [x] T010 [P] [US1] Update or add unit tests for folder terminology in ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/components/SidebarCollectionHelpersTest.kt
 
 **Checkpoint**: At this point, User Story 1 is fully functional and all UI references display "Folder".
 

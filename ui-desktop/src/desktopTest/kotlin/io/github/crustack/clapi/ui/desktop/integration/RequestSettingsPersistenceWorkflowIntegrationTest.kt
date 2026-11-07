@@ -6,7 +6,7 @@ import io.github.crustack.clapi.core.model.RequestDefinition
 import io.github.crustack.clapi.core.network.NetworkEvent
 import io.github.crustack.clapi.core.network.NoOpNetworkLogger
 import io.github.crustack.clapi.core.network.RetryPolicy
-import io.github.crustack.server.module
+import io.github.crustack.clapi.server.module
 import io.github.crustack.clapi.core.storage.opencollection.DefaultCanonicalCollectionRepository
 import io.github.crustack.clapi.ui.shared.components.buildAuthConfig
 import io.github.crustack.clapi.ui.shared.components.buildRequestBody

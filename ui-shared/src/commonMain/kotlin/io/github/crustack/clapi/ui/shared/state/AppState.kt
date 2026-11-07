@@ -61,7 +61,7 @@ enum class WorkspaceMode(val label: String) {
     GRAPHQL("GraphQL"),
 }
 
-enum class HeaderKind { SYSTEM, USER }
+enum class HeaderKind { SYSTEM, USER, INHERITED }
 
 fun normalizeApiKeyPlacement(value: String?): String =
     if (value.equals("query", ignoreCase = true)) "query" else "header"
@@ -290,6 +290,7 @@ class RequestTabState(
     collectionId: String? = null,
     folderPath: List<String> = emptyList(),
     requestRef: String? = null,
+    kind: RequestKind = RequestKind.HTTP,
 ) {
     val requestId: String get() = id
 
@@ -351,7 +352,8 @@ class RequestTabState(
 
     var preRequestScript by mutableStateOf("")
     var testScript       by mutableStateOf("")
-    var kind by mutableStateOf(RequestKind.HTTP)
+    var kind by mutableStateOf(kind)
+    val isFolderTab: Boolean get() = kind == RequestKind.FOLDER
     var mcpConfig by mutableStateOf(McpConnectionConfig())
 
     var retryEnabled by mutableStateOf(false)
@@ -424,6 +426,9 @@ class RequestTabState(
     var liveStreamText by mutableStateOf("")
 
     init {
+        if (kind == RequestKind.FOLDER) {
+            headers.clear()
+        }
         savedSnapshot = currentSnapshotForDirtyTracking()
     }
 

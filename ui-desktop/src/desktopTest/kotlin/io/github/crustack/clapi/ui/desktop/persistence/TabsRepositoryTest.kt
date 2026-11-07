@@ -132,6 +132,61 @@ class TabsRepositoryTest {
     }
 
     @Test
+    fun save_and_load_roundtrip_persists_folder_settings_tab() {
+        val source = AppState(openDefaultTab = false, withDemoData = false)
+        val folderNode = CollectionNode(
+            id = "f-123",
+            name = "Auth Service",
+            isFolder = true,
+        )
+        source.collections.add(folderNode)
+
+        val folderTab = RequestTabState(
+            id = folderNode.id,
+            name = folderNode.name,
+            kind = io.github.crustack.clapi.core.model.RequestKind.FOLDER,
+        )
+        folderTab.headers.add(MutableKeyValue("X-Folder-Header", "shared-val", kind = HeaderKind.USER))
+        folderTab.params.add(MutableKeyValue("version", "v2"))
+        folderTab.authType = AuthType.BEARER
+        folderTab.authToken = "folder-token"
+        folderTab.preRequestScript = "console.log('folder pre')"
+        folderTab.testScript = "console.log('folder post')"
+
+        source.openTabs.add(folderTab)
+        source.activeTabIndex = 0
+
+        assertTrue(TabsRepository.save(source), "Folder tab should be saved")
+
+        val restoredState = AppState(openDefaultTab = false, withDemoData = false)
+        val restoredFolder = CollectionNode(
+            id = "f-123",
+            name = "Auth Service",
+            isFolder = true,
+        )
+        restoredState.collections.add(restoredFolder)
+
+        TabsRepository.load(restoredState)
+
+        assertEquals(1, restoredState.openTabs.size)
+        val restoredTab = restoredState.openTabs[0]
+        assertEquals("f-123", restoredTab.id)
+        assertEquals("Auth Service", restoredTab.name)
+        assertEquals(io.github.crustack.clapi.core.model.RequestKind.FOLDER, restoredTab.kind)
+        assertTrue(restoredTab.isFolderTab)
+        assertEquals(1, restoredTab.headers.size)
+        assertEquals("X-Folder-Header", restoredTab.headers[0].key)
+        assertEquals("shared-val", restoredTab.headers[0].value)
+        assertEquals(1, restoredTab.params.size)
+        assertEquals("version", restoredTab.params[0].key)
+        assertEquals("v2", restoredTab.params[0].value)
+        assertEquals(AuthType.BEARER, restoredTab.authType)
+        assertEquals("folder-token", restoredTab.authToken)
+        assertEquals("console.log('folder pre')", restoredTab.preRequestScript)
+        assertEquals("console.log('folder post')", restoredTab.testScript)
+    }
+
+    @Test
     fun explicit_save_persists_clean_snapshot_and_complete_rows_through_close_and_reopen() = runBlocking {
         val source = AppState(openDefaultTab = false)
         val request = CollectionNode(

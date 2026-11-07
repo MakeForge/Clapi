@@ -116,6 +116,9 @@ fun AuthEditor(tab: RequestTabState, state: AppState, onDirty: () -> Unit) {
             AuthType.OAUTH2 -> {
                 Text(Strings.t("oauth2_coming_soon"), color = ClapiColors.OnSurfaceDim, style = MaterialTheme.typography.bodySmall)
             }
+            AuthType.INHERIT -> {
+                Text("Inheriting authentication from folder defaults", color = ClapiColors.OnSurfaceDim, style = MaterialTheme.typography.bodySmall)
+            }
         }
     }
 }

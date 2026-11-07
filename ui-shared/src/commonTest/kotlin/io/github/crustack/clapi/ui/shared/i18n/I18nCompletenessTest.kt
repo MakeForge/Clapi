@@ -186,7 +186,7 @@ class I18nCompletenessTest {
     fun sidebar_keys_translated_to_spanish() {
         val es = I18nProvider(AppLanguage.ES)
         assertEquals("Historial", es.get("history"))
-        assertEquals("Colecciones", es.get("collections"))
+        assertEquals("Carpetas", es.get("collections"))
         assertEquals("Entornos", es.get("environments"))
     }
 
@@ -216,8 +216,8 @@ class I18nCompletenessTest {
     @Test
     fun import_export_keys_translated_to_french() {
         val fr = I18nProvider(AppLanguage.FR)
-        assertEquals("Importer une collection", fr.get("import_collection"))
-        assertEquals("Exporter une collection", fr.get("export_collection"))
+        assertEquals("Importer le dossier", fr.get("import_collection"))
+        assertEquals("Exporter le dossier", fr.get("export_collection"))
     }
 
     // ── Language enum ──

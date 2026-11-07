@@ -4,7 +4,7 @@ import io.github.crustack.clapi.core.model.BodyType
 import io.github.crustack.clapi.core.model.HttpMethodType
 import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.ui.shared.state.MutableFormDataRow
-import io.github.crustack.server.module
+import io.github.crustack.clapi.server.module
 import io.github.crustack.clapi.ui.shared.components.buildCurlCommand
 import io.github.crustack.clapi.ui.shared.components.buildPowerShellCommand
 import io.github.crustack.clapi.ui.shared.components.buildPythonCommand

@@ -1,5 +1,7 @@
 package io.github.crustack.clapi.ui.shared.state
 
+import io.github.crustack.clapi.core.model.BodyType
+
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

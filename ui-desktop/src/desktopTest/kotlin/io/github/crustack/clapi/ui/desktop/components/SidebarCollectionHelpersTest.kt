@@ -429,4 +429,30 @@ class SidebarCollectionHelpersTest {
         val collections = threeCollections()
         assertFalse(moveCollectionAfterCollection(collections, "c2", "c2"))
     }
+
+    @Test
+    fun folder_terminology_unique_naming_uses_folder_label() {
+        val names = setOf("New Folder")
+        val unique = io.github.crustack.clapi.ui.shared.persistence.ImportExportNaming.generateUniqueCollectionName("New Folder", names)
+        assertEquals("New Folder (1)", unique)
+    }
+
+    @Test
+    fun i18n_folder_terminology_resolves_folders_in_en_and_fallback() {
+        val i18n = io.github.crustack.clapi.ui.shared.i18n.I18nProvider()
+        assertEquals("Folders", i18n.get("collections"))
+        assertEquals("Folders", i18n.get("folders"))
+        assertEquals("New Folder", i18n.get("new_collection"))
+        assertEquals("New Folder", i18n.get("new_folder"))
+        assertEquals("Export Folder", i18n.get("export_collection"))
+        assertEquals("Export Folder", i18n.get("export_folder"))
+        assertEquals("Import Folder", i18n.get("import_collection"))
+        assertEquals("Import Folder", i18n.get("import_folder"))
+        assertEquals("Go to Folder", i18n.get("go_to_collection"))
+        assertEquals("Go to Folder", i18n.get("go_to_folder"))
+        assertEquals("Folder actions", i18n.get("collection_actions"))
+        assertEquals("Folder actions", i18n.get("folder_actions"))
+        assertEquals("Duplicate Folder", i18n.get("duplicate_collection"))
+        assertEquals("Duplicate Folder", i18n.get("duplicate_folder"))
+    }
 }

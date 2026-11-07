@@ -1,7 +1,11 @@
 package io.github.crustack.clapi.ui.shared.mcp
 
+import io.github.crustack.clapi.core.model.KeyValueEntry
 import io.github.crustack.clapi.core.model.McpConnectionConfig
 import io.github.crustack.clapi.core.model.McpConnectionState
+import io.github.crustack.clapi.core.model.McpPrompt
+import io.github.crustack.clapi.core.model.McpPromptArgument
+import io.github.crustack.clapi.core.model.McpRoot
 import io.github.crustack.clapi.core.model.McpSamplingMode
 import io.github.crustack.clapi.core.model.McpTransportType
 import io.github.crustack.clapi.core.network.mcp.McpClient

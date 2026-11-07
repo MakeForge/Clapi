@@ -41,7 +41,8 @@ enum class AuthType {
     BEARER,
     API_KEY,
     OAUTH2,
-    JWT
+    JWT,
+    INHERIT
 }
 
 @Serializable
