@@ -151,7 +151,7 @@ private fun sendRequestInternal(scope: CoroutineScope, state: AppState, tab: Req
             }
 
             for ((source, scriptContent) in preScriptChain) {
-                val layers = state.activeVariableLayers()
+                val layers = state.activeVariableLayers(tab)
                 val flatVars = buildMap<String, String> { layers.asReversed().forEach { putAll(it) } }
                 val preCtx = ScriptContext(
                     url       = effectiveUrl,
@@ -243,7 +243,7 @@ private fun sendRequestInternal(scope: CoroutineScope, state: AppState, tab: Req
 
         val resolvedBaseForLog = resolveUrlForLog(
             url = effectiveUrl,
-            variableLayers = state.activeVariableLayers(),
+            variableLayers = state.activeVariableLayers(tab),
             requestScopedVars = requestScopedScriptVars,
         )
         val effectiveUrlForLog = if (effectiveQueryParams.isNotEmpty()) {
@@ -294,7 +294,7 @@ private fun sendRequestInternal(scope: CoroutineScope, state: AppState, tab: Req
                 retryPolicy = retryPolicy,
             )
 
-            client.execute(request, state.activeVariableLayers()).collect { event ->
+            client.execute(request, state.activeVariableLayers(tab)).collect { event ->
                 when (event) {
                     is NetworkEvent.Started -> {
                         state.recordHistory(
@@ -340,7 +340,7 @@ private fun sendRequestInternal(scope: CoroutineScope, state: AppState, tab: Req
 
                         for ((source, scriptContent) in testScriptChain) {
                             val resp = event.response
-                            val layers2 = state.activeVariableLayers()
+                            val layers2 = state.activeVariableLayers(tab)
                             val flatVars2 = buildMap<String, String> { layers2.asReversed().forEach { putAll(it) } }
                             val testCtx = ScriptContext(
                                 url             = effectiveUrl,

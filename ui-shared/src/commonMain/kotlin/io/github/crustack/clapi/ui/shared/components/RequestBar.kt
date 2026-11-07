@@ -56,6 +56,7 @@ import androidx.compose.ui.window.Dialog
 import io.github.crustack.clapi.core.model.HttpMethodType
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.state.AppState
+import io.github.crustack.clapi.ui.shared.state.RequestTabState
 import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
 import io.github.crustack.clapi.ui.shared.theme.httpMethodColor
@@ -91,6 +92,7 @@ fun RequestBar(
     onRetryCountChanged: (Int) -> Unit,
     onRetryDelayChanged: (Long) -> Unit,
     state: AppState? = null,
+    tab: RequestTabState? = state?.activeTab,
     /** Per-tab undo stack for the URL field. Pass [RequestTabState.urlUndoStack]. */
     urlUndoStack: ArrayDeque<String>? = null,
 ) {
@@ -124,6 +126,7 @@ fun RequestBar(
                     fontFamily = CodeFontFamily,
                 ),
                 state = state,
+                tab = tab,
                 undoStack = urlUndoStack,
                 modifier = Modifier.fillMaxWidth().testTag("url-input"),
             )

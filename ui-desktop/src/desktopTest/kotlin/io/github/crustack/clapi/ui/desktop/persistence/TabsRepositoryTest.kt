@@ -147,7 +147,7 @@ class TabsRepositoryTest {
             kind = io.github.crustack.clapi.core.model.RequestKind.FOLDER,
         )
         folderTab.headers.add(MutableKeyValue("X-Folder-Header", "shared-val", kind = HeaderKind.USER))
-        folderTab.params.add(MutableKeyValue("version", "v2"))
+        folderTab.variables.add(MutableKeyValue("baseUrl", "https://api.example.com"))
         folderTab.authType = AuthType.BEARER
         folderTab.authToken = "folder-token"
         folderTab.preRequestScript = "console.log('folder pre')"
@@ -177,9 +177,9 @@ class TabsRepositoryTest {
         assertEquals(1, restoredTab.headers.size)
         assertEquals("X-Folder-Header", restoredTab.headers[0].key)
         assertEquals("shared-val", restoredTab.headers[0].value)
-        assertEquals(1, restoredTab.params.size)
-        assertEquals("version", restoredTab.params[0].key)
-        assertEquals("v2", restoredTab.params[0].value)
+        assertEquals(1, restoredTab.variables.size)
+        assertEquals("baseUrl", restoredTab.variables[0].key)
+        assertEquals("https://api.example.com", restoredTab.variables[0].value)
         assertEquals(AuthType.BEARER, restoredTab.authType)
         assertEquals("folder-token", restoredTab.authToken)
         assertEquals("console.log('folder pre')", restoredTab.preRequestScript)

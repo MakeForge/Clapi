@@ -1,6 +1,9 @@
 {
   "add": "Añadir",
   "add_variable": "Añadir variable",
+  "environment": "Entorno",
+  "folder": "Carpeta",
+  "no_folder": "Sin carpeta",
   "app_name": "Clapi",
   "auth": "Autenticación",
   "auto_save": "Auto-guardar solicitudes",

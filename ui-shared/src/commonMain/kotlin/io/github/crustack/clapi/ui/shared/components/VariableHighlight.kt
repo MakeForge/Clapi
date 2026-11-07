@@ -64,6 +64,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.state.AppState
+import io.github.crustack.clapi.ui.shared.state.EnvState
+import io.github.crustack.clapi.ui.shared.state.RequestTabState
 import kotlin.math.roundToInt
 import io.github.crustack.clapi.ui.shared.state.MutableKeyValue
 import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
@@ -239,13 +241,15 @@ fun VariableAwareTextField(
         fontFamily = CodeFontFamily,
     ),
     state: AppState? = null,
+    tab: RequestTabState? = state?.activeTab,
     readOnly: Boolean = false,
 ) {
-    // Resolved variable names from whatever environment/collection layers are active.
+    // Resolved variable names from whatever environment/folder/collection layers are active.
     // Reading mutableState properties of AppState inside the composable body automatically
     // registers this composable for recomposition when the environment changes.
+    val currentTab = tab ?: state?.activeTab
     val definedNames: Set<String> = if (state != null)
-        state.activeVariableLayers().flatMap { it.keys }.toSet()
+        state.activeVariableLayers(currentTab).flatMap { it.keys }.toSet()
     else
         emptySet()
 
@@ -386,6 +390,7 @@ fun VariableAwareTextField(
                 VariableEditorPopup(
                     variableName = varName,
                     state = state,
+                    tab = currentTab,
                     onDismiss = { popupVariable = null },
                 )
             }
@@ -395,39 +400,121 @@ fun VariableAwareTextField(
 
 // ── Variable editor popup ─────────────────────────────────────────────
 
+data class VariableSourceInfo(
+    val cleanName: String,
+    val environmentName: String?,
+    val environmentValue: String?,
+    val hasEnvironmentValue: Boolean,
+    val folderName: String?,
+    val folderValue: String?,
+    val hasFolderValue: Boolean,
+    val currentResolvedValue: String?,
+)
+
+fun resolveVariableSourceInfo(
+    variableName: String,
+    state: AppState,
+    tab: RequestTabState? = state.activeTab,
+): VariableSourceInfo {
+    val cleanName = normalizeVariableDisplayName(variableName)
+    val env = state.selectedEnvironment
+    val envName = env?.name
+    val envVar = env?.variables?.firstOrNull { it.key == cleanName && it.enabled }
+    val envValue = envVar?.value
+    val hasEnvValue = envVar != null
+
+    val targetTab = tab ?: state.activeTab
+    var folderName: String? = null
+    var folderValue: String? = null
+    var hasFolderValue = false
+
+    if (targetTab != null) {
+        if (targetTab.isFolderTab) {
+            folderName = targetTab.name
+            val fVar = targetTab.variables.firstOrNull { it.key == cleanName && it.enabled }
+            if (fVar != null) {
+                folderValue = fVar.value
+                hasFolderValue = true
+            }
+        } else {
+            val ancestors = state.getAncestorFolders(targetTab)
+            val currentFolderNode = ancestors.lastOrNull { it.isFolder }
+            if (currentFolderNode != null) {
+                val definingFolderNode = ancestors.asReversed().firstOrNull { fNode ->
+                    val openTab = state.openTabs.firstOrNull { it.id == fNode.id && it.isFolderTab }
+                    if (openTab != null) {
+                        openTab.variables.any { it.key == cleanName && it.enabled }
+                    } else {
+                        fNode.variableEntries?.any { it.key == cleanName && it.enabled } == true
+                    }
+                } ?: currentFolderNode
+
+                folderName = definingFolderNode.name
+                val openTab = state.openTabs.firstOrNull { it.id == definingFolderNode.id && it.isFolderTab }
+                val fVarValue = if (openTab != null) {
+                    openTab.variables.firstOrNull { it.key == cleanName && it.enabled }?.value
+                } else {
+                    definingFolderNode.variableEntries?.firstOrNull { it.key == cleanName && it.enabled }?.value
+                }
+                if (fVarValue != null) {
+                    folderValue = fVarValue
+                    hasFolderValue = true
+                }
+            }
+        }
+    }
+
+    // Current value: environment always takes precedence over folder variable
+    val currentResolvedValue = if (hasEnvValue) {
+        envValue
+    } else if (hasFolderValue) {
+        folderValue
+    } else {
+        state.activeVariableLayers(targetTab).firstNotNullOfOrNull { it[cleanName] }
+    }
+
+    return VariableSourceInfo(
+        cleanName = cleanName,
+        environmentName = envName,
+        environmentValue = envValue,
+        hasEnvironmentValue = hasEnvValue,
+        folderName = folderName,
+        folderValue = folderValue,
+        hasFolderValue = hasFolderValue,
+        currentResolvedValue = currentResolvedValue,
+    )
+}
+
 /**
  * Floating popup for inline environment variable editing.
  *
- * Fixes applied:
- *  - Issue 2: Close (✕) button in the header; ESC + click-outside dismiss.
- *  - Issue 3: Edit field uses [TextFieldValue] state preserving cursor position;
- *    Backspace now removes one character as expected.
- *  - Issue 6: Anchored below-start of its parent text field.
- *  - Issue 7: Save mutates reactive env state; all observers refresh immediately.
+ * Displays:
+ *  - Current resolved value (environment takes precedence over folder variable)
+ *  - Source values: Environment and Current Folder
+ *  - Edit field to save/update the value in the active environment
  */
 @Composable
 fun VariableEditorPopup(
     variableName: String,
     state: AppState,
     onDismiss: () -> Unit,
+    tab: RequestTabState? = state.activeTab,
     initialOffset: IntOffset = IntOffset(40, 32),
     onPositionChanged: (IntOffset) -> Unit = {},
 ) {
     val cleanName = remember(variableName) { normalizeVariableDisplayName(variableName) }
+    val info = resolveVariableSourceInfo(cleanName, state, tab)
     val env = state.selectedEnvironment
-    val envVar = remember(cleanName, env) { env?.variables?.firstOrNull { it.key == cleanName } }
-    val resolved = env?.toVariableMap()?.get(cleanName)
 
-    var editValue by remember(cleanName) { mutableStateOf(TextFieldValue(envVar?.value ?: "")) }
+    var editValue by remember(cleanName) {
+        mutableStateOf(TextFieldValue(info.environmentValue ?: info.folderValue ?: ""))
+    }
     var viewportSize by remember { mutableStateOf(IntSize.Zero) }
     var popupSize by remember { mutableStateOf(IntSize.Zero) }
-    // Use Float state to avoid the sub-pixel truncation bug where small drag
-    // deltas (e.g. 0.7f) become 0 after .toInt() and the popup never moves.
     var popupOffsetX by remember(cleanName) { mutableStateOf(initialOffset.x.toFloat()) }
     var popupOffsetY by remember(cleanName) { mutableStateOf(initialOffset.y.toFloat()) }
 
     fun movePopupBy(dx: Float, dy: Float) {
-        // Accumulate in Float — never truncate to Int until layout time.
         val rawX = popupOffsetX + dx
         val rawY = popupOffsetY + dy
         val (cx, cy) = clampPopupOffsetToViewportF(
@@ -455,9 +542,6 @@ fun VariableEditorPopup(
                     popupOffsetX = cx
                     popupOffsetY = cy
                 }
-                // Use detectTapGestures instead of clickable so that drag
-                // gestures initiated on the popup card do not prematurely
-                // trigger a backdrop-dismiss before touch-slop is exceeded.
                 .pointerInput(Unit) { detectTapGestures { onDismiss() } }
                 .testTag("variable-popup-backdrop"),
         ) {
@@ -478,8 +562,6 @@ fun VariableEditorPopup(
                         popupOffsetX = cx
                         popupOffsetY = cy
                     }
-                    // Consume every Main-pass event that was not already consumed
-                    // by a child to become a drag on the popup.
                     .draggableNoSlop(key = cleanName) { dx, dy -> movePopupBy(dx, dy) }
                     .pointerInput(Unit) { detectTapGestures { } }
                     .padding(16.dp)
@@ -508,7 +590,7 @@ fun VariableEditorPopup(
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Text(
-                                text = "${Strings.environments}: ${env?.name ?: Strings.t("none")}",
+                                text = "${Strings.environments}: ${info.environmentName ?: Strings.t("none")}",
                                 fontSize = 11.sp,
                                 color = ClapiColors.OnSurfaceDim,
                                 maxLines = 1,
@@ -535,33 +617,117 @@ fun VariableEditorPopup(
                             .background(ClapiColors.SurfaceVariant)
                             .border(1.dp, ClapiColors.Border, RoundedCornerShape(8.dp))
                             .padding(horizontal = 10.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = Strings.t("current_value"),
+                                fontSize = 11.sp,
+                                color = ClapiColors.OnSurfaceVariant,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            val sourceBadge = when {
+                                info.hasEnvironmentValue -> "Environment"
+                                info.hasFolderValue -> "Folder"
+                                else -> null
+                            }
+                            if (sourceBadge != null) {
+                                Text(
+                                    text = sourceBadge,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = ClapiColors.Primary,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(ClapiColors.Primary.copy(alpha = 0.12f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        .testTag("variable-popup-active-source"),
+                                )
+                            }
+                        }
                         Text(
-                            text = Strings.t("current_value"),
-                            fontSize = 11.sp,
-                            color = ClapiColors.OnSurfaceVariant,
-                            fontWeight = FontWeight.Medium,
-                        )
-                        Text(
-                            text = resolved ?: Strings.t("not_defined"),
+                            text = info.currentResolvedValue ?: Strings.t("not_defined"),
                             fontSize = 12.sp,
-                            color = if (resolved == null) ClapiColors.Error else ClapiColors.OnSurface,
+                            fontWeight = FontWeight.Medium,
+                            color = if (info.currentResolvedValue == null) ClapiColors.Error else ClapiColors.OnSurface,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.testTag("variable-popup-current-value"),
                         )
+
+                        HorizontalDivider(color = ClapiColors.Border.copy(alpha = 0.6f))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth().testTag("variable-popup-env-row"),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            val envLabel = if (info.environmentName != null) "Environment (${info.environmentName})" else "Environment"
+                            Text(
+                                text = envLabel,
+                                fontSize = 11.sp,
+                                color = ClapiColors.OnSurfaceDim,
+                            )
+                            Text(
+                                text = if (info.hasEnvironmentValue) info.environmentValue!! else Strings.t("not_defined"),
+                                fontSize = 11.sp,
+                                fontFamily = CodeFontFamily,
+                                fontWeight = if (info.hasEnvironmentValue) FontWeight.SemiBold else FontWeight.Normal,
+                                color = if (info.hasEnvironmentValue) ClapiColors.OnSurface else ClapiColors.OnSurfaceDim,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.testTag("variable-popup-env-value"),
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth().testTag("variable-popup-folder-row"),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            val folderLabel = if (info.folderName != null) "Folder (${info.folderName})" else "Folder"
+                            Text(
+                                text = folderLabel,
+                                fontSize = 11.sp,
+                                color = ClapiColors.OnSurfaceDim,
+                            )
+                            Text(
+                                text = if (info.hasFolderValue) info.folderValue!! else if (info.folderName != null) Strings.t("not_defined") else Strings.t("none"),
+                                fontSize = 11.sp,
+                                fontFamily = CodeFontFamily,
+                                fontWeight = if (info.hasFolderValue) FontWeight.SemiBold else FontWeight.Normal,
+                                color = if (info.hasFolderValue) ClapiColors.OnSurface else ClapiColors.OnSurfaceDim,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.testTag("variable-popup-folder-value"),
+                            )
+                        }
                     }
 
                     HorizontalDivider(color = ClapiColors.Border)
 
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            text = Strings.value,
-                            fontSize = 11.sp,
-                            color = ClapiColors.OnSurfaceVariant,
-                            fontWeight = FontWeight.Medium,
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = Strings.value,
+                                fontSize = 11.sp,
+                                color = ClapiColors.OnSurfaceVariant,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            Text(
+                                text = "Sets in environment",
+                                fontSize = 10.sp,
+                                color = ClapiColors.OnSurfaceDim,
+                            )
+                        }
                         BasicTextField(
                             value = editValue,
                             onValueChange = { editValue = it },
@@ -631,12 +797,18 @@ fun VariableEditorPopup(
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(ClapiColors.Primary)
                                 .clickable {
-                                    if (env == null) {
-                                        onDismiss()
-                                    } else if (envVar != null) {
-                                        envVar.value = editValue.text
+                                    val targetEnv = env ?: run {
+                                        val newEnv = EnvState("Default")
+                                        state.environments.add(newEnv)
+                                        state.selectedEnvIndex = state.environments.size - 1
+                                        newEnv
+                                    }
+                                    val existing = targetEnv.variables.firstOrNull { it.key == cleanName }
+                                    if (existing != null) {
+                                        existing.value = editValue.text
+                                        existing.enabled = true
                                     } else {
-                                        env.variables.add(MutableKeyValue(key = cleanName, value = editValue.text))
+                                        targetEnv.variables.add(MutableKeyValue(key = cleanName, value = editValue.text, enabled = true))
                                     }
                                     onDismiss()
                                 }

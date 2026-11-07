@@ -89,16 +89,16 @@ fun AuthEditor(tab: RequestTabState, state: AppState, onDirty: () -> Unit) {
                 Text(Strings.t("no_authentication"), color = ClapiColors.OnSurfaceDim, style = MaterialTheme.typography.bodySmall)
             }
             AuthType.BASIC -> {
-                LabeledTextField(Strings.t("username"), tab.authUsername, state = state) { tab.authUsername = it; onDirty() }
+                LabeledTextField(Strings.t("username"), tab.authUsername, state = state, tab = tab) { tab.authUsername = it; onDirty() }
                 // H-4: Use a password field with show/hide toggle so the password is masked
                 PasswordLabeledTextField(Strings.t("password"), tab.authPassword, state = state) { tab.authPassword = it; onDirty() }
             }
             AuthType.BEARER, AuthType.JWT -> {
-                LabeledTextField(Strings.t("token"), tab.authToken, state = state) { tab.authToken = it; onDirty() }
+                LabeledTextField(Strings.t("token"), tab.authToken, state = state, tab = tab) { tab.authToken = it; onDirty() }
             }
             AuthType.API_KEY -> {
-                LabeledTextField(Strings.t("key_upper"), tab.authApiKey, state = state) { tab.authApiKey = it; onDirty() }
-                LabeledTextField(Strings.value, tab.authApiValue, state = state) { tab.authApiValue = it; onDirty() }
+                LabeledTextField(Strings.t("key_upper"), tab.authApiKey, state = state, tab = tab) { tab.authApiKey = it; onDirty() }
+                LabeledTextField(Strings.value, tab.authApiValue, state = state, tab = tab) { tab.authApiValue = it; onDirty() }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("Add to", style = MaterialTheme.typography.labelSmall, color = ClapiColors.OnSurfaceVariant)
                     listOf("header" to "Header", "query" to "Query").forEach { (placement, label) ->
@@ -180,6 +180,7 @@ fun LabeledTextField(
     label: String,
     value: String,
     state: AppState,
+    tab: RequestTabState? = state.activeTab,
     onValueChange: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -189,6 +190,7 @@ fun LabeledTextField(
             onValueChange = onValueChange,
             textStyle = TextStyle(color = ClapiColors.OnSurface, fontSize = 13.sp, fontFamily = CodeFontFamily),
             state = state,
+            tab = tab,
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(6.dp))

@@ -18,6 +18,8 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -505,6 +507,12 @@ class TabManagementUiTest {
                 kind = io.github.crustack.clapi.ui.shared.state.HeaderKind.USER,
             )
         )
+        folderTab.variables.add(
+            io.github.crustack.clapi.ui.shared.state.MutableKeyValue(
+                key = "baseUrl",
+                value = "https://api.test.com",
+            )
+        )
         folderTab.authType = io.github.crustack.clapi.core.model.AuthType.BEARER
         folderTab.authToken = "bearer-secret"
 
@@ -519,5 +527,29 @@ class TabManagementUiTest {
         assertEquals(io.github.crustack.clapi.core.model.AuthType.BEARER, savedNode.authType)
         assertEquals("bearer-secret", savedNode.authToken)
         assertTrue(savedNode.headerEntries?.any { it.key == "X-Folder-Token" && it.value == "tok-123" } == true)
+        assertTrue(savedNode.variableEntries?.any { it.key == "baseUrl" && it.value == "https://api.test.com" } == true)
+        assertNull(savedNode.queryEntries)
+    }
+
+    @Test
+    fun folderEditor_displays_variables_tab_and_no_params_tab() {
+        val state = AppState(withDemoData = false, openDefaultTab = false)
+        val folder = io.github.crustack.clapi.ui.shared.state.CollectionNode(
+            id = "f-editor-test",
+            name = "Folder Variables Test",
+            isFolder = true,
+        )
+        state.collections.add(folder)
+        state.openFolder("f-editor-test")
+
+        composeRule.setContent { MainScreen(state) }
+        composeRule.waitForIdle()
+
+        val activeTab = state.activeTab
+        assertNotNull(activeTab)
+        assertEquals(io.github.crustack.clapi.ui.shared.state.RequestEditorTab.VARIABLES, activeTab.selectedEditorTab)
+
+        composeRule.onNodeWithText("Variables", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Params", useUnmergedTree = true).assertDoesNotExist()
     }
 }
