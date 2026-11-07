@@ -9,6 +9,7 @@ kotlin {
         commonMain.dependencies {
             implementation(project(":core-model"))
             implementation(libs.coroutines.core)
+            implementation(libs.serialization.json)
             implementation(libs.koin.core)
             implementation(libs.kaml)
         }

@@ -78,3 +78,10 @@ secrets.properties
 test-results/
 reports/
 coverage/
+
+# ── Python / Scripts ─────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
