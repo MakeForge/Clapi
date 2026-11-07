@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -40,8 +40,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material3.Text
-import io.github.crustack.ui.shared.i18n.Strings
 import io.github.crustack.ui.shared.components.BottomPanel
 import io.github.crustack.ui.shared.components.ConfirmDeleteDialog
 import io.github.crustack.ui.shared.components.DirtyCloseDialog
@@ -52,11 +50,11 @@ import io.github.crustack.ui.shared.components.GlobalVariablesDialog
 import io.github.crustack.ui.shared.components.GraphQLPanel
 import io.github.crustack.ui.shared.components.HelpAboutDialog
 import io.github.crustack.ui.shared.components.HorizontalSplitPane
+import io.github.crustack.ui.shared.components.McpPanel
+import io.github.crustack.ui.shared.components.McpWorkspaceResponse
 import io.github.crustack.ui.shared.components.OperationProgressDialog
 import io.github.crustack.ui.shared.components.RealtimePanel
 import io.github.crustack.ui.shared.components.RequestEditor
-import io.github.crustack.ui.shared.components.McpPanel
-import io.github.crustack.ui.shared.components.McpWorkspaceResponse
 import io.github.crustack.ui.shared.components.RequestTabsBar
 import io.github.crustack.ui.shared.components.ResponseViewer
 import io.github.crustack.ui.shared.components.SettingsDialog
@@ -66,6 +64,7 @@ import io.github.crustack.ui.shared.components.TopToolbar
 import io.github.crustack.ui.shared.components.VerticalSplitPane
 import io.github.crustack.ui.shared.components.saveRequest
 import io.github.crustack.ui.shared.components.sendRequest
+import io.github.crustack.ui.shared.i18n.Strings
 import io.github.crustack.ui.shared.persistence.SettingsRepository
 import io.github.crustack.ui.shared.persistence.TabsRepository
 import io.github.crustack.ui.shared.persistence.WorkspaceRepository
@@ -74,8 +73,6 @@ import io.github.crustack.ui.shared.state.AppState
 import io.github.crustack.ui.shared.state.ResponseLayout
 import io.github.crustack.ui.shared.state.WorkspaceMode
 import io.github.crustack.ui.shared.theme.ClapiColors
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
