@@ -113,10 +113,10 @@ Multi-module Kotlin project. Paths are relative to the repository root (see plan
 
 **Contracts**: `collection-repository.contract.md`
 
-- [ ] T033 [US5] Enforce secret variables as `secret: true` with no `value` property on write in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/OpenCollectionSerializer.kt` (FR-017, SC-007)
+- [X] T033 [US5] Enforce secret variables as `secret: true` with no `value` property on write in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/OpenCollectionSerializer.kt` (FR-017, SC-007)
 - [ ] T034 [US5] Store secret values in local secure storage, keyed by environment ID and variable name, in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/SecretValueStore.kt` (research §7, FR-015, FR-016)
 - [ ] T035 [US5] Resolve secret values from secure storage at execution time in `feature-requests/src/commonMain/kotlin/io/github/crustack/feature/requests/HttpExecutionAdapter.kt`
-- [ ] T036 [US5] Keep tabs, history, and responses out of `CanonicalCollectionRepository` writes in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/CanonicalCollectionRepository.kt` (FR-024)
+- [X] T036 [US5] Keep tabs, history, and responses out of `CanonicalCollectionRepository` writes in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/CanonicalCollectionRepository.kt` (FR-024)
 
 **Checkpoint**: US5 is independently testable.
 

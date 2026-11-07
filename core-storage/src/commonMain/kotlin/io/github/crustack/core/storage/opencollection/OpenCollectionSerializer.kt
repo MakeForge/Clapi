@@ -10,6 +10,7 @@ import io.github.crustack.core.model.opencollection.FolderItem
 import io.github.crustack.core.model.opencollection.HttpRequestItem
 import io.github.crustack.core.model.opencollection.OpenCollectionDocument
 import io.github.crustack.core.model.opencollection.OpenCollectionItem
+import io.github.crustack.core.model.opencollection.SecretVariable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -46,8 +47,9 @@ object OpenCollectionSerializer {
     )
 
     fun serializeJson(document: OpenCollectionDocument): String {
-        val rootElement = json.encodeToJsonElement(OpenCollectionDocument.serializer(), document)
-        val enriched = enrichJsonElementWithExtensions(rootElement, document)
+        val normalized = normalizeSecretVariables(document)
+        val rootElement = json.encodeToJsonElement(OpenCollectionDocument.serializer(), normalized)
+        val enriched = enrichJsonElementWithExtensions(rootElement, normalized)
         return json.encodeToString(JsonElement.serializer(), enriched)
     }
 
@@ -58,9 +60,21 @@ object OpenCollectionSerializer {
     }
 
     fun serializeYaml(document: OpenCollectionDocument): String {
-        val rootElement = json.encodeToJsonElement(OpenCollectionDocument.serializer(), document)
-        val enriched = enrichJsonElementWithExtensions(rootElement, document)
+        val normalized = normalizeSecretVariables(document)
+        val rootElement = json.encodeToJsonElement(OpenCollectionDocument.serializer(), normalized)
+        val enriched = enrichJsonElementWithExtensions(rootElement, normalized)
         return jsonElementToYaml(enriched).trim()
+    }
+
+    // Secret variables are always written as `secret: true`; secret values never reach the document model.
+    private fun normalizeSecretVariables(document: OpenCollectionDocument): OpenCollectionDocument {
+        val config = document.config ?: return document
+        val environments = config.environments.map { environment ->
+            environment.copy(variables = environment.variables.map { entry ->
+                if (entry is SecretVariable && !entry.secret) entry.copy(secret = true) else entry
+            })
+        }
+        return document.copy(config = config.copy(environments = environments))
     }
 
     fun deserializeYaml(content: String): OpenCollectionDocument {

@@ -242,6 +242,27 @@ class OpenCollectionStorageTest {
     }
 
     @Test
+    fun testSecretVariableIsWrittenAsSecretEvenWhenFlagIsFalse() {
+        val doc = OpenCollectionDocument(
+            opencollection = "1.0.0",
+            info = CollectionInfo(name = "Secret Flag Test"),
+            config = CollectionConfig(
+                environments = listOf(
+                    Environment(
+                        name = "Production",
+                        variables = listOf(SecretVariable(name = "apiKey", secret = false))
+                    )
+                )
+            )
+        )
+        val reloaded = OpenCollectionSerializer.deserializeJson(OpenCollectionSerializer.serializeJson(doc))
+        val variable = reloaded.config?.environments?.single()?.variables?.single()
+
+        assertTrue(variable is SecretVariable)
+        assertTrue((variable as SecretVariable).secret)
+    }
+
+    @Test
     fun testItemOrderingIsPreserved() {
         val doc = OpenCollectionDocument(
             opencollection = "1.0.0",
