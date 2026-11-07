@@ -3,12 +3,15 @@ package io.github.crustack.feature.requests
 import io.github.crustack.core.model.AuthType
 import io.github.crustack.core.model.BodyType
 import io.github.crustack.core.model.HttpMethodType
+import io.github.crustack.core.model.McpConnectionConfig
+import io.github.crustack.core.model.McpTransportType
 import io.github.crustack.core.model.RequestDefinition
 import io.github.crustack.core.model.ResponseDefinition
 import io.github.crustack.core.model.opencollection.AuthApiKey
 import io.github.crustack.core.model.opencollection.AuthBasic
 import io.github.crustack.core.model.opencollection.AuthBearer
 import io.github.crustack.core.model.opencollection.AuthInherit
+import io.github.crustack.core.model.opencollection.ClapiExtensionData
 import io.github.crustack.core.model.opencollection.CollectionInfo
 import io.github.crustack.core.model.opencollection.FolderInfo
 import io.github.crustack.core.model.opencollection.FolderItem
@@ -19,6 +22,7 @@ import io.github.crustack.core.model.opencollection.HttpRequestHeader
 import io.github.crustack.core.model.opencollection.HttpRequestInfo
 import io.github.crustack.core.model.opencollection.HttpRequestItem
 import io.github.crustack.core.model.opencollection.HttpRequestParam
+import io.github.crustack.core.model.opencollection.McpConnectionConfigDto
 import io.github.crustack.core.model.opencollection.MultipartFormBody
 import io.github.crustack.core.model.opencollection.MultipartPartEntry
 import io.github.crustack.core.model.opencollection.OpenCollectionDocument
@@ -26,6 +30,7 @@ import io.github.crustack.core.model.opencollection.RawBody
 import io.github.crustack.core.model.opencollection.RegularVariable
 import io.github.crustack.core.model.opencollection.RequestDefaults
 import io.github.crustack.core.model.opencollection.StringVariableValue
+import io.github.crustack.core.model.opencollection.withClapiExtensionData
 import io.github.crustack.core.network.ApiClient
 import io.github.crustack.core.network.NetworkEvent
 import kotlinx.coroutines.flow.Flow
@@ -33,6 +38,7 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlin.test.Test
@@ -254,40 +260,44 @@ class HttpExecutionAdapterTest {
 
     @Test
     fun ignores_mcp_extensions_without_errors() {
-        val collectionDoc = OpenCollectionDocument(
-            info = CollectionInfo(name = "Test"),
-            extensions = mapOf(
-                "clapi" to buildJsonObject {
-                    put("mcp", buildJsonObject {
-                        put("serverUrl", JsonPrimitive("http://localhost:3000"))
-                    })
-                }
+        val mcpData = ClapiExtensionData(
+            mcp = listOf(
+                McpConnectionConfigDto(
+                    id = "mcp-1",
+                    name = "Local server",
+                    config = McpConnectionConfig(
+                        transport = McpTransportType.STDIO,
+                        command = "npx",
+                        args = listOf("-y", "8080", "true"),
+                        env = mapOf("PORT" to "8080")
+                    )
+                )
             )
         )
-
         val requestItem = HttpRequestItem(
             info = HttpRequestInfo(name = "Req"),
             http = HttpRequestDetails(
                 method = "GET",
                 url = "https://example.com/api"
-            ),
-            extensions = mapOf(
-                "clapi" to buildJsonObject {
-                    put("mcpConfig", buildJsonObject {
-                        put("enabled", JsonPrimitive(true))
-                    })
-                }
             )
         )
 
-        val req = adapter.toExecutableRequest(
+        val withMcp = adapter.toExecutableRequest(
             requestItem = requestItem,
-            collectionRoot = collectionDoc
+            collectionRoot = OpenCollectionDocument(
+                info = CollectionInfo(name = "Test"),
+                extensions = emptyMap<String, JsonElement>().withClapiExtensionData(mcpData)
+            )
+        )
+        val withoutMcp = adapter.toExecutableRequest(
+            requestItem = requestItem,
+            collectionRoot = OpenCollectionDocument(info = CollectionInfo(name = "Test"))
         )
 
-        assertEquals("Req", req.name)
-        assertEquals(HttpMethodType.GET, req.method)
-        assertEquals("https://example.com/api", req.url)
+        assertEquals(withoutMcp, withMcp)
+        assertEquals("Req", withMcp.name)
+        assertEquals(HttpMethodType.GET, withMcp.method)
+        assertEquals("https://example.com/api", withMcp.url)
     }
 
     @Test

@@ -97,9 +97,9 @@ Multi-module Kotlin project. Paths are relative to the repository root (see plan
 
 **Independent Test**: A collection with MCP config round-trips with the MCP block intact under `extensions.clapi.mcp`, and the HTTP request payloads contain no MCP fields.
 
-- [ ] T030 [US4] Store MCP configuration under `extensions.clapi.mcp` in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/OpenCollectionExtensions.kt` (refines T013)
-- [ ] T031 [US4] Ensure `HttpExecutionAdapter.toExecutableRequest` ignores the `extensions.clapi.mcp` block in `feature-requests/src/commonMain/kotlin/io/github/crustack/feature/requests/HttpExecutionAdapter.kt`
-- [ ] T032 [US4] Preserve the `extensions.clapi.mcp` block on save and export in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/OpenCollectionSerializer.kt`
+- [X] T030 [US4] Store MCP configuration under `extensions.clapi.mcp` in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/OpenCollectionExtensions.kt` (refines T013)
+- [X] T031 [US4] Ensure `HttpExecutionAdapter.toExecutableRequest` ignores the `extensions.clapi.mcp` block in `feature-requests/src/commonMain/kotlin/io/github/crustack/feature/requests/HttpExecutionAdapter.kt`
+- [X] T032 [US4] Preserve the `extensions.clapi.mcp` block on save and export in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/OpenCollectionSerializer.kt`
 
 **Checkpoint**: US4 is independently testable.
 

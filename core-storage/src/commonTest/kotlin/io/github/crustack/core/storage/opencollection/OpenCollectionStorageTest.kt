@@ -1,6 +1,9 @@
 package io.github.crustack.core.storage.opencollection
 
+import io.github.crustack.core.model.McpConnectionConfig
+import io.github.crustack.core.model.McpTransportType
 import io.github.crustack.core.model.opencollection.AuthBearer
+import io.github.crustack.core.model.opencollection.ClapiExtensionData
 import io.github.crustack.core.model.opencollection.CollectionConfig
 import io.github.crustack.core.model.opencollection.CollectionInfo
 import io.github.crustack.core.model.opencollection.Environment
@@ -10,10 +13,14 @@ import io.github.crustack.core.model.opencollection.HttpRequestDetails
 import io.github.crustack.core.model.opencollection.HttpRequestHeader
 import io.github.crustack.core.model.opencollection.HttpRequestInfo
 import io.github.crustack.core.model.opencollection.HttpRequestItem
+import io.github.crustack.core.model.opencollection.McpConnectionConfigDto
 import io.github.crustack.core.model.opencollection.OpenCollectionDocument
 import io.github.crustack.core.model.opencollection.RegularVariable
 import io.github.crustack.core.model.opencollection.SecretVariable
 import io.github.crustack.core.model.opencollection.VariableValue
+import io.github.crustack.core.model.opencollection.getClapiExtensionData
+import io.github.crustack.core.model.opencollection.withClapiExtensionData
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -180,6 +187,33 @@ class OpenCollectionStorageTest {
         // Check request-level extension
         val request = assertIs<HttpRequestItem>(folder.items[0])
         assertEquals(JsonPrimitive(true), request.extensions["customRequestField"])
+    }
+
+    @Test
+    fun testClapiMcpBlockSurvivesJsonAndYamlRoundTrip() {
+        val mcpData = ClapiExtensionData(
+            mcp = listOf(
+                McpConnectionConfigDto(
+                    id = "mcp-1",
+                    name = "Local server",
+                    config = McpConnectionConfig(
+                        transport = McpTransportType.STDIO,
+                        command = "npx",
+                        args = listOf("-y", "8080", "true", "1e3"),
+                        env = mapOf("PORT" to "8080", "DEBUG" to "false", "VERSION" to "1.50", "PAD" to "007")
+                    )
+                )
+            )
+        )
+        val original = createSampleDocument().copy(
+            extensions = emptyMap<String, JsonElement>().withClapiExtensionData(mcpData)
+        )
+
+        val restoredFromJson = OpenCollectionSerializer.deserializeJson(OpenCollectionSerializer.serializeJson(original))
+        val restoredFromYaml = OpenCollectionSerializer.deserializeYaml(OpenCollectionSerializer.serializeYaml(original))
+
+        assertEquals(mcpData, restoredFromJson.extensions.getClapiExtensionData())
+        assertEquals(mcpData, restoredFromYaml.extensions.getClapiExtensionData())
     }
 
     @Test

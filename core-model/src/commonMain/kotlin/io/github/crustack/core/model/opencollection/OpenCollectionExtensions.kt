@@ -17,11 +17,17 @@ data class McpConnectionConfigDto(
 @Serializable
 data class ClapiExtensionData(
     val mcp: List<McpConnectionConfigDto> = emptyList(),
-    val authType: String? = null,
-    val legacyFields: Map<String, JsonElement> = emptyMap()
+    val authType: String? = null
 )
 
-fun Map<String, JsonElement>.getClapiExtensionData(json: Json = Json): ClapiExtensionData? {
+// YAML scalars such as "8080" or "true" come back as numbers/booleans after a round-trip,
+// so the typed decode must accept them as strings.
+private val clapiExtensionJson = Json {
+    isLenient = true
+    ignoreUnknownKeys = true
+}
+
+fun Map<String, JsonElement>.getClapiExtensionData(json: Json = clapiExtensionJson): ClapiExtensionData? {
     val element = this["clapi"] ?: return null
     return try {
         json.decodeFromJsonElement<ClapiExtensionData>(element)
@@ -32,7 +38,7 @@ fun Map<String, JsonElement>.getClapiExtensionData(json: Json = Json): ClapiExte
 
 fun Map<String, JsonElement>.withClapiExtensionData(
     clapiData: ClapiExtensionData,
-    json: Json = Json
+    json: Json = clapiExtensionJson
 ): Map<String, JsonElement> {
     val element = json.encodeToJsonElement(clapiData)
     return this + ("clapi" to element)

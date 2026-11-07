@@ -65,7 +65,7 @@ object OpenCollectionSerializer {
 
     fun deserializeYaml(content: String): OpenCollectionDocument {
         val yamlNode = kaml.parseToYamlNode(content)
-        val jsonElement = yamlNodeToJsonElement(yamlNode)
+        val jsonElement = yamlNodeToJsonElement(yamlNode, content.lines())
         return deserializeFromJsonObject(jsonElement.jsonObject)
     }
 
@@ -161,11 +161,12 @@ object OpenCollectionSerializer {
         }
     }
 
-    private fun yamlNodeToJsonElement(node: YamlNode): JsonElement {
+    private fun yamlNodeToJsonElement(node: YamlNode, sourceLines: List<String>): JsonElement {
         return when (node) {
             is YamlScalar -> {
                 val content = node.content
                 when {
+                    isQuotedScalar(node, sourceLines) -> JsonPrimitive(content)
                     content.equals("true", ignoreCase = true) -> JsonPrimitive(true)
                     content.equals("false", ignoreCase = true) -> JsonPrimitive(false)
                     content.toLongOrNull() != null -> JsonPrimitive(content.toLong())
@@ -174,16 +175,23 @@ object OpenCollectionSerializer {
                 }
             }
             is YamlNull -> JsonNull
-            is YamlList -> JsonArray(node.items.map { yamlNodeToJsonElement(it) })
+            is YamlList -> JsonArray(node.items.map { yamlNodeToJsonElement(it, sourceLines) })
             is YamlMap -> {
                 val map = mutableMapOf<String, JsonElement>()
                 for ((keyNode, valueNode) in node.entries) {
-                    map[keyNode.content] = yamlNodeToJsonElement(valueNode)
+                    map[keyNode.content] = yamlNodeToJsonElement(valueNode, sourceLines)
                 }
                 JsonObject(map)
             }
             else -> JsonPrimitive(node.contentToString())
         }
+    }
+
+    // kaml does not expose scalar quoting, so check the source character at the node's start position.
+    private fun isQuotedScalar(node: YamlScalar, sourceLines: List<String>): Boolean {
+        val line = sourceLines.getOrNull(node.location.line - 1) ?: return false
+        val quote = line.getOrNull(node.location.column - 1) ?: return false
+        return quote == '"' || quote == '\''
     }
 
     private fun jsonElementToYaml(element: JsonElement, indent: Int = 0): String {
