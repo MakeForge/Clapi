@@ -128,9 +128,9 @@ Multi-module Kotlin project. Paths are relative to the repository root (see plan
 
 **Independent Test**: Feed documents with a wrong `opencollection` version, a folder with an HTTP request type, and a bad auth type. Each is rejected, the error names the offending path, and the file on disk is unchanged.
 
-- [ ] T037 [US6] Return path-and-reason detail in `CollectionValidationException` from `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/OpenCollectionSchemaValidator.kt` (FR-006, FR-009)
-- [ ] T038 [US6] Surface validation errors to the user in `ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/persistence/WorkspaceRepository.kt` without writing the invalid document (FR-006)
-- [ ] T039 [US6] Map `StorageReadException` and `StorageWriteException` to user-facing messages in `ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/persistence/ImportExportRepository.kt`
+- [X] T037 [US6] Return path-and-reason detail in `CollectionValidationException` from `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/OpenCollectionSchemaValidator.kt` (FR-006, FR-009)
+- [X] T038 [US6] Surface validation errors to the user in `ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/persistence/WorkspaceRepository.kt` without writing the invalid document (FR-006)
+- [X] T039 [US6] Map `StorageReadException` and `StorageWriteException` to user-facing messages in `ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/persistence/ImportExportRepository.kt`
 
 **Checkpoint**: US6 is independently testable.
 

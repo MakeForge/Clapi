@@ -31,12 +31,24 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import io.github.crustack.core.storage.opencollection.CollectionStorageException
+import io.github.crustack.core.storage.opencollection.CollectionValidationException
 import io.github.crustack.core.storage.opencollection.ExportFormat
 import io.github.crustack.core.storage.opencollection.OpenCollectionSerializer
 import io.github.crustack.core.storage.opencollection.OpenCollectionSchemaValidator
 import io.github.crustack.ui.shared.platform.generateUuid
 
 class ImportExportException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
+
+// Converts storage-layer failures into messages that are safe to show in the import/export error dialog.
+private inline fun <T> mapOpenCollectionErrors(block: () -> T): T =
+    try {
+        block()
+    } catch (e: CollectionValidationException) {
+        throw ImportExportException("The OpenCollection document is invalid. ${e.message}", e)
+    } catch (e: CollectionStorageException) {
+        throw ImportExportException("The OpenCollection document could not be read or written. ${e.message}", e)
+    }
 
 object ImportExportNaming {
     fun generateUniqueCollectionName(name: String, existingNames: Set<String>): String = generateUniqueName(name, existingNames)
@@ -155,8 +167,10 @@ object ImportExportRepository {
         if (trimmed.startsWith("{")) {
             val root = parseJsonString(trimmed)
             if (root["opencollection"] != null) {
-                OpenCollectionSchemaValidator().validateOrThrow(trimmed)
-                val doc = OpenCollectionSerializer.deserializeJson(trimmed)
+                val doc = mapOpenCollectionErrors {
+                    OpenCollectionSchemaValidator().validateOrThrow(trimmed)
+                    OpenCollectionSerializer.deserializeJson(trimmed)
+                }
                 val existingNames = state.collections.map { it.name }.toMutableSet()
                 val uniqueName = ImportExportNaming.generateUniqueCollectionName(doc.info.name, existingNames)
                 val node = doc.toCollectionNode(nameOverride = uniqueName, preserveIds = false)
@@ -178,8 +192,10 @@ object ImportExportRepository {
             state.collections.add(collectionDtoToNode(dto, uniqueName, preserveIds = false))
             return uniqueName
         } else if (trimmed.contains("opencollection:")) {
-            OpenCollectionSchemaValidator().validateYamlOrThrow(trimmed)
-            val doc = OpenCollectionSerializer.deserializeYaml(trimmed)
+            val doc = mapOpenCollectionErrors {
+                OpenCollectionSchemaValidator().validateYamlOrThrow(trimmed)
+                OpenCollectionSerializer.deserializeYaml(trimmed)
+            }
             val existingNames = state.collections.map { it.name }.toMutableSet()
             val uniqueName = ImportExportNaming.generateUniqueCollectionName(doc.info.name, existingNames)
             val node = doc.toCollectionNode(nameOverride = uniqueName, preserveIds = false)

@@ -1,6 +1,8 @@
 package io.github.crustack.ui.shared.persistence
 
 import io.github.crustack.core.storage.opencollection.CanonicalCollectionRepository
+import io.github.crustack.core.storage.opencollection.CollectionStorageException
+import io.github.crustack.core.storage.opencollection.CollectionValidationException
 import io.github.crustack.core.storage.opencollection.DefaultCanonicalCollectionRepository
 import io.github.crustack.ui.shared.platform.PlatformStorage
 import io.github.crustack.ui.shared.state.AppState
@@ -17,6 +19,13 @@ object WorkspaceRepository {
 
     var canonicalRepository: CanonicalCollectionRepository = DefaultCanonicalCollectionRepository()
 
+    private var lastReportedSaveError: String? = null
+
+    /**
+     * Persists collections and workspace metadata. Returns false and reports the failure to the user
+     * if any step fails. Metadata is written only after every collection has been saved, so a rejected
+     * document never leaves a partially updated workspace behind.
+     */
     fun save(state: AppState): Boolean =
         runCatching {
             // Persist collections canonically as OpenCollection documents
@@ -29,8 +38,26 @@ object WorkspaceRepository {
             // Persist workspace metadata (environments, global variables, history, expanded state)
             val json = ImportExportRepository.exportWorkspaceToString(state)
             PlatformStorage.putString(STORAGE_KEY, json)
+            lastReportedSaveError = null
             true
-        }.getOrDefault(false)
+        }.getOrElse { error ->
+            reportSaveError(state, error)
+            false
+        }
+
+    // Save runs on every state change, so the same failure is shown once until its message changes.
+    private fun reportSaveError(state: AppState, error: Throwable) {
+        val message = when (error) {
+            is CollectionValidationException ->
+                "A collection was not saved because it failed validation. ${error.message}"
+            is CollectionStorageException ->
+                "A collection could not be written to storage. ${error.message}"
+            else -> "Workspace could not be saved. ${error.message}"
+        }
+        if (message == lastReportedSaveError) return
+        lastReportedSaveError = message
+        state.showError(title = "Save error", message = message)
+    }
 
     fun load(state: AppState) {
         runCatching {

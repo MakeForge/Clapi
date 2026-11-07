@@ -361,5 +361,48 @@ class OpenCollectionStorageTest {
         val afterDelete = repository.getCollection(doc.info.name)
         assertEquals(null, afterDelete)
     }
+
+    private fun validSerializedSample(): String = OpenCollectionSerializer.serializeJson(createSampleDocument())
+
+    @Test
+    fun testValidatorReportsUnsupportedVersionWithPath() {
+        val json = validSerializedSample().replace("\"opencollection\": \"1.0.0\"", "\"opencollection\": \"2.0.0\"")
+
+        val ex = assertFailsWith<CollectionValidationException> { validator.validateOrThrow(json) }
+
+        val issue = ex.issues.single { it.path == "$.opencollection" }
+        assertTrue(issue.message.contains("2.0.0"), "issue=$issue")
+        assertTrue(ex.message.orEmpty().contains("$.opencollection"), "message=${ex.message}")
+    }
+
+    @Test
+    fun testValidatorReportsFolderWithHttpTypeWithPath() {
+        val json = validSerializedSample().replace("\"type\": \"folder\"", "\"type\": \"http\"")
+
+        val ex = assertFailsWith<CollectionValidationException> { validator.validateOrThrow(json) }
+
+        assertTrue(ex.issues.any { it.path.contains("items") }, "issues=${ex.issues}")
+    }
+
+    @Test
+    fun testValidatorReportsUnknownAuthTypeWithPath() {
+        val json = validSerializedSample().replace("\"type\": \"bearer\"", "\"type\": \"kerberos\"")
+
+        val ex = assertFailsWith<CollectionValidationException> { validator.validateOrThrow(json) }
+
+        assertTrue(ex.issues.any { it.path.contains("auth") }, "issues=${ex.issues}")
+    }
+
+    @Test
+    fun testRejectedWriteKeepsPreviousStoredDocument() = kotlinx.coroutines.test.runTest {
+        val driver = BundledCollectionStorageDriver()
+        val location = StorageLocation.MemoryKey("keep-key")
+        driver.write(location, createSampleDocument())
+        val invalidDoc = createSampleDocument().copy(opencollection = "2.0.0", info = CollectionInfo(name = "Changed", version = "1.0.0"))
+
+        assertFailsWith<CollectionValidationException> { driver.write(location, invalidDoc) }
+
+        assertEquals("Sample Collection", driver.read(location).info.name)
+    }
 }
 
