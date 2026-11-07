@@ -26,7 +26,7 @@ Multi-module Kotlin project. Paths are relative to the repository root (see plan
 - [X] T002 [P] Add `com.charleskorn.kaml:kaml` to the core-storage module dependencies in `core-storage/build.gradle.kts`
 - [X] T003 [P] Create the `opencollection` package directory `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/`
 - [X] T004 [P] Create the `opencollection` package directory `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/`
-- [X] T005 [P] Copy the official schema `docs/Clapi/todos/opencollection_v1.0.0.json` into a bundled resource at `core-storage/src/commonMain/resources/opencollection/opencollection_v1.0.0.json` (the resource is loaded by the schema validator)
+- [X] T005 [P] Copy the official schema `../../scratch/Clapi` into a bundled resource at `core-storage/src/commonMain/resources/opencollection/opencollection_v1.0.0.json` (the resource is loaded by the schema validator)
 
 ---
 
@@ -143,7 +143,7 @@ Multi-module Kotlin project. Paths are relative to the repository root (see plan
 - [X] T040 [P] Add the schema conformance suite `qa-tests/src/test/kotlin/io/github/crustack/qa/OpenCollectionValidationE2ETest.kt` that validates written documents against `opencollection_v1.0.0.json` (quickstart Scenarios 1 and 2)
 - [X] T041 [P] Add the lossless round-trip suite `qa-tests/src/test/kotlin/io/github/crustack/qa/OpenCollectionRoundTripE2ETest.kt` (SC-002, FR-008)
 - [X] T042 Run `./gradlew :core-model:desktopTest :core-storage:desktopTest :qa-tests:jvmTest` and confirm all pass (quickstart). Note: `:qa-tests:test` does not exist for this KMP module; the task is `:qa-tests:jvmTest`
-- [X] T043 [P] Update `docs/Clapi/todos/02_opencollection-adoption.md` to reflect the completed work
+- [X] T043 [P] Update `../../scratch/Clapi` to reflect the completed work
 - [ ] T044 Run the quickstart scenarios that remain in scope (1, 2, 3, 5 as numbered in quickstart.md). Scenario 4 (migration) is excluded. PARTIAL: scenarios 1 and 3 pass. Scenario 2 names `*OpenCollectionRoundTripTest*` in core-storage, which does not exist (the qa-tests `OpenCollectionRoundTripE2ETest` passes). Scenario 5 names `McpOpenCollectionIsolationTest`, which does not exist
 
 ---

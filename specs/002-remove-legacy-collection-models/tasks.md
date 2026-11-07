@@ -220,6 +220,6 @@ US1 alone cannot delete `CollectionModels.kt`. Its references in `ImportExportRe
 
 - [P] tasks touch different files and have no dependency on incomplete tasks
 - Every test that covers legacy input is a rejection test (FR-005, SC-004). Do not keep any test that treats legacy format as valid
-- Do not touch `docs/Clapi/...`, `docs/images/...`, or `rename.py`. They are unrelated staged or untracked files
+- Do not touch `../../scratch/Clapi`, `docs/images/...`, or `rename.py`. They are unrelated staged or untracked files
 - Do not edit `specs/001-*` history or `CHANGELOG.md`
 - Commit after each phase or logical group if the user asks for commits. Include the Co-authored-by trailer

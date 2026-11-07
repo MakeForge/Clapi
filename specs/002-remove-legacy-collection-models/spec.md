@@ -134,4 +134,4 @@ A developer runs the unit, integration, and qa-test suites. All fixtures and ass
 - `RequestDefinition`, `EnvironmentDefinition`, and `HistoryEntry` in `RequestModels.kt` are not deprecated and are out of scope.
 - The Postman importer is third-party format support and stays unchanged apart from any internal references to the removed types.
 - The OpenCollection models in `core-model/.../opencollection/` are the target and are not changed by this feature.
-- Historical planning and todo documents under `specs/001-opencollection-data-model/` and `docs/Clapi/todos/` may keep references to the removed types as history. Only current architecture and usage docs are updated.
+- Historical planning and todo documents under `specs/001-opencollection-data-model/` and `../../scratch/Clapi` may keep references to the removed types as history. Only current architecture and usage docs are updated.

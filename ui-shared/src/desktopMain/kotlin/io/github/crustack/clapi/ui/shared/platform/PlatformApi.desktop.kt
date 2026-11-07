@@ -58,15 +58,15 @@ actual fun Modifier.platformResizeCursorStyle(isHorizontal: Boolean): Modifier =
 
 actual fun Modifier.platformDiagonalResizeCursorStyle(isNwSe: Boolean): Modifier = this
 
-actual fun pickFileForImport(onResult: (String) -> Unit) {
+actual fun pickFileForImport(onResult: (fileName: String, content: String) -> Unit) {
     val chooser = JFileChooser()
     chooser.applyRememberedDirectory()
-    chooser.fileFilter = FileNameExtensionFilter("JSON files", "json")
+    chooser.fileFilter = FileNameExtensionFilter("JSON and YAML files (*.json, *.yaml, *.yml)", "json", "yaml", "yml")
     if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
         val selected = chooser.selectedFile
         rememberChooserDirectory(selected)
         runCatching { selected.readText() }
-            .onSuccess { onResult(it) }
+            .onSuccess { content -> onResult(selected.name, content) }
     }
 }
 

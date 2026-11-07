@@ -422,20 +422,7 @@ fun Sidebar(state: AppState) {
                         Row {
                             IconButton(
                                 onClick = {
-                                    pickFileForImport { content ->
-                                        launchTracked("Importing folder", "Importing folder...") {
-                                            val existingIds = state.collections.map { it.id }.toSet()
-                                            val importedName = ImportExportRepository.importCollectionFromString(state, content)
-                                            state.collections.firstOrNull { it.id !in existingIds }?.let { imported ->
-                                                // Collapse the root node and all sub-folders
-                                                collapseNodeRecursively(imported, state)
-                                            }
-                                            withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                                WorkspaceRepository.save(state)
-                                                state.log("Folder imported: $importedName", LogLevel.SUCCESS)
-                                            }
-                                        }
-                                    }
+                                    state.showImportSpecificationDialog = true
                                 },
                                 modifier = Modifier.size(24.dp).testTag("collection-import-button"),
                             ) {
@@ -2256,7 +2243,7 @@ fun isValidFolderDropTarget(
  * Recursively sets the expanded state to false for a node and all its
  * folder children, so imported collections appear fully collapsed.
  */
-private fun collapseNodeRecursively(node: CollectionNode, state: AppState) {
+internal fun collapseNodeRecursively(node: CollectionNode, state: AppState) {
     if (node.isFolder) {
         state.collectionExpandedState[node.id] = false
         for (child in node.children) {
