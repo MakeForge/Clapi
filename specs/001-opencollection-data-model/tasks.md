@@ -140,11 +140,11 @@ Multi-module Kotlin project. Paths are relative to the repository root (see plan
 
 **Purpose**: Validation, cleanup, and documentation across stories
 
-- [ ] T040 [P] Add the schema conformance suite `qa-tests/src/test/kotlin/io/github/crustack/qa/OpenCollectionValidationE2ETest.kt` that validates written documents against `opencollection_v1.0.0.json` (quickstart Scenarios 1 and 2)
-- [ ] T041 [P] Add the lossless round-trip suite `qa-tests/src/test/kotlin/io/github/crustack/qa/OpenCollectionRoundTripE2ETest.kt` (SC-002, FR-008)
-- [ ] T042 Run `./gradlew :core-model:desktopTest :core-storage:desktopTest :qa-tests:test` and confirm all pass (quickstart)
-- [ ] T043 [P] Update `docs/Clapi/todos/02_opencollection-adoption.md` to reflect the completed work
-- [ ] T044 Run the quickstart scenarios that remain in scope (1, 2, 3, 5 as numbered in quickstart.md). Scenario 4 (migration) is excluded
+- [X] T040 [P] Add the schema conformance suite `qa-tests/src/test/kotlin/io/github/crustack/qa/OpenCollectionValidationE2ETest.kt` that validates written documents against `opencollection_v1.0.0.json` (quickstart Scenarios 1 and 2)
+- [X] T041 [P] Add the lossless round-trip suite `qa-tests/src/test/kotlin/io/github/crustack/qa/OpenCollectionRoundTripE2ETest.kt` (SC-002, FR-008)
+- [X] T042 Run `./gradlew :core-model:desktopTest :core-storage:desktopTest :qa-tests:jvmTest` and confirm all pass (quickstart). Note: `:qa-tests:test` does not exist for this KMP module; the task is `:qa-tests:jvmTest`
+- [X] T043 [P] Update `docs/Clapi/todos/02_opencollection-adoption.md` to reflect the completed work
+- [ ] T044 Run the quickstart scenarios that remain in scope (1, 2, 3, 5 as numbered in quickstart.md). Scenario 4 (migration) is excluded. PARTIAL: scenarios 1 and 3 pass. Scenario 2 names `*OpenCollectionRoundTripTest*` in core-storage, which does not exist (the qa-tests `OpenCollectionRoundTripE2ETest` passes). Scenario 5 names `McpOpenCollectionIsolationTest`, which does not exist
 
 ---
 
