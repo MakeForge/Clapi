@@ -1,7 +1,9 @@
 package io.github.crustack.core.storage
 
-import io.github.crustack.core.model.CollectionDefinition
 import io.github.crustack.core.model.EnvironmentDefinition
+import io.github.crustack.core.model.opencollection.CollectionInfo
+import io.github.crustack.core.model.opencollection.OpenCollectionDocument
+import kotlinx.serialization.json.JsonPrimitive
 import io.github.crustack.core.model.HistoryEntry
 import io.github.crustack.core.model.HttpMethodType
 import io.github.crustack.core.model.RequestDefinition
@@ -63,28 +65,12 @@ class InMemoryRepositoriesTest {
     @Test
     fun collection_repository_supports_basic_crud() = runTest {
         val repository = InMemoryCollectionRepository()
-        repository.upsert(
-            CollectionDefinition(
-                id = "col-1",
-                workspaceId = "ws-1",
-                name = "Users",
-                createdAtEpochMillis = 1,
-                updatedAtEpochMillis = 1
-            )
-        )
-        repository.upsert(
-            CollectionDefinition(
-                id = "col-1",
-                workspaceId = "ws-1",
-                name = "Users Updated",
-                createdAtEpochMillis = 1,
-                updatedAtEpochMillis = 2
-            )
-        )
+        repository.upsert(sampleCollection(id = "col-1", name = "Users"))
+        repository.upsert(sampleCollection(id = "col-1", name = "Users Updated"))
 
         val list = repository.observeAll().first()
         assertEquals(1, list.size)
-        assertEquals("Users Updated", list.first().name)
+        assertEquals("Users Updated", list.first().info.name)
     }
 
     @Test
@@ -158,6 +144,12 @@ class InMemoryRepositoriesTest {
         repository.clear()
         assertTrue(repository.observeRecent().first().isEmpty())
     }
+
+    private fun sampleCollection(id: String, name: String) = OpenCollectionDocument(
+        opencollection = "1.0.0",
+        info = CollectionInfo(name = name),
+        extensions = mapOf("id" to JsonPrimitive(id)),
+    )
 
     private fun sampleRequest(id: String) = RequestDefinition(
         id = id,

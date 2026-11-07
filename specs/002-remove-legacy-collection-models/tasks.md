@@ -61,11 +61,11 @@ These names are used precisely in every task below. Do not mix them.
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Retype `InMemoryCollectionRepository` in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/InMemoryRepositories.kt` (lines 3, 56-61) so it holds `OpenCollectionDocument` values instead of the deprecated types (FR-002). Depends on T006
-- [ ] T009 [US1] Delete the legacy `CollectionRepository` interface from `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/StorageContracts.kt` (lines 3, 15-17). `CanonicalCollectionRepository` remains the only collection store (FR-002)
-- [ ] T010 [US1] Update `core-storage/src/commonTest/kotlin/io/github/crustack/core/storage/InMemoryRepositoriesTest.kt` (lines 3, 65-76) to use `OpenCollectionDocument` with `InMemoryCollectionRepository`. Depends on T008
-- [ ] T011 [US1] Delete `core-model/src/commonMain/kotlin/io/github/crustack/core/model/CollectionModels.kt`, which holds `WorkspaceDefinition`, `CollectionDefinition`, and `FolderDefinition`. Delete the whole file, since all three types are removed (FR-001). Blocked by T009, T010, T016, T017, T018, T024, T025 (no remaining references)
-- [ ] T012 [US1] Verify SC-001: run the grep from `specs/002-remove-legacy-collection-models/quickstart.md` for the three type names and `CollectionRepository`, and confirm zero hits in source. Depends on T011
+- [X] T008 [US1] Retype `InMemoryCollectionRepository` in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/InMemoryRepositories.kt` (lines 3, 56-61) so it holds `OpenCollectionDocument` values instead of the deprecated types (FR-002). Depends on T006
+- [X] T009 [US1] Delete the legacy `CollectionRepository` interface from `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/StorageContracts.kt` (lines 3, 15-17). `CanonicalCollectionRepository` remains the only collection store (FR-002)
+- [X] T010 [US1] Update `core-storage/src/commonTest/kotlin/io/github/crustack/core/storage/InMemoryRepositoriesTest.kt` (lines 3, 65-76) to use `OpenCollectionDocument` with `InMemoryCollectionRepository`. Depends on T008
+- [X] T011 [US1] Delete `core-model/src/commonMain/kotlin/io/github/crustack/core/model/CollectionModels.kt`, which holds `WorkspaceDefinition`, `CollectionDefinition`, and `FolderDefinition`. Delete the whole file, since all three types are removed (FR-001). Blocked by T009, T010, T016, T017, T018, T024, T025 (no remaining references)
+- [X] T012 [US1] Verify SC-001: run the grep from `specs/002-remove-legacy-collection-models/quickstart.md` for the three type names and `CollectionRepository`, and confirm zero hits in source. Depends on T011
 
 **Checkpoint**: The deprecated types no longer exist in source.
 
