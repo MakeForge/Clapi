@@ -110,39 +110,42 @@ class PostmanImportIntegrationTest {
     }
 
     @Test
-    fun importCollectionFromString_stillAcceptsClapiFormat() {
+    fun importCollectionFromString_acceptsOpenCollectionFormat() {
         val state = AppState(withDemoData = false)
-        val clapiJson = """
+        val openCollectionJson = """
         {
-          "type": "clapiCollection",
-          "version": "1.0",
-          "name": "Clapi Native",
-          "folders": [],
-          "requests": []
+          "opencollection": "1.0.0",
+          "info": {
+            "name": "OpenCollection Native"
+          },
+          "items": []
         }
         """.trimIndent()
-        val name = ImportExportRepository.importCollectionFromString(state, clapiJson)
-        assertEquals("Clapi Native", name)
+        val name = ImportExportRepository.importCollectionFromString(state, openCollectionJson)
+        assertEquals("OpenCollection Native", name)
     }
 
     @Test
-    fun importCollectionFromString_clapiFormat_regenerates_collection_and_folder_ids_per_import() {
+    fun importCollectionFromString_openCollectionFormat_regenerates_collection_and_folder_ids_per_import() {
         val state = AppState(withDemoData = false)
-        val clapiJson = """
+        val openCollectionJson = """
         {
-          "type": "clapiCollection",
-          "version": "1.0",
-          "id": "fixed-collection-id",
-          "name": "Clapi Native",
-          "folders": [
-            { "id": "fixed-folder-id", "name": "Users", "folders": [], "requests": [] }
+          "opencollection": "1.0.0",
+          "info": {
+            "name": "OpenCollection Native"
+          },
+          "items": [
+            { "info": { "name": "Users", "type": "folder" }, "items": [] }
           ],
-          "requests": []
+          "extensions": {
+            "id": "fixed-collection-id",
+            "folderIds": { "0": "fixed-folder-id" }
+          }
         }
         """.trimIndent()
 
-        ImportExportRepository.importCollectionFromString(state, clapiJson)
-        ImportExportRepository.importCollectionFromString(state, clapiJson)
+        ImportExportRepository.importCollectionFromString(state, openCollectionJson)
+        ImportExportRepository.importCollectionFromString(state, openCollectionJson)
 
         assertEquals(2, state.collections.size)
         val first = state.collections[0]
@@ -158,27 +161,31 @@ class PostmanImportIntegrationTest {
     }
 
     @Test
-    fun importCollectionFromString_clapiFormat_normalizes_execution_aliases_to_clapi() {
+    fun importCollectionFromString_openCollectionFormat_preserves_scripts() {
         val state = AppState(withDemoData = false)
-        val clapiJson = """
+        val openCollectionJson = """
         {
-          "type": "clapiCollection",
-          "version": "1.0",
-          "name": "Alias Normalization",
-          "folders": [],
-          "requests": [
+          "opencollection": "1.0.0",
+          "info": { "name": "Scripted Collection" },
+          "items": [
             {
-              "name": "Login",
-              "method": "GET",
-              "url": "https://api.example.com/login",
-              "preRequestScript": "pm.execution.skipRequest();",
-              "testScript": "postman.setNextRequest('Token');"
+              "info": { "name": "Login", "type": "http" },
+              "http": {
+                "method": "GET",
+                "url": "https://api.example.com/login"
+              },
+              "runtime": {
+                "scripts": [
+                  { "type": "before-request", "code": "clapi.execution.skipRequest();" },
+                  { "type": "after-response", "code": "clapi.execution.setNextRequest('Token');" }
+                ]
+              }
             }
           ]
         }
         """.trimIndent()
 
-        ImportExportRepository.importCollectionFromString(state, clapiJson)
+        ImportExportRepository.importCollectionFromString(state, openCollectionJson)
         val req = state.collections[0].children[0]
         assertEquals("clapi.execution.skipRequest();", req.preRequestScript)
         assertEquals("clapi.execution.setNextRequest('Token');", req.testScript)

@@ -343,6 +343,10 @@ class OpenCollectionStorageTest {
         val doc = createSampleDocument()
 
         repository.saveCollection(doc)
+        val globalDoc = repository.loadGlobalCollection()
+        assertEquals(1, globalDoc?.items?.size)
+        val observed = repository.observeCollections().first()
+        assertEquals(listOf(doc.info.name), observed.map { it.info.name })
         val fetched = repository.getCollection(doc.info.name)
         assertEquals(doc.info.name, fetched?.info?.name)
 
@@ -358,11 +362,13 @@ class OpenCollectionStorageTest {
         val imported = repository.importCollection(exportedJson)
         // Since name already existed, it should get a unique name
         assertEquals("Sample Collection (1)", imported.info.name)
+        assertEquals(listOf("Sample Collection", "Sample Collection (1)"), repository.observeCollections().first().map { it.info.name })
 
         // Delete
         repository.deleteCollection(doc.info.name)
         val afterDelete = repository.getCollection(doc.info.name)
         assertEquals(null, afterDelete)
+        assertEquals(listOf("Sample Collection (1)"), repository.observeCollections().first().map { it.info.name })
     }
 
     private fun validSerializedSample(): String = OpenCollectionSerializer.serializeJson(createSampleDocument())

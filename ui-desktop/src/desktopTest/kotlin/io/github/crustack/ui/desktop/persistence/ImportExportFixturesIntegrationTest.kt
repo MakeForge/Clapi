@@ -33,17 +33,18 @@ class ImportExportFixturesIntegrationTest {
     }
 
     @Test
-    fun fixture_workspace_roundtrip_restores_nested_collection_and_variables() {
+    fun fixture_collection_and_environment_roundtrip_restores_nested_collection_and_variables() {
         val source = AppState(openDefaultTab = false, withDemoData = false)
 
         ImportExportRepository.importCollectionFromString(source, collectionFixture.readText())
         ImportExportRepository.importEnvironmentFromString(source, environmentFixture.readText())
 
-        val exported = ImportExportRepository.exportWorkspaceToString(source)
-        val decoded = ImportExportRepository.decodeWorkspace(exported)
+        val exportedCollection = ImportExportRepository.exportCollectionToString(source.collections.single())
+        val exportedEnvironment = ImportExportRepository.exportEnvironmentToString(source.environments.single())
 
         val restored = AppState(openDefaultTab = false, withDemoData = false)
-        ImportExportRepository.replaceWorkspaceState(restored, decoded)
+        ImportExportRepository.importCollectionFromString(restored, exportedCollection)
+        ImportExportRepository.importEnvironmentFromString(restored, exportedEnvironment)
 
         assertEquals(source.collections.size, restored.collections.size)
         assertEquals(source.environments.size, restored.environments.size)

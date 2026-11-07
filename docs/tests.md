@@ -53,7 +53,7 @@ MCP Streamable HTTP, legacy HTTP+SSE, stdio, sampling/roots/elicitation, LLM gen
 
 ### MCP fixtures
 
-Import [qa-tests/fixtures/clapi-test-collection.json](../qa-tests/fixtures/clapi-test-collection.json) and [qa-tests/fixtures/clapi-test-environment.json](../qa-tests/fixtures/clapi-test-environment.json). Folder **MCP (Model Context Protocol)** covers Streamable HTTP (plain + auth + query params), legacy SSE, stdio (`{{mcpStdioCommand}}` = `sample-server`), sampling mock/manual/LLM (`{{llmBaseUrl}}` + `{{llmApiKey}}`), roots, and elicitation accept/decline.
+Import the OpenCollection fixture [qa-tests/fixtures/clapi-test-collection.json](../qa-tests/fixtures/clapi-test-collection.json) and [qa-tests/fixtures/clapi-test-environment.json](../qa-tests/fixtures/clapi-test-environment.json). Folder **MCP (Model Context Protocol)** covers Streamable HTTP (plain + auth + query params), legacy SSE, stdio (`{{mcpStdioCommand}}` = `sample-server`), sampling mock/manual/LLM (`{{llmBaseUrl}}` + `{{llmApiKey}}`), roots, and elicitation accept/decline.
 
 The JS collection validator skips `STDIO` and `LEGACY_2024_11_05`. Kotlin e2e (`:qa-tests:jvmTest --tests io.github.crustack.qa.McpHttpE2ETest`) is the protocol source of truth. Product guide: [docs/mcp.md](mcp.md). Mock routes and PATH shim: [DEVELOPMENT.md](../DEVELOPMENT.md).
 
@@ -84,7 +84,7 @@ Run full project checks:
 - Settings dialog persistence and impact on request behavior
 - Environment editor, global variables, variable popup UI
 - Tab management, history sidebar sync, copy command formats (cURL/Kotlin/JS)
-- Import/Export: Postman v2/v2.1 collections, environments, SAP ByDesign fixtures
+- Import/Export: single-collection OpenCollection (JSON/YAML), global OpenCollection document (`workspace.json` with top-level folders and `config.environments`), Postman v2/v2.1 collections, environments, SAP ByDesign fixtures, and legacy format rejection
 - Editor engine: GapBuffer, DocumentModel, cursor/selection, undo/redo, folding, display-line reflow, find/replace, line ops
 - Editor ViewModel, syntax highlighting, code folding, i18n completeness — all in `ui-shared`
 - Desktop shell, response viewer raw/pretty/tree tabs, body table UX

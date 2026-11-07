@@ -178,97 +178,104 @@ class ImportExportFormDataTest {
         assertEquals("const x = 1;", imported.bodyContent)
     }
 
-    // ── Backward compatibility ──────────────────────────────────
+    // ── OpenCollection input ────────────────────────────────────
 
     @Test
-    fun missing_formDataEntries_key_produces_empty_list() {
-        // Manually construct a bare-minimum clapi collection JSON without formDataEntries
-        val legacyJson = """
+    fun empty_multipart_form_data_produces_empty_list() {
+        val openCollectionJson = """
         {
-          "type": "clapiCollection",
-          "version": "1.0",
-          "name": "Legacy",
-          "folders": [],
-          "requests": [
+          "opencollection": "1.0.0",
+          "info": { "name": "Empty Form" },
+          "items": [
             {
-              "name": "Legacy Request",
-              "method": "POST",
-              "url": "http://example.com",
-              "body": { "type": "FORM_DATA" }
+              "info": { "name": "Form Request", "type": "http" },
+              "http": {
+                "method": "POST",
+                "url": "http://example.com",
+                "body": { "type": "multipart-form", "data": [] }
+              }
             }
           ]
         }
         """.trimIndent()
 
         val state = AppState(openDefaultTab = false)
-        ImportExportRepository.importCollectionFromString(state, legacyJson)
+        ImportExportRepository.importCollectionFromString(state, openCollectionJson)
 
         val imported = state.collections.first().children.first()
-        assertTrue(imported.formDataEntries.isEmpty(), "Legacy collection without formDataEntries key should produce empty list")
-        assertTrue(imported.urlencodedEntries.isEmpty(), "Legacy collection without urlencodedEntries key should produce empty list")
+        assertTrue(imported.formDataEntries.isEmpty(), "Empty multipart-form data should produce empty list")
+        assertTrue(imported.urlencodedEntries.isEmpty(), "Multipart-form request should have empty urlencodedEntries")
     }
 
-        @Test
-        fun legacy_form_data_content_is_parsed_into_formDataEntries() {
-                val legacyJson = """
+    @Test
+    fun opencollection_multipart_form_data_is_parsed_into_formDataEntries() {
+        val openCollectionJson = """
+        {
+            "opencollection": "1.0.0",
+            "info": { "name": "Form Content" },
+            "items": [
                 {
-                    "type": "clapiCollection",
-                    "version": "1.0",
-                    "name": "Legacy Form Content",
-                    "folders": [],
-                    "requests": [
-                        {
-                            "name": "Legacy Form Request",
-                            "method": "POST",
-                            "url": "http://example.com/form",
-                            "body": {
-                                "type": "FORM_DATA",
-                                "content": "name=Alice&role=tester&department=engineering"
-                            }
+                    "info": { "name": "Form Request", "type": "http" },
+                    "http": {
+                        "method": "POST",
+                        "url": "http://example.com/form",
+                        "body": {
+                            "type": "multipart-form",
+                            "data": [
+                                { "name": "name", "type": "text", "value": "Alice" },
+                                { "name": "role", "type": "text", "value": "tester" },
+                                { "name": "department", "type": "text", "value": "engineering" }
+                            ]
                         }
-                    ]
+                    }
                 }
-                """.trimIndent()
-
-                val state = AppState(openDefaultTab = false)
-                ImportExportRepository.importCollectionFromString(state, legacyJson)
-
-                val imported = state.collections.first().children.first()
-                assertEquals(3, imported.formDataEntries.size)
-                assertTrue(imported.formDataEntries.any { it.key == "name" && it.value == "Alice" })
-                assertTrue(imported.formDataEntries.any { it.key == "role" && it.value == "tester" })
-                assertTrue(imported.formDataEntries.any { it.key == "department" && it.value == "engineering" })
+            ]
         }
+        """.trimIndent()
 
-        @Test
-        fun legacy_urlencoded_content_is_parsed_into_urlencodedEntries() {
-                val legacyJson = """
+        val state = AppState(openDefaultTab = false)
+        ImportExportRepository.importCollectionFromString(state, openCollectionJson)
+
+        val imported = state.collections.first().children.first()
+        assertEquals(3, imported.formDataEntries.size)
+        assertTrue(imported.formDataEntries.any { it.key == "name" && it.value == "Alice" })
+        assertTrue(imported.formDataEntries.any { it.key == "role" && it.value == "tester" })
+        assertTrue(imported.formDataEntries.any { it.key == "department" && it.value == "engineering" })
+    }
+
+    @Test
+    fun opencollection_form_urlencoded_data_is_parsed_into_urlencodedEntries() {
+        val openCollectionJson = """
+        {
+            "opencollection": "1.0.0",
+            "info": { "name": "Urlencoded Content" },
+            "items": [
                 {
-                    "type": "clapiCollection",
-                    "version": "1.0",
-                    "name": "Legacy Urlencoded Content",
-                    "folders": [],
-                    "requests": [
-                        {
-                            "name": "Legacy Urlencoded Request",
-                            "method": "POST",
-                            "url": "http://example.com/urlencoded",
-                            "body": {
-                                "type": "X_WWW_FORM_URLENCODED",
-                                "content": "username=alice&password=secret123&remember=true"
-                            }
+                    "info": { "name": "Urlencoded Request", "type": "http" },
+                    "http": {
+                        "method": "POST",
+                        "url": "http://example.com/urlencoded",
+                        "body": {
+                            "type": "form-urlencoded",
+                            "data": [
+                                { "name": "username", "value": "alice" },
+                                { "name": "password", "value": "secret123" },
+                                { "name": "remember", "value": "true" }
+                            ]
                         }
-                    ]
+                    }
                 }
-                """.trimIndent()
-
-                val state = AppState(openDefaultTab = false)
-                ImportExportRepository.importCollectionFromString(state, legacyJson)
-
-                val imported = state.collections.first().children.first()
-                assertEquals(3, imported.urlencodedEntries.size)
-                assertTrue(imported.urlencodedEntries.any { it.key == "username" && it.value == "alice" })
-                assertTrue(imported.urlencodedEntries.any { it.key == "password" && it.value == "secret123" })
-                assertTrue(imported.urlencodedEntries.any { it.key == "remember" && it.value == "true" })
+            ]
         }
+        """.trimIndent()
+
+        val state = AppState(openDefaultTab = false)
+        ImportExportRepository.importCollectionFromString(state, openCollectionJson)
+
+        val imported = state.collections.first().children.first()
+        assertEquals(3, imported.urlencodedEntries.size)
+        assertTrue(imported.urlencodedEntries.any { it.key == "username" && it.value == "alice" })
+        assertTrue(imported.urlencodedEntries.any { it.key == "password" && it.value == "secret123" })
+        assertTrue(imported.urlencodedEntries.any { it.key == "remember" && it.value == "true" })
+    }
 }

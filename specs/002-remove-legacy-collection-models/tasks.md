@@ -107,37 +107,37 @@ These names are used precisely in every task below. Do not mix them.
 
 ### Unit tests in ui-shared
 
-- [ ] T025 [US3] Delete `ui-shared/src/commonTest/kotlin/io/github/crustack/ui/shared/persistence/McpWorkspaceBackwardCompatTest.kt` (FR-011)
-- [ ] T026 [P] [US3] Update `ui-shared/src/commonTest/kotlin/io/github/crustack/ui/shared/components/RequestReliabilityTest.kt` (around line 234, `clapiCollection` input) to an OpenCollection document
-- [ ] T027 [P] [US3] Update `ui-shared/src/commonTest/kotlin/io/github/crustack/ui/shared/components/PreReleaseQaTest.kt`: convert the `clapiCollection` inputs (around lines 254, 586), and remove the workspace export and import round trip (around lines 688-721)
-- [ ] T028 [P] [US3] Update `ui-shared/src/commonTest/kotlin/io/github/crustack/ui/shared/persistence/ImportExportFormDataTest.kt` (around lines 188, 215, 247) to OpenCollection input
-- [ ] T029 [P] [US3] Update `ui-shared/src/commonTest/kotlin/io/github/crustack/ui/shared/persistence/PostmanImporterTest.kt` (parse helper, around line 40) so it no longer uses `clapiCollection`. Keep the Postman to OpenCollection conversion assertions (FR-007)
-- [ ] T030 [P] [US3] Update `ui-shared/src/commonTest/kotlin/io/github/crustack/ui/shared/persistence/PersistenceErrorReportingTest.kt` (line 41, `DefaultCanonicalCollectionRepository`) to the new global-document API from T006
+- [X] T025 [US3] Delete `ui-shared/src/commonTest/kotlin/io/github/crustack/ui/shared/persistence/McpWorkspaceBackwardCompatTest.kt` (FR-011)
+- [X] T026 [P] [US3] Update `ui-shared/src/commonTest/kotlin/io/github/crustack/ui/shared/components/RequestReliabilityTest.kt` (around line 234, `clapiCollection` input) to an OpenCollection document
+- [X] T027 [P] [US3] Update `ui-shared/src/commonTest/kotlin/io/github/crustack/ui/shared/components/PreReleaseQaTest.kt`: convert the `clapiCollection` inputs (around lines 254, 586), and remove the workspace export and import round trip (around lines 688-721)
+- [X] T028 [P] [US3] Update `ui-shared/src/commonTest/kotlin/io/github/crustack/ui/shared/persistence/ImportExportFormDataTest.kt` (around lines 188, 215, 247) to OpenCollection input
+- [X] T029 [P] [US3] Update `ui-shared/src/commonTest/kotlin/io/github/crustack/ui/shared/persistence/PostmanImporterTest.kt` (parse helper, around line 40) so it no longer uses `clapiCollection`. Keep the Postman to OpenCollection conversion assertions (FR-007)
+- [X] T030 [P] [US3] Update `ui-shared/src/commonTest/kotlin/io/github/crustack/ui/shared/persistence/PersistenceErrorReportingTest.kt` (line 41, `DefaultCanonicalCollectionRepository`) to the new global-document API from T006
 
 ### Integration and UI tests in ui-desktop
 
-- [ ] T031 [US3] Update `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/persistence/ImportExportRepositoryTest.kt` (about 35 legacy references). Convert legacy cases to rejection cases (FR-005). Remove workspace export, import, decode, and replace cases. Keep single-collection OpenCollection round-trip cases. Depends on T014, T015
-- [ ] T032 [P] [US3] Update `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/persistence/ImportExportFixturesIntegrationTest.kt` (lines 42-46). Replace the workspace round trip with a per-collection round trip. Use the converted fixture from T037. Depends on T037
-- [ ] T033 [P] [US3] Update `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/persistence/PostmanImportIntegrationTest.kt` (lines 117, 133, 165, `clapiCollection` inputs). Keep the Postman import assertions
-- [ ] T034 [P] [US3] Update `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/persistence/WorkspaceRepositoryTest.kt` (line 24, `WORKSPACE_KEY`) to the global document, `config.environments`, and private store behavior from T022 and T023
-- [ ] T035 [P] [US3] Update `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/integration/RequestSettingsPersistenceWorkflowIntegrationTest.kt` (around line 134, `clapi.workspace`) so it asserts the new storage behavior
-- [ ] T036 [P] [US3] Update `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/LargePayloadSaveUiTest.kt` (lines 42, 48, 171-174). Replace workspace export and import with single-collection export and import
-- [ ] T037 [P] [US3] Update `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/SettingsDialogUiTest.kt` and `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/ImportExportUiTest.kt` to remove expectations for the workspace export and import buttons (T017) and cover the single-collection path
-- [ ] T038 [P] [US3] Check `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/ArchitecturalFixesUiTest.kt` and `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/persistence/TabsRepositoryTest.kt` for `clapi.workspace` assumptions and update them to the new storage behavior
-- [ ] T039 [P] [US3] Retype `core-storage/src/commonTest/kotlin/io/github/crustack/core/storage/opencollection/OpenCollectionStorageTest.kt` (around line 339) to the new `CanonicalCollectionRepository` global-document API from T006
+- [X] T031 [US3] Update `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/persistence/ImportExportRepositoryTest.kt` (about 35 legacy references). Convert legacy cases to rejection cases (FR-005). Remove workspace export, import, decode, and replace cases. Keep single-collection OpenCollection round-trip cases. Depends on T014, T015
+- [X] T032 [P] [US3] Update `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/persistence/ImportExportFixturesIntegrationTest.kt` (lines 42-46). Replace the workspace round trip with a per-collection round trip. Use the converted fixture from T037. Depends on T037
+- [X] T033 [P] [US3] Update `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/persistence/PostmanImportIntegrationTest.kt` (lines 117, 133, 165, `clapiCollection` inputs). Keep the Postman import assertions
+- [X] T034 [P] [US3] Update `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/persistence/WorkspaceRepositoryTest.kt` (line 24, `WORKSPACE_KEY`) to the global document, `config.environments`, and private store behavior from T022 and T023
+- [X] T035 [P] [US3] Update `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/integration/RequestSettingsPersistenceWorkflowIntegrationTest.kt` (around line 134, `clapi.workspace`) so it asserts the new storage behavior
+- [X] T036 [P] [US3] Update `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/LargePayloadSaveUiTest.kt` (lines 42, 48, 171-174). Replace workspace export and import with single-collection export and import
+- [X] T037 [P] [US3] Update `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/SettingsDialogUiTest.kt` and `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/ImportExportUiTest.kt` to remove expectations for the workspace export and import buttons (T017) and cover the single-collection path
+- [X] T038 [P] [US3] Check `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/ArchitecturalFixesUiTest.kt` and `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/persistence/TabsRepositoryTest.kt` for `clapi.workspace` assumptions and update them to the new storage behavior
+- [X] T039 [P] [US3] Retype `core-storage/src/commonTest/kotlin/io/github/crustack/core/storage/opencollection/OpenCollectionStorageTest.kt` (around line 339) to the new `CanonicalCollectionRepository` global-document API from T006
 
 ### New behavior tests (in existing files)
 
-- [ ] T040 [US3] Add rejection tests to `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/persistence/ImportExportRepositoryTest.kt`: a `clapiCollection` and a `clapiWorkspace` file each produce a user-visible error and write zero collections (FR-005, SC-004). Depends on T014
-- [ ] T041 [US3] Add tests to `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/persistence/WorkspaceRepositoryTest.kt` for FR-016 (environment merge by name keeps existing entries and adds missing variables), FR-017 (single-collection export has no `config`), FR-015 (environments persist with zero collections), and FR-018 (a stored `clapi.workspace` key is ignored). Depends on T020, T022, T023
+- [X] T040 [US3] Add rejection tests to `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/persistence/ImportExportRepositoryTest.kt`: a `clapiCollection` and a `clapiWorkspace` file each produce a user-visible error and write zero collections (FR-005, SC-004). Depends on T014
+- [X] T041 [US3] Add tests to `ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/persistence/WorkspaceRepositoryTest.kt` for FR-016 (environment merge by name keeps existing entries and adds missing variables), FR-017 (single-collection export has no `config`), FR-015 (environments persist with zero collections), and FR-018 (a stored `clapi.workspace` key is ignored). Depends on T020, T022, T023
 
 ### qa-tests
 
-- [ ] T042 [US3] Convert `qa-tests/fixtures/clapi-test-collection.json` to an OpenCollection document with `info`, `items`, and `http` request entries. Keep the same logical content: folders, requests, and order. Keep MCP configuration in the `clapi` extension (FR-009, SC-006). Depends on T006
-- [ ] T043 [US3] Update `qa-tests/collection-validator.mjs` so `flattenRequests` walks OpenCollection `items` and `http` requests, not `folders` and `requests`. Depends on T042
-- [ ] T044 [US3] Regenerate `qa-tests/collection-validation-results.json` by running `qa-tests/collection-validator.mjs` on the converted fixture. Depends on T043
-- [ ] T045 [P] [US3] Update `qa-tests/src/test/kotlin/io/github/crustack/qa/OpenCollectionRoundTripE2ETest.kt` and `qa-tests/src/test/kotlin/io/github/crustack/qa/OpenCollectionValidationE2ETest.kt` (both use `DefaultCanonicalCollectionRepository` with `baseDirectory`) to the new API from T006. Depends on T006
-- [ ] T046 [P] [US3] Update `qa-tests/src/test/kotlin/io/github/crustack/qa/SampleCollectionE2ETest.kt` so it loads the converted fixture from T042 as an OpenCollection document. Depends on T042
+- [X] T042 [US3] Convert `qa-tests/fixtures/clapi-test-collection.json` to an OpenCollection document with `info`, `items`, and `http` request entries. Keep the same logical content: folders, requests, and order. Keep MCP configuration in the `clapi` extension (FR-009, SC-006). Depends on T006
+- [X] T043 [US3] Update `qa-tests/collection-validator.mjs` so `flattenRequests` walks OpenCollection `items` and `http` requests, not `folders` and `requests`. Depends on T042
+- [X] T044 [US3] Regenerate `qa-tests/collection-validation-results.json` by running `qa-tests/collection-validator.mjs` on the converted fixture. Depends on T043
+- [X] T045 [P] [US3] Update `qa-tests/src/test/kotlin/io/github/crustack/qa/OpenCollectionRoundTripE2ETest.kt` and `qa-tests/src/test/kotlin/io/github/crustack/qa/OpenCollectionValidationE2ETest.kt` (both use `DefaultCanonicalCollectionRepository` with `baseDirectory`) to the new API from T006. Depends on T006
+- [X] T046 [P] [US3] Update `qa-tests/src/test/kotlin/io/github/crustack/qa/SampleCollectionE2ETest.kt` so it loads the converted fixture from T042 as an OpenCollection document. Depends on T042
 
 **Checkpoint**: All suites use OpenCollection input. Legacy input appears only in rejection assertions.
 
@@ -147,11 +147,11 @@ These names are used precisely in every task below. Do not mix them.
 
 **Purpose**: Documentation, final verification, and cleanup.
 
-- [ ] T047 [P] Update `docs/architecture.md` (around line 80), `README.md` (around lines 66-67), `docs/mcp.md` (around line 189), `docs/tests.md`, and `FEATURES.md` to describe the global OpenCollection Collection, Clapi Collections as top-level OpenCollection Folders, environments in `config.environments`, and the removal of the workspace bundle (FR-012). Do not edit `specs/001-*` or `CHANGELOG.md`
-- [ ] T048 Delete the `clapi.workspace` decode and replace comments, dead helpers, and unused imports left in `ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/persistence/` and `ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/components/SettingsDialog.kt`
-- [ ] T049 Run the SC-002 grep from `specs/002-remove-legacy-collection-models/quickstart.md` and confirm zero production writes of `clapiCollection` or `clapiWorkspace`. Exclude `specs/001-*`, `CHANGELOG.md`, and rejection tests
-- [ ] T050 Run `rtk gradlew :core-model:allTests :core-storage:allTests :ui-shared:desktopTest :ui-desktop:desktopTest :qa-tests:jvmTest` and confirm SC-003 (all suites pass)
-- [ ] T051 Run the manual validation steps in `specs/002-remove-legacy-collection-models/quickstart.md` end to end
+- [X] T047 [P] Update `docs/architecture.md` (around line 80), `README.md` (around lines 66-67), `docs/mcp.md` (around line 189), `docs/tests.md`, and `FEATURES.md` to describe the global OpenCollection Collection, Clapi Collections as top-level OpenCollection Folders, environments in `config.environments`, and the removal of the workspace bundle (FR-012). Do not edit `specs/001-*` or `CHANGELOG.md`
+- [X] T048 Delete the `clapi.workspace` decode and replace comments, dead helpers, and unused imports left in `ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/persistence/` and `ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/components/SettingsDialog.kt`
+- [X] T049 Run the SC-002 grep from `specs/002-remove-legacy-collection-models/quickstart.md` and confirm zero production writes of `clapiCollection` or `clapiWorkspace`. Exclude `specs/001-*`, `CHANGELOG.md`, and rejection tests
+- [X] T050 Run `rtk gradlew :core-model:allTests :core-storage:allTests :ui-shared:desktopTest :ui-desktop:desktopTest :qa-tests:jvmTest` and confirm SC-003 (all suites pass)
+- [X] T051 Run the manual validation steps in `specs/002-remove-legacy-collection-models/quickstart.md` end to end
 
 ---
 

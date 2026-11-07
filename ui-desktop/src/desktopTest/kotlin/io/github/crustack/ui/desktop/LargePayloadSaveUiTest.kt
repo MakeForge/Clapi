@@ -4,8 +4,10 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import io.github.crustack.core.model.BodyType
 import io.github.crustack.core.model.HttpMethodType
+import io.github.crustack.core.storage.opencollection.DefaultCanonicalCollectionRepository
 import io.github.crustack.ui.shared.MainScreen
 import io.github.crustack.ui.shared.persistence.ImportExportRepository
+import io.github.crustack.ui.shared.persistence.PrivateStateRepository
 import io.github.crustack.ui.shared.persistence.TabsRepository
 import io.github.crustack.ui.shared.persistence.WorkspaceRepository
 import io.github.crustack.ui.shared.platform.PlatformStorage
@@ -26,10 +28,9 @@ import kotlin.test.assertNotNull
  *     export/import regression where export always read the stale node value).
  *  2. Tab persist/restore keeps exact content through a restart cycle.
  *  3. Collection export → import roundtrips a large body without truncation.
- *  4. Workspace export → import roundtrips a large body without truncation.
- *  5. WorkspaceRepository.save/load roundtrip keeps the large body via
- *     two-tier [PlatformStorage] (file-backed path for values > 64 KB).
- *  6. Clicking Save twice overwrites the first value in the [CollectionNode].
+ *  4. WorkspaceRepository.save/load roundtrip keeps the large body via
+ *     the global OpenCollection document.
+ *  5. Clicking Save twice overwrites the first value in the [CollectionNode].
  */
 class LargePayloadSaveUiTest {
 
@@ -39,13 +40,15 @@ class LargePayloadSaveUiTest {
     @Before
     fun setUp() {
         PlatformStorage.remove("clapi.tabs")
-        PlatformStorage.remove("clapi.workspace")
+        WorkspaceRepository.canonicalRepository = DefaultCanonicalCollectionRepository()
+        WorkspaceRepository.privateStateRepository = PrivateStateRepository()
     }
 
     @After
     fun tearDown() {
         PlatformStorage.remove("clapi.tabs")
-        PlatformStorage.remove("clapi.workspace")
+        WorkspaceRepository.canonicalRepository = DefaultCanonicalCollectionRepository()
+        WorkspaceRepository.privateStateRepository = PrivateStateRepository()
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
@@ -161,25 +164,24 @@ class LargePayloadSaveUiTest {
             "Collection export/import: bodyContents[JSON] must match")
     }
 
-    // ── 4. Workspace export → import roundtrips a large body ────────────────
+    // ── 4. Single-collection export → import roundtrips a large body into existing workspace ──
 
     @Test
-    fun workspace_export_import_roundtrips_large_body() {
+    fun single_collection_export_import_roundtrips_large_body_with_unique_name() {
         val largeBody = buildLargeJson(200_000)
         val state = buildStateWithCollection(initialBody = largeBody)
 
-        val json = ImportExportRepository.exportWorkspaceToString(state)
+        val json = ImportExportRepository.exportCollectionToString(state.collections.first())
 
-        val fresh = AppState(openDefaultTab = false)
-        ImportExportRepository.importWorkspaceFromString(fresh, json)
+        ImportExportRepository.importCollectionFromString(state, json)
 
-        val imported = fresh.collections
-            .firstOrNull { it.name == "MyAPI" }?.children?.firstOrNull()
-        assertNotNull(imported, "Request node must be present after workspace import")
+        val imported = state.collections
+            .firstOrNull { it.name == "MyAPI (1)" }?.children?.firstOrNull()
+        assertNotNull(imported, "Request node must be present after single-collection import")
         assertEquals(largeBody.length, imported.bodyContent?.length,
-            "Workspace export/import: body length must match")
+            "Single-collection export/import: body length must match")
         assertEquals(largeBody, imported.bodyContent,
-            "Workspace export/import: body content must match exactly")
+            "Single-collection export/import: body content must match exactly")
     }
 
     // ── 5. WorkspaceRepository.save/load roundtrips a large body ────────────

@@ -77,8 +77,8 @@ Rules enforced at the module level:
 Pure Kotlin data classes, no runtime dependencies:
 
 - `RequestModels.kt` — request, response, body, auth, form-data types
-- `CollectionModels.kt` — `CollectionNode`, folder/request tree structures
-- `EnvironmentModels.kt` — `Environment`, variable entries
+- `opencollection/` — canonical OpenCollection v1.0.0 models (`OpenCollectionDocument`, `FolderItem`, `HttpRequestItem`, `Environment`, `ClapiExtensionData`, etc.)
+- `EnvironmentModels.kt` — runtime environment and variable entries
 - `RealtimeModels.kt` — WebSocket connection and message models
 
 #### HTTP methods
@@ -155,7 +155,7 @@ ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/
 │   ├── TopToolbar.kt               Environment picker, theme toggle, settings button
 │   ├── BottomPanel.kt              Network log panel
 │   ├── GraphQLPanel.kt             GraphQL body/variables/schema editor
-│   ├── SettingsDialog.kt           Settings + workspace import/export
+│   ├── SettingsDialog.kt           Settings dialog
 │   ├── GlobalVariablesDialog.kt    Global variable editor
 │   ├── HelpAboutDialog.kt          In-app help, shortcuts, scripting guide
 │   ├── CodeEditor.kt               Public CodeEditor composable (wraps EditorRenderer)
@@ -165,11 +165,13 @@ ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/
 │   ├── AppState.kt                 Root Compose state: tabs, environments, collections, settings
 │   └── AppStateDemoData.kt         Demo data helpers
 ├── persistence/
-│   ├── ImportExportRepository.kt   JSON serialization for workspace import/export
+│   ├── ImportExportRepository.kt   Single-collection OpenCollection (JSON/YAML) + environment import/export
+│   ├── OpenCollectionModelMapping.kt Mapping between UI CollectionNode/EnvState and OpenCollection models
 │   ├── PostmanImporter.kt          Postman collection v2/v2.1 + environment importer
+│   ├── PrivateStateRepository.kt   Private app state persistence (global variables, history, expanded state)
 │   ├── SettingsRepository.kt       Settings persistence via PlatformStorage
 │   ├── TabsRepository.kt           Tab state persistence
-│   └── WorkspaceRepository.kt      Collections + environments persistence
+│   └── WorkspaceRepository.kt      Global OpenCollection document (top-level folders as Clapi Collections + config.environments) persistence
 ├── network/
 │   └── NetworkClientFactory.kt     expect/actual Ktor HttpClient factory
 └── platform/
@@ -260,16 +262,21 @@ System headers (`Content-Type`, `Accept`, `User-Agent`) are pre-populated as loc
 
 ## Persistence
 
-All state is persisted as JSON via `java.util.prefs.Preferences` (desktop) or `localStorage` (web) behind the `PlatformStorage` expect/actual contract.
+Collections and environments are persisted in a single global OpenCollection v1.0.0 document (`workspace.json`) via `CanonicalCollectionRepository`:
+- Each Clapi Collection in the sidebar is stored as a top-level OpenCollection `FolderItem` inside the global OpenCollection document.
+- Environments are stored as OpenCollection `Environment` entries in `config.environments` of the global document.
+- Private application state (global variables, request history, and expanded collection/folder state) is persisted separately via `PrivateStateRepository`.
+- Collections are imported and exported one at a time as standalone OpenCollection documents (without `config` or environments); there is no multi-collection workspace bundle format.
 
 | Repository | Data |
 |---|---|
-| `WorkspaceRepository` | Collections tree + environments |
+| `WorkspaceRepository` | Global OpenCollection document (`workspace.json`: Clapi Collections as top-level OpenCollection Folders + environments in `config.environments`) and private state (`PrivateStateRepository`) |
+| `PrivateStateRepository` | Global variables, request history, and expanded folder/collection IDs |
 | `TabsRepository` | Open tabs and per-tab state |
 | `SettingsRepository` | App settings |
-| `ImportExportRepository` | Workspace export / import (file-based) |
+| `ImportExportRepository` | Single-collection OpenCollection (JSON/YAML), Postman collection, and environment import / export |
 
-Format is plain JSON. No SQLite or SQLDelight is used currently.
+Format is OpenCollection JSON/YAML and plain JSON. No SQLite or SQLDelight is used currently.
 
 ---
 

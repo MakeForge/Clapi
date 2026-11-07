@@ -9,24 +9,100 @@ const environmentPath = path.join(fixturesDir, 'clapi-test-environment.json');
 const reportPath = path.join(rootDir, 'test-validation-report.txt');
 const resultsPath = path.join(rootDir, 'qa-tests', 'collection-validation-results.json');
 
+function mapOpenCollectionRequest(item, pathStr, clapiRequests) {
+  const name = item.info?.name ?? '';
+  const http = item.http ?? {};
+  const meta = clapiRequests?.[name] ?? {};
+  const headers = (http.headers ?? []).filter(h => !h.disabled).map(h => ({
+    key: h.name,
+    value: h.value,
+  }));
+
+  let auth = undefined;
+  if (http.auth) {
+    const t = String(http.auth.type ?? '').toLowerCase();
+    if (t === 'basic') {
+      auth = { type: 'BASIC', username: http.auth.username ?? '', password: http.auth.password ?? '' };
+    } else if (t === 'bearer') {
+      auth = { type: meta.authType === 'jwt' ? 'JWT' : 'BEARER', token: http.auth.token ?? '' };
+    } else if (t === 'apikey') {
+      auth = {
+        type: 'API_KEY',
+        apiKey: http.auth.key ?? '',
+        apiValue: http.auth.value ?? '',
+        placement: http.auth.placement ?? 'header',
+      };
+    }
+  }
+
+  let body = undefined;
+  if (http.body) {
+    const bt = String(http.body.type ?? '').toLowerCase();
+    const metaBt = String(meta.bodyType ?? '').toUpperCase();
+    if (bt === 'multipart-form') {
+      const pairs = (http.body.data ?? [])
+        .filter(d => !d.disabled)
+        .map(d => `${encodeURIComponent(d.name)}=${encodeURIComponent(d.value ?? '')}`);
+      body = { type: 'FORM_DATA', content: pairs.join('&') };
+    } else if (bt === 'form-urlencoded') {
+      const pairs = (http.body.data ?? [])
+        .filter(d => !d.disabled)
+        .map(d => `${encodeURIComponent(d.name)}=${encodeURIComponent(d.value ?? '')}`);
+      body = { type: 'X_WWW_FORM_URLENCODED', content: pairs.join('&') };
+    } else if (bt === 'json') {
+      body = { type: metaBt === 'GRAPHQL' ? 'GRAPHQL' : 'JSON', content: http.body.data ?? '' };
+    } else if (bt === 'xml') {
+      body = { type: 'XML', content: http.body.data ?? '' };
+    } else {
+      body = { type: metaBt || 'RAW_TEXT', content: http.body.data ?? '' };
+    }
+  }
+
+  const scripts = item.runtime?.scripts ?? [];
+  const preScript = scripts.find(s => s.type === 'before-request')?.code;
+  const testScript = scripts.find(s => s.type === 'after-response' || s.type === 'tests')?.code;
+  const mcpConfig = meta.mcpConfig ?? {};
+
+  return {
+    name,
+    method: http.method ?? 'GET',
+    url: http.url ?? '',
+    headers,
+    auth,
+    body,
+    preRequestScript: preScript,
+    testScript,
+    kind: meta.kind ?? 'HTTP',
+    mcpTransport: mcpConfig.transport,
+    mcpHttpMode: mcpConfig.httpMode,
+    mcpCommand: mcpConfig.command,
+    mcpSamplingMode: mcpConfig.samplingMode,
+    mcpSamplingForwardUrl: mcpConfig.samplingForwardUrl,
+    mcpSamplingForwardToken: mcpConfig.samplingForwardToken,
+    mcpSamplingMaxTokens: mcpConfig.samplingMaxTokens,
+    mcpRoots: mcpConfig.roots,
+    mcpAutoRespondElicitation: mcpConfig.autoRespondElicitation,
+    __path: pathStr,
+  };
+}
+
 function flattenRequests(collection) {
   const out = [];
-  const walkFolder = (folder, lineage = []) => {
-    const scope = [...lineage, folder.name];
-    for (const req of folder.requests ?? []) {
-      out.push({ ...req, __path: scope.join(' / ') });
-    }
-    for (const child of folder.folders ?? []) {
-      walkFolder(child, scope);
+  const clapiRequests = collection.extensions?.clapi?.requests ?? {};
+  const walkItems = (items, lineage = []) => {
+    for (const item of items ?? []) {
+      const type = item.info?.type ?? (item.http ? 'http' : 'folder');
+      if (type === 'http' && item.http) {
+        const pathStr = lineage.length === 0 ? '(root)' : lineage.join(' / ');
+        out.push(mapOpenCollectionRequest(item, pathStr, clapiRequests));
+      } else if (type === 'folder' || Array.isArray(item.items)) {
+        const scope = [...lineage, item.info?.name ?? ''];
+        walkItems(item.items ?? [], scope);
+      }
     }
   };
 
-  for (const req of collection.requests ?? []) {
-    out.push({ ...req, __path: '(root)' });
-  }
-  for (const folder of collection.folders ?? []) {
-    walkFolder(folder, []);
-  }
+  walkItems(collection.items ?? [], []);
   return out;
 }
 
@@ -292,11 +368,21 @@ async function main() {
       continue;
     }
     const preScript = String(req.preRequestScript ?? '');
-    for (const match of preScript.matchAll(/pm\.environment\.set\("([^"]+)",\s*"([^"]*)"\)/g)) {
+    for (const match of preScript.matchAll(/(?:pm|clapi)\.environment\.set\("([^"]+)",\s*"([^"]*)"\)/g)) {
       runtimeVars[match[1]] = resolveTemplate(match[2], runtimeVars);
     }
-    for (const match of preScript.matchAll(/pm\.environment\.set\("([^"]+)",\s*pm\.environment\.get\("([^"]+)"\)\)/g)) {
+    for (const match of preScript.matchAll(/(?:pm|clapi)\.environment\.set\("([^"]+)",\s*(?:pm|clapi)\.environment\.get\("([^"]+)"\)\)/g)) {
       runtimeVars[match[1]] = runtimeVars[match[2]] ?? '';
+    }
+    for (const match of preScript.matchAll(/var\s+(runId|traceId)\s*=\s*"([^"]*)";/g)) {
+      runtimeVars[match[1]] = match[2];
+    }
+    if (preScript.includes('clapi.environment.set("runId", runId)') && !runtimeVars.runId) {
+      runtimeVars.runId = `run-${Date.now()}`;
+      runtimeVars.lastRunId = runtimeVars.runId;
+    }
+    if (preScript.includes('clapi.environment.set("traceId", traceId)') && !runtimeVars.traceId) {
+      runtimeVars.traceId = 'trace-12345';
     }
 
     const resolvedUrl = resolveTemplate(req.url, runtimeVars);
