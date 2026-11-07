@@ -36,14 +36,14 @@ A user runs an HTTP request from a collection. Authentication, environment selec
 
 1. **Given** a request whose URL and headers contain `{{variable}}` references, **When** the user executes it with an environment selected, **Then** the variables resolve with the same precedence as before the migration.
 2. **Given** a request with bearer, basic, API key, or JWT auth, **When** the user executes it, **Then** the outgoing request carries the same authentication as before.
-3. **Given** a request with a pre-request script and a post-request script containing assertions, **When** the user executes it, **Then** the scripts run in the same order with the same `reqlab.*` API and the assertion results match prior behavior.
+3. **Given** a request with a pre-request script and a post-request script containing assertions, **When** the user executes it, **Then** the scripts run in the same order with the same `clapi.*` API and the assertion results match prior behavior.
 4. **Given** a request with a JSON, raw, form, multipart, urlencoded, binary, or GraphQL-over-HTTP body, **When** the user executes it, **Then** the body is sent the same way as before.
 
 ---
 
 ### User Story 3 - Keep existing user collections through migration (Priority: P1)
 
-A user upgrading Clapi has collections saved in the legacy proprietary ReqLab format. On first launch, the collections are converted to OpenCollection with no silent data loss, and the original files are kept until the conversion is verified.
+A user upgrading Clapi has collections saved in the legacy proprietary Clapi format. On first launch, the collections are converted to OpenCollection with no silent data loss, and the original files are kept until the conversion is verified.
 
 **Why this priority**: Losing user data during upgrade is unacceptable and blocks adoption.
 
@@ -124,7 +124,7 @@ When a user opens a document that is not a valid OpenCollection document, Clapi 
 
 - **FR-001**: The system MUST use OpenCollection as the only persisted format for collections, folders, HTTP requests, environments, variables, and authentication settings.
 - **FR-002**: The system MUST record the OpenCollection specification version used in every collection it writes.
-- **FR-003**: The system MUST NOT write the legacy proprietary ReqLab collection format after migration is complete.
+- **FR-003**: The system MUST NOT write the legacy proprietary Clapi collection format after migration is complete.
 
 **Reading and writing**
 
@@ -150,7 +150,7 @@ When a user opens a document that is not a valid OpenCollection document, Clapi 
 - **FR-017**: Secret variable values MUST be excluded from any serialization intended for sharing, from logs, and from debugging output.
 - **FR-018**: The system MUST store pre-request and post-request scripts and their source code, and MUST preserve their execution order.
 - **FR-019**: The system MUST store assertions and tests in the form supported by the OpenCollection specification where compatible, and MUST keep any Clapi-specific assertion behavior that has no equivalent in a separate, documented representation.
-- **FR-020**: The JavaScript scripting API (including the `reqlab.*` namespace) MUST NOT change as part of this initiative.
+- **FR-020**: The JavaScript scripting API (including the `clapi.*` namespace) MUST NOT change as part of this initiative.
 
 **MCP and extensions**
 
@@ -166,7 +166,7 @@ When a user opens a document that is not a valid OpenCollection document, Clapi 
 
 **Migration**
 
-- **FR-027**: The system MUST detect legacy ReqLab collections and convert them to the canonical model on first use.
+- **FR-027**: The system MUST detect legacy Clapi collections and convert them to the canonical model on first use.
 - **FR-028**: Migration MUST preserve nested folders, request ordering, authentication, environments, variables, and scripts, or record in a migration report any item that cannot be represented.
 - **FR-029**: Migration MUST NOT overwrite or delete a legacy file until the converted result has been validated and written successfully.
 - **FR-030**: Migration MUST be safely repeatable; a second run MUST NOT duplicate or alter already-converted data.
@@ -217,9 +217,9 @@ When a user opens a document that is not a valid OpenCollection document, Clapi 
 - The OpenCollection specification and its official JSON schema (version 1.0.0 at time of writing, published at https://spec.opencollection.com/) are the validation authority. The exact version to target is confirmed in the planning phase.
 - Only HTTP requests are in scope as a protocol. Folders are not HTTP requests.
 - MCP is not part of the OpenCollection standard and is preserved through a Clapi-specific representation rather than an OpenCollection protocol type.
-- Migration converts legacy ReqLab collections on first use and keeps the original files until the converted result is verified. The user is not asked to convert manually.
+- Migration converts legacy Clapi collections on first use and keeps the original files until the converted result is verified. The user is not asked to convert manually.
 - Textual YAML formatting and comments are not required to round trip. Semantic preservation is the requirement.
-- The existing JavaScript scripting engine and `reqlab.*` API are kept unchanged; only how scripts are stored changes.
+- The existing JavaScript scripting engine and `clapi.*` API are kept unchanged; only how scripts are stored changes.
 - Postman import keeps working; its internal output target becomes the canonical model.
 - Adding cloud sync, collaboration, new authentication schemes, a redesigned editor, or redesigned history is out of scope.
 - Choice of storage layout (bundled document or directory) and the exact module boundaries are decided in the planning phase, not here.

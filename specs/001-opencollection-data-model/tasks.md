@@ -3,7 +3,7 @@
 **Input**: Design documents from `/specs/001-opencollection-data-model/`
 **Prerequisites**: plan.md (required), spec.md (required), research.md, data-model.md, contracts/, quickstart.md
 
-**Scope note**: User Story 3 (legacy ReqLab/Clapi → OpenCollection migration) is intentionally excluded. There are no existing users, so no legacy format must be read or migrated. Story IDs keep their original numbers (US1, US2, US4, US5, US6) for traceability to spec.md. Migration artifacts (`LegacyCollectionMigrator`, `MigrationReport`, `MigrationStatus`, `migration.contract.md`, `LegacyMigrationE2ETest`, quickstart Scenario 4) are not included. `legacyFields` (data-model §2.8) is also not included; unknown fields are kept only through the `extensions` bag (FR-007, FR-031).
+**Scope note**: User Story 3 (legacy Clapi/Clapi → OpenCollection migration) is intentionally excluded. There are no existing users, so no legacy format must be read or migrated. Story IDs keep their original numbers (US1, US2, US4, US5, US6) for traceability to spec.md. Migration artifacts (`LegacyCollectionMigrator`, `MigrationReport`, `MigrationStatus`, `migration.contract.md`, `LegacyMigrationE2ETest`, quickstart Scenario 4) are not included. `legacyFields` (data-model §2.8) is also not included; unknown fields are kept only through the `extensions` bag (FR-007, FR-031).
 
 **Tests**: Not explicitly requested in the spec. Validation is covered by the quickstart scenarios in the Polish phase.
 

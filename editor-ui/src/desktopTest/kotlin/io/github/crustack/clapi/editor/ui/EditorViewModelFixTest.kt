@@ -1,0 +1,652 @@
+package io.github.crustack.clapi.editor.ui
+
+import io.github.crustack.clapi.editor.core.LanguageMode
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+
+/**
+ * Tests for new [EditorViewModel] methods added to fix issues in qa-pre-release-report.md.
+ *
+ * Tests in this file FAIL before the fixes are applied.
+ *
+ * Issues covered:
+ *  C-2 — Fold state preserved through edits
+ *  M-1 — moveCursorPageUp / moveCursorPageDown
+ *  M-2 — dedentAtCursor (Shift+Tab)
+ *  M-3 — deleteWordBeforeCursor (Cmd/Ctrl+Backspace)
+ *  M-4 — insertNewlineWithAutoIndent (Enter keeping indentation)
+ */
+class EditorViewModelFixTest {
+
+    /**
+     * Polls [condition] every 50 ms until it returns true or [timeoutMs] elapses.
+     */
+    private fun awaitUntil(timeoutMs: Long = 5_000, condition: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            if (condition()) return
+            Thread.sleep(50)
+        }
+    }
+
+    private fun vm(text: String, mode: LanguageMode = LanguageMode.JSON): EditorViewModel {
+        val v = EditorViewModel(text, mode)
+        // Wait for scheduleInitialFolds (Dispatchers.Default) to populate foldRegions.
+        awaitUntil { v.state.value.foldVersion > 0 }
+        return v
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // C-2 — Fold state preserved through edits
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * BEFORE FIX: calling insertAtCursor after toggleFold loses the fold.
+     * AFTER FIX:  fold state is preserved across same-line edits.
+     */
+    @Test
+    fun c2_fold_state_preserved_after_same_line_edit() {
+        val text = "{\n  \"a\": 1,\n  \"b\": 2\n}"
+        val v = vm(text)
+        // Directly fold lines 1..3 under line 0, bypassing the background
+        // foldRegions coroutine that does not run in unit tests.
+        v.displayLineMap.setFolded(0, v.document.lineCount - 1)
+        // Verify the fold is now active (visible lines should be reduced)
+        val visibleAfterFold = v.displayLineMap.totalDisplayLines
+        assertTrue(visibleAfterFold < v.document.lineCount,
+            "After folding, totalDisplayLines ($visibleAfterFold) must be < lineCount (${v.document.lineCount})")
+
+        // Move cursor to line 1 col 0 and add a space — same-line edit
+        v.moveCursorTo(v.document.lineStart(1))
+        v.insertAtCursor(" ")
+
+        // BEFORE FIX: this assert fails because applyReplace() calls displayLineMap.reset()
+        assertTrue(v.displayLineMap.totalDisplayLines < v.document.lineCount,
+            "Fold must survive a same-line insert. Got totalDisplayLines=${v.displayLineMap.totalDisplayLines}, lineCount=${v.document.lineCount}")
+    }
+
+    @Test
+    fun c2_fold_state_preserved_after_single_char_delete() {
+        val text = "{\n  \"key\": \"value\"\n}"
+        val v = vm(text)
+        v.displayLineMap.setFolded(0, v.document.lineCount - 1)
+        val visibleAfterFold = v.displayLineMap.totalDisplayLines
+
+        // Delete one character (backspace at the end)
+        v.moveCursorTo(v.document.length - 1)
+        v.deleteBeforeCursor()
+
+        assertTrue(v.displayLineMap.totalDisplayLines < v.document.lineCount,
+            "Fold must survive a single-char delete")
+    }
+
+    @Test
+    fun c2_multiple_folds_preserved_after_edit() {
+        // 7-line structured JSON with two fold-able sections
+        val text = "{\n  \"a\": {\n    \"x\": 1\n  },\n  \"b\": {\n    \"y\": 2\n  }\n}"
+        val v = vm(text)
+        v.displayLineMap.setFolded(1, 3)  // fold "a": {...} — hides lines 2..3
+        v.displayLineMap.setFolded(4, 6)  // fold "b": {...} — hides lines 5..6
+        val visibleAfterFolds = v.displayLineMap.totalDisplayLines
+
+        // Append a trailing space to the last line (same-line, no line count change)
+        v.moveCursorTo(v.document.length)
+        v.insertAtCursor(" ")
+
+        assertEquals(visibleAfterFolds, v.displayLineMap.totalDisplayLines,
+            "Both folds must survive after a trailing-space insert")
+    }
+
+    @Test
+    fun c2_fold_state_adjusted_when_newline_inserted_before_fold() {
+        // Lines: 0 = "{", 1 = "  \"a\": 1", 2 = "}"
+        val text = "{\n  \"a\": 1\n}"
+        val v = vm(text)
+        v.displayLineMap.setFolded(0, v.document.lineCount - 1)  // fold lines 1..2 under line 0
+        val visibleAfterFold = v.displayLineMap.totalDisplayLines  // should be 1
+
+        // Insert a newline BEFORE the fold start (at position 0, before "{")
+        v.moveCursorTo(0)
+        v.insertAtCursor("\n")
+
+        // After fix: fold region shifts to line 1..3; still folded
+        // The total display lines should be 2 (the inserted blank line + fold header)
+        assertTrue(v.displayLineMap.totalDisplayLines <= 3,
+            "Fold must be re-anchored after newline insert before it. Got ${v.displayLineMap.totalDisplayLines}")
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // M-1 — moveCursorPageUp / moveCursorPageDown
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun m1_moveCursorPageDown_moves_cursor_down_by_page_size() {
+        // Build a 50-line document
+        val text = (1..50).joinToString("\n") { "line $it" }
+        val v = vm(text, LanguageMode.PLAIN_TEXT)
+        v.moveCursorTo(0)
+
+        // BEFORE FIX: method does not exist → compilation error
+        v.moveCursorPageDown(pageSize = 10)
+
+        val cursorLine = v.document.lineAt(v.state.value.cursorOffset)
+        assertEquals(10, cursorLine,
+            "PageDown by 10 from line 0 must land on line 10, got $cursorLine")
+    }
+
+    @Test
+    fun m1_moveCursorPageUp_moves_cursor_up_by_page_size() {
+        val text = (1..50).joinToString("\n") { "line $it" }
+        val v = vm(text, LanguageMode.PLAIN_TEXT)
+        // Place cursor on line 30
+        v.moveCursorTo(v.document.lineStart(30))
+
+        v.moveCursorPageUp(pageSize = 10)
+
+        val cursorLine = v.document.lineAt(v.state.value.cursorOffset)
+        assertEquals(20, cursorLine,
+            "PageUp by 10 from line 30 must land on line 20, got $cursorLine")
+    }
+
+    @Test
+    fun m1_moveCursorPageDown_clamps_at_document_end() {
+        val text = (1..5).joinToString("\n") { "line $it" }
+        val v = vm(text, LanguageMode.PLAIN_TEXT)
+        v.moveCursorTo(0)
+        v.moveCursorPageDown(pageSize = 100)  // way beyond document end
+        assertEquals(v.document.length, v.state.value.cursorOffset,
+            "PageDown past document end must clamp to document end")
+    }
+
+    @Test
+    fun m1_moveCursorPageUp_clamps_at_document_start() {
+        val text = (1..5).joinToString("\n") { "line $it" }
+        val v = vm(text, LanguageMode.PLAIN_TEXT)
+        v.moveCursorTo(v.document.length)
+        v.moveCursorPageUp(pageSize = 100)  // way beyond document start
+        assertEquals(0, v.state.value.cursorOffset,
+            "PageUp past document start must clamp to position 0")
+    }
+
+    @Test
+    fun m1_moveCursorPageDown_extends_selection_when_shift_pressed() {
+        val text = (1..20).joinToString("\n") { "line $it" }
+        val v = vm(text, LanguageMode.PLAIN_TEXT)
+        v.moveCursorTo(0)
+        v.moveCursorPageDown(pageSize = 5, extendSelection = true)
+        val st = v.state.value
+        assertTrue(st.selectionStart >= 0, "Shift+PageDown must start a selection")
+        assertTrue(st.selectionEnd > st.selectionStart, "Selection must be non-empty")
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // M-2 — dedentAtCursor (Shift+Tab)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun m2_dedentAtCursor_removes_leading_two_spaces() {
+        val text = "  hello"
+        val v = vm(text, LanguageMode.PLAIN_TEXT)
+        v.moveCursorTo(2) // cursor after the two leading spaces
+
+        // BEFORE FIX: method does not exist
+        v.dedentAtCursor()
+
+        assertEquals("hello", v.getFullText(), "dedentAtCursor must remove 2 leading spaces")
+    }
+
+    @Test
+    fun m2_dedentAtCursor_removes_tab_as_single_indent_unit() {
+        val text = "\thello"
+        val v = vm(text, LanguageMode.PLAIN_TEXT)
+        v.moveCursorTo(1)
+        v.dedentAtCursor()
+        assertEquals("hello", v.getFullText(), "dedentAtCursor must remove a leading tab")
+    }
+
+    @Test
+    fun m2_dedentAtCursor_does_nothing_on_non_indented_line() {
+        val text = "hello"
+        val v = vm(text, LanguageMode.PLAIN_TEXT)
+        v.moveCursorTo(3)
+        v.dedentAtCursor()
+        assertEquals("hello", v.getFullText(), "dedentAtCursor must not modify a non-indented line")
+    }
+
+    @Test
+    fun m2_dedentAtCursor_removes_only_one_indent_level() {
+        val text = "    hello"  // 4 spaces
+        val v = vm(text, LanguageMode.PLAIN_TEXT)
+        v.moveCursorTo(4)
+        v.dedentAtCursor()
+        assertEquals("  hello", v.getFullText(),
+            "dedentAtCursor must remove exactly one indent level (2 spaces), leaving 2")
+    }
+
+    @Test
+    fun m2_dedentAtCursor_on_multiline_cursor_on_second_line() {
+        val text = "line1\n  line2"
+        val v = vm(text, LanguageMode.PLAIN_TEXT)
+        v.moveCursorTo(v.document.lineStart(1) + 2)  // on line 1
+        v.dedentAtCursor()
+        assertEquals("line1\nline2", v.getFullText(),
+            "dedentAtCursor on second line must dedent that line only")
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // M-3 — deleteWordBeforeCursor (Cmd/Ctrl+Backspace)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun m3_deleteWordBeforeCursor_deletes_previous_word() {
+        val text = "hello world"
+        val v = vm(text, LanguageMode.PLAIN_TEXT)
+        v.moveCursorTo(11)  // end of "world"
+
+        // BEFORE FIX: method does not exist
+        v.deleteWordBeforeCursor()
+
+        assertEquals("hello ", v.getFullText(),
+            "deleteWordBeforeCursor must delete 'world'")
+    }
+
+    @Test
+    fun m3_deleteWordBeforeCursor_skips_whitespace_then_deletes_word() {
+        val text = "foo   bar"
+        val v = vm(text, LanguageMode.PLAIN_TEXT)
+        v.moveCursorTo(9)  // end
+        v.deleteWordBeforeCursor()
+        assertEquals("foo   ", v.getFullText(),
+            "deleteWordBeforeCursor must delete 'bar' (skipping no extra whitespace in this position)")
+    }
+
+    @Test
+    fun m3_deleteWordBeforeCursor_at_start_does_nothing() {
+        val text = "hello"
+        val v = vm(text, LanguageMode.PLAIN_TEXT)
+        v.moveCursorTo(0)
+        v.deleteWordBeforeCursor()
+        assertEquals("hello", v.getFullText(), "deleteWordBeforeCursor at start must not change text")
+    }
+
+    @Test
+    fun m3_deleteWordBeforeCursor_deletes_json_key() {
+        val text = """{"myLongPropertyName": 1}"""
+        val v = vm(text, LanguageMode.JSON)
+        // Position cursor right after "myLongPropertyName"
+        val pos = text.indexOf("\"", 2) // finds the closing quote after the key
+        v.moveCursorTo(pos)
+        v.deleteWordBeforeCursor()
+        // "myLongPropertyName" should be deleted
+        assertFalse(v.getFullText().contains("myLongPropertyName"),
+            "deleteWordBeforeCursor must remove the preceding word")
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // M-4 — insertNewlineWithAutoIndent (Enter)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun m4_insertNewlineWithAutoIndent_preserves_indentation() {
+        // Cursor at end of "  \"items\": [" — current line has 2-space indent
+        val text = "{\n  \"items\": ["
+        val v = vm(text, LanguageMode.JSON)
+        v.moveCursorTo(text.length)  // end of the second line
+
+        // BEFORE FIX: method does not exist
+        v.insertNewlineWithAutoIndent()
+
+        val lines = v.getFullText().split('\n')
+        assertEquals(3, lines.size, "Should be 3 lines after Enter")
+        assertTrue(lines[2].startsWith("  "),
+            "New line must start with the same 2-space indent as the previous line. Got: '${lines[2]}'")
+    }
+
+    @Test
+    fun m4_insertNewlineWithAutoIndent_no_indent_on_unindented_line() {
+        val text = "line1"
+        val v = vm(text, LanguageMode.PLAIN_TEXT)
+        v.moveCursorTo(text.length)
+        v.insertNewlineWithAutoIndent()
+        val lines = v.getFullText().split('\n')
+        assertEquals(2, lines.size)
+        assertEquals("", lines[1], "Non-indented line → new line must have no indentation")
+    }
+
+    @Test
+    fun m4_insertNewlineWithAutoIndent_preserves_four_space_indent() {
+        val text = "    deeplyIndented"
+        val v = vm(text, LanguageMode.PLAIN_TEXT)
+        v.moveCursorTo(text.length)
+        v.insertNewlineWithAutoIndent()
+        val lines = v.getFullText().split('\n')
+        assertEquals(2, lines.size)
+        assertTrue(lines[1].startsWith("    "),
+            "4-space indent must be preserved on new line. Got: '${lines[1]}'")
+    }
+
+    @Test
+    fun m4_insertNewlineWithAutoIndent_middle_of_line_splits_and_indents() {
+        val text = "  abc def"
+        val v = vm(text, LanguageMode.PLAIN_TEXT)
+        v.moveCursorTo(5)  // between "abc" and " def"
+        v.insertNewlineWithAutoIndent()
+        val lines = v.getFullText().split('\n')
+        assertEquals(2, lines.size)
+        assertTrue(lines[1].startsWith("  "),
+            "Split in middle: new line must carry the 2-space indent of line 0. Got: '${lines[1]}'")
+    }
+
+    @Test
+    fun m4_insertNewlineWithAutoIndent_is_undoable() {
+        val text = "  line"
+        val v = vm(text, LanguageMode.PLAIN_TEXT)
+        v.moveCursorTo(text.length)
+        v.insertNewlineWithAutoIndent()
+        v.undo()
+        assertEquals("  line", v.getFullText(),
+            "insertNewlineWithAutoIndent must be undoable in one step")
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // B-1 — Shift+click selection via moveCursorTo(extendSelection=true)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun b1_shiftClick_extends_selection_forward() {
+        val v = vm("{\"key\": true}")
+        // First click: place cursor at position 0
+        v.moveCursorTo(0, extendSelection = false)
+        assertEquals(-1, v.state.value.selectionStart, "No selection after initial click")
+
+        // Shift+click at position 5 → should extend selection from 0 to 5
+        v.moveCursorTo(5, extendSelection = true)
+        val sel = v.state.value
+        assertEquals(0, sel.selectionStart, "Selection must start at the anchor (0)")
+        assertEquals(5, sel.selectionEnd,   "Selection must end at shift-clicked position (5)")
+    }
+
+    @Test
+    fun b1_shiftClick_extends_selection_backward() {
+        val v = vm("{\"key\": true}")
+        v.moveCursorTo(8, extendSelection = false)
+        v.moveCursorTo(3, extendSelection = true)
+        val sel = v.state.value
+        assertEquals(3, sel.selectionStart, "Selection start must be the earlier position")
+        assertEquals(8, sel.selectionEnd,   "Selection end must be the later (anchor) position")
+    }
+
+    @Test
+    fun b1_plain_click_clears_selection() {
+        val v = vm("{\"key\": true}")
+        v.moveCursorTo(0, extendSelection = false)
+        v.moveCursorTo(8, extendSelection = true)
+        assertTrue(v.state.value.selectionStart >= 0, "Should have selection before plain click")
+
+        // A plain click should collapse the selection
+        v.moveCursorTo(4, extendSelection = false)
+        assertEquals(-1, v.state.value.selectionStart, "Plain click must collapse selection")
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // B-2 — Search highlight colours meet readability constraints
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun b2_searchMatch_has_low_opacity() {
+        val alpha = SyntaxColors.searchMatch.alpha
+        assertTrue(alpha <= 0.25f,
+            "searchMatch alpha ($alpha) must be ≤ 0.25 to avoid obscuring syntax colours")
+    }
+
+    @Test
+    fun b2_searchActive_is_distinct_from_searchMatch() {
+        val matchHue  = hue(SyntaxColors.searchMatch)
+        val activeHue = hue(SyntaxColors.searchActive)
+        // The two colours must differ by at least 15 hue degrees OR differ in alpha by ≥ 0.5
+        val hueDiff = Math.abs(activeHue - matchHue).let { if (it > 180f) 360f - it else it }
+        assertTrue(
+            hueDiff >= 15f || Math.abs(SyntaxColors.searchActive.alpha - SyntaxColors.searchMatch.alpha) >= 0.5f,
+            "searchActive must be visually distinct from searchMatch (hueDiff=$hueDiff)"
+        )
+    }
+
+    @Test
+    fun b2_searchActive_has_high_opacity() {
+        assertTrue(SyntaxColors.searchActive.alpha >= 0.8f,
+            "searchActive alpha (${SyntaxColors.searchActive.alpha}) must be ≥ 0.8 so the active match is clearly visible")
+    }
+
+    /** Returns the HSV hue (0..360) of [color], or 0 if the color is achromatic. */
+    private fun hue(color: androidx.compose.ui.graphics.Color): Float {
+        val r = color.red; val g = color.green; val b = color.blue
+        val max = maxOf(r, g, b); val min = minOf(r, g, b)
+        val delta = max - min
+        if (delta == 0f) return 0f
+        return when (max) {
+            r    -> 60f * (((g - b) / delta) % 6f)
+            g    -> 60f * (((b - r) / delta) + 2f)
+            else -> 60f * (((r - g) / delta) + 4f)
+        }.let { if (it < 0f) it + 360f else it }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // B-3 — Boolean re-highlight after edit (line-start snap fix)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun b3_replacing_true_with_false_re_highlights_all_chars() {
+        val text = "{\"v\": true}"
+        val v = vm(text)
+        // Wait for initial full styling to complete
+        awaitUntil { v.styleBuffer.endStyled >= v.document.length }
+
+        // Find the start of "true" (offset 6 in the string above: {"v": |true})
+        val trueStart = text.indexOf("true")
+        assertTrue(trueStart >= 0)
+
+        // All 4 chars of "true" should currently be KEYWORD
+        for (i in 0 until 4) {
+            assertEquals(
+                io.github.crustack.editor.core.TokenType.KEYWORD,
+                v.styleBuffer.styleAt(trueStart + i),
+                "Before edit: char $i of 'true' must be KEYWORD"
+            )
+        }
+
+        // Replace "true" with "false" in one operation
+        v.moveCursorTo(trueStart)
+        v.moveCursorTo(trueStart + 4, extendSelection = true)
+        v.insertAtCursor("false")
+
+        // Wait for the IdleLexer to finish re-styling from the line start
+        awaitUntil { v.styleBuffer.endStyled >= v.document.length }
+
+        val falseStart = v.getFullText().indexOf("false")
+        assertTrue(falseStart >= 0, "Text must now contain 'false'")
+
+        // All 5 chars of "false" must now be KEYWORD (not stale/ERROR)
+        for (i in 0 until 5) {
+            assertEquals(
+                io.github.crustack.editor.core.TokenType.KEYWORD,
+                v.styleBuffer.styleAt(falseStart + i),
+                "After edit: char $i of 'false' must be KEYWORD (was stale before fix)"
+            )
+        }
+    }
+
+    @Test
+    fun b3_partial_edit_of_true_shows_error_not_stale_keyword() {
+        // Typing "tru" (incomplete boolean) must show ERROR, not stale KEYWORD from "true"
+        val text = "{\"v\": true}"
+        val v = vm(text)
+        awaitUntil { v.styleBuffer.endStyled >= v.document.length }
+
+        val trueStart = text.indexOf("true")
+        // Delete the 'e' to leave "tru" — cursor is positioned after "true" (trueStart+4)
+        v.moveCursorTo(trueStart + 4)
+        v.deleteBeforeCursor()  // removes 'e' → document now contains "tru"
+
+        awaitUntil { v.styleBuffer.endStyled >= v.document.length }
+
+        // "tru" is not a valid JSON keyword → at least the 't' should be ERROR
+        val styleAtT = v.styleBuffer.styleAt(trueStart)
+        assertEquals(
+            io.github.crustack.editor.core.TokenType.ERROR,
+            styleAtT,
+            "Partial 'tru' must be highlighted as ERROR, not KEYWORD (stale highlight bug)"
+        )
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // U-1 — Undo history survives same-text external change (tab re-entry)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun u1_undo_survives_same_text_external_change() {
+        val v = vm("{\"key\": \"initial\"}")
+        // Make 3 user edits
+        v.moveCursorTo(v.document.length)
+        v.insertAtCursor("A")
+        v.insertAtCursor("B")
+        v.insertAtCursor("C")
+        assertEquals("{\"key\": \"initial\"}ABC", v.getFullText())
+
+        // Simulate returning to the tab: onExternalTextChanged with identical text.
+        // This must NOT clear history — the guard `getFullText() != displayText`
+        // is false, so onExternalTextChanged is never called in real CodeEditor.
+        // We replicate that guard here to confirm the guard holds.
+        val currentText = v.getFullText()
+        if (currentText != v.getFullText()) {
+            v.onExternalTextChanged(currentText) // would clear history — must not reach here
+        }
+        // The guard prevents the call, so undo stack is intact.
+        v.undo()
+        assertEquals("{\"key\": \"initial\"}AB", v.getFullText(), "Undo must work after same-text external non-change")
+        v.undo()
+        assertEquals("{\"key\": \"initial\"}A", v.getFullText())
+        v.undo()
+        assertEquals("{\"key\": \"initial\"}", v.getFullText())
+    }
+
+    @Test
+    fun u1_undo_cleared_on_genuinely_different_external_text() {
+        val v = vm("{\"key\": \"initial\"}")
+        v.moveCursorTo(v.document.length)
+        v.insertAtCursor("X")
+        v.insertAtCursor("Y")
+        assertTrue(v.getFullText().endsWith("XY"), "Should have XY appended")
+
+        // External text completely replaced (simulates Import / load, not Format)
+        v.onExternalTextChanged("completely different content")
+
+        // After a genuine external change, undo must not go back to the pre-import state
+        v.undo() // should be a no-op
+        assertEquals("completely different content", v.getFullText(),
+            "Undo must not cross an external-text-change boundary")
+    }
+
+    @Test
+    fun replaceDocument_keeps_undo_of_prior_edits() {
+        val v = vm("{\"a\":1}")
+        v.moveCursorTo(v.document.length)
+        v.insertAtCursor("X")
+        val afterType = v.getFullText()
+        v.replaceDocument("{\n  \"a\": 1\n}X")
+        v.undo()
+        assertEquals(afterType, v.getFullText(), "Undo Format must restore text including typed suffix")
+        v.undo()
+        assertEquals("{\"a\":1}", v.getFullText(), "Undo after Format must still undo the keystroke")
+    }
+
+    @Test
+    fun replaceDocument_maps_caret_at_start_to_start() {
+        val compact = "{\"a\":1}"
+        val pretty = "{\n  \"a\": 1\n}"
+        val v = EditorViewModel(compact, LanguageMode.JSON)
+        v.moveCursorTo(0)
+        v.replaceDocument(pretty)
+        assertEquals(0, v.state.value.cursorOffset)
+        v.dispose()
+    }
+
+    @Test
+    fun replaceDocument_eof_stays_at_end_of_pretty_text() {
+        val compact = "{\"a\":1}"
+        val pretty = "{\n  \"a\": 1\n}"
+        val v = EditorViewModel(compact, LanguageMode.JSON)
+        v.moveCursorTo(compact.length)
+        v.replaceDocument(pretty)
+        assertEquals(
+            pretty.length,
+            v.state.value.cursorOffset,
+            "EOF caret must stay at the end of the pretty document, not on line 0",
+        )
+        v.dispose()
+    }
+
+    @Test
+    fun replaceDocument_maps_caret_by_line_and_column() {
+        val old = "aaa\nbbbb"
+        val new = "aaa\ncccccc"
+        val v = EditorViewModel(old, LanguageMode.PLAIN_TEXT)
+        v.moveCursorTo(6) // line 1, col 2
+        v.replaceDocument(new)
+        assertEquals(6, v.state.value.cursorOffset, "Line 1 col 2 must map to the same line/col")
+        v.dispose()
+    }
+
+    @Test
+    fun replaceDocument_noop_does_not_move_caret() {
+        val v = EditorViewModel("Hello", LanguageMode.PLAIN_TEXT)
+        v.moveCursorTo(3)
+        v.replaceDocument("Hello")
+        assertEquals(3, v.state.value.cursorOffset)
+        v.dispose()
+    }
+
+    @Test
+    fun replaceDocument_undo_restores_pre_format_caret() {
+        val compact = "{\"a\":1}"
+        val pretty = "{\n  \"a\": 1\n}"
+        val v = EditorViewModel(compact, LanguageMode.JSON)
+        v.moveCursorTo(compact.length)
+        v.replaceDocument(pretty)
+        v.undo()
+        assertEquals(compact, v.getFullText())
+        assertEquals(compact.length, v.state.value.cursorOffset, "Undo Format must restore the pre-format caret")
+        v.dispose()
+    }
+
+    @Test
+    fun mapCursorByLineCol_eof_and_line_col() {
+        val pretty = "{\n  \"a\": 1\n}"
+        assertEquals(pretty.length, mapCursorByLineCol("{\"a\":1}", 7, pretty))
+        assertEquals(0, mapCursorByLineCol("{\"a\":1}", 0, pretty))
+        assertEquals(6, mapCursorByLineCol("aaa\nbbbb", 6, "aaa\ncccccc"))
+    }
+}
+
+class EditorFirstPaintStyleTest {
+
+    @Test
+    fun json_is_styled_before_the_idle_lexer_runs() {
+        val json = """{"a":1}"""
+        val v = EditorViewModel(json, LanguageMode.JSON)
+        try {
+            assertTrue(
+                v.styleBuffer.endStyled >= json.length,
+                "First paint must style a small JSON document synchronously; endStyled=${v.styleBuffer.endStyled}",
+            )
+            assertEquals(
+                io.github.crustack.editor.core.TokenType.PUNCTUATION,
+                v.styleBuffer.styleAt(0),
+                "Opening brace must be a punctuation token on first paint, not unstyled PLAIN",
+            )
+        } finally {
+            v.dispose()
+        }
+    }
+}

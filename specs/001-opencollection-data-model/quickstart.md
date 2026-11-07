@@ -29,7 +29,7 @@ This guide outlines end-to-end runnable validation scenarios to prove that the O
 
 1. **Run Unit & Model Validation Tests**:
    ```bash
-   rtk ./gradlew :core-model:desktopTest --tests "io.github.crustack.core.model.opencollection.*"
+   rtk ./gradlew :core-model:desktopTest --tests "opencollection.*"
    ```
 2. **Expected Outcome**:
    - `OpenCollectionDocument` parsed from valid JSON/YAML matches `docs/Clapi/todos/opencollection_v1.0.0.json` schema 100%.

@@ -412,9 +412,9 @@ Uses `CanvasBasedWindow` to render `MainScreen` in an HTML `<canvas>` element.
 ## Remove data
 ```
 # macOS — delete the prefs file
-defaults delete io.github.crustack.ui.shared.platform
+defaults delete io.github.crustack.clapi.ui.shared.platform
 # or remove the file directly
-rm ~/Library/Preferences/io.github.crustack.ui.plist
+rm ~/Library/Preferences/io.github.crustack.clapi.ui.plist
 
 # Linux
 rm -rf ~/.java/.userPrefs/io/github/crustack/

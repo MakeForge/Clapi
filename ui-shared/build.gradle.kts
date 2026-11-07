@@ -43,7 +43,7 @@ val generateI18nBundles by tasks.registering {
 
         outFile.writeText(
             """
-            package io.github.crustack.ui.shared.i18n
+            package io.github.crustack.clapi.ui.shared.i18n
 
             internal object GeneratedTranslationBundles {
                 private val bundles: Map<String, String> = mapOf(
@@ -73,7 +73,7 @@ val generateBuildInfo by tasks.registering {
 
         outFile.writeText(
             """
-            package io.github.crustack.ui.shared.build
+            package io.github.crustack.clapi.ui.shared.build
 
             internal object GeneratedBuildInfo {
                 const val APP_VERSION: String = "$appVersion"
