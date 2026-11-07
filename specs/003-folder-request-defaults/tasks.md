@@ -99,10 +99,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T023 [US4] Implement hierarchical inheritance cascading for nested folders in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt
-- [ ] T024 [US4] Update `RequestExecutor.kt` to execute ancestor folder pre-request scripts before the request pre-request script in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt
-- [ ] T025 [US4] Add explicit `// TODO:` comments and documentation in `RequestExecutor.kt` addressing cross-script variable isolation, test script cascading, and error boundary handling in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt
-- [ ] T026 [P] [US4] Add unit tests for multi-level nested folder inheritance and script cascading in ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/state/AppStateCollectionTest.kt
+- [x] T023 [US4] Implement hierarchical inheritance cascading for nested folders in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt
+- [x] T024 [US4] Update `RequestExecutor.kt` to execute ancestor folder pre-request scripts before the request pre-request script in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt
+- [x] T025 [US4] Add explicit `// TODO:` comments and documentation in `RequestExecutor.kt` addressing cross-script variable isolation, test script cascading, and error boundary handling in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt
+- [x] T026 [P] [US4] Add unit tests for multi-level nested folder inheritance and script cascading in ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/state/AppStateCollectionTest.kt
 
 **Checkpoint**: Deeply nested folder structures cascade request defaults and scripts seamlessly.
 
@@ -112,9 +112,9 @@
 
 **Purpose**: Verification, tests, and documentation across all user stories
 
-- [ ] T027 [P] Verify and update OpenCollection import/export tests for folder request defaults in ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/persistence/ImportExportFormDataTest.kt
-- [ ] T028 [P] Update developer documentation in docs/ explaining folder settings and inheritance rules
-- [ ] T029 Execute full validation walkthrough following specs/003-folder-request-defaults/quickstart.md
+- [x] T027 [P] Verify and update OpenCollection import/export tests for folder request defaults in ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/persistence/ImportExportFormDataTest.kt
+- [x] T028 [P] Update developer documentation in docs/ explaining folder settings and inheritance rules
+- [x] T029 Execute full validation walkthrough following specs/003-folder-request-defaults/quickstart.md
 
 ---
 

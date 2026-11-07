@@ -446,7 +446,9 @@ class RequestTabState(
     private fun totalBodyLength(): Int = bodyContents.values.sumOf { it.length }
 
     private fun currentSnapshot(): String {
-        val paramsSnapshot = params.joinToString(";") { p -> "${p.key}|${p.value}|${p.enabled}|${p.secret}" }
+        val paramsSnapshot = params
+            .filter { it.kind != HeaderKind.INHERITED }
+            .joinToString(";") { p -> "${p.key}|${p.value}|${p.enabled}|${p.secret}" }
         val headersSnapshot = headers
             .filter { it.kind != HeaderKind.INHERITED }
             .joinToString(";") { h -> "${h.key}|${h.value}|${h.enabled}|${h.secret}|${h.kind}|${h.keyLocked}" }
@@ -1164,6 +1166,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         val ancestors = getAncestorFolders(tab)
         if (ancestors.isEmpty()) return
 
+        // 1. Cascade headers (root-to-leaf: closer ancestor overrides distant ancestor)
         val resolvedHeaders = mutableMapOf<String, KeyValueEntry>()
         for (folder in ancestors) {
             val entries = folder.headerEntries ?: folder.userHeaders.map { KeyValueEntry(it.first, it.second) }
@@ -1180,6 +1183,34 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
             val alreadyExists = tab.headers.any { it.key.equals(entry.key, ignoreCase = true) }
             if (!alreadyExists) {
                 tab.headers.add(
+                    MutableKeyValue(
+                        key = entry.key,
+                        value = entry.value,
+                        enabled = true,
+                        kind = HeaderKind.INHERITED,
+                        keyLocked = true,
+                    )
+                )
+            }
+        }
+
+        // 2. Cascade query parameters (root-to-leaf: closer ancestor overrides distant ancestor)
+        val resolvedParams = mutableMapOf<String, KeyValueEntry>()
+        for (folder in ancestors) {
+            val entries = folder.queryEntries ?: emptyList()
+            for (entry in entries) {
+                if (entry.enabled && entry.key.isNotBlank()) {
+                    resolvedParams[entry.key.lowercase()] = entry
+                }
+            }
+        }
+
+        tab.params.removeAll { it.kind == HeaderKind.INHERITED }
+
+        for (entry in resolvedParams.values) {
+            val alreadyExists = tab.params.any { it.key.equals(entry.key, ignoreCase = true) }
+            if (!alreadyExists) {
+                tab.params.add(
                     MutableKeyValue(
                         key = entry.key,
                         value = entry.value,
@@ -1907,7 +1938,9 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         nodes.indices.forEach { index ->
             val node = nodes[index]
             if (node.isFolder && node.id == tab.id) {
-                val queryEntriesSnapshot = tab.params.map { KeyValueEntry(it.key, it.value, it.enabled, it.secret) }
+                val queryEntriesSnapshot = tab.params
+                    .filter { it.kind != HeaderKind.INHERITED }
+                    .map { KeyValueEntry(it.key, it.value, it.enabled, it.secret) }
                 val headerEntriesSnapshot = tab.headers
                     .filter { it.kind != HeaderKind.SYSTEM && it.kind != HeaderKind.INHERITED }
                     .map { KeyValueEntry(it.key, it.value, it.enabled, it.secret) }
@@ -1936,7 +1969,9 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                     .filter { it.kind == HeaderKind.USER && it.enabled }
                     .map { it.key to it.value }
                     .toMutableList()
-                val queryEntriesSnapshot = tab.params.map { KeyValueEntry(it.key, it.value, it.enabled, it.secret) }
+                val queryEntriesSnapshot = tab.params
+                    .filter { it.kind != HeaderKind.INHERITED }
+                    .map { KeyValueEntry(it.key, it.value, it.enabled, it.secret) }
                 val headerEntriesSnapshot = tab.headers
                     .filter { it.kind != HeaderKind.INHERITED }
                     .map { KeyValueEntry(it.key, it.value, it.enabled, it.secret) }

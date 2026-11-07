@@ -144,6 +144,7 @@ ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/
 │   ├── KeyValueEditor.kt           Reusable key-value table (Params, Headers)
 │   ├── BodyEditor.kt               Body type selector + CodeEditor instance
 │   ├── AuthEditor.kt               Auth-type selector + credential fields
+│   ├── FolderEditor.kt             Folder settings editor for request defaults (headers, params, auth, scripts)
 │   ├── ScriptEditor.kt             Code editor for Pre-request and Post-request scripts
 │   ├── RequestTabsBar.kt           Horizontal tab bar: scroll, context menu, unsaved indicators
 │   ├── RequestExecutor.kt          sendRequest, saveRequest, buildCurlCommand, auth config
@@ -255,6 +256,15 @@ System headers (`Content-Type`, `Accept`, `User-Agent`) are pre-populated as loc
 2. Tab-local overrides
 3. Active environment variables
 4. Global variables
+
+### Folder Settings and Defaults Inheritance
+
+Folders in the sidebar can be opened as dedicated editor tabs (`RequestKind.FOLDER`) to configure shared request defaults (headers, query parameters, authentication, and pre/post-request scripts). Descendant requests inherit these defaults hierarchically:
+- **Headers & Parameters**: Cascaded root-to-leaf, marked with `HeaderKind.INHERITED` and read-only locks in the UI, overridable by child requests on the wire.
+- **Authentication**: `AuthType.INHERIT` resolves up the ancestor chain to the nearest configured auth.
+- **Scripts**: Chained hierarchically (pre-request root-to-leaf; post-request leaf-to-root).
+
+For detailed rules and contracts, see [Folder Settings and Request Defaults Inheritance](folder-settings-and-inheritance.md).
 
 ---
 

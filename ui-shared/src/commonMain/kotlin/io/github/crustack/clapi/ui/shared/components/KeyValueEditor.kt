@@ -60,6 +60,7 @@ fun KeyValueEditor(
     onDirty: () -> Unit,
 ) {
     val isHeaderEditor = tag == "header"
+    val showTypeColumn = isHeaderEditor || entries.any { it.kind == HeaderKind.INHERITED }
     Column(modifier = Modifier.fillMaxSize().background(ClapiColors.Background).padding(8.dp)) {
         // Column header labels
         Row(
@@ -69,7 +70,7 @@ fun KeyValueEditor(
             androidx.compose.foundation.layout.Spacer(Modifier.size(32.dp))
             Text(Strings.t("key_upper"),   style = MaterialTheme.typography.labelSmall, color = ClapiColors.OnSurfaceDim, modifier = Modifier.weight(1f))
             Text(Strings.t("value_upper"), style = MaterialTheme.typography.labelSmall, color = ClapiColors.OnSurfaceDim, modifier = Modifier.weight(1f))
-            if (isHeaderEditor) {
+            if (showTypeColumn) {
                 Text(Strings.t("type_upper"), style = MaterialTheme.typography.labelSmall, color = ClapiColors.OnSurfaceDim, modifier = Modifier.size(70.dp, 20.dp))
             }
             androidx.compose.foundation.layout.Spacer(Modifier.size(32.dp))
@@ -85,13 +86,14 @@ fun KeyValueEditor(
                     KeyValueRow(
                         kv = kv,
                         onDelete = {
-                            if (!(isHeaderEditor && (kv.kind == HeaderKind.SYSTEM || kv.kind == HeaderKind.INHERITED))) {
+                            if (!((isHeaderEditor && kv.kind == HeaderKind.SYSTEM) || kv.kind == HeaderKind.INHERITED)) {
                                 entries.removeAt(idx)
                                 onDirty()
                             }
                         },
                         onDirty = onDirty,
                         isHeaderEditor = isHeaderEditor,
+                        showTypeColumn = showTypeColumn,
                         state = state,
                         testTag = "$tag-row-$idx",
                     )
@@ -134,12 +136,13 @@ private fun KeyValueRow(
     onDelete: () -> Unit,
     onDirty: () -> Unit,
     isHeaderEditor: Boolean,
+    showTypeColumn: Boolean = false,
     state: AppState? = null,
     testTag: String,
 ) {
     val isSystemHeader = isHeaderEditor &&
         (kv.kind == HeaderKind.SYSTEM || SystemHeaderRules.isSystemHeader(kv.key))
-    val isInherited = isHeaderEditor && kv.kind == HeaderKind.INHERITED
+    val isInherited = kv.kind == HeaderKind.INHERITED
 
     Row(
         modifier = Modifier
@@ -178,7 +181,7 @@ private fun KeyValueRow(
             state = state,
         )
 
-        if (isHeaderEditor) {
+        if (showTypeColumn) {
             Row(
                 modifier = Modifier.size(70.dp, 20.dp),
                 verticalAlignment = Alignment.CenterVertically,

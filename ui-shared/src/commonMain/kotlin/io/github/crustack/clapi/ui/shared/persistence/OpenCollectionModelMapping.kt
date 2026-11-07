@@ -354,8 +354,24 @@ fun CollectionNode.toOpenCollectionItem(): OpenCollectionItem {
     return if (isFolder) {
         val ext = mutableMapOf<String, JsonElement>()
         ext["id"] = JsonPrimitive(id)
+        val clapiFields = mutableMapOf<String, JsonElement>()
         if (authType == AuthType.JWT) {
-            ext["clapi"] = buildJsonObject { put("authType", "jwt") }
+            clapiFields["authType"] = JsonPrimitive("jwt")
+        }
+        if (!queryEntries.isNullOrEmpty()) {
+            clapiFields["queryEntries"] = buildJsonArray {
+                queryEntries.forEach { e ->
+                    add(buildJsonObject {
+                        put("key", e.key)
+                        put("value", e.value)
+                        put("enabled", e.enabled)
+                        put("secret", e.secret)
+                    })
+                }
+            }
+        }
+        if (clapiFields.isNotEmpty()) {
+            ext["clapi"] = JsonObject(clapiFields)
         }
         FolderItem(
             info = FolderInfo(name = name, type = "folder"),
@@ -534,7 +550,8 @@ fun OpenCollectionItem.toCollectionNode(
             val preScript = req?.scripts?.firstOrNull { it.type == "before-request" }?.code
             val postScript = req?.scripts?.firstOrNull { it.type == "after-response" || it.type == "tests" }?.code
 
-            val meta = (if (path.isNotEmpty()) clapiRequests?.get(path) as? JsonObject else null)
+            val meta = clapiExt
+                ?: (if (path.isNotEmpty()) clapiRequests?.get(path) as? JsonObject else null)
                 ?: clapiRequests?.get(info.name) as? JsonObject
                 ?: clapiRequests?.get(folderId) as? JsonObject
 
