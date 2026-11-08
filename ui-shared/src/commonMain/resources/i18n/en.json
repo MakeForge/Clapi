@@ -382,5 +382,6 @@
   "vault_server_url": "Server URL",
   "vault_mount_path": "Mount Path",
   "vault_namespace": "Namespace (Optional)",
-  "vault_token": "Vault Token"
+  "vault_token": "Vault Token",
+  "external_secrets": "External Secrets"
 }

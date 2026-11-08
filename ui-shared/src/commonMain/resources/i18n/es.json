@@ -329,5 +329,6 @@
   "vault_server_url": "URL del servidor",
   "vault_mount_path": "Ruta de montaje",
   "vault_namespace": "Espacio de nombres (Opcional)",
-  "vault_token": "Token de Vault"
+  "vault_token": "Token de Vault",
+  "external_secrets": "Secretos externos"
 }

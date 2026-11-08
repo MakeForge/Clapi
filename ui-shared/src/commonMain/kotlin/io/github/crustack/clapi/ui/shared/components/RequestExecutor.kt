@@ -27,9 +27,12 @@ import io.github.crustack.clapi.core.scripting.ClapiScriptEngine
 import io.github.crustack.clapi.core.scripting.ScriptContext
 import io.github.crustack.clapi.core.scripting.SendRequestResult
 import io.github.crustack.clapi.core.scripting.SendRequestSpec
+import io.github.crustack.clapi.core.network.vault.SecretDeclaration
+import io.github.crustack.clapi.core.network.vault.SecretResolutionService
 import io.github.crustack.clapi.ui.shared.network.NetworkClientFactory
 import io.github.crustack.clapi.ui.shared.persistence.TabsRepository
 import io.github.crustack.clapi.ui.shared.persistence.WorkspaceRepository
+import io.github.crustack.clapi.ui.shared.platform.PlatformStorage
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.HeaderKind
 import io.github.crustack.clapi.ui.shared.state.LogLevel
@@ -249,9 +252,43 @@ private fun sendRequestInternal(scope: CoroutineScope, state: AppState, tab: Req
             }
         }
 
+        val textsToScan = mutableListOf<String>()
+        textsToScan.add(tab.url)
+        textsToScan.add(effectiveUrl)
+        textsToScan.add(urlParts.query)
+        textsToScan.add(effectiveBodyContent)
+        effectiveHeaders.forEach {
+            textsToScan.add(it.key)
+            textsToScan.add(it.value)
+        }
+        effectiveQueryParams.forEach {
+            textsToScan.add(it.key)
+            textsToScan.add(it.value)
+        }
+        textsToScan.add(tab.authUsername)
+        textsToScan.add(tab.authPassword)
+        textsToScan.add(tab.authToken)
+        textsToScan.add(tab.authApiKey)
+        textsToScan.add(tab.authApiValue)
+        tab.formRows.forEach {
+            textsToScan.add(it.key)
+            textsToScan.add(it.value)
+        }
+        tab.urlencodedRows.forEach {
+            textsToScan.add(it.key)
+            textsToScan.add(it.value)
+        }
+
+        val resolvedSecrets = resolveExternalSecretsForTab(state, tab, textsToScan) ?: return@launch
+        val variableLayersWithSecrets = if (resolvedSecrets.isNotEmpty()) {
+            listOf(resolvedSecrets) + state.activeVariableLayers(tab)
+        } else {
+            state.activeVariableLayers(tab)
+        }
+
         val resolvedBaseForLog = resolveUrlForLog(
             url = effectiveUrl,
-            variableLayers = state.activeVariableLayers(tab),
+            variableLayers = variableLayersWithSecrets,
             requestScopedVars = requestScopedScriptVars,
         )
         val effectiveUrlForLog = if (effectiveQueryParams.isNotEmpty()) {
@@ -302,7 +339,7 @@ private fun sendRequestInternal(scope: CoroutineScope, state: AppState, tab: Req
                 retryPolicy = retryPolicy,
             )
 
-            client.execute(request, state.activeVariableLayers(tab)).collect { event ->
+            client.execute(request, variableLayersWithSecrets).collect { event ->
                 when (event) {
                     is NetworkEvent.Started -> {
                         state.recordHistory(
@@ -574,10 +611,27 @@ private fun sendGrpcRequestInternal(
             }
         }
 
+        val textsToScan = mutableListOf<String>()
+        textsToScan.add(effectiveUrl)
+        textsToScan.add(effectiveMessageBody)
+        effectiveMetadata.forEach {
+            textsToScan.add(it.key)
+            textsToScan.add(it.value)
+        }
+        tab.protoFilePath?.let { textsToScan.add(it) }
+        tab.grpcMethod?.let { textsToScan.add(it) }
+
+        val resolvedSecrets = resolveExternalSecretsForTab(state, tab, textsToScan) ?: return@launch
+        val mergedScopedVars = if (resolvedSecrets.isNotEmpty()) {
+            requestScopedScriptVars + resolvedSecrets
+        } else {
+            requestScopedScriptVars
+        }
+
         val grpcCallRequest = resolveGrpcCallRequest(
             tab = tab,
             state = state,
-            requestScopedVars = requestScopedScriptVars,
+            requestScopedVars = mergedScopedVars,
             urlOverride = effectiveUrl,
             metadataOverride = effectiveMetadata,
             bodyOverride = effectiveMessageBody,
@@ -1201,3 +1255,41 @@ private fun pyStr(s: String): String = "\"" + s
     .replace("\t", "\\t") + "\""
 
 internal fun shellQuote(value: String) = "'" + value.replace("'", "'\\''") + "'"
+
+private suspend fun resolveExternalSecretsForTab(
+    state: AppState,
+    tab: RequestTabState,
+    textsToScan: Iterable<String>,
+): Map<String, String>? {
+    val secretResolutionService = SecretResolutionService()
+    val requiredSecrets = secretResolutionService.extractSecretReferences(textsToScan)
+    if (requiredSecrets.isEmpty()) return emptyMap()
+
+    val declarations = state.selectedEnvironment?.externalSecrets?.map {
+        SecretDeclaration(
+            name = it.name.trim(),
+            path = it.path.trim(),
+            enabled = it.enabled,
+        )
+    } ?: emptyList()
+
+    return try {
+        secretResolutionService.resolveSecrets(
+            requiredSecretNames = requiredSecrets,
+            declarations = declarations,
+            vaultUrl = state.settings.vaultServerUrl,
+            vaultToken = state.settings.vaultToken.ifBlank {
+                PlatformStorage.getSecretString("clapi.settings.vaultToken").orEmpty()
+            },
+            mountPath = state.settings.vaultMountPath.ifBlank { "secret" },
+            namespace = state.settings.vaultNamespace.ifBlank { null },
+        )
+    } catch (e: Exception) {
+        val errorMsg = e.message ?: "Failed to resolve external secrets"
+        tab.lastError = errorMsg
+        tab.isLoading = false
+        tab.currentJob = null
+        state.log("Secret resolution error: $errorMsg", LogLevel.ERROR)
+        null
+    }
+}

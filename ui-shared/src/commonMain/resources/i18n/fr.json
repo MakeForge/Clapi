@@ -329,5 +329,6 @@
   "vault_server_url": "URL du serveur",
   "vault_mount_path": "Point de montage",
   "vault_namespace": "Espace de noms (Optionnel)",
-  "vault_token": "Jeton Vault"
+  "vault_token": "Jeton Vault",
+  "external_secrets": "Secrets externes"
 }
