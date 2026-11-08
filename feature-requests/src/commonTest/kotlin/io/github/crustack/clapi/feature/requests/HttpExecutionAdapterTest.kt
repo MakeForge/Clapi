@@ -7,6 +7,7 @@ import io.github.crustack.clapi.core.model.McpConnectionConfig
 import io.github.crustack.clapi.core.model.McpTransportType
 import io.github.crustack.clapi.core.model.RequestDefinition
 import io.github.crustack.clapi.core.model.ResponseDefinition
+import io.github.crustack.clapi.core.model.ResponseMetrics
 import io.github.crustack.clapi.core.model.opencollection.AuthApiKey
 import io.github.crustack.clapi.core.model.opencollection.AuthBasic
 import io.github.crustack.clapi.core.model.opencollection.AuthBearer

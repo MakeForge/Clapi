@@ -6,14 +6,20 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import io.github.crustack.clapi.core.model.RequestKind
 import io.github.crustack.clapi.ui.shared.MainScreen
 import io.github.crustack.clapi.ui.shared.components.GrpcBadge
+import io.github.crustack.clapi.ui.shared.components.resolveGrpcCallRequest
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.CollectionNode
+import io.github.crustack.clapi.ui.shared.state.EnvState
+import io.github.crustack.clapi.ui.shared.state.MutableKeyValue
+import io.github.crustack.clapi.ui.shared.state.RequestTabState
 import io.github.crustack.clapi.ui.shared.theme.ClapiTheme
 import org.junit.Rule
 import org.junit.Test
+import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -80,5 +86,100 @@ class SidebarGrpcBadgeTest {
         composeRule.onNodeWithTag("tab-grpc-badge-${createdNode.id}", useUnmergedTree = true)
             .assertIsDisplayed()
             .assertTextEquals("gRPC")
+
+        // Verify GrpcRequestEditor is rendered for the active gRPC tab
+        composeRule.onNodeWithTag("grpc-request-editor", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("grpc-proto-button", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("grpc-method-dropdown", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("grpc-tab-message", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("grpc-tab-headers", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("grpc-tab-scripts", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun grpcProtoDialog_parsesSelectedProtoAndPopulatesMethods() {
+        val tempProto = File.createTempFile("ui_proto_test_", ".proto")
+        try {
+            tempProto.writeText(
+                """
+                syntax = "proto3";
+                package helloworld;
+
+                service Greeter {
+                  rpc SayHello (HelloRequest) returns (HelloReply);
+                  rpc SayHelloAgain (HelloRequest) returns (HelloReply);
+                }
+
+                message HelloRequest { string name = 1; }
+                message HelloReply { string message = 1; }
+                """.trimIndent()
+            )
+
+            val state = AppState(openDefaultTab = false, withDemoData = true)
+            val rootFolder = state.collections.first()
+            state.addGrpcRequestToCollection(rootFolder.id)
+
+            composeRule.setContent {
+                ClapiTheme {
+                    MainScreen(state)
+                }
+            }
+
+            composeRule.onNodeWithTag("grpc-proto-button", useUnmergedTree = true).performClick()
+            composeRule.waitForIdle()
+
+            composeRule.onNodeWithTag("select-proto-file-dialog", useUnmergedTree = true).assertIsDisplayed()
+            composeRule.onNodeWithTag("proto-dialog-path-input", useUnmergedTree = true)
+                .performTextInput(tempProto.absolutePath)
+            composeRule.waitForIdle()
+
+            composeRule.onNodeWithTag("proto-dialog-save", useUnmergedTree = true).performClick()
+            composeRule.waitUntil(timeoutMillis = 10_000) {
+                state.activeTab?.availableMethods?.size == 2
+            }
+
+            val activeTab = state.activeTab!!
+            assertEquals(tempProto.absolutePath, activeTab.protoFilePath)
+            assertEquals("helloworld.Greeter/SayHello", activeTab.grpcMethod)
+            assertEquals(2, activeTab.availableMethods.size)
+        } finally {
+            tempProto.delete()
+        }
+    }
+
+    @Test
+    fun resolveGrpcCallRequest_substitutesVariablesInUrlMetadataAndMessage() {
+        val state = AppState(openDefaultTab = false, withDemoData = false)
+        state.environments.add(
+            EnvState(
+                name = "TestEnv",
+                variables = listOf(
+                    MutableKeyValue("grpcHost", "127.0.0.1"),
+                    MutableKeyValue("grpcPort", "50055"),
+                    MutableKeyValue("authToken", "secret-jwt"),
+                    MutableKeyValue("userName", "Alice"),
+                ),
+            )
+        )
+        state.selectedEnvIndex = 0
+
+        val tab = RequestTabState(
+            name = "SayHello",
+            url = "{{grpcHost}}:{{grpcPort}}",
+            kind = RequestKind.GRPC,
+        ).apply {
+            protoFilePath = "/tmp/greeter.proto"
+            grpcMethod = "helloworld.Greeter/SayHello"
+            grpcMessageBody = """{"name": "{{userName}}"}"""
+            grpcMetadata.add(MutableKeyValue("authorization", "Bearer {{authToken}}"))
+        }
+
+        val resolved = resolveGrpcCallRequest(tab, state)
+        assertEquals("127.0.0.1", resolved.host)
+        assertEquals(50055, resolved.port)
+        assertEquals(false, resolved.useTls)
+        assertEquals("helloworld.Greeter/SayHello", resolved.fullMethodName)
+        assertTrue(resolved.jsonPayload.contains("\"name\":\"Alice\"") || resolved.jsonPayload.contains("\"name\": \"Alice\""))
+        assertEquals(listOf("authorization" to "Bearer secret-jwt"), resolved.metadata)
     }
 }

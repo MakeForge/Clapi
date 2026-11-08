@@ -1,0 +1,274 @@
+package io.github.crustack.clapi.ui.shared.components
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import io.github.crustack.clapi.ui.shared.platform.pickProtoFile
+import io.github.crustack.clapi.ui.shared.theme.ClapiColors
+import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
+import kotlin.math.roundToInt
+
+/**
+ * Dialog for selecting and saving a `.proto` schema file for a gRPC request.
+ */
+@Composable
+fun SelectProtoFileDialog(
+    currentProtoFilePath: String?,
+    errorMessage: String? = null,
+    isLoading: Boolean = false,
+    onSave: (protoFilePath: String) -> Unit,
+    onDismiss: () -> Unit,
+    onPickFile: ((onSelected: (String) -> Unit) -> Unit)? = null,
+) {
+    var selectedPath by remember(currentProtoFilePath) {
+        mutableStateOf(currentProtoFilePath.orEmpty())
+    }
+    var offsetX by remember { mutableStateOf(0f) }
+    var offsetY by remember { mutableStateOf(0f) }
+    var viewportSize by remember { mutableStateOf(IntSize.Zero) }
+    var cardSize by remember { mutableStateOf(IntSize.Zero) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .onSizeChanged { viewportSize = it }
+                .pointerInput(Unit) { detectTapGestures { onDismiss() } },
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
+                    .widthIn(min = 440.dp, max = 560.dp)
+                    .onSizeChanged { cardSize = it }
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(ClapiColors.Surface)
+                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(12.dp))
+                    .draggableNoSlop { dx, dy ->
+                        val (cx, cy) = clampDialogOffsetFromCenter(
+                            offsetX = offsetX + dx,
+                            offsetY = offsetY + dy,
+                            cardSize = cardSize,
+                            viewportSize = viewportSize,
+                        )
+                        offsetX = cx
+                        offsetY = cy
+                    }
+                    .pointerInput(Unit) { detectTapGestures { } }
+                    .padding(24.dp)
+                    .testTag("select-proto-file-dialog"),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    // Header row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            text = "Select Proto File",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = ClapiColors.OnSurface,
+                        )
+                        IconButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.size(28.dp).testTag("proto-dialog-close"),
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = ClapiColors.OnSurfaceDim,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "Using Proto File",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = ClapiColors.OnSurfaceVariant,
+                    )
+
+                    // Current file path display / input box
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(ClapiColors.SurfaceContainer)
+                            .border(1.dp, ClapiColors.Border, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                            .testTag("proto-dialog-path-display"),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Description,
+                            contentDescription = null,
+                            tint = ClapiColors.MethodPatch,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        BasicTextField(
+                            value = selectedPath,
+                            onValueChange = { selectedPath = it },
+                            singleLine = true,
+                            textStyle = TextStyle(
+                                color = ClapiColors.OnSurface,
+                                fontSize = 13.sp,
+                                fontFamily = CodeFontFamily,
+                            ),
+                            cursorBrush = SolidColor(ClapiColors.Primary),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("proto-dialog-path-input"),
+                            decorationBox = { inner ->
+                                if (selectedPath.isEmpty()) {
+                                    Text(
+                                        text = "No proto file selected",
+                                        color = ClapiColors.OnSurfaceDim,
+                                        fontSize = 13.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                inner()
+                            },
+                        )
+                    }
+
+                    // Select Proto File button
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(ClapiColors.SurfaceVariant)
+                            .border(1.dp, ClapiColors.Border, RoundedCornerShape(8.dp))
+                            .clickable(enabled = !isLoading) {
+                                val picker = onPickFile ?: { cb -> pickProtoFile(cb) }
+                                picker { pickedPath ->
+                                    selectedPath = pickedPath
+                                }
+                            }
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                            .testTag("proto-dialog-pick-button"),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        Icon(
+                            Icons.Default.FolderOpen,
+                            contentDescription = null,
+                            tint = ClapiColors.OnSurface,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.size(8.dp))
+                        Text(
+                            text = if (selectedPath.isBlank()) "Select Proto File" else "Replace Proto File",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = ClapiColors.OnSurface,
+                        )
+                    }
+
+                    if (!errorMessage.isNullOrBlank()) {
+                        Text(
+                            text = errorMessage,
+                            color = ClapiColors.Error,
+                            fontSize = 12.sp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("proto-dialog-error"),
+                        )
+                    }
+
+                    Spacer(Modifier.height(4.dp))
+
+                    // Action buttons: Cancel & Save
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(ClapiColors.SurfaceContainer)
+                                .border(1.dp, ClapiColors.Border, RoundedCornerShape(6.dp))
+                                .clickable(enabled = !isLoading, onClick = onDismiss)
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .testTag("proto-dialog-cancel"),
+                        ) {
+                            Text(
+                                text = "Cancel",
+                                fontSize = 13.sp,
+                                color = ClapiColors.OnSurface,
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(
+                                    if (selectedPath.isNotBlank() && !isLoading) ClapiColors.Primary
+                                    else ClapiColors.Primary.copy(alpha = 0.5f)
+                                )
+                                .clickable(enabled = selectedPath.isNotBlank() && !isLoading) {
+                                    onSave(selectedPath.trim())
+                                }
+                                .padding(horizontal = 20.dp, vertical = 8.dp)
+                                .testTag("proto-dialog-save"),
+                        ) {
+                            Text(
+                                text = if (isLoading) "Loading…" else "Save",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = ClapiColors.OnPrimary,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

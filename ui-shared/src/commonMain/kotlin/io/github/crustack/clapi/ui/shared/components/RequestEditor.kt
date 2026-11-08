@@ -34,6 +34,7 @@ import io.github.crustack.clapi.ui.shared.state.RequestEditorTab
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
 import io.github.crustack.clapi.core.model.BodyType
 import io.github.crustack.clapi.core.model.FormEntryType
+import io.github.crustack.clapi.core.model.RequestKind
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
 import io.github.crustack.clapi.ui.shared.theme.ClapiTheme
 import io.github.crustack.clapi.ui.shared.platform.copyToClipboard as platformCopyToClipboard
@@ -63,6 +64,17 @@ fun RequestEditor(
     /** Cancels the in-flight request when the Stop button is pressed (H-2). */
     onCancel: () -> Unit = {},
 ) {
+    if (tab.kind == RequestKind.GRPC) {
+        GrpcRequestEditor(
+            tab = tab,
+            state = state,
+            onSend = onSend,
+            onSave = onSave,
+            onCancel = onCancel,
+        )
+        return
+    }
+
     val markDirty = { tab.markDirty() }
 
     Column(
