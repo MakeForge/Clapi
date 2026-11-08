@@ -5,9 +5,12 @@ import androidx.compose.ui.input.pointer.PointerIcon
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import java.awt.Cursor
+import java.awt.FileDialog
+import java.awt.Frame
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import java.io.File
+import java.io.FilenameFilter
 import java.util.Base64
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -59,11 +62,18 @@ actual fun Modifier.platformResizeCursorStyle(isHorizontal: Boolean): Modifier =
 actual fun Modifier.platformDiagonalResizeCursorStyle(isNwSe: Boolean): Modifier = this
 
 actual fun pickFileForImport(onResult: (fileName: String, content: String) -> Unit) {
-    val chooser = JFileChooser()
-    chooser.applyRememberedDirectory()
-    chooser.fileFilter = FileNameExtensionFilter("JSON and YAML files (*.json, *.yaml, *.yml)", "json", "yaml", "yml")
-    if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-        val selected = chooser.selectedFile
+    val dialog = FileDialog(null as Frame?, "", FileDialog.LOAD).apply {
+            filenameFilter = FilenameFilter { _, name ->
+                setOf("json", "yaml", "yml").any { ext -> name.endsWith(".$ext", ignoreCase = true) }
+            }
+        isVisible = true
+    }
+
+    val selectedDir = dialog.directory
+    val selectedFile = dialog.file
+
+    if (selectedDir != null && selectedFile != null) {
+        val selected = File(selectedDir, selectedFile)
         rememberChooserDirectory(selected)
         runCatching { selected.readText() }
             .onSuccess { content -> onResult(selected.name, content) }
