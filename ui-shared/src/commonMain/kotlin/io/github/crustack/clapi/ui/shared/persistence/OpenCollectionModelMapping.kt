@@ -341,6 +341,29 @@ fun EnvState.mergeFrom(incoming: Environment) {
             existingKeys.add(variable.name)
         }
     }
+    incoming.externalSecrets?.let { ext ->
+        if (externalSecretsProvider.isBlank()) {
+            externalSecretsProvider = ext.type
+        }
+        val existingSecretNames = externalSecrets.map { it.name }.toMutableSet()
+        for (sec in ext.variables) {
+            when (sec) {
+                is HashicorpVaultExternalSecret -> {
+                    if (sec.name.isNotBlank() && sec.name !in existingSecretNames) {
+                        externalSecrets.add(
+                            MutableExternalSecret(
+                                name = sec.name,
+                                path = sec.path,
+                                description = sec.description?.content.orEmpty(),
+                                enabled = sec.disabled != true,
+                            )
+                        )
+                        existingSecretNames.add(sec.name)
+                    }
+                }
+            }
+        }
+    }
 }
 
 internal fun CollectionNode.toRequestDefaults(): RequestDefaults? {

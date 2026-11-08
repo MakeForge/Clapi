@@ -198,4 +198,146 @@ class SecretResolutionServiceTest {
         assertTrue(resolved.isEmpty())
         assertTrue(fakeClient.calls.isEmpty())
     }
+
+    @Test
+    fun resolveAllSecrets_resolves_secret_variable_from_process_env_first() = runTest {
+        val fakeClient = FakeVaultClient(
+            mapOf("kv/secret" to mapOf("MY_API_KEY" to "vault_key")),
+        )
+        val service = SecretResolutionService(fakeClient)
+        val declarations = listOf(
+            SecretDeclaration(name = "MY_API_KEY", path = "kv/secret", enabled = true),
+        )
+
+        val resolved = service.resolveAllSecrets(
+            texts = listOf("Bearer {{MY_API_KEY}}"),
+            declarations = declarations,
+            secretVariableNames = setOf("MY_API_KEY"),
+            vaultUrl = "http://127.0.0.1:8200",
+            vaultToken = "token",
+            processEnvProvider = { if (it == "MY_API_KEY") "env_secret_123" else null },
+        )
+
+        assertEquals("env_secret_123", resolved["MY_API_KEY"])
+        assertTrue(fakeClient.calls.isEmpty(), "Process env should take precedence without querying Vault")
+    }
+
+    @Test
+    fun resolveAllSecrets_falls_back_to_matching_external_secret_when_not_in_process_env() = runTest {
+        val fakeClient = FakeVaultClient(
+            mapOf("kv/secret" to mapOf("MY_API_KEY" to "vault_key_456")),
+        )
+        val service = SecretResolutionService(fakeClient)
+        val declarations = listOf(
+            SecretDeclaration(name = "MY_API_KEY", path = "kv/secret", enabled = true),
+        )
+
+        val resolved = service.resolveAllSecrets(
+            texts = listOf("Bearer {{MY_API_KEY}}"),
+            declarations = declarations,
+            secretVariableNames = setOf("MY_API_KEY"),
+            vaultUrl = "http://127.0.0.1:8200",
+            vaultToken = "token",
+            processEnvProvider = { null },
+        )
+
+        assertEquals("vault_key_456", resolved["MY_API_KEY"])
+        assertEquals(listOf("kv/secret"), fakeClient.calls)
+    }
+
+    @Test
+    fun resolveAllSecrets_throws_when_matching_external_secret_is_disabled() = runTest {
+        val fakeClient = FakeVaultClient(emptyMap())
+        val service = SecretResolutionService(fakeClient)
+        val declarations = listOf(
+            SecretDeclaration(name = "MY_API_KEY", path = "kv/secret", enabled = false),
+        )
+
+        val ex = assertFailsWith<IllegalStateException> {
+            service.resolveAllSecrets(
+                texts = listOf("Bearer {{MY_API_KEY}}"),
+                declarations = declarations,
+                secretVariableNames = setOf("MY_API_KEY"),
+                vaultUrl = "http://127.0.0.1:8200",
+                vaultToken = "token",
+                processEnvProvider = { null },
+            )
+        }
+
+        assertTrue(ex.message?.contains("is disabled") == true)
+    }
+
+    @Test
+    fun resolveAllSecrets_throws_when_secret_variable_matches_neither_process_env_nor_external_secret() = runTest {
+        val fakeClient = FakeVaultClient(emptyMap())
+        val service = SecretResolutionService(fakeClient)
+        val declarations = listOf(
+            SecretDeclaration(name = "OTHER_SECRET", path = "kv/other", enabled = true),
+        )
+
+        val ex = assertFailsWith<IllegalStateException> {
+            service.resolveAllSecrets(
+                texts = listOf("Bearer {{UNKNOWN_SECRET}}"),
+                declarations = declarations,
+                secretVariableNames = setOf("UNKNOWN_SECRET"),
+                vaultUrl = "http://127.0.0.1:8200",
+                vaultToken = "token",
+                processEnvProvider = { null },
+            )
+        }
+
+        assertTrue(
+            ex.message?.contains("Secret variable 'UNKNOWN_SECRET' could not be resolved from process environment or external secrets.") == true,
+            "Unexpected error message: ${ex.message}",
+        )
+    }
+
+    @Test
+    fun resolveAllSecrets_ignores_unused_secret_variables() = runTest {
+        val fakeClient = FakeVaultClient(emptyMap())
+        val service = SecretResolutionService(fakeClient)
+        val declarations = emptyList<SecretDeclaration>()
+
+        val resolved = service.resolveAllSecrets(
+            texts = listOf("https://example.com/api?user={{username}}"),
+            declarations = declarations,
+            secretVariableNames = setOf("UNUSED_SECRET"),
+            vaultUrl = null,
+            vaultToken = null,
+            processEnvProvider = { null },
+        )
+
+        assertTrue(resolved.isEmpty())
+        assertTrue(fakeClient.calls.isEmpty())
+    }
+
+    @Test
+    fun resolveAllSecrets_resolves_both_direct_secret_and_secret_variable_with_batched_vault_call() = runTest {
+        val fakeClient = FakeVaultClient(
+            mapOf(
+                "payment/stripe" to mapOf(
+                    "api_key" to "key_val",
+                    "webhook_secret" to "wh_val",
+                ),
+            ),
+        )
+        val service = SecretResolutionService(fakeClient)
+        val declarations = listOf(
+            SecretDeclaration(name = "api_key", path = "payment/stripe", enabled = true),
+            SecretDeclaration(name = "webhook_secret", path = "payment/stripe", enabled = true),
+        )
+
+        val resolved = service.resolveAllSecrets(
+            texts = listOf("https://api.example.com/{{api_key}}", "X-Webhook: {{_secret.webhook_secret}}"),
+            declarations = declarations,
+            secretVariableNames = setOf("api_key"),
+            vaultUrl = "http://127.0.0.1:8200",
+            vaultToken = "token",
+            processEnvProvider = { null },
+        )
+
+        assertEquals("key_val", resolved["api_key"])
+        assertEquals("wh_val", resolved["_secret.webhook_secret"])
+        assertEquals(listOf("payment/stripe"), fakeClient.calls, "Should query path only once")
+    }
 }

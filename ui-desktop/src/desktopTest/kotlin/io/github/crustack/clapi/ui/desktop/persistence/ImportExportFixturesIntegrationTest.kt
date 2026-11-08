@@ -29,7 +29,7 @@ class ImportExportFixturesIntegrationTest {
 
         assertTrue(state.collections.isNotEmpty())
         assertTrue(state.environments.isNotEmpty())
-        assertTrue(state.environments.first().variables.any { it.key == "baseUrl" && it.value == "http://localhost:8080" })
+        assertTrue(state.environments.any { env -> env.variables.any { it.key == "baseUrl" && it.value == "http://localhost:8080" } })
     }
 
     @Test
@@ -40,11 +40,13 @@ class ImportExportFixturesIntegrationTest {
         ImportExportRepository.importEnvironmentFromString(source, environmentFixture.readText())
 
         val exportedCollection = ImportExportRepository.exportCollectionToString(source.collections.single())
-        val exportedEnvironment = ImportExportRepository.exportEnvironmentToString(source.environments.single())
 
         val restored = AppState(openDefaultTab = false, withDemoData = false)
         ImportExportRepository.importCollectionFromString(restored, exportedCollection)
-        ImportExportRepository.importEnvironmentFromString(restored, exportedEnvironment)
+        source.environments.forEach { env ->
+            val exportedEnv = ImportExportRepository.exportEnvironmentToString(env)
+            ImportExportRepository.importEnvironmentFromString(restored, exportedEnv)
+        }
 
         assertEquals(source.collections.size, restored.collections.size)
         assertEquals(source.environments.size, restored.environments.size)

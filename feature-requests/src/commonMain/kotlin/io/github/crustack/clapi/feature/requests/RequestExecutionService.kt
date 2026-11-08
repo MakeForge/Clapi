@@ -8,9 +8,12 @@ import io.github.crustack.clapi.core.model.opencollection.GrpcRequestItem
 import io.github.crustack.clapi.core.model.opencollection.HashicorpVaultExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestItem
 import io.github.crustack.clapi.core.model.opencollection.OpenCollectionDocument
+import io.github.crustack.clapi.core.model.opencollection.SecretVariable
+import io.github.crustack.clapi.core.model.opencollection.VariableEntry
 import io.github.crustack.clapi.core.network.ApiClient
 import io.github.crustack.clapi.core.network.NetworkEvent
 import io.github.crustack.clapi.core.network.VariableResolver
+import io.github.crustack.clapi.core.network.getEnvironmentVariable
 import io.github.crustack.clapi.core.network.grpc.DynamicGrpcClient
 import io.github.crustack.clapi.core.network.grpc.GrpcCallRequest
 import io.github.crustack.clapi.core.network.grpc.GrpcCallResponse
@@ -27,14 +30,14 @@ class RequestExecutionService(
 ) {
     suspend fun resolveSecrets(
         texts: Iterable<String>,
-        externalSecrets: List<ExternalSecretVariable>,
-        vaultUrl: String?,
-        vaultToken: String?,
+        externalSecrets: List<ExternalSecretVariable> = emptyList(),
+        secretVariables: List<VariableEntry> = emptyList(),
+        vaultUrl: String? = null,
+        vaultToken: String? = null,
         mountPath: String = "secret",
         namespace: String? = null,
+        processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
     ): Map<String, String> {
-        val required = secretResolutionService.extractSecretReferences(texts)
-        if (required.isEmpty()) return emptyMap()
         val declarations = externalSecrets.mapNotNull { sec ->
             when (sec) {
                 is HashicorpVaultExternalSecret -> SecretDeclaration(
@@ -45,13 +48,19 @@ class RequestExecutionService(
                 else -> null
             }
         }
-        return secretResolutionService.resolveSecrets(
-            requiredSecretNames = required,
+        val secretVarNames = secretVariables.filter {
+            it.disabled != true && it is SecretVariable
+        }.map { it.name }.toSet()
+
+        return secretResolutionService.resolveAllSecrets(
+            texts = texts,
             declarations = declarations,
+            secretVariableNames = secretVarNames,
             vaultUrl = vaultUrl,
             vaultToken = vaultToken,
             mountPath = mountPath,
             namespace = namespace,
+            processEnvProvider = processEnvProvider,
         )
     }
 
@@ -59,10 +68,12 @@ class RequestExecutionService(
         request: RequestDefinition,
         variableLayers: List<Map<String, String>> = emptyList(),
         externalSecrets: List<ExternalSecretVariable> = emptyList(),
+        secretVariables: List<VariableEntry> = emptyList(),
         vaultUrl: String? = null,
         vaultToken: String? = null,
         mountPath: String = "secret",
         namespace: String? = null,
+        processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
     ): Flow<NetworkEvent> {
         val textsToScan = mutableListOf<String>()
         textsToScan.add(request.url)
@@ -72,7 +83,16 @@ class RequestExecutionService(
             is RequestBody -> body.content?.let { textsToScan.add(it) }
             else -> Unit
         }
-        val secretMap = resolveSecrets(textsToScan, externalSecrets, vaultUrl, vaultToken, mountPath, namespace)
+        val secretMap = resolveSecrets(
+            texts = textsToScan,
+            externalSecrets = externalSecrets,
+            secretVariables = secretVariables,
+            vaultUrl = vaultUrl,
+            vaultToken = vaultToken,
+            mountPath = mountPath,
+            namespace = namespace,
+            processEnvProvider = processEnvProvider,
+        )
         val effectiveLayers = if (secretMap.isNotEmpty()) listOf(secretMap) + variableLayers else variableLayers
         return execute(request, effectiveLayers)
     }
@@ -82,16 +102,27 @@ class RequestExecutionService(
         protoFilePathOverride: String? = null,
         variableLayers: List<Map<String, String>> = emptyList(),
         externalSecrets: List<ExternalSecretVariable> = emptyList(),
+        secretVariables: List<VariableEntry> = emptyList(),
         vaultUrl: String? = null,
         vaultToken: String? = null,
         mountPath: String = "secret",
         namespace: String? = null,
+        processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
     ): GrpcCallResponse {
         val textsToScan = mutableListOf<String>()
         textsToScan.add(requestItem.grpc.url)
         textsToScan.add(requestItem.grpc.message.orEmpty())
         requestItem.grpc.metadata.forEach { textsToScan.add(it.value) }
-        val secretMap = resolveSecrets(textsToScan, externalSecrets, vaultUrl, vaultToken, mountPath, namespace)
+        val secretMap = resolveSecrets(
+            texts = textsToScan,
+            externalSecrets = externalSecrets,
+            secretVariables = secretVariables,
+            vaultUrl = vaultUrl,
+            vaultToken = vaultToken,
+            mountPath = mountPath,
+            namespace = namespace,
+            processEnvProvider = processEnvProvider,
+        )
         val effectiveLayers = if (secretMap.isNotEmpty()) listOf(secretMap) + variableLayers else variableLayers
         return executeGrpc(requestItem, protoFilePathOverride, effectiveLayers)
     }

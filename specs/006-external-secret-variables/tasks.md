@@ -127,11 +127,11 @@
 **Independent Test**: Export a collection containing an environment with external secrets to JSON/YAML. Verify that `externalSecrets` declarations are serialized while Vault tokens and server URLs are completely absent. Re-import and verify external secrets are restored.
 
 ### Tests for User Story 5
-- [ ] T031 [P] [US5] Create round-trip serialization and zero-credential-leakage tests in `core-storage/src/commonTest/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionExternalSecretsTest.kt`
+- [X] T031 [P] [US5] Create round-trip serialization and zero-credential-leakage tests in `core-storage/src/commonTest/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionExternalSecretsTest.kt`
 
 ### Implementation for User Story 5
-- [ ] T032 [US5] Update `OpenCollectionSerializer.kt` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionSerializer.kt` to serialize and deserialize `externalSecrets` in environment blocks
-- [ ] T033 [US5] Update `ImportExportRepository.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/ImportExportRepository.kt` to preserve `externalSecrets` during collection import/export while ensuring provider credentials are strictly excluded
+- [X] T032 [US5] Update `OpenCollectionSerializer.kt` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionSerializer.kt` to serialize and deserialize `externalSecrets` in environment blocks
+- [X] T033 [US5] Update `ImportExportRepository.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/ImportExportRepository.kt` to preserve `externalSecrets` during collection import/export while ensuring provider credentials are strictly excluded
 
 **Checkpoint**: Collections with external secrets export and import losslessly without leaking credentials.
 
@@ -144,8 +144,8 @@
 **Independent Test**: Start the Vault container and run `./gradlew :qa-tests:test --tests "io.github.crustack.clapi.qa.ExternalSecretsIntegrationTest"` to verify end-to-end secret resolution.
 
 ### Tests & Implementation for User Story 6
-- [ ] T034 [P] [US6] Add sample environment with `externalSecrets` (`client_id`, `client_secret` at path `payment/foo`) to `qa-tests/fixtures/clapi-test-collection.json`
-- [ ] T035 [US6] Implement `ExternalSecretsIntegrationTest.kt` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/ExternalSecretsIntegrationTest.kt` verifying connection to Vault (`http://127.0.0.1:8200`, `root-dev-token`), fetching `payment/foo`, secret substitution in requests, and error reporting for invalid tokens and missing paths
+- [X] T034 [P] [US6] Add sample environment with `externalSecrets` (`client_id`, `client_secret` at path `payment/foo`) to `qa-tests/fixtures/clapi-test-collection.json`
+- [X] T035 [US6] Implement `ExternalSecretsIntegrationTest.kt` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/ExternalSecretsIntegrationTest.kt` verifying connection to Vault (`http://127.0.0.1:8200`, `root-dev-token`), fetching `payment/foo`, secret substitution in requests, and error reporting for invalid tokens and missing paths
 
 **Checkpoint**: Automated regression suite verifies external secret resolution against live HashiCorp Vault container.
 
@@ -155,9 +155,9 @@
 
 **Purpose**: Cleanup, formatting, security validation, and documentation
 
-- [ ] T036 [P] Run linter and formatting across modified modules (`core-model`, `core-network`, `core-storage`, `feature-requests`, `ui-shared`, `qa-tests`)
-- [ ] T037 Perform security audit to ensure Vault tokens are never written to unencrypted log files or collection export files
-- [ ] T038 Execute quickstart scenarios per `specs/006-external-secret-variables/quickstart.md`
+- [X] T036 [P] Run linter and formatting across modified modules (`core-model`, `core-network`, `core-storage`, `feature-requests`, `ui-shared`, `qa-tests`)
+- [X] T037 Perform security audit to ensure Vault tokens are never written to unencrypted log files or collection export files
+- [X] T038 Execute quickstart scenarios per `specs/006-external-secret-variables/quickstart.md`
 
 ---
 
@@ -227,3 +227,11 @@ Foundational (Phase 2)
 3. Add User Story 4: Runtime secret fetching via Ktor and request variable substitution
 4. Add User Story 5: OpenCollection import/export with credential-free portability
 5. Add User Story 6: Automated QA integration test suite running against Docker Vault container
+
+
+---
+
+## Phase 10: Convergence
+
+- [X] T039 Implement 3-step runtime resolution (process env -> matching externalSecret -> error) for referenced OpenCollection `secret: true` variables in `RequestExecutionService` and `RequestExecutor` per spec: OpenCollection Secret Variables (`secret: true`) and FR-012 (missing)
+- [X] T040 Add unit and integration tests verifying 3-step resolution of `secret: true` variables (process env precedence, external secret fallback, and unresolved error) per spec: OpenCollection Secret Variables (`secret: true`) (missing)

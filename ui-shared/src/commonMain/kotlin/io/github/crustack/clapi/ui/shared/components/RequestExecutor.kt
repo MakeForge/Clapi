@@ -23,6 +23,7 @@ import io.github.crustack.clapi.core.network.RetryPolicy
 import io.github.crustack.clapi.core.network.VariableResolver
 import io.github.crustack.clapi.core.network.encodeGraphQlEnvelope
 import io.github.crustack.clapi.core.network.encodeBase64
+import io.github.crustack.clapi.core.network.getEnvironmentVariable
 import io.github.crustack.clapi.core.scripting.ClapiScriptEngine
 import io.github.crustack.clapi.core.scripting.ScriptContext
 import io.github.crustack.clapi.core.scripting.SendRequestResult
@@ -1256,14 +1257,18 @@ private fun pyStr(s: String): String = "\"" + s
 
 internal fun shellQuote(value: String) = "'" + value.replace("'", "'\\''") + "'"
 
-private suspend fun resolveExternalSecretsForTab(
+internal suspend fun resolveExternalSecretsForTab(
     state: AppState,
     tab: RequestTabState,
     textsToScan: Iterable<String>,
+    secretResolutionService: SecretResolutionService = SecretResolutionService(),
+    processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
 ): Map<String, String>? {
-    val secretResolutionService = SecretResolutionService()
-    val requiredSecrets = secretResolutionService.extractSecretReferences(textsToScan)
-    if (requiredSecrets.isEmpty()) return emptyMap()
+    val secretVariableNames = state.selectedEnvironment?.variables
+        ?.filter { it.enabled && it.secret && it.key.isNotBlank() }
+        ?.map { it.key.trim() }
+        ?.toSet()
+        ?: emptySet()
 
     val declarations = state.selectedEnvironment?.externalSecrets?.map {
         SecretDeclaration(
@@ -1274,15 +1279,17 @@ private suspend fun resolveExternalSecretsForTab(
     } ?: emptyList()
 
     return try {
-        secretResolutionService.resolveSecrets(
-            requiredSecretNames = requiredSecrets,
+        secretResolutionService.resolveAllSecrets(
+            texts = textsToScan,
             declarations = declarations,
+            secretVariableNames = secretVariableNames,
             vaultUrl = state.settings.vaultServerUrl,
             vaultToken = state.settings.vaultToken.ifBlank {
                 PlatformStorage.getSecretString("clapi.settings.vaultToken").orEmpty()
             },
             mountPath = state.settings.vaultMountPath.ifBlank { "secret" },
             namespace = state.settings.vaultNamespace.ifBlank { null },
+            processEnvProvider = processEnvProvider,
         )
     } catch (e: Exception) {
         val errorMsg = e.message ?: "Failed to resolve external secrets"
