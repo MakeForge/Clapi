@@ -166,13 +166,19 @@ object TabsRepository {
                     val folderNode = findFolder(state.collections)
                     if (folderNode != null) {
                         realId = folderNode.id
+                    } else if (state.collections.isNotEmpty()) {
+                        // Folder no longer exists in collections — skip dangling tab
+                        return@forEach
                     }
                 } else {
+                    var matchingRequestNode: io.github.crustack.clapi.ui.shared.state.CollectionNode? = null
+
                     // Strongest match: stable request identity persisted on the tab.
                     if (savedRequestRef != null) {
                         val byRef = findByRequestRef(state.collections, savedRequestRef)
                         if (byRef != null) {
                             realId = byRef.id
+                            matchingRequestNode = byRef
                         }
                     }
 
@@ -185,19 +191,22 @@ object TabsRepository {
                         return cursor
                     }
 
-                    candidateCollections.forEach { coll ->
-                        if (resolvedCollection != null) return@forEach
-                        val scope = resolveFolderScope(coll)
-                        val bySignature = scope.children.firstOrNull {
-                            !it.isFolder && it.name == reqName && it.method == savedMethod && (it.url ?: "") == savedUrl
-                        }
-                        if (bySignature != null) {
-                            realId = bySignature.id
-                            resolvedCollection = coll
+                    if (matchingRequestNode == null) {
+                        candidateCollections.forEach { coll ->
+                            if (resolvedCollection != null) return@forEach
+                            val scope = resolveFolderScope(coll)
+                            val bySignature = scope.children.firstOrNull {
+                                !it.isFolder && it.name == reqName && it.method == savedMethod && (it.url ?: "") == savedUrl
+                            }
+                            if (bySignature != null) {
+                                realId = bySignature.id
+                                resolvedCollection = coll
+                                matchingRequestNode = bySignature
+                            }
                         }
                     }
 
-                    if (resolvedCollection == null) {
+                    if (matchingRequestNode == null) {
                         candidateCollections.forEach { coll ->
                             if (resolvedCollection != null) return@forEach
                             val scope = resolveFolderScope(coll)
@@ -205,8 +214,27 @@ object TabsRepository {
                             if (byName != null) {
                                 realId = byName.id
                                 resolvedCollection = coll
+                                matchingRequestNode = byName
                             }
                         }
+                    }
+
+                    if (matchingRequestNode == null) {
+                        fun findRequestById(nodes: List<io.github.crustack.clapi.ui.shared.state.CollectionNode>, id: String): io.github.crustack.clapi.ui.shared.state.CollectionNode? {
+                            for (n in nodes) {
+                                if (!n.isFolder && n.id == id) return n
+                                if (n.isFolder) {
+                                    findRequestById(n.children, id)?.let { return it }
+                                }
+                            }
+                            return null
+                        }
+                        matchingRequestNode = findRequestById(state.collections, realId) ?: findRequestById(state.collections, savedId)
+                    }
+
+                    if (state.collections.isNotEmpty() && matchingRequestNode == null) {
+                        // Request node no longer exists in collections — skip dangling tab
+                        return@forEach
                     }
                 }
 
@@ -298,8 +326,12 @@ object TabsRepository {
                 state.openTabs.add(tab)
             }
 
-            val savedIndex = root["activeIndex"]?.jsonPrimitive?.intOrNull ?: 0
-            state.activeTabIndex = savedIndex.coerceIn(0, state.openTabs.size - 1)
+            if (state.openTabs.isNotEmpty()) {
+                val savedIndex = root["activeIndex"]?.jsonPrimitive?.intOrNull ?: 0
+                state.activeTabIndex = savedIndex.coerceIn(0, state.openTabs.size - 1)
+            } else {
+                state.activeTabIndex = -1
+            }
         }
     }
 

@@ -1631,6 +1631,17 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         selectedRequestId = tab.id
     }
 
+    /**
+     * Focuses / activates the next open tab, or wraps around to the first tab if
+     * the current tab is the last one.
+     */
+    fun selectNextTab() {
+        if (openTabs.isEmpty()) return
+        val nextIndex = if (activeTabIndex + 1 < openTabs.size) activeTabIndex + 1 else 0
+        activeTabIndex = nextIndex
+        selectedRequestId = activeTab?.id
+    }
+
     fun log(message: String, level: LogLevel = LogLevel.INFO) {
         consoleLogs.add(0, ConsoleEntry(message, level))
     }

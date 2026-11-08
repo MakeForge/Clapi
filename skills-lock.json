@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "ksafe": {
+      "source": "ioannisa/KSafe",
+      "sourceType": "github",
+      "skillPath": "skills/ksafe/SKILL.md",
+      "computedHash": "c5ad9797b2953a3b54f6da9a5f7f50068333170beee4b00e9152a2c453147407"
+    }
+  }
+}

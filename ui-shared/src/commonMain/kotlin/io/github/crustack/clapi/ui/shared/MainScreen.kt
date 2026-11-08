@@ -382,77 +382,97 @@ private fun ColumnScope.HttpWorkspaceContent(
 
                 val tab = state.activeTab
                 if (tab != null) {
-                    if (tab.kind == RequestKind.FOLDER) {
-                        key(tab.id) {
-                            FolderEditor(
-                                tab = tab,
-                                state = state,
-                                onSave = { saveRequest(scope, state, tab) },
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                    } else if (tab.kind == RequestKind.MCP) {
-                        if (state.settings.responseLayout == ResponseLayout.RIGHT) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .onPreviewKeyEvent { event ->
+                                if (event.type == KeyEventType.KeyDown &&
+                                    event.key == Key.Tab &&
+                                    event.isShiftPressed &&
+                                    !event.isCtrlPressed &&
+                                    !event.isMetaPressed &&
+                                    !event.isAltPressed
+                                ) {
+                                    state.selectNextTab()
+                                    true
+                                } else {
+                                    false
+                                }
+                            },
+                    ) {
+                        if (tab.kind == RequestKind.FOLDER) {
+                            key(tab.id) {
+                                FolderEditor(
+                                    tab = tab,
+                                    state = state,
+                                    onSave = { saveRequest(scope, state, tab) },
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+                        } else if (tab.kind == RequestKind.MCP) {
+                            if (state.settings.responseLayout == ResponseLayout.RIGHT) {
+                                HorizontalSplitPane(
+                                    modifier = Modifier.fillMaxSize().testTag("mcp-workspace"),
+                                    splitFraction = state.requestResponseSplit,
+                                    onSplitChanged = { state.requestResponseSplit = it },
+                                    first = { McpPanel(state, tab) },
+                                    second = { McpWorkspaceResponse(state, tab) },
+                                )
+                            } else {
+                                VerticalSplitPane(
+                                    modifier = Modifier.fillMaxSize().testTag("mcp-workspace"),
+                                    splitFraction = state.mainVerticalSplit,
+                                    onSplitChanged = { state.mainVerticalSplit = it },
+                                    first = { McpPanel(state, tab) },
+                                    second = { McpWorkspaceResponse(state, tab) },
+                                )
+                            }
+                        } else if (state.settings.responseLayout == ResponseLayout.RIGHT) {
                             HorizontalSplitPane(
-                                modifier = Modifier.weight(1f).testTag("mcp-workspace"),
+                                modifier = Modifier.fillMaxSize().testTag("response-layout-right"),
                                 splitFraction = state.requestResponseSplit,
                                 onSplitChanged = { state.requestResponseSplit = it },
-                                first = { McpPanel(state, tab) },
-                                second = { McpWorkspaceResponse(state, tab) },
+                                first = {
+                                    key(tab.id) {
+                                        RequestEditor(
+                                            tab = tab,
+                                            state = state,
+                                            onSend = { sendRequest(scope, state, tab) },
+                                            onCancel = { tab.currentJob?.cancel(); tab.isLoading = false },
+                                            onSave = { saveRequest(scope, state, tab) },
+                                        )
+                                    }
+                                },
+                                second = {
+                                    key(tab.id) {
+                                        ResponseViewer(tab, showCursorPosition = state.settings.showEditorPositionIndicator)
+                                    }
+                                },
                             )
                         } else {
                             VerticalSplitPane(
-                                modifier = Modifier.weight(1f).testTag("mcp-workspace"),
+                                modifier = Modifier.fillMaxSize().testTag("response-layout-bottom"),
                                 splitFraction = state.mainVerticalSplit,
                                 onSplitChanged = { state.mainVerticalSplit = it },
-                                first = { McpPanel(state, tab) },
-                                second = { McpWorkspaceResponse(state, tab) },
+                                first = {
+                                    key(tab.id) {
+                                        RequestEditor(
+                                            tab = tab,
+                                            state = state,
+                                            onSend = { sendRequest(scope, state, tab) },
+                                            onCancel = { tab.currentJob?.cancel(); tab.isLoading = false },
+                                            onSave = { saveRequest(scope, state, tab) },
+                                        )
+                                    }
+                                },
+                                second = {
+                                    key(tab.id) {
+                                        ResponseViewer(tab, showCursorPosition = state.settings.showEditorPositionIndicator)
+                                    }
+                                },
                             )
                         }
-                    } else if (state.settings.responseLayout == ResponseLayout.RIGHT) {
-                        HorizontalSplitPane(
-                            modifier = Modifier.weight(1f).testTag("response-layout-right"),
-                            splitFraction = state.requestResponseSplit,
-                            onSplitChanged = { state.requestResponseSplit = it },
-                            first = {
-                                key(tab.id) {
-                                    RequestEditor(
-                                        tab = tab,
-                                        state = state,
-                                        onSend = { sendRequest(scope, state, tab) },
-                                        onCancel = { tab.currentJob?.cancel(); tab.isLoading = false },
-                                        onSave = { saveRequest(scope, state, tab) },
-                                    )
-                                }
-                            },
-                            second = {
-                                key(tab.id) {
-                                    ResponseViewer(tab, showCursorPosition = state.settings.showEditorPositionIndicator)
-                                }
-                            },
-                        )
-                    } else {
-                        VerticalSplitPane(
-                            modifier = Modifier.weight(1f).testTag("response-layout-bottom"),
-                            splitFraction = state.mainVerticalSplit,
-                            onSplitChanged = { state.mainVerticalSplit = it },
-                            first = {
-                                key(tab.id) {
-                                    RequestEditor(
-                                        tab = tab,
-                                        state = state,
-                                        onSend = { sendRequest(scope, state, tab) },
-                                        onCancel = { tab.currentJob?.cancel(); tab.isLoading = false },
-                                        onSave = { saveRequest(scope, state, tab) },
-                                    )
-                                }
-                            },
-                            second = {
-                                key(tab.id) {
-                                    ResponseViewer(tab, showCursorPosition = state.settings.showEditorPositionIndicator)
-                                }
-                            },
-                        )
                     }
                 } else {
                     Box(

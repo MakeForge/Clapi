@@ -120,10 +120,10 @@ fun FolderEditor(
 
         Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(1.dp)) {
             when (tab.selectedEditorTab) {
-                RequestEditorTab.VARIABLES -> KeyValueEditor(tab.variables, "variable", state = state) {
+                RequestEditorTab.VARIABLES -> KeyValueEditor(tab.variables, "variable", state = state, tab = tab) {
                     markDirty()
                 }
-                RequestEditorTab.HEADERS -> KeyValueEditor(tab.headers, "header", state = state) {
+                RequestEditorTab.HEADERS -> KeyValueEditor(tab.headers, "header", state = state, tab = tab) {
                     markDirty()
                 }
                 RequestEditorTab.AUTH -> AuthEditor(tab, state) {
@@ -134,12 +134,14 @@ fun FolderEditor(
                     onScriptChanged = { tab.preRequestScript = it; markDirty() },
                     title = "Pre-request Script",
                     showCursorPosition = state.settings.showEditorPositionIndicator,
+                    availableVariables = getAvailableVariables(state, tab),
                 )
                 RequestEditorTab.TESTS -> ScriptEditor(
                     script = tab.testScript,
                     onScriptChanged = { tab.testScript = it; markDirty() },
                     title = "Post-request Script",
                     showCursorPosition = state.settings.showEditorPositionIndicator,
+                    availableVariables = getAvailableVariables(state, tab),
                 )
                 else -> Unit
             }

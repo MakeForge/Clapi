@@ -15,6 +15,10 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -26,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -39,7 +44,9 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isAltPressed
 import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.isShiftPressed
@@ -48,6 +55,8 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
@@ -63,6 +72,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import io.github.crustack.clapi.ui.shared.i18n.Strings
+import io.github.crustack.clapi.ui.shared.platform.handleCtrlSpaceKeyEvent
+import io.github.crustack.clapi.ui.shared.platform.isRecentCtrlSpaceTriggered
+import io.github.crustack.clapi.ui.shared.platform.resetCtrlSpaceTrigger
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.EnvState
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
@@ -266,6 +278,28 @@ fun VariableAwareTextField(
     // Popup visibility — null means hidden. Set ONLY from the click handler
     // inside onValueChange. Never set during initialisation (fixes Issue 1).
     var popupVariable by remember { mutableStateOf<String?>(null) }
+    var showVariableDropdown by remember { mutableStateOf(false) }
+    var selectedVariableIndex by remember { mutableIntStateOf(0) }
+    val availableVariables = remember(state, currentTab, definedNames) {
+        getAvailableVariables(state, currentTab)
+    }
+
+    val insertVariableAtCursor: (String) -> Unit = { varName ->
+        val token = "{{$varName}}"
+        val currentText = fieldValue.text
+        val selStart = fieldValue.selection.min.coerceIn(0, currentText.length)
+        val selEnd = fieldValue.selection.max.coerceIn(0, currentText.length)
+        val newText = currentText.replaceRange(selStart, selEnd, token)
+        val newCursor = selStart + token.length
+        val annotated = if (state != null) highlightVariablesWithStatus(newText, definedNames)
+                        else AnnotatedString(newText)
+        if (undoStack != null) {
+            undoStack.addLast(currentText)
+            if (undoStack.size > 100) undoStack.removeFirst()
+        }
+        fieldValue = TextFieldValue(annotatedString = annotated, selection = TextRange(newCursor))
+        onValueChange(newText)
+    }
 
     // Non-State flag: toggled by pointer-press, read+cleared in onValueChange.
     // Using a plain object (not mutableStateOf) ensures setting it never
@@ -302,6 +336,18 @@ fun VariableAwareTextField(
             value = fieldValue,
             readOnly = readOnly,
             onValueChange = { new ->
+                // If Ctrl+Space was triggered and a whitespace was typed, suppress the whitespace.
+                if (isRecentCtrlSpaceTriggered() && new.text.length == fieldValue.text.length + 1) {
+                    val cursor = fieldValue.selection.min
+                    if (cursor in new.text.indices && new.text[cursor] == ' ' &&
+                        new.text.removeRange(cursor, cursor + 1) == fieldValue.text
+                    ) {
+                        resetCtrlSpaceTrigger()
+                        fieldValue = fieldValue.copy(selection = fieldValue.selection)
+                        return@BasicTextField
+                    }
+                }
+                resetCtrlSpaceTrigger()
                 val annotated = if (state != null) highlightVariablesWithStatus(new.text, definedNames)
                                 else AnnotatedString(new.text)
                 val newFieldValue = TextFieldValue(
@@ -342,12 +388,44 @@ fun VariableAwareTextField(
             // The pointerInput observer is appended to detect real clicks only.
             modifier = modifier
                 .onPreviewKeyEvent { event ->
-                    if (undoStack != null &&
-                        event.type == KeyEventType.KeyDown &&
-                        (event.isMetaPressed || event.isCtrlPressed) &&
-                        !event.isShiftPressed &&
-                        event.key == Key.Z
-                    ) {
+                    if (handleCtrlSpaceKeyEvent(event) {
+                        if (availableVariables.isNotEmpty()) {
+                            selectedVariableIndex = 0
+                            showVariableDropdown = true
+                        }
+                    }) {
+                        return@onPreviewKeyEvent true
+                    }
+                    if (event.type == KeyEventType.KeyDown) {
+                        if (showVariableDropdown) {
+                            when (event.key) {
+                                Key.DirectionDown -> {
+                                    if (availableVariables.isNotEmpty()) {
+                                        selectedVariableIndex = (selectedVariableIndex + 1).coerceAtMost(availableVariables.size - 1)
+                                    }
+                                    return@onPreviewKeyEvent true
+                                }
+                                Key.DirectionUp -> {
+                                    if (availableVariables.isNotEmpty()) {
+                                        selectedVariableIndex = (selectedVariableIndex - 1).coerceAtLeast(0)
+                                    }
+                                    return@onPreviewKeyEvent true
+                                }
+                                Key.Enter, Key.NumPadEnter -> {
+                                    if (availableVariables.isNotEmpty() && selectedVariableIndex in availableVariables.indices) {
+                                        insertVariableAtCursor(availableVariables[selectedVariableIndex].first)
+                                        showVariableDropdown = false
+                                    }
+                                    return@onPreviewKeyEvent true
+                                }
+                                Key.Escape -> {
+                                    showVariableDropdown = false
+                                    return@onPreviewKeyEvent true
+                                }
+                            }
+                        }
+                    }
+                    if (undoStack != null && event.isUndoEvent()) {
                         val prev = undoStack.removeLastOrNull()
                         if (prev != null) {
                             val annotated = if (state != null) highlightVariablesWithStatus(prev, definedNames)
@@ -393,6 +471,114 @@ fun VariableAwareTextField(
                     tab = currentTab,
                     onDismiss = { popupVariable = null },
                 )
+            }
+
+            if (showVariableDropdown && availableVariables.isNotEmpty()) {
+                Popup(
+                    alignment = Alignment.TopStart,
+                    offset = IntOffset(0, 36),
+                    properties = PopupProperties(focusable = false),
+                    onDismissRequest = { showVariableDropdown = false },
+                ) {
+                    VariableDropdownList(
+                        variables = availableVariables,
+                        selectedIndex = selectedVariableIndex,
+                        onSelect = { varName ->
+                            insertVariableAtCursor(varName)
+                            showVariableDropdown = false
+                        },
+                        modifier = Modifier.testTag("variable-dropdown"),
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun KeyEvent.isShowVariableEvent(): Boolean =
+    isCtrlPressed && !isAltPressed && !isMetaPressed &&
+            (key == Key.Spacebar)
+
+private fun KeyEvent.isUndoEvent(): Boolean =
+    type == KeyEventType.KeyDown && (isMetaPressed || isCtrlPressed) && !isShiftPressed && key == Key.Z
+
+/**
+ * Returns all currently available variables as (name, resolvedValue) pairs,
+ * ordered alphabetically by variable name.
+ */
+fun getAvailableVariables(state: AppState?, tab: RequestTabState?): List<Pair<String, String>> {
+    if (state == null) return emptyList()
+    val layers = state.activeVariableLayers(tab)
+    val map = linkedMapOf<String, String>()
+    for (layer in layers) {
+        for ((k, v) in layer) {
+            if (k.isNotBlank() && !map.containsKey(k)) {
+                map[k] = v
+            }
+        }
+    }
+    return map.entries.map { it.key to it.value }.sortedBy { it.first }
+}
+
+@Composable
+fun VariableDropdownList(
+    variables: List<Pair<String, String>>,
+    selectedIndex: Int,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val listState = rememberLazyListState()
+    LaunchedEffect(selectedIndex) {
+        if (selectedIndex in variables.indices) {
+            listState.animateScrollToItem(selectedIndex)
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .widthIn(min = 260.dp, max = 380.dp)
+            .shadow(8.dp, RoundedCornerShape(8.dp))
+            .background(ClapiColors.SurfaceContainer, RoundedCornerShape(8.dp))
+            .border(1.dp, ClapiColors.Border, RoundedCornerShape(8.dp))
+            .padding(vertical = 4.dp),
+    ) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 240.dp),
+        ) {
+            itemsIndexed(variables) { index, (name, value) ->
+                val isSelected = index == selectedIndex
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(if (isSelected) ClapiColors.SelectedItem else Color.Transparent)
+                        .clickable { onSelect(name) }
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                        .testTag("variable-dropdown-item-$name"),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = "{{ $name }}",
+                        color = VariableHighlightColor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        fontFamily = CodeFontFamily,
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    if (value.isNotEmpty()) {
+                        Text(
+                            text = "${Strings.value}: $value",
+                            color = ClapiColors.OnSurfaceDim,
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.widthIn(max = 140.dp),
+                        )
+                    }
+                }
             }
         }
     }
