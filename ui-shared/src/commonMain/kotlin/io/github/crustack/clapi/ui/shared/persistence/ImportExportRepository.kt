@@ -2,6 +2,7 @@ package io.github.crustack.clapi.ui.shared.persistence
 
 import io.github.crustack.clapi.core.model.opencollection.Environment
 import io.github.crustack.clapi.core.model.opencollection.OpenCollectionDocument
+import io.github.crustack.clapi.core.storage.exporters.OpenApiExporter
 import io.github.crustack.clapi.core.storage.opencollection.CollectionStorageException
 import io.github.crustack.clapi.core.storage.opencollection.CollectionValidationException
 import io.github.crustack.clapi.core.storage.opencollection.ExportFormat
@@ -61,6 +62,16 @@ object ImportExportRepository {
             ExportFormat.JSON -> OpenCollectionSerializer.serializeJson(doc)
             ExportFormat.YAML -> OpenCollectionSerializer.serializeYaml(doc)
         }
+    }
+
+    fun exportWorkspaceToOpenCollectionYaml(state: AppState): String {
+        val doc = state.toGlobalOpenCollectionDocument()
+        return OpenCollectionSerializer.serializeYaml(doc)
+    }
+
+    fun exportWorkspaceToOpenApiYaml(state: AppState): String {
+        val doc = state.toGlobalOpenCollectionDocument()
+        return OpenApiExporter.exportToYaml(doc)
     }
 
     fun importCollectionFromString(state: AppState, rawContent: String): String {

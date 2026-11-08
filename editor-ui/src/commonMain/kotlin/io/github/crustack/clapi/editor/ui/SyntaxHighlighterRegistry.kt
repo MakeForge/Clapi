@@ -45,7 +45,7 @@ object SyntaxHighlighterRegistry {
 
     /**
      * Registers [DefaultSyntaxHighlighter] instances for all built-in language modes.
-     * Also ensures [io.github.crustack.editor.core.LanguageRegistry] and
+     * Also ensures [io.github.crustack.clapi.editor.core.LanguageRegistry] and
      * [TokenColorRegistry] built-ins are registered.
      * Safe to call multiple times.
      */

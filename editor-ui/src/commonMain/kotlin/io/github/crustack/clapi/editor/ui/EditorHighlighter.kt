@@ -37,7 +37,7 @@ fun highlightLine(line: String, mode: LanguageMode): AnnotatedString {
 
 /**
  * Auto-format [text] for [mode].
- * Delegates to the [io.github.crustack.editor.core.TextFormatter] (via [LanguageRegistry]) registered
+ * Delegates to the [io.github.crustack.clapi.editor.core.TextFormatter] (via [LanguageRegistry]) registered
  * for [mode], so custom formatters registered with [LanguageRegistry.register] are picked up.
  */
 fun autoFormat(text: String, mode: LanguageMode, allowJson5: Boolean = false): String {

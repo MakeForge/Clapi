@@ -14,7 +14,7 @@ import io.github.crustack.clapi.editor.core.TokenType
  * [colorForToken]**.
  *
  * Call [registerBuiltinSchemes] during app startup (alongside
- * [io.github.crustack.editor.core.LanguageRegistry.registerBuiltins]).
+ * [io.github.crustack.clapi.editor.core.LanguageRegistry.registerBuiltins]).
  */
 object TokenColorRegistry {
 
