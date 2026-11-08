@@ -1,11 +1,13 @@
 package io.github.crustack.clapi.ui.shared.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,7 +25,10 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.FileOpen
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.UploadFile
@@ -35,6 +40,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -46,12 +52,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -72,7 +78,6 @@ import io.github.crustack.clapi.ui.shared.persistence.toMutableKeyValue
 import io.github.crustack.clapi.ui.shared.platform.pickFileForImport
 import io.github.crustack.clapi.ui.shared.platform.readFromClipboard
 import io.github.crustack.clapi.ui.shared.state.AppState
-import io.github.crustack.clapi.ui.shared.state.CollectionNode
 import io.github.crustack.clapi.ui.shared.state.EnvState
 import io.github.crustack.clapi.ui.shared.state.LogLevel
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
@@ -211,42 +216,24 @@ fun ImportSpecificationDialog(
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                     ) {
                         val isFile = sourceType == ImportSourceType.FILE
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(if (isFile) ClapiColors.Primary.copy(alpha = 0.15f) else ClapiColors.SurfaceContainer)
-                                .clickable { sourceType = ImportSourceType.FILE }
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                                .testTag("import-tab-file"),
-                        ) {
-                            Text(
-                                Strings.importTabFile,
-                                color = if (isFile) ClapiColors.Primary else ClapiColors.OnSurfaceDim,
-                                fontWeight = if (isFile) FontWeight.SemiBold else FontWeight.Normal,
-                                fontSize = 13.sp,
-                            )
-                        }
+                        ImportTypeButton(
+                            text = Strings.importTabFile,
+                            isFile,
+                            testTag = "import-tab-file",
+                            icon = Icons.Default.UploadFile
+                        ) { sourceType = ImportSourceType.FILE }
 
                         Spacer(Modifier.width(8.dp))
 
                         val isClipboard = sourceType == ImportSourceType.CLIPBOARD
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(if (isClipboard) ClapiColors.Primary.copy(alpha = 0.15f) else ClapiColors.SurfaceContainer)
-                                .clickable {
-                                    sourceType = ImportSourceType.CLIPBOARD
-                                    clipboardContent = readFromClipboard()
-                                }
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                                .testTag("import-tab-clipboard"),
+                        ImportTypeButton(
+                            text = Strings.importTabClipboard,
+                            isClipboard,
+                            testTag = "import-tab-clipboard",
+                            icon = Icons.Default.ContentPaste
                         ) {
-                            Text(
-                                Strings.importTabClipboard,
-                                color = if (isClipboard) ClapiColors.Primary else ClapiColors.OnSurfaceDim,
-                                fontWeight = if (isClipboard) FontWeight.SemiBold else FontWeight.Normal,
-                                fontSize = 13.sp,
-                            )
+                            sourceType = ImportSourceType.CLIPBOARD
+                            clipboardContent = readFromClipboard()
                         }
                     }
 
@@ -729,5 +716,43 @@ fun ImportSpecificationDialog(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun ImportTypeButton(
+    text: String,
+    selected: Boolean,
+    icon: ImageVector,
+    testTag: String? = null,
+    onClick: () -> Unit
+) {
+    val contentColor =
+        if (selected) ClapiColors.Primary.copy(alpha = 0.15f) else ClapiColors.SurfaceContainer
+    OutlinedButton(
+        onClick =  onClick,
+        modifier = Modifier.clip(RoundedCornerShape(6.dp))
+            .background(contentColor).apply{
+                testTag?.let { testTag(it) }
+            },
+        shape = RoundedCornerShape(6.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = contentColor,
+        ),
+        border = BorderStroke(1.dp, ClapiColors.Border),
+    ) {
+        val textColor = if (selected) ClapiColors.Primary else ClapiColors.OnSurfaceDim
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = textColor,
+        )
+        Spacer(Modifier.width(4.dp))
+        Text(
+            text,
+            color = textColor,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            fontSize = 13.sp,
+        )
     }
 }
