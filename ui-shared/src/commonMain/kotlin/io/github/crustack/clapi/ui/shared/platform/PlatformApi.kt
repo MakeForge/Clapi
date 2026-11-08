@@ -131,4 +131,16 @@ expect object PlatformStorage {
     fun putString(key: String, value: String)
     fun getString(key: String): String?
     fun remove(key: String)
+
+    /**
+     * Stores [value] securely encrypted using AES-GCM and platform-native key custody.
+     * Guaranteed safe for tokens, passphrases, and credentials.
+     */
+    fun putSecretString(key: String, value: String)
+
+    /**
+     * Retrieves and decrypts the secret previously stored under [key].
+     * Returns null if the key does not exist or was cleared.
+     */
+    fun getSecretString(key: String): String?
 }

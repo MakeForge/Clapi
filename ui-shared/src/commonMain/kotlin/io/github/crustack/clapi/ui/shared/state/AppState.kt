@@ -298,6 +298,13 @@ class AppSettings {
     /** Preferred manual size for the environment editor. Viewport clamping is not persisted. */
     var environmentDialogWidthDp by mutableStateOf(DEFAULT_ENVIRONMENT_DIALOG_WIDTH_DP)
     var environmentDialogHeightDp by mutableStateOf(DEFAULT_ENVIRONMENT_DIALOG_HEIGHT_DP)
+
+    // Secrets Manager (HashiCorp Vault)
+    var vaultProviderType    by mutableStateOf("hashicorp-vault-server")
+    var vaultServerUrl       by mutableStateOf("")
+    var vaultMountPath       by mutableStateOf("secret")
+    var vaultNamespace       by mutableStateOf("")
+    var vaultToken           by mutableStateOf("")
 }
 
 // ── Per-tab state (one per open request tab) ────────────────────

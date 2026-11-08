@@ -26,14 +26,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DataObject
 import androidx.compose.material.icons.filled.FormatAlignLeft
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.NetworkCheck
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SettingsApplications
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -54,6 +58,8 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -77,6 +83,7 @@ private enum class SettingsSection(val icon: ImageVector) {
     LANGUAGE(Icons.Default.Language),
     NETWORK(Icons.Default.NetworkCheck),
     PROXY(Icons.Default.SettingsApplications),
+    SECRETS(Icons.Default.Key),
     SCRIPTING(Icons.Default.DataObject),
     DATA(Icons.Default.Storage),
 }
@@ -89,6 +96,7 @@ private fun settingsSectionLabel(section: SettingsSection): String = when (secti
     SettingsSection.LANGUAGE -> Strings.language
     SettingsSection.NETWORK -> Strings.network
     SettingsSection.PROXY -> Strings.proxy
+    SettingsSection.SECRETS -> Strings.t("secrets_manager")
     SettingsSection.SCRIPTING -> Strings.t("scripts")
     SettingsSection.DATA -> Strings.t("data")
 }
@@ -211,6 +219,7 @@ fun SettingsDialog(state: AppState) {
                         SettingsSection.LANGUAGE -> LanguageSettings(settings)
                         SettingsSection.NETWORK  -> NetworkSettings(settings)
                         SettingsSection.PROXY    -> ProxySettings(settings)
+                        SettingsSection.SECRETS  -> SecretsSettings(settings)
                         SettingsSection.SCRIPTING -> ScriptingSettings(settings)
                         SettingsSection.DATA     -> DataSettings(state)
                     }
@@ -395,6 +404,52 @@ private fun ProxySettings(s: AppSettings) {
     SettingTextField(Strings.t("http_proxy"), s.httpProxy, { s.httpProxy = it }, "http://proxy:8080")
     SettingsDivider()
     SettingTextField(Strings.t("https_proxy"), s.httpsProxy, { s.httpsProxy = it }, "https://proxy:8443")
+}
+
+@Composable
+private fun SecretsSettings(s: AppSettings) {
+    SettingChoice(
+        label = Strings.t("secret_provider"),
+        description = Strings.t("secret_provider_desc"),
+        options = listOf(
+            "hashicorp-vault-server" to "HashiCorp Vault (Server)",
+        ),
+        selected = s.vaultProviderType,
+        onSelected = { s.vaultProviderType = it },
+        tagPrefix = "secrets-provider",
+    )
+    SettingsDivider()
+    SettingTextField(
+        label = Strings.t("vault_server_url"),
+        value = s.vaultServerUrl,
+        onValueChange = { s.vaultServerUrl = it },
+        placeholder = "http://127.0.0.1:8200",
+        tag = "vault-server-url",
+    )
+    SettingsDivider()
+    SettingTextField(
+        label = Strings.t("vault_mount_path"),
+        value = s.vaultMountPath,
+        onValueChange = { s.vaultMountPath = it },
+        placeholder = "secret",
+        tag = "vault-mount-path",
+    )
+    SettingsDivider()
+    SettingTextField(
+        label = Strings.t("vault_namespace"),
+        value = s.vaultNamespace,
+        onValueChange = { s.vaultNamespace = it },
+        placeholder = "admin",
+        tag = "vault-namespace",
+    )
+    SettingsDivider()
+    SettingPasswordField(
+        label = Strings.t("vault_token"),
+        value = s.vaultToken,
+        onValueChange = { s.vaultToken = it },
+        placeholder = "hvs.CAESIJ...",
+        tag = "vault-token",
+    )
 }
 
 @Composable
@@ -591,7 +646,7 @@ private fun SettingNumberField(label: String, value: Int, onValueChange: (Int) -
 }
 
 @Composable
-private fun SettingTextField(label: String, value: String, onValueChange: (String) -> Unit, placeholder: String = "") {
+private fun SettingTextField(label: String, value: String, onValueChange: (String) -> Unit, placeholder: String = "", tag: String = "") {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, fontSize = 13.sp, color = ClapiColors.OnSurface)
         BasicTextField(
@@ -605,12 +660,71 @@ private fun SettingTextField(label: String, value: String, onValueChange: (Strin
                 .clip(RoundedCornerShape(4.dp))
                 .background(ClapiColors.SurfaceContainer)
                 .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .padding(horizontal = 8.dp, vertical = 6.dp)
+                .then(if (tag.isNotEmpty()) Modifier.testTag(tag) else Modifier),
             decorationBox = { inner ->
                 if (value.isEmpty()) Text(placeholder, color = ClapiColors.OnSurfaceDim, fontSize = 13.sp)
                 inner()
             },
         )
+    }
+}
+
+@Composable
+private fun SettingPasswordField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String = "",
+    tag: String = "",
+) {
+    var showPassword by remember { mutableStateOf(false) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(label, fontSize = 13.sp, color = ClapiColors.OnSurface)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(4.dp))
+                .background(ClapiColors.SurfaceContainer)
+                .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
+                .padding(start = 8.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                textStyle = TextStyle(color = ClapiColors.OnSurface, fontSize = 13.sp, fontFamily = CodeFontFamily),
+                cursorBrush = SolidColor(ClapiColors.Primary),
+                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(vertical = 4.dp)
+                    .then(if (tag.isNotEmpty()) Modifier.testTag(tag) else Modifier),
+                decorationBox = { inner ->
+                    if (value.isEmpty() && !showPassword) {
+                        Text(placeholder.ifEmpty { "••••••••" }, color = ClapiColors.OnSurfaceDim, fontSize = 13.sp)
+                    } else if (value.isEmpty()) {
+                        Text(placeholder, color = ClapiColors.OnSurfaceDim, fontSize = 13.sp)
+                    }
+                    inner()
+                },
+            )
+            IconButton(
+                onClick = { showPassword = !showPassword },
+                modifier = Modifier
+                    .size(28.dp)
+                    .then(if (tag.isNotEmpty()) Modifier.testTag("$tag-toggle") else Modifier),
+            ) {
+                Icon(
+                    imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                    contentDescription = if (showPassword) "Hide secret" else "Show secret",
+                    tint = ClapiColors.OnSurfaceDim,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
     }
 }
 

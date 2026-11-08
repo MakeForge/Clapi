@@ -322,5 +322,12 @@
   "import_scanning": "Wird gescannt...",
   "import_select_items": "Zu importierende Elemente auswählen",
   "import_overwrite_warning": "Überschreibt vorhandenes Element",
-  "import_action": "Importieren"
+  "import_action": "Importieren",
+  "secrets_manager": "Secrets Manager",
+  "secret_provider": "Secret-Anbieter",
+  "secret_provider_desc": "Externer Secret-Manager-Anbieter",
+  "vault_server_url": "Server-URL",
+  "vault_mount_path": "Mount-Pfad",
+  "vault_namespace": "Namespace (Optional)",
+  "vault_token": "Vault-Token"
 }

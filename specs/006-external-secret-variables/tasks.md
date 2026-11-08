@@ -20,9 +20,9 @@
 
 **Purpose**: Dependency configuration and build setup for `ksafe` encrypted storage and Ktor client
 
-- [ ] T001 Add `ksafe` dependency (`eu.anifantakis:ksafe:3.3.0`) in `gradle/libs.versions.toml`
-- [ ] T002 Add `ksafe` dependency to `ui-shared/build.gradle.kts`
-- [ ] T003 [P] Ensure Ktor client content negotiation and serialization dependencies are configured in `core-network/build.gradle.kts`
+- [X] T001 Add `ksafe` dependency (`eu.anifantakis:ksafe:3.3.0`) in `gradle/libs.versions.toml`
+- [X] T002 Add `ksafe` dependency to `ui-shared/build.gradle.kts`
+- [X] T003 [P] Ensure Ktor client content negotiation and serialization dependencies are configured in `core-network/build.gradle.kts`
 
 ---
 
@@ -32,11 +32,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this foundational phase is complete
 
-- [ ] T004 Extend `PlatformStorage` declaration with `putSecretString(key: String, value: String)` and `getSecretString(key: String): String?` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/platform/PlatformApi.kt`
-- [ ] T005 Implement `PlatformStorage.putSecretString` and `getSecretString` using `KSafe(fileName = "clapi-secrets")` with `putDirect` and `getDirect` in `ui-shared/src/desktopMain/kotlin/io/github/crustack/clapi/ui/shared/platform/PlatformApi.desktop.kt`
-- [ ] T006 Implement OpenCollection data models `ExternalSecrets`, `ExternalSecretVariable`, `HashicorpVaultExternalSecret`, and polymorphic serializer `ExternalSecretVariableSerializer` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`
-- [ ] T007 Extend `Environment` data class with `val externalSecrets: ExternalSecrets? = null` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`
-- [ ] T008 [P] Define Vault KV v2 wire models `VaultKvV2Response` and `VaultKvV2Data` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/vault/VaultModels.kt`
+- [X] T004 Extend `PlatformStorage` declaration with `putSecretString(key: String, value: String)` and `getSecretString(key: String): String?` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/platform/PlatformApi.kt`
+- [X] T005 Implement `PlatformStorage.putSecretString` and `getSecretString` using `KSafe(fileName = "clapi-secrets")` with `putDirect` and `getDirect` in `ui-shared/src/desktopMain/kotlin/io/github/crustack/clapi/ui/shared/platform/PlatformApi.desktop.kt`
+- [X] T006 Implement OpenCollection data models `ExternalSecrets`, `ExternalSecretVariable`, `HashicorpVaultExternalSecret`, and polymorphic serializer `ExternalSecretVariableSerializer` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`
+- [X] T007 Extend `Environment` data class with `val externalSecrets: ExternalSecrets? = null` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`
+- [X] T008 [P] Define Vault KV v2 wire models `VaultKvV2Response` and `VaultKvV2Data` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/vault/VaultModels.kt`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -49,14 +49,14 @@
 **Independent Test**: Open Settings dialog -> Secrets Manager tab, enter Vault URL, mount path, and token, close and re-open dialog, and assert that credentials persist with the token stored encrypted via `ksafe`.
 
 ### Tests for User Story 1
-- [ ] T009 [P] [US1] Create unit tests for `PlatformStorage.putSecretString` and `getSecretString` encryption in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/persistence/PlatformStorageSecretTest.kt`
-- [ ] T010 [P] [US1] Create unit tests for `SettingsRepository` loading and saving Vault settings in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/persistence/SettingsRepositorySecretsTest.kt`
+- [X] T009 [P] [US1] Create unit tests for `PlatformStorage.putSecretString` and `getSecretString` encryption in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/persistence/PlatformStorageSecretTest.kt`
+- [X] T010 [P] [US1] Create unit tests for `SettingsRepository` loading and saving Vault settings in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/persistence/SettingsRepositorySecretsTest.kt`
 
 ### Implementation for User Story 1
-- [ ] T011 [US1] Extend `AppSettings` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` with fields for `vaultServerUrl: String`, `vaultMountPath: String`, `vaultNamespace: String`, and `vaultToken: String`
-- [ ] T012 [US1] Update `SettingsRepository.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/SettingsRepository.kt` to load and save Vault settings (`vaultServerUrl`, `vaultMountPath`, `vaultNamespace` via `putString`/`getString`, and `vaultToken` via `putSecretString`/`getSecretString`)
-- [ ] T013 [P] [US1] Add `SECRETS` section to `SettingsSection` enum and section label in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SettingsDialog.kt`
-- [ ] T014 [US1] Implement Secrets Manager settings tab UI in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SettingsDialog.kt` with provider selector (`hashicorp-vault-server`), Server URL, Mount Path, Namespace, and masked Vault Token with visibility toggle
+- [X] T011 [US1] Extend `AppSettings` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` with fields for `vaultServerUrl: String`, `vaultMountPath: String`, `vaultNamespace: String`, and `vaultToken: String`
+- [X] T012 [US1] Update `SettingsRepository.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/SettingsRepository.kt` to load and save Vault settings (`vaultServerUrl`, `vaultMountPath`, `vaultNamespace` via `putString`/`getString`, and `vaultToken` via `putSecretString`/`getSecretString`)
+- [X] T013 [P] [US1] Add `SECRETS` section to `SettingsSection` enum and section label in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SettingsDialog.kt`
+- [X] T014 [US1] Implement Secrets Manager settings tab UI in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SettingsDialog.kt` with provider selector (`hashicorp-vault-server`), Server URL, Mount Path, Namespace, and masked Vault Token with visibility toggle
 
 **Checkpoint**: User Story 1 is functional and testable independently (MVP ready).
 

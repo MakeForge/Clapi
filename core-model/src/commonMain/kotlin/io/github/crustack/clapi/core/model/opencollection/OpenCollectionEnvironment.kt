@@ -157,4 +157,32 @@ data class Environment(
     val clientCertificates: List<ClientCertificate> = emptyList(),
     val extends: String? = null,
     val dotEnvFilePath: String? = null,
+    val externalSecrets: ExternalSecrets? = null,
 )
+
+@Serializable
+data class ExternalSecrets(
+    val type: String, // e.g. "hashicorp-vault-server"
+    val variables: List<ExternalSecretVariable> = emptyList(),
+)
+
+@Serializable(with = ExternalSecretVariableSerializer::class)
+sealed interface ExternalSecretVariable {
+    val name: String
+    val description: Description?
+    val disabled: Boolean?
+}
+
+@Serializable
+data class HashicorpVaultExternalSecret(
+    override val name: String,
+    val path: String,
+    override val description: Description? = null,
+    override val disabled: Boolean? = null,
+) : ExternalSecretVariable
+
+object ExternalSecretVariableSerializer :
+    JsonContentPolymorphicSerializer<ExternalSecretVariable>(ExternalSecretVariable::class) {
+    override fun selectDeserializer(element: JsonElement): DeserializationStrategy<ExternalSecretVariable> =
+        HashicorpVaultExternalSecret.serializer()
+}

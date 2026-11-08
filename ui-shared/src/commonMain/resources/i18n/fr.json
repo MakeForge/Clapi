@@ -322,5 +322,12 @@
   "import_scanning": "Analyse en cours...",
   "import_select_items": "Sélectionner les éléments à importer",
   "import_overwrite_warning": "Écrase l'élément existant",
-  "import_action": "Importer"
+  "import_action": "Importer",
+  "secrets_manager": "Gestionnaire de secrets",
+  "secret_provider": "Fournisseur de secrets",
+  "secret_provider_desc": "Fournisseur externe de gestion de secrets",
+  "vault_server_url": "URL du serveur",
+  "vault_mount_path": "Point de montage",
+  "vault_namespace": "Espace de noms (Optionnel)",
+  "vault_token": "Jeton Vault"
 }
