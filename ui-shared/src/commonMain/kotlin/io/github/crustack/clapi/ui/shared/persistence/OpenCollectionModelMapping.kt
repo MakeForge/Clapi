@@ -762,5 +762,30 @@ fun OpenCollectionItem.toCollectionNode(
                 mcpConfig = mcpConfig,
             )
         }
+        is io.github.crustack.clapi.core.model.opencollection.GrpcRequestItem -> {
+            val reqId = generateUuid()
+            val reqRef = (extensions["requestRef"] as? JsonPrimitive)?.content ?: generateUuid()
+            val headers = grpc.metadata.map {
+                KeyValueEntry(key = it.name, value = it.value, enabled = it.disabled != true)
+            }
+            val userHeaders = grpc.metadata.map { it.name to it.value }
+            val preScript = runtime?.scripts?.firstOrNull { it.type == "before-request" }?.code
+            val postScript = runtime?.scripts?.firstOrNull { it.type == "after-response" || it.type == "tests" }?.code
+            CollectionNode(
+                id = reqId,
+                name = info.name,
+                isFolder = false,
+                method = HttpMethodType.POST,
+                url = grpc.url,
+                headerEntries = headers,
+                userHeaders = userHeaders,
+                bodyType = BodyType.JSON,
+                bodyContent = grpc.message,
+                preRequestScript = preScript,
+                testScript = postScript,
+                requestRef = reqRef,
+                kind = RequestKind.GRPC,
+            )
+        }
     }
 }

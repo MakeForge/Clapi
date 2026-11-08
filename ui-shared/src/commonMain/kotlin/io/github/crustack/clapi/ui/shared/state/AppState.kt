@@ -1639,6 +1639,28 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         addTab(requestId = requestId, name = name, method = HttpMethodType.GET, url = "")
     }
 
+    /** Add a new gRPC request node inside the given collection (folder). Opens it as a tab. */
+    fun addGrpcRequestToCollection(collectionId: String) {
+        val folder = findFolder(collectionId) ?: return
+        val siblingNames = folder.children.map { it.name }.toSet()
+        val name = generateUniqueName("New Request", siblingNames)
+        val requestId = generateUuid()
+        val node = CollectionNode(
+            id = requestId,
+            requestRef = generateUuid(),
+            name = name,
+            isFolder = false,
+            method = HttpMethodType.POST,
+            url = "",
+            kind = RequestKind.GRPC,
+        )
+        folder.children.add(node)
+        notifyCollectionsChanged()
+        selectedCollectionId = rootCollectionIdContaining(collectionId) ?: collectionId
+        selectedRequestId = requestId
+        addTab(requestId = requestId, name = name, method = HttpMethodType.POST, url = "")
+    }
+
     fun addMcpConnectionToCollection(collectionId: String) {
         val folder = findFolder(collectionId) ?: return
         val siblingNames = folder.children.map { it.name }.toSet()

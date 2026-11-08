@@ -210,9 +210,11 @@ class NewFeaturesUiTest {
 
         composeRule.setContent { MainScreen(state) }
 
-        // Click the "+" button for the first collection
+        // Click the "+" button for the first collection and select New HTTP Request
         val firstCollectionId = state.collections.first().id
         composeRule.onNodeWithTag("collection-add-$firstCollectionId").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("folder-menu-new-http").performClick()
         composeRule.waitForIdle()
 
         // Tab count should increase
@@ -305,6 +307,8 @@ class NewFeaturesUiTest {
         composeRule.setContent { MainScreen(state) }
 
         composeRule.onNodeWithTag("collection-add-$firstCollectionId", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("folder-menu-new-http", useUnmergedTree = true).performClick()
         composeRule.waitForIdle()
 
         assertTrue(state.collections.first().children.size == before + 1)

@@ -20,9 +20,9 @@
 
 **Purpose**: Dependency configuration and build setup for Protobuf and gRPC runtime libraries
 
-- [ ] T001 Add Protobuf and gRPC dependencies (`grpc-netty-shaded`, `grpc-protobuf`, `grpc-stub`, `protobuf-java`, `protobuf-java-util`, `protoc-jar`) in `gradle/libs.versions.toml`
-- [ ] T002 Add gRPC, Protobuf, and coroutines-guava dependencies to `core-network/build.gradle.kts`
-- [ ] T003 [P] Add test dependencies and proto resource path configuration in `qa-tests/build.gradle.kts`
+- [X] T001 Add Protobuf and gRPC dependencies (`grpc-netty-shaded`, `grpc-protobuf`, `grpc-stub`, `protobuf-java`, `protobuf-java-util`, `protoc-jar`) in `gradle/libs.versions.toml`
+- [X] T002 Add gRPC, Protobuf, and coroutines-guava dependencies to `core-network/build.gradle.kts`
+- [X] T003 [P] Add test dependencies and proto resource path configuration in `qa-tests/build.gradle.kts`
 
 ---
 
@@ -32,10 +32,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this foundational phase is complete
 
-- [ ] T004 Extend `RequestKind` enum with `GRPC` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/McpModels.kt`
-- [ ] T005 Implement `GrpcRequestItem`, `GrpcRequestInfo`, `GrpcRequestDetails`, `GrpcRequestRuntime`, and `GrpcMetadata` data classes in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt`
-- [ ] T006 Update `OpenCollectionItemSerializer` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt` to handle polymorphic deserialization for `GrpcRequestItem` when element has `grpc` or `info.type == "grpc"`
-- [ ] T007 [P] Define gRPC runtime models (`ProtoMethodInfo`, `ProtoServiceInfo`, `ProtoSchemaDefinition`, `GrpcCallRequest`, `GrpcCallResponse`) in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/grpc/GrpcModels.kt`
+- [X] T004 Extend `RequestKind` enum with `GRPC` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/McpModels.kt`
+- [X] T005 Implement `GrpcRequestItem`, `GrpcRequestInfo`, `GrpcRequestDetails`, `GrpcRequestRuntime`, and `GrpcMetadata` data classes in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt`
+- [X] T006 Update `OpenCollectionItemSerializer` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt` to handle polymorphic deserialization for `GrpcRequestItem` when element has `grpc` or `info.type == "grpc"`
+- [X] T007 [P] Define gRPC runtime models (`ProtoMethodInfo`, `ProtoServiceInfo`, `ProtoSchemaDefinition`, `GrpcCallRequest`, `GrpcCallResponse`) in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/grpc/GrpcModels.kt`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -48,14 +48,14 @@
 **Independent Test**: Click "+" on any collection folder in sidebar, select "New gRPC Request", and verify item is created and rendered with a `gRPC` badge displaying `MethodPatch` accent color.
 
 ### Tests for User Story 1
-- [ ] T008 [P] [US1] Create UI unit test verifying `GrpcBadge` rendering and folder "+" context menu in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/components/SidebarGrpcBadgeTest.kt`
+- [X] T008 [P] [US1] Create UI unit test verifying `GrpcBadge` rendering and folder "+" context menu in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/components/SidebarGrpcBadgeTest.kt`
 
 ### Implementation for User Story 1
-- [ ] T009 [P] [US1] Create `GrpcBadge` composable with `ClapiColors.MethodPatch` styling in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt`
-- [ ] T010 [US1] Update `CollectionTreeNode` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` to display `GrpcBadge` when `node.kind == RequestKind.GRPC`
-- [ ] T011 [P] [US1] Update `RequestTabsBar` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestTabsBar.kt` to render `GrpcBadge` for tabs with `RequestKind.GRPC`
-- [ ] T012 [US1] Update folder "+" button action in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` to display a dropdown context menu offering "HTTP Request" and "gRPC Request"
-- [ ] T013 [US1] Add handler `onAddGrpcRequest` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` and `AppState` to create a `CollectionNode` with `kind = RequestKind.GRPC`
+- [X] T009 [P] [US1] Create `GrpcBadge` composable with `ClapiColors.MethodPatch` styling in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt`
+- [X] T010 [US1] Update `CollectionTreeNode` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` to display `GrpcBadge` when `node.kind == RequestKind.GRPC`
+- [X] T011 [P] [US1] Update `RequestTabsBar` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestTabsBar.kt` to render `GrpcBadge` for tabs with `RequestKind.GRPC`
+- [X] T012 [US1] Update folder "+" button action in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` to display a dropdown context menu offering "HTTP Request" and "gRPC Request"
+- [X] T013 [US1] Add handler `onAddGrpcRequest` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` and `AppState` to create a `CollectionNode` with `kind = RequestKind.GRPC`
 
 **Checkpoint**: User Story 1 is functional and testable independently (MVP ready).
 

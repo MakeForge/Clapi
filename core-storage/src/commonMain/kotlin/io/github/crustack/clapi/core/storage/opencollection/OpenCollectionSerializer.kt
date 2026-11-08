@@ -7,6 +7,7 @@ import com.charleskorn.kaml.YamlNode
 import com.charleskorn.kaml.YamlNull
 import com.charleskorn.kaml.YamlScalar
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
+import io.github.crustack.clapi.core.model.opencollection.GrpcRequestItem
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestItem
 import io.github.crustack.clapi.core.model.opencollection.OpenCollectionDocument
 import io.github.crustack.clapi.core.model.opencollection.OpenCollectionItem
@@ -51,6 +52,10 @@ object OpenCollectionSerializer {
 
     private val KNOWN_HTTP_REQUEST_KEYS = setOf(
         "info", "http", "runtime", "settings", "docs", "examples", "extensions"
+    )
+
+    private val KNOWN_GRPC_REQUEST_KEYS = setOf(
+        "info", "grpc", "runtime", "docs", "extensions"
     )
 
     fun serializeJson(document: OpenCollectionDocument): String {
@@ -135,6 +140,10 @@ object OpenCollectionSerializer {
                 }
                 is HttpRequestItem -> {
                     // OpenCollection HttpRequest schema has additionalProperties: false;
+                    // item extensions are not written into the item object directly.
+                }
+                is GrpcRequestItem -> {
+                    // OpenCollection GrpcRequest schema has additionalProperties: false;
                     // item extensions are not written into the item object directly.
                 }
             }
@@ -225,6 +234,11 @@ object OpenCollectionSerializer {
                 }
                 is HttpRequestItem -> {
                     val extraRequestKeys = itemJson.filterKeys { it !in KNOWN_HTTP_REQUEST_KEYS }
+                    val mergedExt = if (extraRequestKeys.isNotEmpty()) extraRequestKeys + item.extensions else item.extensions
+                    item.copy(extensions = mergedExt)
+                }
+                is GrpcRequestItem -> {
+                    val extraRequestKeys = itemJson.filterKeys { it !in KNOWN_GRPC_REQUEST_KEYS }
                     val mergedExt = if (extraRequestKeys.isNotEmpty()) extraRequestKeys + item.extensions else item.extensions
                     item.copy(extensions = mergedExt)
                 }

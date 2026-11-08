@@ -732,6 +732,10 @@ fun Sidebar(state: AppState) {
                                 state.addRequestToCollection(target.id)
                                 persistWorkspaceAsync()
                             },
+                            onAddGrpcRequest = { target ->
+                                state.addGrpcRequestToCollection(target.id)
+                                persistWorkspaceAsync()
+                            },
                             onAddMcpConnection = { target ->
                                 state.addMcpConnectionToCollection(target.id)
                                 persistWorkspaceAsync()
@@ -1423,6 +1427,20 @@ fun McpMethodBadge(compact: Boolean = false, modifier: Modifier = Modifier) {
     )
 }
 
+@Composable
+fun GrpcBadge(compact: Boolean = false, modifier: Modifier = Modifier) {
+    Text(
+        text = "gRPC",
+        color = ClapiColors.MethodPatch,
+        fontSize = if (compact) 10.sp else 12.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(ClapiColors.MethodPatch.copy(alpha = 0.12f))
+            .padding(horizontal = if (compact) 4.dp else 6.dp, vertical = 2.dp),
+    )
+}
+
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun CollectionTreeNode(
@@ -1437,6 +1455,7 @@ private fun CollectionTreeNode(
     onDeleteCollection: (CollectionNode) -> Unit,
     onAddFolder: (CollectionNode) -> Unit,
     onAddRequest: (CollectionNode) -> Unit,
+    onAddGrpcRequest: (CollectionNode) -> Unit = {},
     onAddMcpConnection: (CollectionNode) -> Unit,
     onAddSseRequest: (CollectionNode) -> Unit,
     onRenameRequest: (CollectionNode) -> Unit,
@@ -1473,7 +1492,7 @@ private fun CollectionTreeNode(
     val indent = (22 + depth * 22).dp
     val isFolderNode = node.isFolder
     val isCollectionRoot = depth == 0 && node.isFolder
-    val isRequest = !node.isFolder && node.method != null && node.url != null
+    val isRequest = !node.isFolder && (node.kind == RequestKind.GRPC || node.kind == RequestKind.MCP || (node.method != null && node.url != null))
     val isSelectedRequest = isRequest && state.selectedRequestId == node.id
     val isSidebarFolderSelected = isFolderNode && node.id in state.selectedFolderIds
     val isSidebarRequestSelected = isRequest && node.id in state.selectedRequestIds
@@ -1494,6 +1513,7 @@ private fun CollectionTreeNode(
     val showCollectionInsertionBelow = isFolderNode && node.id == dropCollectionTargetId && dropCollectionInsertAfter
 
     var showMenu by remember { mutableStateOf(false) }
+    var showAddMenu by remember { mutableStateOf(false) }
     var modifierHeldOnPress by remember { mutableStateOf(false) }
 
     val handleRowPointerPress: (PointerEvent) -> Unit = { event ->
@@ -1660,13 +1680,13 @@ private fun CollectionTreeNode(
                             isShiftPressed = false,
                         )
                         state.openFolder(node.id)
-                    } else if (node.method != null && node.url != null) {
+                    } else if (isRequest) {
                         state.selectSidebarRequest(
                             requestId = node.id,
                             isCtrlPressed = false,
                             isShiftPressed = false,
                         )
-                        state.openRequest(requestId = node.id, name = node.name, method = node.method, url = node.url)
+                        state.openRequest(requestId = node.id, name = node.name, method = node.method ?: HttpMethodType.POST, url = node.url ?: "")
                     }
                 }
                 .padding(start = indent, end = 8.dp, top = 5.dp, bottom = 5.dp)
@@ -1721,6 +1741,14 @@ private fun CollectionTreeNode(
                     modifier = Modifier.size(12.dp),
                 )
                 McpMethodBadge(compact = true, modifier = Modifier.testTag("mcp-badge-${node.id}"))
+            } else if (node.kind == RequestKind.GRPC) {
+                Icon(
+                    Icons.Default.DragIndicator,
+                    contentDescription = Strings.t("drag_to_reorder"),
+                    tint = ClapiColors.OnSurfaceDim.copy(alpha = 0.4f),
+                    modifier = Modifier.size(12.dp),
+                )
+                GrpcBadge(compact = true, modifier = Modifier.testTag("grpc-badge-${node.id}"))
             } else if (node.method != null) {
                 Icon(
                     Icons.Default.DragIndicator,
@@ -1791,17 +1819,43 @@ private fun CollectionTreeNode(
                 ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-            if (isCollectionRoot) {
-                IconButton(
-                    onClick = { onAddRequest(node) },
-                    modifier = Modifier.size(20.dp).testTag("collection-add-${node.id}"),
-                ) {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = Strings.t("add_request"),
-                        tint = ClapiColors.OnSurfaceDim,
-                        modifier = Modifier.size(14.dp),
-                    )
+            if (isFolderNode) {
+                Box {
+                    IconButton(
+                        onClick = { showAddMenu = true },
+                        modifier = Modifier.size(20.dp).testTag("collection-add-${node.id}"),
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = Strings.t("add_request"),
+                            tint = ClapiColors.OnSurfaceDim,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showAddMenu,
+                        onDismissRequest = { showAddMenu = false },
+                        modifier = Modifier.testTag("folder-add-menu-${node.id}"),
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(Strings.t("new_http_request")) },
+                            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            onClick = {
+                                showAddMenu = false
+                                onAddRequest(node)
+                            },
+                            modifier = Modifier.testTag("folder-menu-new-http"),
+                        )
+                        DropdownMenuItem(
+                            text = { Text(Strings.t("new_grpc_request")) },
+                            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            onClick = {
+                                showAddMenu = false
+                                onAddGrpcRequest(node)
+                            },
+                            modifier = Modifier.testTag("folder-menu-new-grpc"),
+                        )
+                    }
                 }
             }
             Box {
@@ -1903,6 +1957,12 @@ private fun CollectionTreeNode(
                             leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = { showMenu = false; onAddRequest(node) },
                             modifier = Modifier.testTag("collection-menu-add-request"),
+                        )
+                        DropdownMenuItem(
+                            text = { Text(Strings.t("new_grpc_request")) },
+                            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            onClick = { showMenu = false; onAddGrpcRequest(node) },
+                            modifier = Modifier.testTag("collection-menu-new-grpc"),
                         )
                         DropdownMenuItem(
                             text = { Text(Strings.t("new_mcp_connection")) },
@@ -2017,6 +2077,7 @@ private fun CollectionTreeNode(
                         onDuplicateRequest = onDuplicateRequest,
                         onDeleteCollection = onDeleteCollection,
                         onAddRequest = onAddRequest,
+                        onAddGrpcRequest = onAddGrpcRequest,
                         onAddMcpConnection = onAddMcpConnection,
                         onAddSseRequest = onAddSseRequest,
                         onRenameRequest = onRenameRequest,

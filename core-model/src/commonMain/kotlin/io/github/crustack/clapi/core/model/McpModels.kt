@@ -55,7 +55,7 @@ fun jsonRpcId(value: Long): JsonPrimitive = JsonPrimitive(value)
 fun jsonRpcId(value: Int): JsonPrimitive = JsonPrimitive(value)
 
 @Serializable
-enum class RequestKind { HTTP, MCP, FOLDER }
+enum class RequestKind { HTTP, MCP, FOLDER, GRPC }
 
 @Serializable
 enum class McpTransportType { STREAMABLE_HTTP, STDIO }

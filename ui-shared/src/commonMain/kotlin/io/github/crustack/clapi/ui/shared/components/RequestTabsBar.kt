@@ -215,6 +215,8 @@ private fun RequestTabChip(
         ) {
             if (tab.kind == RequestKind.MCP) {
                 McpMethodBadge(compact = true, modifier = Modifier.testTag("tab-mcp-badge-${tab.id}"))
+            } else if (tab.kind == RequestKind.GRPC) {
+                GrpcBadge(compact = true, modifier = Modifier.testTag("tab-grpc-badge-${tab.id}"))
             } else if (tab.kind == RequestKind.FOLDER) {
                 Icon(
                     Icons.Default.Folder,
