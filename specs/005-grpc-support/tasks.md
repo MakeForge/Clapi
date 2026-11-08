@@ -124,11 +124,11 @@
 **Independent Test**: Export a collection with gRPC requests to OpenCollection format, re-import it, and verify that `url`, `method`, `protoFilePath`, metadata, message, and scripts match exactly.
 
 ### Tests for User Story 5
-- [ ] T030 [P] [US5] Create round-trip serialization unit tests in `core-storage/src/commonTest/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionGrpcStorageTest.kt`
+- [X] T030 [P] [US5] Create round-trip serialization unit tests in `core-storage/src/commonTest/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionGrpcStorageTest.kt`
 
 ### Implementation for User Story 5
-- [ ] T031 [US5] Update `OpenCollectionSerializer.kt` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionSerializer.kt` to include `KNOWN_GRPC_REQUEST_KEYS` and serialize/deserialize `GrpcRequestItem` in JSON and YAML
-- [ ] T032 [US5] Update `OpenCollectionModelMapping.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to map between `CollectionNode` and `GrpcRequestItem`
+- [X] T031 [US5] Update `OpenCollectionSerializer.kt` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionSerializer.kt` to include `KNOWN_GRPC_REQUEST_KEYS` and serialize/deserialize `GrpcRequestItem` in JSON and YAML
+- [X] T032 [US5] Update `OpenCollectionModelMapping.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to map between `CollectionNode` and `GrpcRequestItem`
 
 **Checkpoint**: Collections containing gRPC requests persist, import, and export losslessly.
 
@@ -141,10 +141,10 @@
 **Independent Test**: Run `./gradlew :qa-tests:test --tests "io.github.crustack.clapi.qa.GrpcApiE2ETest"` and verify tests pass.
 
 ### Tests & Implementation for User Story 6
-- [ ] T033 [P] [US6] Create test proto definition `greeter.proto` in `qa-tests/src/test/resources/greeter.proto`
-- [ ] T034 [US6] Add gRPC test endpoint to `DummyApiServer` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/testsupport/DummyApiServer.kt` hosting the greeter service (using `kotlinx.rpc` / gRPC)
-- [ ] T035 [P] [US6] Add sample gRPC request item to `qa-tests/fixtures/clapi-test-collection.json`
-- [ ] T036 [US6] Create end-to-end integration test `GrpcApiE2ETest.kt` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/GrpcApiE2ETest.kt` verifying execution, status codes, latency, response JSON, and metadata roundtrip against `DummyApiServer`
+- [X] T033 [P] [US6] Create test proto definition `greeter.proto` in `qa-tests/src/test/resources/greeter.proto`
+- [X] T034 [US6] Add gRPC test endpoint to `DummyApiServer` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/testsupport/DummyApiServer.kt` hosting the greeter service (using `kotlinx.rpc` / gRPC)
+- [X] T035 [P] [US6] Add sample gRPC request item to `qa-tests/fixtures/clapi-test-collection.json`
+- [X] T036 [US6] Create end-to-end integration test `GrpcApiE2ETest.kt` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/GrpcApiE2ETest.kt` verifying execution, status codes, latency, response JSON, and metadata roundtrip against `DummyApiServer`
 
 **Checkpoint**: Automated regression suite verifies gRPC requests against the mock server in CI.
 
@@ -154,9 +154,9 @@
 
 **Purpose**: Cleanup, formatting, resource safety, and validation
 
-- [ ] T037 [P] Run linter and formatting across modified modules (`core-model`, `core-network`, `core-storage`, `ui-shared`, `qa-tests`)
-- [ ] T038 Add temp file cleanup in `ProtocJarParser` in `core-network/src/desktopMain/kotlin/io/github/crustack/clapi/core/network/grpc/ProtocJarParser.kt`
-- [ ] T039 Execute quickstart scenarios per `specs/005-grpc-support/quickstart.md`
+- [X] T037 [P] Run linter and formatting across modified modules (`core-model`, `core-network`, `core-storage`, `ui-shared`, `qa-tests`)
+- [X] T038 Add temp file cleanup in `ProtocJarParser` in `core-network/src/desktopMain/kotlin/io/github/crustack/clapi/core/network/grpc/ProtocJarParser.kt`
+- [X] T039 Execute quickstart scenarios per `specs/005-grpc-support/quickstart.md`
 
 ---
 

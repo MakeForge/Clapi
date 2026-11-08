@@ -99,4 +99,42 @@ class ProtocJarParserTest {
             tempFile.delete()
         }
     }
+
+    @Test
+    fun `cleans up temporary descriptor files after parsing and on error`() = runTest {
+        val tempDir = File(System.getProperty("java.io.tmpdir"))
+        val beforeDescFiles = tempDir.listFiles { _, name -> name.startsWith("clapi_proto_") && name.endsWith(".desc") }
+            ?.map { it.name }
+            ?.toSet()
+            ?: emptySet()
+
+        val validProto = File.createTempFile("cleanup_valid_", ".proto")
+        val invalidProto = File.createTempFile("cleanup_invalid_", ".proto")
+        try {
+            validProto.writeText(
+                """
+                syntax = "proto3";
+                package cleanup;
+                service Ping { rpc Call (Msg) returns (Msg); }
+                message Msg { string id = 1; }
+                """.trimIndent()
+            )
+            invalidProto.writeText("syntax = \"proto3\"; broken_proto")
+
+            parser.parseProtoFile(validProto)
+            assertFailsWith<ProtoParseException> {
+                parser.parseProtoFile(invalidProto)
+            }
+
+            val afterDescFiles = tempDir.listFiles { _, name -> name.startsWith("clapi_proto_") && name.endsWith(".desc") }
+                ?.map { it.name }
+                ?.toSet()
+                ?: emptySet()
+            val leakedFiles = afterDescFiles - beforeDescFiles
+            assertTrue(leakedFiles.isEmpty(), "Expected no leaked temporary .desc files, but found: $leakedFiles")
+        } finally {
+            validProto.delete()
+            invalidProto.delete()
+        }
+    }
 }

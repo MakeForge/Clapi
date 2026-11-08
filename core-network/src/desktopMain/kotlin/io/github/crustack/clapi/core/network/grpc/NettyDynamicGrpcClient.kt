@@ -185,10 +185,9 @@ class NettyDynamicGrpcClient(
             if (trailers != null && capturedMetadata.isEmpty()) {
                 extractMetadataEntries(trailers, capturedMetadata)
             }
-            val detail = status.description
-                ?: e.cause?.message
-                ?: e.message
-                ?: status.code.name
+            val detail = if(e.message != null) {
+                "${e.message}${e.cause?.message?.let { "\nCause:${it}" } ?: ""}"
+            } else status.description ?: status.code.name
             GrpcCallResponse(
                 requestId = request.requestId,
                 statusCode = status.code.value(),

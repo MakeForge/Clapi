@@ -71,12 +71,31 @@ class RequestExecutionService(
         val effectiveProtoPath = protoFilePathOverride
             ?: requestItem.grpc.protoFilePath.orEmpty()
         val resolvedPayload = VariableResolver.resolve(requestItem.grpc.message.orEmpty(), variableLayers, removeUnresolved = false)
-        val resolvedMetadata = requestItem.grpc.metadata
-            .filter { it.disabled != true && it.name.isNotBlank() }
-            .map { entry ->
-                VariableResolver.resolve(entry.name, variableLayers, removeUnresolved = false) to
-                    VariableResolver.resolve(entry.value, variableLayers, removeUnresolved = false)
+        val resolvedMetadata = mutableListOf<Pair<String, String>>()
+        for (entry in requestItem.grpc.metadata) {
+            if (entry.disabled != true && entry.name.isNotBlank()) {
+                resolvedMetadata.add(
+                    VariableResolver.resolve(entry.name, variableLayers, removeUnresolved = false) to
+                        VariableResolver.resolve(entry.value, variableLayers, removeUnresolved = false)
+                )
             }
+        }
+        when (val auth = requestItem.grpc.auth) {
+            is io.github.crustack.clapi.core.model.opencollection.AuthBearer -> {
+                val token = VariableResolver.resolve(auth.token.orEmpty(), variableLayers, removeUnresolved = false)
+                if (token.isNotBlank() && resolvedMetadata.none { it.first.equals("authorization", ignoreCase = true) }) {
+                    resolvedMetadata.add("authorization" to "Bearer $token")
+                }
+            }
+            is io.github.crustack.clapi.core.model.opencollection.AuthApiKey -> {
+                val key = VariableResolver.resolve(auth.key.orEmpty(), variableLayers, removeUnresolved = false)
+                val value = VariableResolver.resolve(auth.value.orEmpty(), variableLayers, removeUnresolved = false)
+                if (key.isNotBlank() && resolvedMetadata.none { it.first.equals(key, ignoreCase = true) }) {
+                    resolvedMetadata.add(key to value)
+                }
+            }
+            else -> Unit
+        }
 
         return executeGrpc(
             request = GrpcCallRequest(
