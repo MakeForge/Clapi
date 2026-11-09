@@ -1,23 +1,25 @@
 package io.github.crustack.clapi.ui.shared.components
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -33,46 +35,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Article
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.DragIndicator
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ForkRight
-import androidx.compose.material.icons.automirrored.filled.Input
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Hub
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.material.icons.filled.Upload
-import androidx.compose.material.icons.filled.UnfoldLess
-import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -88,66 +54,95 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.isPrimaryPressed
-import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.isCtrlPressed
 import androidx.compose.ui.input.pointer.isMetaPressed
+import androidx.compose.ui.input.pointer.isPrimaryPressed
+import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.isShiftPressed
 import androidx.compose.ui.input.pointer.onPointerEvent
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
 import io.github.crustack.clapi.core.model.HttpMethodType
-import io.github.crustack.clapi.ui.shared.persistence.ImportExportException
+import io.github.crustack.clapi.core.model.RequestKind
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_add
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_article
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_bolt
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_close
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_content_copy
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_delete
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_download
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_drag_indicator
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_edit
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_folder
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_folder_open
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_fork_right
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_history
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_hub
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_input
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_keyboard_arrow_down
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_keyboard_arrow_right
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_keyboard_arrow_up
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_more_vert
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_search
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_settings
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_unfold_less
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_unfold_more
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_upload
+import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.persistence.ImportExportNaming
 import io.github.crustack.clapi.ui.shared.persistence.ImportExportRepository
 import io.github.crustack.clapi.ui.shared.persistence.WorkspaceRepository
-import io.github.crustack.clapi.ui.shared.i18n.Strings
+import io.github.crustack.clapi.ui.shared.platform.formatTimestamp
+import io.github.crustack.clapi.ui.shared.platform.generateUuid
+import io.github.crustack.clapi.ui.shared.platform.ioDispatcher
+import io.github.crustack.clapi.ui.shared.platform.isPointerDoubleClick
+import io.github.crustack.clapi.ui.shared.platform.pickFileForImport
+import io.github.crustack.clapi.ui.shared.platform.saveFileForExport
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.CollectionNode
 import io.github.crustack.clapi.ui.shared.state.EnvState
 import io.github.crustack.clapi.ui.shared.state.HistoryItem
 import io.github.crustack.clapi.ui.shared.state.LogLevel
 import io.github.crustack.clapi.ui.shared.state.hasSseAccept
-import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
+import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 import io.github.crustack.clapi.ui.shared.theme.httpMethodColor
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.scrollBy
-import androidx.compose.material.icons.filled.UploadFile
-import io.github.crustack.clapi.core.model.RequestKind
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import io.github.crustack.clapi.ui.shared.platform.formatTimestamp
-import io.github.crustack.clapi.ui.shared.platform.ioDispatcher
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
-import io.github.crustack.clapi.ui.shared.platform.pickFileForImport
-import io.github.crustack.clapi.ui.shared.platform.saveFileForExport
-import io.github.crustack.clapi.ui.shared.platform.isPointerDoubleClick
-import io.github.crustack.clapi.ui.shared.platform.generateUuid
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.painterResource
 
 private data class TreeNodeHitArea(
     val id: String,
@@ -466,8 +461,7 @@ fun Sidebar(state: AppState) {
                     ),
                     border = BorderStroke(1.dp, ClapiColors.Border),
                 ) {
-                    Icon(
-                        Icons.Default.Download,
+                    Icon(painter = painterResource(Res.drawable.ic_download),
                         contentDescription = "Import",
                         modifier = Modifier.size(14.dp).testTag("collection-import-icon"),
                         tint = ClapiColors.OnSurfaceDim,
@@ -499,8 +493,7 @@ fun Sidebar(state: AppState) {
                         ),
                         border = BorderStroke(1.dp, ClapiColors.Border),
                     ) {
-                        Icon(
-                            Icons.Default.Upload,
+                        Icon(painter = painterResource(Res.drawable.ic_upload),
                             contentDescription = "Export",
                             modifier = Modifier.size(14.dp),
                             tint = ClapiColors.OnSurfaceDim,
@@ -521,7 +514,7 @@ fun Sidebar(state: AppState) {
                         DropdownMenuItem(
                             text = { Text("OpenCollection YAML Format") },
                             leadingIcon = {
-                                Icon(Icons.Default.Upload, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(painter = painterResource(Res.drawable.ic_upload), contentDescription = null, modifier = Modifier.size(16.dp))
                             },
                             onClick = {
                                 showExportMenu = false
@@ -540,7 +533,7 @@ fun Sidebar(state: AppState) {
                         DropdownMenuItem(
                             text = { Text("OpenAPI YAML") },
                             leadingIcon = {
-                                Icon(Icons.Default.Upload, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(painter = painterResource(Res.drawable.ic_upload), contentDescription = null, modifier = Modifier.size(16.dp))
                             },
                             onClick = {
                                 showExportMenu = false
@@ -566,7 +559,7 @@ fun Sidebar(state: AppState) {
             ) {
             item {
                 SectionHeader(
-                    icon = Icons.Default.History,
+                    icon = painterResource(Res.drawable.ic_history),
                     title = Strings.history,
                     expanded = state.historyExpanded,
                     onToggle = { state.historyExpanded = !state.historyExpanded },
@@ -594,7 +587,7 @@ fun Sidebar(state: AppState) {
 
             item {
                 SectionHeader(
-                    icon = Icons.Default.Article,
+                    icon = painterResource(Res.drawable.ic_article),
                     title = Strings.collectionsHeader,
                     expanded = state.collectionsExpanded,
                     modifier = Modifier.testTag("sidebar-collections-header"),
@@ -617,14 +610,14 @@ fun Sidebar(state: AppState) {
                                 },
                                 modifier = Modifier.size(24.dp).testTag("sidebar-add-collection-button"),
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = Strings.addCollection, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
+                                Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = Strings.addCollection, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
                             }
                             Box {
                                 IconButton(
                                     onClick = { showHeaderMenu = true },
                                     modifier = Modifier.size(24.dp).testTag("sidebar-collections-menu-button"),
                                 ) {
-                                    Icon(Icons.Default.MoreVert, contentDescription = "More", tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
+                                    Icon(painter = painterResource(Res.drawable.ic_more_vert), contentDescription = "More", tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
                                 }
                                 DropdownMenu(
                                     expanded = showHeaderMenu,
@@ -632,7 +625,7 @@ fun Sidebar(state: AppState) {
                                 ) {
                                     DropdownMenuItem(
                                         text = { Text(Strings.exportCollections, fontSize = 12.sp) },
-                                        leadingIcon = { Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp)) },
+                                        leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_download), contentDescription = null, modifier = Modifier.size(14.dp)) },
                                         onClick = {
                                             showHeaderMenu = false
                                             state.showExportCollectionsDialog = true
@@ -1026,7 +1019,7 @@ fun Sidebar(state: AppState) {
 
             item {
                 SectionHeader(
-                    icon = Icons.Default.Settings,
+                    icon = painterResource(Res.drawable.ic_settings),
                     title = Strings.environments,
                     expanded = state.environmentsExpanded,
                     onToggle = {
@@ -1051,8 +1044,7 @@ fun Sidebar(state: AppState) {
                                 },
                                 modifier = Modifier.size(24.dp).testTag("environment-import-button"),
                             ) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.Input,
+                                Icon(painter = painterResource(Res.drawable.ic_input),
                                     contentDescription = Strings.t("import_environment"),
                                     tint = ClapiColors.OnSurfaceDim,
                                     modifier = Modifier.size(14.dp).testTag("environment-import-icon"),
@@ -1065,7 +1057,7 @@ fun Sidebar(state: AppState) {
                                 },
                                 modifier = Modifier.size(24.dp),
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = Strings.t("new_environment"), tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
+                                Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = Strings.t("new_environment"), tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
                             }
                         }
                     },
@@ -1308,7 +1300,7 @@ private fun SearchBar(query: String, onQueryChanged: (String) -> Unit, modifier:
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Default.Search, contentDescription = null, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
+        Icon(painter = painterResource(Res.drawable.ic_search), contentDescription = null, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(8.dp))
         BasicTextField(
             value = query,
@@ -1324,8 +1316,7 @@ private fun SearchBar(query: String, onQueryChanged: (String) -> Unit, modifier:
         )
         if (query.isNotEmpty()) {
             Spacer(Modifier.width(4.dp))
-            Icon(
-                Icons.Default.Close,
+            Icon(painter = painterResource(Res.drawable.ic_close),
                 contentDescription = "Clear search",
                 tint = ClapiColors.OnSurfaceDim,
                 modifier = Modifier
@@ -1339,7 +1330,7 @@ private fun SearchBar(query: String, onQueryChanged: (String) -> Unit, modifier:
 
 @Composable
 private fun SectionHeader(
-    icon: ImageVector,
+    icon: Painter,
     title: String,
     expanded: Boolean,
     onToggle: () -> Unit,
@@ -1361,7 +1352,7 @@ private fun SectionHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            if (expanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            if (expanded) painterResource(Res.drawable.ic_keyboard_arrow_down) else painterResource(Res.drawable.ic_keyboard_arrow_right),
             contentDescription = null,
             tint = ClapiColors.OnSurfaceDim,
             modifier = Modifier.size(16.dp).clickable(
@@ -1455,8 +1446,7 @@ private fun HistoryRow(state: AppState, item: HistoryItem, onClick: () -> Unit) 
                 onClick = { showMenu = true },
                 modifier = Modifier.size(20.dp).testTag("history-actions-${item.requestId}"),
             ) {
-                Icon(
-                    Icons.Default.MoreVert,
+                Icon(painter = painterResource(Res.drawable.ic_more_vert),
                     contentDescription = Strings.t("history_actions"),
                     tint = ClapiColors.OnSurfaceDim,
                     modifier = Modifier.size(14.dp),
@@ -1820,8 +1810,7 @@ private fun CollectionTreeNode(
             if (node.isFolder) {
                 // Drag indicator for folders (roots + nested folders)
                 if (isFolderNode) {
-                    Icon(
-                        Icons.Default.DragIndicator,
+                    Icon(painter = painterResource(Res.drawable.ic_drag_indicator),
                         contentDescription = Strings.t("drag_to_reorder"),
                         tint = ClapiColors.OnSurfaceDim.copy(alpha = 0.4f),
                         modifier = Modifier.size(12.dp).testTag("folder-drag-handle-${node.id}"),
@@ -1842,15 +1831,15 @@ private fun CollectionTreeNode(
                         .testTag("folder-toggle-${node.id}"),
                 ) {
                     Icon(
-                        if (expanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        if (expanded) painterResource(Res.drawable.ic_keyboard_arrow_down) else painterResource(Res.drawable.ic_keyboard_arrow_right),
                         contentDescription = null,
                         tint = ClapiColors.OnSurfaceDim,
                         modifier = Modifier.size(14.dp).testTag("folder-chevron-${node.id}"),
                     )
                     Icon(
-                        imageVector = if (node.isCollection) Icons.Default.Article
-                            else if (depth == 0) Icons.Default.FolderOpen
-                            else Icons.Default.Folder,
+                        painter = if (node.isCollection) painterResource(Res.drawable.ic_article)
+                            else if (depth == 0) painterResource(Res.drawable.ic_folder_open)
+                            else painterResource(Res.drawable.ic_folder),
                         contentDescription = null,
                         tint = ClapiColors.Tertiary,
                         modifier = Modifier
@@ -1859,24 +1848,21 @@ private fun CollectionTreeNode(
                     )
                 }
             } else if (node.kind == RequestKind.MCP) {
-                Icon(
-                    Icons.Default.DragIndicator,
+                Icon(painter = painterResource(Res.drawable.ic_drag_indicator),
                     contentDescription = Strings.t("drag_to_reorder"),
                     tint = ClapiColors.OnSurfaceDim.copy(alpha = 0.4f),
                     modifier = Modifier.size(12.dp),
                 )
                 McpMethodBadge(compact = true, modifier = Modifier.testTag("mcp-badge-${node.id}"))
             } else if (node.kind == RequestKind.GRPC) {
-                Icon(
-                    Icons.Default.DragIndicator,
+                Icon(painter = painterResource(Res.drawable.ic_drag_indicator),
                     contentDescription = Strings.t("drag_to_reorder"),
                     tint = ClapiColors.OnSurfaceDim.copy(alpha = 0.4f),
                     modifier = Modifier.size(12.dp),
                 )
                 GrpcBadge(compact = true, modifier = Modifier.testTag("grpc-badge-${node.id}"))
             } else if (node.method != null) {
-                Icon(
-                    Icons.Default.DragIndicator,
+                Icon(painter = painterResource(Res.drawable.ic_drag_indicator),
                     contentDescription = Strings.t("drag_to_reorder"),
                     tint = ClapiColors.OnSurfaceDim.copy(alpha = 0.4f),
                     modifier = Modifier.size(12.dp),
@@ -2027,8 +2013,7 @@ private fun CollectionTreeNode(
                         onClick = { showAddMenu = true },
                         modifier = Modifier.size(20.dp).testTag("collection-add-${node.id}"),
                     ) {
-                        Icon(
-                            Icons.Default.Add,
+                        Icon(painter = painterResource(Res.drawable.ic_add),
                             contentDescription = Strings.t("add_request"),
                             tint = ClapiColors.OnSurfaceDim,
                             modifier = Modifier.size(14.dp),
@@ -2041,7 +2026,7 @@ private fun CollectionTreeNode(
                     ) {
                         DropdownMenuItem(
                             text = { Text(Strings.t("add_folder")) },
-                            leadingIcon = { Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_folder), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = {
                                 showAddMenu = false
                                 onAddFolder(node)
@@ -2050,7 +2035,7 @@ private fun CollectionTreeNode(
                         )
                         DropdownMenuItem(
                             text = { Text(Strings.t("new_http_request")) },
-                            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = {
                                 showAddMenu = false
                                 onAddRequest(node)
@@ -2059,7 +2044,7 @@ private fun CollectionTreeNode(
                         )
                         DropdownMenuItem(
                             text = { Text(Strings.t("new_grpc_request")) },
-                            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = {
                                 showAddMenu = false
                                 onAddGrpcRequest(node)
@@ -2074,8 +2059,7 @@ private fun CollectionTreeNode(
                     onClick = { showMenu = true },
                     modifier = Modifier.size(20.dp).testTag("collection-actions-${node.id}"),
                 ) {
-                    Icon(
-                        Icons.Default.MoreVert,
+                    Icon(painter = painterResource(Res.drawable.ic_more_vert),
                         contentDescription = if (isCollectionRoot) Strings.folderActions else Strings.t("request_actions"),
                         tint = ClapiColors.OnSurfaceDim,
                         modifier = Modifier.size(14.dp),
@@ -2089,7 +2073,7 @@ private fun CollectionTreeNode(
                     if (hasMultipleFolderSelection) {
                         DropdownMenuItem(
                             text = { Text(Strings.duplicateFolder) },
-                            leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_content_copy), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = {
                                 showMenu = false
                                 onDuplicateSelectedFolders()
@@ -2098,7 +2082,7 @@ private fun CollectionTreeNode(
                         )
                         DropdownMenuItem(
                             text = { Text(Strings.delete) },
-                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_delete), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = {
                                 showMenu = false
                                 onDeleteSelectedFolders()
@@ -2108,7 +2092,7 @@ private fun CollectionTreeNode(
                     } else if (hasMultipleRequestSelection) {
                         DropdownMenuItem(
                             text = { Text(Strings.t("duplicate_request")) },
-                            leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_content_copy), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = {
                                 showMenu = false
                                 onDuplicateSelectedRequests()
@@ -2117,7 +2101,7 @@ private fun CollectionTreeNode(
                         )
                         DropdownMenuItem(
                             text = { Text(Strings.t("delete_request")) },
-                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_delete), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = {
                                 showMenu = false
                                 onDeleteSelectedRequests()
@@ -2127,13 +2111,13 @@ private fun CollectionTreeNode(
                     } else if (isFolderNode) {
                         DropdownMenuItem(
                             text = { Text(Strings.t("add_folder")) },
-                            leadingIcon = { Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_folder), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = { showMenu = false; onAddFolder(node) },
                             modifier = Modifier.testTag("collection-menu-add-folder"),
                         )
                         DropdownMenuItem(
                             text = { Text(Strings.t("expand")) },
-                            leadingIcon = { Icon(Icons.Default.UnfoldMore, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_unfold_more), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = {
                                 showMenu = false
                                 state.collectionExpandedState[node.id] = true
@@ -2141,7 +2125,7 @@ private fun CollectionTreeNode(
                         )
                         DropdownMenuItem(
                             text = { Text(Strings.t("collapse")) },
-                            leadingIcon = { Icon(Icons.Default.UnfoldLess, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_unfold_less), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = {
                                 showMenu = false
                                 state.collectionExpandedState[node.id] = false
@@ -2149,7 +2133,7 @@ private fun CollectionTreeNode(
                         )
                         DropdownMenuItem(
                             text = { Text(Strings.expandAll) },
-                            leadingIcon = { Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_folder_open), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = {
                                 showMenu = false
                                 state.expandAllCollections()
@@ -2157,7 +2141,7 @@ private fun CollectionTreeNode(
                         )
                         DropdownMenuItem(
                             text = { Text(Strings.collapseAll) },
-                            leadingIcon = { Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_folder), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = {
                                 showMenu = false
                                 state.collapseAllCollections()
@@ -2165,19 +2149,19 @@ private fun CollectionTreeNode(
                         )
                         DropdownMenuItem(
                             text = { Text(Strings.t("add_request")) },
-                            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = { showMenu = false; onAddRequest(node) },
                             modifier = Modifier.testTag("collection-menu-add-request"),
                         )
                         DropdownMenuItem(
                             text = { Text(Strings.t("new_grpc_request")) },
-                            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = { showMenu = false; onAddGrpcRequest(node) },
                             modifier = Modifier.testTag("collection-menu-new-grpc"),
                         )
                         DropdownMenuItem(
                             text = { Text(Strings.t("new_mcp_connection")) },
-                            leadingIcon = { Icon(Icons.Default.Hub, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_hub), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = {
                                 showMenu = false
                                 onAddMcpConnection(node)
@@ -2186,7 +2170,7 @@ private fun CollectionTreeNode(
                         )
                         DropdownMenuItem(
                             text = { Text(Strings.t("new_sse_request")) },
-                            leadingIcon = { Icon(Icons.Default.Bolt, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_bolt), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = {
                                 showMenu = false
                                 onAddSseRequest(node)
@@ -2196,49 +2180,49 @@ private fun CollectionTreeNode(
                         if (isCollectionRoot) {
                             DropdownMenuItem(
                                 text = { Text(Strings.exportFolder) },
-                                leadingIcon = { Icon(Icons.AutoMirrored.Filled.Input, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_input), contentDescription = null, modifier = Modifier.size(16.dp)) },
                                 onClick = { showMenu = false; onExportCollection(node) },
                             )
                             DropdownMenuItem(
                                 text = { Text(Strings.duplicateFolder) },
-                                leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_content_copy), contentDescription = null, modifier = Modifier.size(16.dp)) },
                                 onClick = { showMenu = false; onDuplicateCollection(node) },
                             )
                         }
                         DropdownMenuItem(
                             text = { Text(Strings.t("rename")) },
-                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_edit), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = { showMenu = false; onRenameCollection(node) },
                         )
                         DropdownMenuItem(
                             text = { Text(Strings.delete) },
-                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_delete), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = { showMenu = false; onDeleteCollection(node) },
                         )
                     } else if (isRequest) {
                         DropdownMenuItem(
                             text = { Text(Strings.t("duplicate_request")) },
-                            leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_content_copy), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = { showMenu = false; onDuplicateRequest(node) },
                         )
                         DropdownMenuItem(
                             text = { Text(Strings.t("rename_request")) },
-                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_edit), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = { showMenu = false; onRenameRequest(node) },
                         )
                         DropdownMenuItem(
                             text = { Text(Strings.t("move_up")) },
-                            leadingIcon = { Icon(Icons.Default.KeyboardArrowUp, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_keyboard_arrow_up), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = { showMenu = false; onMoveRequest(node.id, -1) },
                         )
                         DropdownMenuItem(
                             text = { Text(Strings.t("move_down")) },
-                            leadingIcon = { Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_keyboard_arrow_down), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = { showMenu = false; onMoveRequest(node.id, 1) },
                         )
                         DropdownMenuItem(
                             text = { Text(Strings.t("delete_request")) },
-                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_delete), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = { showMenu = false; onDeleteRequest(node) },
                         )
                     }
@@ -2419,8 +2403,7 @@ private fun EnvironmentRow(
                     .alpha(if (isHovered || active || showMenu) 1f else 0f)
                     .testTag("env-actions-$envName"),
             ) {
-                Icon(
-                    Icons.Default.MoreVert,
+                Icon(painter = painterResource(Res.drawable.ic_more_vert),
                     contentDescription = Strings.t("environment_actions"),
                     tint = ClapiColors.OnSurfaceDim,
                     modifier = Modifier.size(14.dp),
@@ -2429,28 +2412,28 @@ private fun EnvironmentRow(
             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                 DropdownMenuItem(
                     text = { Text(Strings.t("edit_environment")) },
-                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                    leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_edit), contentDescription = null, modifier = Modifier.size(16.dp)) },
                     onClick = {
                     showMenu = false
                     onEdit()
                 })
                 DropdownMenuItem(
                     text = { Text(Strings.t("duplicate_environment")) },
-                    leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                    leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_content_copy), contentDescription = null, modifier = Modifier.size(16.dp)) },
                     onClick = {
                     showMenu = false
                     onDuplicate()
                 })
                 DropdownMenuItem(
                     text = { Text(Strings.t("rename_environment")) },
-                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                    leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_edit), contentDescription = null, modifier = Modifier.size(16.dp)) },
                     onClick = {
                     showMenu = false
                     onRename()
                 })
                 DropdownMenuItem(
                     text = { Text(Strings.t("delete_environment")) },
-                    leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                    leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_delete), contentDescription = null, modifier = Modifier.size(16.dp)) },
                     onClick = {
                     showMenu = false
                     onDelete()
@@ -3101,7 +3084,7 @@ fun SidebarGitStatusIndicator(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Icon(
-            imageVector = Icons.Default.ForkRight,
+            painter = painterResource(Res.drawable.ic_fork_right),
             contentDescription = Strings.gitSync,
             tint = ClapiColors.Primary,
             modifier = Modifier.size(16.dp),

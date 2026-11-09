@@ -3,6 +3,7 @@ package io.github.crustack.clapi.ui.shared.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,13 +21,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Public
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -45,24 +38,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_add
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_close
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_delete
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_public
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_visibility
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_visibility_off
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.MutableKeyValue
-import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
-import kotlin.math.roundToInt
+import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
+import org.jetbrains.compose.resources.painterResource
 
 /**
  * Global Variables Manager dialog.
@@ -128,8 +126,7 @@ fun GlobalVariablesDialog(state: AppState) {
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        Icons.Default.Public,
+                    Icon(painter = painterResource(Res.drawable.ic_public),
                         contentDescription = null,
                         tint = ClapiColors.Primary,
                         modifier = Modifier.size(20.dp),
@@ -146,7 +143,7 @@ fun GlobalVariablesDialog(state: AppState) {
                         onClick = { cancelDialog() },
                         modifier = Modifier.size(28.dp),
                     ) {
-                        Icon(Icons.Default.Close, Strings.close, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
+                        Icon(painter = painterResource(Res.drawable.ic_close), Strings.close, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
                     }
                 }
 
@@ -241,7 +238,7 @@ fun GlobalVariablesDialog(state: AppState) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        Icon(Icons.Default.Add, null, tint = ClapiColors.Primary, modifier = Modifier.size(14.dp))
+                        Icon(painter = painterResource(Res.drawable.ic_add), null, tint = ClapiColors.Primary, modifier = Modifier.size(14.dp))
                         Text(Strings.addVariable, color = ClapiColors.Primary, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                     }
                 }
@@ -398,7 +395,7 @@ private fun GlobalVariableRow(
                 modifier = Modifier.size(24.dp).testTag("global-var-eye-$index"),
             ) {
                 Icon(
-                    if (showValue) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                    if (showValue) painterResource(Res.drawable.ic_visibility_off) else painterResource(Res.drawable.ic_visibility),
                     contentDescription = if (showValue) Strings.t("hide_value") else Strings.t("show_value"),
                     tint = ClapiColors.OnSurfaceDim,
                     modifier = Modifier.size(14.dp),
@@ -413,8 +410,7 @@ private fun GlobalVariableRow(
             onClick = onDelete,
             modifier = Modifier.size(24.dp).testTag("global-var-delete-$index"),
         ) {
-            Icon(
-                Icons.Default.Delete,
+            Icon(painter = painterResource(Res.drawable.ic_delete),
                 contentDescription = Strings.t("delete_variable"),
                 tint = ClapiColors.Error,
                 modifier = Modifier.size(14.dp),

@@ -1,5 +1,8 @@
 package io.github.crustack.clapi.ui.shared.components
 
+import org.jetbrains.compose.resources.painterResource
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.Canvas
@@ -32,16 +35,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.CloseFullscreen
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.OpenInFull
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
@@ -92,6 +85,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_add
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_close
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_close_fullscreen
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_delete
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_keyboard_arrow_down
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_open_in_full
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_search
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_visibility
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_visibility_off
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.platform.PlatformLazyVerticalScrollbar
 import io.github.crustack.clapi.ui.shared.platform.horizontalResizeCursor
@@ -413,7 +415,7 @@ fun EnvironmentEditDialog(state: AppState) {
                             modifier = Modifier.size(28.dp).testTag("env-dialog-maximize"),
                         ) {
                             Icon(
-                                if (isMaximized) Icons.Default.CloseFullscreen else Icons.Default.OpenInFull,
+                                if (isMaximized) painterResource(Res.drawable.ic_close_fullscreen) else painterResource(Res.drawable.ic_open_in_full),
                                 contentDescription = if (isMaximized) Strings.restoreDialog else Strings.maximizeDialog,
                                 tint = ClapiColors.OnSurfaceDim,
                                 modifier = Modifier.size(16.dp),
@@ -593,7 +595,7 @@ fun EnvironmentEditDialog(state: AppState) {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, tint = ClapiColors.Primary, modifier = Modifier.size(16.dp))
+                            Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = null, tint = ClapiColors.Primary, modifier = Modifier.size(16.dp))
                             Text(Strings.addVariable, color = ClapiColors.Primary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                         }
                     } else {
@@ -627,8 +629,7 @@ fun EnvironmentEditDialog(state: AppState) {
                                         color = ClapiColors.OnSurface,
                                         fontSize = 12.sp,
                                     )
-                                    Icon(
-                                        Icons.Default.KeyboardArrowDown,
+                                    Icon(painter = painterResource(Res.drawable.ic_keyboard_arrow_down),
                                         contentDescription = null,
                                         tint = ClapiColors.OnSurfaceDim,
                                         modifier = Modifier.size(14.dp),
@@ -727,7 +728,7 @@ fun EnvironmentEditDialog(state: AppState) {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, tint = ClapiColors.Primary, modifier = Modifier.size(16.dp))
+                            Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = null, tint = ClapiColors.Primary, modifier = Modifier.size(16.dp))
                             Text("Add Secret", color = ClapiColors.Primary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                         }
                     }
@@ -923,7 +924,7 @@ private fun EnvVariableRow(
         if (kv.secret) {
             IconButton(onClick = { showValue = !showValue }, modifier = Modifier.size(24.dp)) {
                 Icon(
-                    if (showValue) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                    if (showValue) painterResource(Res.drawable.ic_visibility_off) else painterResource(Res.drawable.ic_visibility),
                     contentDescription = null,
                     tint = ClapiColors.OnSurfaceDim,
                     modifier = Modifier.size(14.dp),
@@ -935,7 +936,7 @@ private fun EnvVariableRow(
 
         // Delete
         IconButton(onClick = onDelete, modifier = Modifier.size(24.dp).testTag("env-var-delete-$index")) {
-            Icon(Icons.Default.Delete, contentDescription = Strings.delete, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
+            Icon(painter = painterResource(Res.drawable.ic_delete), contentDescription = Strings.delete, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
         }
     }
 }
@@ -1059,8 +1060,7 @@ private fun EnvExternalSecretRow(
             onClick = onDelete,
             modifier = Modifier.size(24.dp).testTag("env-secret-row-$index-delete"),
         ) {
-            Icon(
-                Icons.Default.Delete,
+            Icon(painter = painterResource(Res.drawable.ic_delete),
                 contentDescription = Strings.delete,
                 tint = ClapiColors.OnSurfaceDim,
                 modifier = Modifier.size(14.dp),
@@ -1094,8 +1094,7 @@ private fun EnvironmentVariableSearch(
             .testTag("env-variable-search"),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            Icons.Default.Search,
+        Icon(painter = painterResource(Res.drawable.ic_search),
             contentDescription = null,
             tint = ClapiColors.OnSurfaceDim,
             modifier = Modifier.size(16.dp),
@@ -1122,8 +1121,7 @@ private fun EnvironmentVariableSearch(
             },
         )
         if (value.text.isNotEmpty()) {
-            Icon(
-                Icons.Default.Close,
+            Icon(painter = painterResource(Res.drawable.ic_close),
                 contentDescription = Strings.clearSearch,
                 tint = ClapiColors.OnSurfaceDim,
                 modifier = Modifier

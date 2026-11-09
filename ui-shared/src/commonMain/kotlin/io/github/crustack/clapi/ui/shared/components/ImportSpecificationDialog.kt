@@ -3,11 +3,9 @@ package io.github.crustack.clapi.ui.shared.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,17 +20,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Assignment
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.FileOpen
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Public
-import androidx.compose.material.icons.filled.UploadFile
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -40,7 +27,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -57,7 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -71,6 +57,15 @@ import io.github.crustack.clapi.core.model.importers.SpecFormat
 import io.github.crustack.clapi.core.model.opencollection.Environment
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
 import io.github.crustack.clapi.core.storage.importers.SpecificationImporter
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_assignment
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_close
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_content_paste
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_description
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_folder
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_public
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_upload_file
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_warning
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.persistence.WorkspaceRepository
 import io.github.crustack.clapi.ui.shared.persistence.toCollectionNode
@@ -84,6 +79,7 @@ import io.github.crustack.clapi.ui.shared.theme.ClapiColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.painterResource
 
 private val WarningColor = Color(0xFFF59E0B)
 
@@ -158,8 +154,7 @@ fun ImportSpecificationDialog(
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        Icons.Default.UploadFile,
+                    Icon(painter = painterResource(Res.drawable.ic_upload_file),
                         contentDescription = null,
                         tint = ClapiColors.Primary,
                         modifier = Modifier.size(20.dp),
@@ -196,8 +191,7 @@ fun ImportSpecificationDialog(
                         onClick = onDismiss,
                         modifier = Modifier.size(28.dp),
                     ) {
-                        Icon(
-                            Icons.Default.Close,
+                        Icon(painter = painterResource(Res.drawable.ic_close),
                             contentDescription = Strings.close,
                             tint = ClapiColors.OnSurfaceDim,
                             modifier = Modifier.size(16.dp)
@@ -220,7 +214,7 @@ fun ImportSpecificationDialog(
                             text = Strings.importTabFile,
                             isFile,
                             testTag = "import-tab-file",
-                            icon = Icons.Default.UploadFile
+                            icon = painterResource(Res.drawable.ic_upload_file)
                         ) { sourceType = ImportSourceType.FILE }
 
                         Spacer(Modifier.width(8.dp))
@@ -230,7 +224,7 @@ fun ImportSpecificationDialog(
                             text = Strings.importTabClipboard,
                             isClipboard,
                             testTag = "import-tab-clipboard",
-                            icon = Icons.Default.ContentPaste
+                            icon = painterResource(Res.drawable.ic_content_paste)
                         ) {
                             sourceType = ImportSourceType.CLIPBOARD
                             clipboardContent = readFromClipboard()
@@ -255,8 +249,7 @@ fun ImportSpecificationDialog(
                                 verticalArrangement = Arrangement.Center,
                             ) {
                                 if (selectedFileName != null && fileContent != null) {
-                                    Icon(
-                                        Icons.Default.Description,
+                                    Icon(painter = painterResource(Res.drawable.ic_description),
                                         contentDescription = null,
                                         tint = ClapiColors.Primary,
                                         modifier = Modifier.size(48.dp),
@@ -286,8 +279,7 @@ fun ImportSpecificationDialog(
                                         Text(Strings.t("import_remove_file").ifBlank { "Remove" })
                                     }
                                 } else {
-                                    Icon(
-                                        Icons.Default.UploadFile,
+                                    Icon(painter = painterResource(Res.drawable.ic_upload_file),
                                         contentDescription = null,
                                         tint = ClapiColors.OnSurfaceDim,
                                         modifier = Modifier.size(48.dp),
@@ -330,8 +322,7 @@ fun ImportSpecificationDialog(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center,
                             ) {
-                                Icon(
-                                    Icons.Default.Assignment,
+                                Icon(painter = painterResource(Res.drawable.ic_assignment),
                                     contentDescription = null,
                                     tint = if (!clipboardContent.isNullOrBlank()) ClapiColors.Primary else ClapiColors.OnSurfaceDim,
                                     modifier = Modifier.size(48.dp),
@@ -377,8 +368,7 @@ fun ImportSpecificationDialog(
                                 .testTag("import-scan-error"),
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Default.Warning,
+                                Icon(painter = painterResource(Res.drawable.ic_warning),
                                     contentDescription = null,
                                     tint = ClapiColors.Error,
                                     modifier = Modifier.size(16.dp),
@@ -518,8 +508,7 @@ fun ImportSpecificationDialog(
                                         modifier = Modifier.testTag("import-folder-check-${cFolder.id}"),
                                     )
                                     Spacer(Modifier.width(4.dp))
-                                    Icon(
-                                        Icons.Default.Folder,
+                                    Icon(painter = painterResource(Res.drawable.ic_folder),
                                         contentDescription = null,
                                         tint = ClapiColors.Primary,
                                         modifier = Modifier.size(16.dp)
@@ -595,8 +584,7 @@ fun ImportSpecificationDialog(
                                         modifier = Modifier.testTag("import-env-check-${cEnv.id}"),
                                     )
                                     Spacer(Modifier.width(4.dp))
-                                    Icon(
-                                        Icons.Default.Public,
+                                    Icon(painter = painterResource(Res.drawable.ic_public),
                                         contentDescription = null,
                                         tint = ClapiColors.Primary,
                                         modifier = Modifier.size(16.dp)
@@ -723,7 +711,7 @@ fun ImportSpecificationDialog(
 fun ImportTypeButton(
     text: String,
     selected: Boolean,
-    icon: ImageVector,
+    icon: Painter,
     testTag: String? = null,
     onClick: () -> Unit
 ) {

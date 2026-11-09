@@ -19,11 +19,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ForkRight
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -53,6 +48,11 @@ import androidx.compose.ui.window.Dialog
 import io.github.crustack.clapi.core.storage.git.GitChangeKind
 import io.github.crustack.clapi.core.storage.git.GitConflictException
 import io.github.crustack.clapi.core.storage.git.GitErrorTranslator
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_close
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_fork_right
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_keyboard_arrow_down
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_keyboard_arrow_right
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.persistence.WorkspaceRepository
 import io.github.crustack.clapi.ui.shared.platform.ioDispatcher
@@ -62,6 +62,7 @@ import io.github.crustack.clapi.ui.shared.theme.ClapiColors
 import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun GitSyncDialog(
@@ -213,8 +214,7 @@ fun GitSyncDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Icon(
-                        Icons.Default.ForkRight,
+                    Icon(painter = painterResource(Res.drawable.ic_fork_right),
                         contentDescription = null,
                         tint = ClapiColors.Primary,
                         modifier = Modifier.size(20.dp),
@@ -238,8 +238,7 @@ fun GitSyncDialog(
                     onClick = onDismiss,
                     modifier = Modifier.size(24.dp).testTag("git-sync-close-icon"),
                 ) {
-                    Icon(
-                        Icons.Default.Close,
+                    Icon(painter = painterResource(Res.drawable.ic_close),
                         contentDescription = Strings.close,
                         tint = ClapiColors.OnSurfaceDim,
                         modifier = Modifier.size(16.dp),
@@ -355,7 +354,7 @@ fun GitSyncDialog(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
                                 Icon(
-                                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    painter = if (isExpanded) painterResource(Res.drawable.ic_keyboard_arrow_down) else painterResource(Res.drawable.ic_keyboard_arrow_right),
                                     contentDescription = null,
                                     tint = ClapiColors.OnSurfaceDim,
                                     modifier = Modifier.size(16.dp),

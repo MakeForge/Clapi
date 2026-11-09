@@ -16,8 +16,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -43,6 +41,8 @@ import io.github.crustack.clapi.core.model.McpContent
 import io.github.crustack.clapi.core.model.McpCreateMessageRequest
 import io.github.crustack.clapi.core.model.McpCreateMessageResult
 import io.github.crustack.clapi.core.model.McpElicitRequest
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_arrow_drop_down
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.mcp.McpPendingElicitation
 import io.github.crustack.clapi.ui.shared.mcp.McpPendingSampling
@@ -50,8 +50,9 @@ import io.github.crustack.clapi.ui.shared.mcp.McpSessionState
 import io.github.crustack.clapi.ui.shared.mcp.mcpPrettyJson
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
-import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
+import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun McpWorkspaceResponse(state: AppState, tab: RequestTabState) {
@@ -342,8 +343,7 @@ private fun CallbackDropdown(
                 fontFamily = CodeFontFamily,
                 modifier = Modifier.weight(1f),
             )
-            Icon(
-                Icons.Default.ArrowDropDown,
+            Icon(painter = painterResource(Res.drawable.ic_arrow_drop_down),
                 contentDescription = null,
                 tint = ClapiColors.OnSurfaceDim,
                 modifier = Modifier.size(18.dp),

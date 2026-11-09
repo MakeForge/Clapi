@@ -102,7 +102,6 @@ kotlin {
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
-            implementation(compose.materialIconsExtended)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
 
@@ -151,4 +150,8 @@ tasks.matching {
 tasks.withType<Test>().configureEach {
     useJUnit()
     systemProperty("java.util.prefs.userRoot", layout.buildDirectory.dir("tmp/prefs").get().asFile.absolutePath)
+}
+
+compose.resources {
+    packageOfResClass = "io.github.crustack.clapi.ui.shared.generated.resources"
 }

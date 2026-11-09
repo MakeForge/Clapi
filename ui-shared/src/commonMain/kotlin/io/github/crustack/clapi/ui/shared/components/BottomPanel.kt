@@ -1,5 +1,8 @@
 package io.github.crustack.clapi.ui.shared.components
 
+import org.jetbrains.compose.resources.painterResource
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -25,12 +28,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ScrollableTabRow
@@ -46,6 +43,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_check_circle
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_close
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_content_copy
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_keyboard_arrow_down
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_keyboard_arrow_up
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.BottomTab
@@ -82,7 +84,7 @@ fun BottomPanel(state: AppState) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                if (state.bottomPanelExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                if (state.bottomPanelExpanded) painterResource(Res.drawable.ic_keyboard_arrow_down) else painterResource(Res.drawable.ic_keyboard_arrow_up),
                 contentDescription = Strings.t("toggle_bottom_panel"),
                 tint = ClapiColors.OnSurfaceDim,
                 modifier = Modifier.size(16.dp),
@@ -169,8 +171,7 @@ fun BottomPanel(state: AppState) {
                     },
                     modifier = Modifier.size(24.dp),
                 ) {
-                    Icon(
-                        Icons.Default.ContentCopy,
+                    Icon(painter = painterResource(Res.drawable.ic_content_copy),
                         contentDescription = copyOutputLabel,
                         tint = ClapiColors.OnSurfaceDim,
                         modifier = Modifier.size(14.dp),
@@ -184,7 +185,7 @@ fun BottomPanel(state: AppState) {
                         BottomTab.LOGS         -> state.networkEventLogs.clear()
                     }
                 }, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = Strings.t("clear"), tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
+                    Icon(painter = painterResource(Res.drawable.ic_close), contentDescription = Strings.t("clear"), tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
                 }
             }
         }
@@ -342,8 +343,7 @@ private fun TestResultsView(results: List<TestResultEntry>) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Icon(
-                        Icons.Default.CheckCircle,
+                    Icon(painter = painterResource(Res.drawable.ic_check_circle),
                         contentDescription = null,
                         tint = if (result.passed) ClapiColors.Secondary else ClapiColors.Error,
                         modifier = Modifier.size(14.dp),

@@ -22,11 +22,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Article
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -44,13 +39,13 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerHoverIcon
@@ -58,21 +53,26 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.graphics.SolidColor
 import io.github.crustack.clapi.core.model.RequestKind
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_add
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_article
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_close
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_folder
 import io.github.crustack.clapi.ui.shared.i18n.Strings
+import io.github.crustack.clapi.ui.shared.platform.horizontalResizeCursor
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
 import io.github.crustack.clapi.ui.shared.state.hasSseAccept
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
 import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
-import io.github.crustack.clapi.ui.shared.platform.horizontalResizeCursor
+import org.jetbrains.compose.resources.painterResource
 
 /**
  * The horizontal tab bar that shows all open request tabs with a "+" button.
@@ -150,8 +150,7 @@ fun RequestTabsBar(
                 onClick = { state.addTabInSelectedCollection() },
                 modifier = Modifier.size(28.dp).padding(end = 4.dp),
             ) {
-                Icon(
-                    Icons.Default.Add,
+                Icon(painter = painterResource(Res.drawable.ic_add),
                     contentDescription = Strings.t("new_tab"),
                     tint = ClapiColors.OnSurfaceDim,
                     modifier = Modifier.size(16.dp),
@@ -219,15 +218,13 @@ private fun RequestTabChip(
             } else if (tab.kind == RequestKind.GRPC) {
                 GrpcBadge(compact = true, modifier = Modifier.testTag("tab-grpc-badge-${tab.id}"))
             } else if (tab.kind == RequestKind.FOLDER) {
-                Icon(
-                    Icons.Default.Folder,
+                Icon(painter = painterResource(Res.drawable.ic_folder),
                     contentDescription = null,
                     tint = ClapiColors.Tertiary,
                     modifier = Modifier.size(14.dp).testTag("tab-folder-icon-${tab.id}"),
                 )
             } else if (tab.kind == RequestKind.COLLECTION) {
-                Icon(
-                    Icons.Default.Article,
+                Icon(painter = painterResource(Res.drawable.ic_article),
                     contentDescription = null,
                     tint = ClapiColors.Tertiary,
                     modifier = Modifier.size(14.dp).testTag("tab-collection-icon-${tab.id}"),
@@ -298,8 +295,7 @@ private fun RequestTabChip(
                 )
             }
             if (showClose && (isActive || isHovered)) {
-                Icon(
-                    Icons.Default.Close,
+                Icon(painter = painterResource(Res.drawable.ic_close),
                     contentDescription = Strings.t("close_tab"),
                     tint = ClapiColors.OnSurfaceDim,
                     modifier = Modifier
