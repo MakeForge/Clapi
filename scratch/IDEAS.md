@@ -57,7 +57,7 @@ Status: Done
 - In OpenCollection export the HashiCorp Vault credentials will not be included, only the environment's externalSecrets with path, name etc.
 
 ## Variable secret true
-Status: TODO
+Status: Done
 - in OpenCollection schema a variable can have `secret` field set to true, then the variable has no inline value
 - instead, if this variable is used, at runtime its value will be resolved, in order:
   1. Is there an process env variable with that exact name?
