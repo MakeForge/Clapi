@@ -29,6 +29,8 @@ import io.github.crustack.clapi.editor.ui.SyntaxHighlighterRegistry
 import io.github.crustack.clapi.core.model.ResponseDefinition
 import io.github.crustack.clapi.core.model.opencollection.ClientCertificate
 import io.github.crustack.clapi.core.model.opencollection.Description
+import io.github.crustack.clapi.core.model.opencollection.OAuth2CredentialsPlacement
+import io.github.crustack.clapi.core.model.opencollection.OAuth2Flow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -99,6 +101,17 @@ data class ResolvedFolderAuth(
     val apiKey: String? = null,
     val apiValue: String? = null,
     val apiPlacement: String? = null,
+    val oauth2Flow: OAuth2Flow = OAuth2Flow.CLIENT_CREDENTIALS,
+    val oauth2AccessTokenUrl: String? = null,
+    val oauth2RefreshTokenUrl: String? = null,
+    val oauth2AuthorizationUrl: String? = null,
+    val oauth2RedirectUri: String? = null,
+    val oauth2Scope: String? = null,
+    val oauth2ClientId: String? = null,
+    val oauth2ClientSecret: String? = null,
+    val oauth2CredentialsPlacement: OAuth2CredentialsPlacement = OAuth2CredentialsPlacement.BASIC_AUTH_HEADER,
+    val oauth2Username: String? = null,
+    val oauth2Password: String? = null,
 )
 
 data class HistoryItem(
@@ -141,6 +154,17 @@ data class CollectionNode(
     val authApiKey: String? = null,
     val authApiValue: String? = null,
     val authApiPlacement: String? = null,
+    val authOAuth2Flow: OAuth2Flow = OAuth2Flow.CLIENT_CREDENTIALS,
+    val authOAuth2AccessTokenUrl: String? = null,
+    val authOAuth2RefreshTokenUrl: String? = null,
+    val authOAuth2AuthorizationUrl: String? = null,
+    val authOAuth2RedirectUri: String? = null,
+    val authOAuth2Scope: String? = null,
+    val authOAuth2ClientId: String? = null,
+    val authOAuth2ClientSecret: String? = null,
+    val authOAuth2CredentialsPlacement: OAuth2CredentialsPlacement = OAuth2CredentialsPlacement.BASIC_AUTH_HEADER,
+    val authOAuth2Username: String? = null,
+    val authOAuth2Password: String? = null,
     val requestRef: String? = null,
     val kind: RequestKind = RequestKind.HTTP,
     val mcpConfig: McpConnectionConfig? = null,
@@ -438,6 +462,23 @@ class RequestTabState(
     var authApiKey    by mutableStateOf("")
     var authApiValue  by mutableStateOf("")
     var authApiPlacement by mutableStateOf("header")
+    var authOAuth2Flow by mutableStateOf(OAuth2Flow.CLIENT_CREDENTIALS)
+    var authOAuth2AccessTokenUrl by mutableStateOf("")
+    var authOAuth2RefreshTokenUrl by mutableStateOf("")
+    var authOAuth2AuthorizationUrl by mutableStateOf("")
+    var authOAuth2RedirectUri by mutableStateOf("")
+    var authOAuth2Scope by mutableStateOf("")
+    var authOAuth2ClientId by mutableStateOf("")
+    var authOAuth2ClientSecret by mutableStateOf("")
+    var authOAuth2CredentialsPlacement by mutableStateOf(OAuth2CredentialsPlacement.BASIC_AUTH_HEADER)
+    var authOAuth2Username by mutableStateOf("")
+    var authOAuth2Password by mutableStateOf("")
+    var authOAuth2AccessToken by mutableStateOf("")
+    var authOAuth2RefreshToken by mutableStateOf("")
+    var authOAuth2IdToken by mutableStateOf("")
+    var authOAuth2ExpiresAtEpochMs by mutableStateOf<Long?>(null)
+    var authOAuth2IsFetching by mutableStateOf(false)
+    var authOAuth2FetchError by mutableStateOf<String?>(null)
 
     var preRequestScript by mutableStateOf("")
     var testScript       by mutableStateOf("")
@@ -601,6 +642,17 @@ class RequestTabState(
             authApiKey,
             authApiValue,
             authApiPlacement,
+            authOAuth2Flow.name,
+            authOAuth2AccessTokenUrl,
+            authOAuth2RefreshTokenUrl,
+            authOAuth2AuthorizationUrl,
+            authOAuth2RedirectUri,
+            authOAuth2Scope,
+            authOAuth2ClientId,
+            authOAuth2ClientSecret,
+            authOAuth2CredentialsPlacement.name,
+            authOAuth2Username,
+            authOAuth2Password,
             preRequestScript,
             testScript,
             retryEnabled.toString(),
@@ -1365,6 +1417,17 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         node?.authApiKey?.takeIf { it.isNotBlank() }?.let { tab.authApiKey = it }
         node?.authApiValue?.takeIf { it.isNotBlank() }?.let { tab.authApiValue = it }
         tab.authApiPlacement = normalizeApiKeyPlacement(node?.authApiPlacement)
+        node?.authOAuth2Flow?.let { tab.authOAuth2Flow = it }
+        node?.authOAuth2AccessTokenUrl?.takeIf { it.isNotBlank() }?.let { tab.authOAuth2AccessTokenUrl = it }
+        node?.authOAuth2RefreshTokenUrl?.takeIf { it.isNotBlank() }?.let { tab.authOAuth2RefreshTokenUrl = it }
+        node?.authOAuth2AuthorizationUrl?.takeIf { it.isNotBlank() }?.let { tab.authOAuth2AuthorizationUrl = it }
+        node?.authOAuth2RedirectUri?.takeIf { it.isNotBlank() }?.let { tab.authOAuth2RedirectUri = it }
+        node?.authOAuth2Scope?.takeIf { it.isNotBlank() }?.let { tab.authOAuth2Scope = it }
+        node?.authOAuth2ClientId?.takeIf { it.isNotBlank() }?.let { tab.authOAuth2ClientId = it }
+        node?.authOAuth2ClientSecret?.takeIf { it.isNotBlank() }?.let { tab.authOAuth2ClientSecret = it }
+        node?.authOAuth2CredentialsPlacement?.let { tab.authOAuth2CredentialsPlacement = it }
+        node?.authOAuth2Username?.takeIf { it.isNotBlank() }?.let { tab.authOAuth2Username = it }
+        node?.authOAuth2Password?.takeIf { it.isNotBlank() }?.let { tab.authOAuth2Password = it }
         node?.headerEntries?.let { entries ->
             tab.headers.clear()
             tab.headers.addAll(entries.map { entry ->
@@ -1469,6 +1532,17 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         folderNode.authApiKey?.takeIf { it.isNotBlank() }?.let { tab.authApiKey = it }
         folderNode.authApiValue?.takeIf { it.isNotBlank() }?.let { tab.authApiValue = it }
         tab.authApiPlacement = normalizeApiKeyPlacement(folderNode.authApiPlacement)
+        folderNode.authOAuth2Flow.let { tab.authOAuth2Flow = it }
+        folderNode.authOAuth2AccessTokenUrl?.takeIf { it.isNotBlank() }?.let { tab.authOAuth2AccessTokenUrl = it }
+        folderNode.authOAuth2RefreshTokenUrl?.takeIf { it.isNotBlank() }?.let { tab.authOAuth2RefreshTokenUrl = it }
+        folderNode.authOAuth2AuthorizationUrl?.takeIf { it.isNotBlank() }?.let { tab.authOAuth2AuthorizationUrl = it }
+        folderNode.authOAuth2RedirectUri?.takeIf { it.isNotBlank() }?.let { tab.authOAuth2RedirectUri = it }
+        folderNode.authOAuth2Scope?.takeIf { it.isNotBlank() }?.let { tab.authOAuth2Scope = it }
+        folderNode.authOAuth2ClientId?.takeIf { it.isNotBlank() }?.let { tab.authOAuth2ClientId = it }
+        folderNode.authOAuth2ClientSecret?.takeIf { it.isNotBlank() }?.let { tab.authOAuth2ClientSecret = it }
+        folderNode.authOAuth2CredentialsPlacement.let { tab.authOAuth2CredentialsPlacement = it }
+        folderNode.authOAuth2Username?.takeIf { it.isNotBlank() }?.let { tab.authOAuth2Username = it }
+        folderNode.authOAuth2Password?.takeIf { it.isNotBlank() }?.let { tab.authOAuth2Password = it }
         folderNode.preRequestScript?.takeIf { it.isNotBlank() }?.let { tab.preRequestScript = it }
         folderNode.testScript?.takeIf { it.isNotBlank() }?.let { tab.testScript = it }
 
@@ -1552,6 +1626,17 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         tab.authApiKey = target.authApiKey ?: ""
         tab.authApiValue = target.authApiValue ?: ""
         tab.authApiPlacement = target.authApiPlacement ?: "header"
+        tab.authOAuth2Flow = target.authOAuth2Flow
+        tab.authOAuth2AccessTokenUrl = target.authOAuth2AccessTokenUrl ?: ""
+        tab.authOAuth2RefreshTokenUrl = target.authOAuth2RefreshTokenUrl ?: ""
+        tab.authOAuth2AuthorizationUrl = target.authOAuth2AuthorizationUrl ?: ""
+        tab.authOAuth2RedirectUri = target.authOAuth2RedirectUri ?: ""
+        tab.authOAuth2Scope = target.authOAuth2Scope ?: ""
+        tab.authOAuth2ClientId = target.authOAuth2ClientId ?: ""
+        tab.authOAuth2ClientSecret = target.authOAuth2ClientSecret ?: ""
+        tab.authOAuth2CredentialsPlacement = target.authOAuth2CredentialsPlacement
+        tab.authOAuth2Username = target.authOAuth2Username ?: ""
+        tab.authOAuth2Password = target.authOAuth2Password ?: ""
         tab.preRequestScript = target.preRequestScript ?: ""
         tab.testScript = target.testScript ?: ""
 
@@ -1701,6 +1786,17 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                     apiKey = folder.authApiKey,
                     apiValue = folder.authApiValue,
                     apiPlacement = folder.authApiPlacement,
+                    oauth2Flow = folder.authOAuth2Flow,
+                    oauth2AccessTokenUrl = folder.authOAuth2AccessTokenUrl,
+                    oauth2RefreshTokenUrl = folder.authOAuth2RefreshTokenUrl,
+                    oauth2AuthorizationUrl = folder.authOAuth2AuthorizationUrl,
+                    oauth2RedirectUri = folder.authOAuth2RedirectUri,
+                    oauth2Scope = folder.authOAuth2Scope,
+                    oauth2ClientId = folder.authOAuth2ClientId,
+                    oauth2ClientSecret = folder.authOAuth2ClientSecret,
+                    oauth2CredentialsPlacement = folder.authOAuth2CredentialsPlacement,
+                    oauth2Username = folder.authOAuth2Username,
+                    oauth2Password = folder.authOAuth2Password,
                 )
             }
         }
@@ -2607,6 +2703,17 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                     authApiKey = tab.authApiKey.ifBlank { null },
                     authApiValue = tab.authApiValue.ifBlank { null },
                     authApiPlacement = normalizeApiKeyPlacement(tab.authApiPlacement),
+                    authOAuth2Flow = tab.authOAuth2Flow,
+                    authOAuth2AccessTokenUrl = tab.authOAuth2AccessTokenUrl.ifBlank { null },
+                    authOAuth2RefreshTokenUrl = tab.authOAuth2RefreshTokenUrl.ifBlank { null },
+                    authOAuth2AuthorizationUrl = tab.authOAuth2AuthorizationUrl.ifBlank { null },
+                    authOAuth2RedirectUri = tab.authOAuth2RedirectUri.ifBlank { null },
+                    authOAuth2Scope = tab.authOAuth2Scope.ifBlank { null },
+                    authOAuth2ClientId = tab.authOAuth2ClientId.ifBlank { null },
+                    authOAuth2ClientSecret = tab.authOAuth2ClientSecret.ifBlank { null },
+                    authOAuth2CredentialsPlacement = tab.authOAuth2CredentialsPlacement,
+                    authOAuth2Username = tab.authOAuth2Username.ifBlank { null },
+                    authOAuth2Password = tab.authOAuth2Password.ifBlank { null },
                     preRequestScript = tab.preRequestScript.ifBlank { null },
                     testScript = tab.testScript.ifBlank { null },
                 )
@@ -2665,6 +2772,17 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                     authApiKey         = tab.authApiKey.ifBlank { null },
                     authApiValue       = tab.authApiValue.ifBlank { null },
                     authApiPlacement   = normalizeApiKeyPlacement(tab.authApiPlacement),
+                    authOAuth2Flow     = tab.authOAuth2Flow,
+                    authOAuth2AccessTokenUrl = tab.authOAuth2AccessTokenUrl.ifBlank { null },
+                    authOAuth2RefreshTokenUrl = tab.authOAuth2RefreshTokenUrl.ifBlank { null },
+                    authOAuth2AuthorizationUrl = tab.authOAuth2AuthorizationUrl.ifBlank { null },
+                    authOAuth2RedirectUri = tab.authOAuth2RedirectUri.ifBlank { null },
+                    authOAuth2Scope    = tab.authOAuth2Scope.ifBlank { null },
+                    authOAuth2ClientId = tab.authOAuth2ClientId.ifBlank { null },
+                    authOAuth2ClientSecret = tab.authOAuth2ClientSecret.ifBlank { null },
+                    authOAuth2CredentialsPlacement = tab.authOAuth2CredentialsPlacement,
+                    authOAuth2Username = tab.authOAuth2Username.ifBlank { null },
+                    authOAuth2Password = tab.authOAuth2Password.ifBlank { null },
                     userHeaders        = userHeadersSnapshot,
                     queryEntries       = queryEntriesSnapshot,
                     headerEntries      = headerEntriesSnapshot,
