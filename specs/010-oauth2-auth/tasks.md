@@ -86,13 +86,13 @@ description: "Task list for OAuth2 authentication implementation"
 
 ### Tests for User Story 3
 
-- [ ] T015 [P] [US3] Create unit/pipeline tests for token pre-flight validation and auto-refresh in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/OAuth2ExecutionPipelineTest.kt`.
+- [x] T015 [P] [US3] Create unit/pipeline tests for token pre-flight validation and auto-refresh in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/OAuth2ExecutionPipelineTest.kt`.
 
 ### Implementation for User Story 3
 
-- [ ] T016 [US3] Update `buildAuthConfig` and `prepareTabRequest` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt` to construct `AuthConfig(type = AuthType.OAUTH2, params = ...)` from direct or inherited OAuth2 properties.
-- [ ] T017 [US3] Implement OAuth2 pre-execution token validation and auto-refresh interceptor in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt` that checks validity, attempts refresh token or primary grant if invalid, updates tab state, and injects `Authorization: Bearer <token>`.
-- [ ] T018 [US3] Update `HttpExecutionAdapter.kt` in `feature-requests/src/commonMain/kotlin/io/github/crustack/clapi/feature/requests/HttpExecutionAdapter.kt` and `KtorApiClient.kt` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/KtorApiClient.kt` to ensure resolved OAuth2 bearer tokens attach correctly when executed via standalone adapter.
+- [x] T016 [US3] Update `buildAuthConfig` and `prepareTabRequest` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt` to construct `AuthConfig(type = AuthType.OAUTH2, params = ...)` from direct or inherited OAuth2 properties.
+- [x] T017 [US3] Implement OAuth2 pre-execution token validation and auto-refresh interceptor in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt` that checks validity, attempts refresh token or primary grant if invalid, updates tab state, and injects `Authorization: Bearer <token>`.
+- [x] T018 [US3] Update `HttpExecutionAdapter.kt` in `feature-requests/src/commonMain/kotlin/io/github/crustack/clapi/feature/requests/HttpExecutionAdapter.kt` and `KtorApiClient.kt` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/KtorApiClient.kt` to ensure resolved OAuth2 bearer tokens attach correctly when executed via standalone adapter.
 
 **Checkpoint**: User Stories 1, 2, and 3 work seamlessly together.
 
@@ -106,8 +106,8 @@ description: "Task list for OAuth2 authentication implementation"
 
 ### Implementation & Tests for User Story 4
 
-- [ ] T019 [US4] Implement `OAuth2IntegrationTest.kt` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/OAuth2IntegrationTest.kt` covering Client Credentials flow, Resource Owner Password flow, Refresh Token grant, and protected endpoint access against the Keycloak test realm.
-- [ ] T020 [US4] Add end-to-end request execution test in `OAuth2IntegrationTest.kt` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/OAuth2IntegrationTest.kt` verifying automatic token acquisition and expiration refresh before calling protected endpoints.
+- [x] T019 [US4] Implement `OAuth2IntegrationTest.kt` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/OAuth2IntegrationTest.kt` covering Client Credentials flow, Resource Owner Password flow, Refresh Token grant, and protected endpoint access against the Keycloak test realm.
+- [x] T020 [US4] Add end-to-end request execution test in `OAuth2IntegrationTest.kt` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/OAuth2IntegrationTest.kt` verifying automatic token acquisition and expiration refresh before calling protected endpoints.
 
 **Checkpoint**: All user stories have complete automated test coverage.
 
@@ -117,9 +117,9 @@ description: "Task list for OAuth2 authentication implementation"
 
 **Purpose**: Documentation, legacy test updates, and end-to-end validation across the application.
 
-- [ ] T021 [P] Update `FEATURES.md` and documentation in `docs/` reflecting full OAuth2 authentication support.
+- [x] T021 [P] Update `FEATURES.md` and documentation in `docs/` reflecting full OAuth2 authentication support.
 - [x] T022 [P] Update legacy UI test in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/QaFixesUiTest.kt` (which previously asserted that OAuth2 was hidden) to verify that OAuth2 is now visible and selectable.
-- [ ] T023 Run validation scenarios in `specs/010-oauth2-auth/quickstart.md` and execute `./gradlew test` across all affected modules.
+- [x] T023 Run validation scenarios in `specs/010-oauth2-auth/quickstart.md` and execute `./gradlew test` across all affected modules.
 
 ---
 

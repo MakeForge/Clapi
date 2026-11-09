@@ -18,6 +18,7 @@ kotlin {
                 implementation(project(":core-storage"))
                 implementation(project(":core-network"))
                 implementation(project(":feature-requests"))
+                implementation(project(":ui-shared"))
                 implementation(project(":sample-server"))
                 implementation(libs.kotlin.test)
                 implementation(libs.coroutines.test)

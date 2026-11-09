@@ -246,6 +246,7 @@ class KtorApiClient(
             AuthType.OAUTH2 -> {
                 val accessToken = VariableResolver.resolve(auth.params["accessToken"].orEmpty(), variableLayers)
                 if (accessToken.isNotBlank()) {
+                    builder.headers.remove(HttpHeaders.Authorization)
                     builder.header(HttpHeaders.Authorization, "Bearer $accessToken")
                 }
             }
