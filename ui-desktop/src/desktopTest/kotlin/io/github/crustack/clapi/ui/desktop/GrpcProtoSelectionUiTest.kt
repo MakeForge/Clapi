@@ -113,4 +113,21 @@ class GrpcProtoSelectionUiTest {
         // Verify collection proto file is displayed in dialog
         composeRule.onNodeWithTag("proto-dialog-collection-item-/shared/protos/greeter.proto").assertIsDisplayed()
     }
+
+    @Test
+    fun selectProtoFileDialog_displays_builtin_types_hint_and_link() {
+        composeRule.setContent {
+            ClapiTheme {
+                SelectProtoFileDialog(
+                    currentProtoFilePath = null,
+                    onSave = {},
+                    onDismiss = {},
+                )
+            }
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("proto-dialog-builtin-hint").assertIsDisplayed()
+        composeRule.onNodeWithTag("proto-dialog-builtin-link").assertIsDisplayed()
+    }
 }
