@@ -282,11 +282,17 @@ class MutableExternalSecret(
     path: String = "",
     description: String = "",
     enabled: Boolean = true,
+    url: String = "",
+    targetField: String = "password",
+    customFilters: Map<String, String> = emptyMap(),
 ) {
     var name by mutableStateOf(name)
     var path by mutableStateOf(path)
     var description by mutableStateOf(description)
     var enabled by mutableStateOf(enabled)
+    var url by mutableStateOf(url)
+    var targetField by mutableStateOf(targetField)
+    val customFilters = mutableStateMapOf<String, String>().also { it.putAll(customFilters) }
 }
 
 class ProtoFileItemState(

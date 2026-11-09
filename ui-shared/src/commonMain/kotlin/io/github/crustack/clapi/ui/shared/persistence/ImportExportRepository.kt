@@ -212,22 +212,44 @@ object ImportExportRepository {
                 if (key.isNotEmpty()) put(key, v.value)
             }
         }
+        val isKeePassXc = environment.externalSecretsProvider.equals("keepassxc", ignoreCase = true)
         val extSecretsJson = if (environment.externalSecrets.isNotEmpty()) {
             buildJsonObject {
                 put("type", environment.externalSecretsProvider.ifBlank { "hashicorp-vault-server" })
                 put("variables", buildJsonArray {
                     environment.externalSecrets.forEach { sec ->
-                        if (sec.name.isNotBlank() && sec.path.isNotBlank()) {
-                            add(buildJsonObject {
-                                put("name", sec.name.trim())
-                                put("path", sec.path.trim())
-                                if (sec.description.isNotBlank()) {
-                                    put("description", sec.description.trim())
-                                }
-                                if (!sec.enabled) {
-                                    put("disabled", true)
-                                }
-                            })
+                        if (isKeePassXc) {
+                            if (sec.name.isNotBlank() && sec.url.isNotBlank()) {
+                                add(buildJsonObject {
+                                    put("name", sec.name.trim())
+                                    put("url", sec.url.trim())
+                                    put("targetField", sec.targetField.ifBlank { "password" }.trim())
+                                    if (sec.customFilters.isNotEmpty()) {
+                                        put("customFilters", buildJsonObject {
+                                            sec.customFilters.forEach { (k, v) -> put(k, v) }
+                                        })
+                                    }
+                                    if (sec.description.isNotBlank()) {
+                                        put("description", sec.description.trim())
+                                    }
+                                    if (!sec.enabled) {
+                                        put("disabled", true)
+                                    }
+                                })
+                            }
+                        } else {
+                            if (sec.name.isNotBlank() && sec.path.isNotBlank()) {
+                                add(buildJsonObject {
+                                    put("name", sec.name.trim())
+                                    put("path", sec.path.trim())
+                                    if (sec.description.isNotBlank()) {
+                                        put("description", sec.description.trim())
+                                    }
+                                    if (!sec.enabled) {
+                                        put("disabled", true)
+                                    }
+                                })
+                            }
                         }
                     }
                 })
@@ -257,10 +279,24 @@ object ImportExportRepository {
             val obj = el.jsonObject
             val secName = obj["name"]?.jsonPrimitive?.contentOrNull.orEmpty()
             val path = obj["path"]?.jsonPrimitive?.contentOrNull.orEmpty()
+            val url = obj["url"]?.jsonPrimitive?.contentOrNull.orEmpty()
+            val targetField = obj["targetField"]?.jsonPrimitive?.contentOrNull ?: "password"
+            val customFiltersObj = obj["customFilters"]?.jsonObject
+            val customFilters = customFiltersObj?.mapValues { it.value.jsonPrimitive.contentOrNull.orEmpty() } ?: emptyMap()
             val desc = obj["description"]?.jsonPrimitive?.contentOrNull.orEmpty()
             val disabled = obj["disabled"]?.jsonPrimitive?.booleanOrNull == true
-            if (secName.isNotBlank() && path.isNotBlank()) {
-                secretsList.add(MutableExternalSecret(secName, path, desc, !disabled))
+            if (secName.isNotBlank() && (path.isNotBlank() || url.isNotBlank())) {
+                secretsList.add(
+                    MutableExternalSecret(
+                        name = secName,
+                        path = path,
+                        description = desc,
+                        enabled = !disabled,
+                        url = url,
+                        targetField = targetField,
+                        customFilters = customFilters,
+                    )
+                )
             }
         }
         return ClapiEnvironmentDto(

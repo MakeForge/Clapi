@@ -20,8 +20,8 @@
 
 **Purpose**: Dependency configuration and build setup for `keepassxc-proxy-access` library
 
-- [ ] T001 Add `keepassxc-proxy-access` dependency (`org.purejava:keepassxc-proxy-access:1.3.2`) in `gradle/libs.versions.toml`
-- [ ] T002 Add `libs.keepassxc.proxy.access` dependency to `desktopMain.dependencies` in `core-network/build.gradle.kts`
+- [X] T001 Add `keepassxc-proxy-access` dependency (`org.purejava:keepassxc-proxy-access:1.3.2`) in `gradle/libs.versions.toml`
+- [X] T002 Add `libs.keepassxc.proxy.access` dependency to `desktopMain.dependencies` in `core-network/build.gradle.kts`
 
 ---
 
@@ -31,12 +31,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this foundational phase is complete
 
-- [ ] T003 Add `KEEPASSXC("keepassxc")` enum value to `ExternalSecretType` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`
-- [ ] T004 Implement `KeePassXcExternalSecret` data class (`name: String`, `url: String`, `targetField: String = "password"`, `customFilters: Map<String, String> = emptyMap()`, `description: Description? = null`, `disabled: Boolean? = null`) implementing `ExternalSecretVariable` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`
-- [ ] T005 Update `ExternalSecretVariableSerializer` polymorphic deserializer in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionEnvironment.kt` to deserialize `KeePassXcExternalSecret` when `url`, `targetField`, or `customFilters` properties are present
-- [ ] T006 [P] Add unit tests for `ExternalSecretType.KEEPASSXC` and `KeePassXcExternalSecret` JSON and YAML round-trip serialization in `core-storage/src/commonTest/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionExternalSecretsTest.kt`
-- [ ] T007 [P] Define `KeePassXcEntry`, `KeePassXcStatus`, and `KeePassXcClient` interface in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/keepassxc/KeePassXcClient.kt`
-- [ ] T008 Implement `PureJavaKeePassXcClient` using `org.purejava.KeepassProxyAccess` with workstation association persistence in `core-network/src/desktopMain/kotlin/io/github/crustack/clapi/core/network/keepassxc/PureJavaKeePassXcClient.kt`
+- [X] T003 Add `KEEPASSXC("keepassxc")` enum value to `ExternalSecretType` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`
+- [X] T004 Implement `KeePassXcExternalSecret` data class (`name: String`, `url: String`, `targetField: String = "password"`, `customFilters: Map<String, String> = emptyMap()`, `description: Description? = null`, `disabled: Boolean? = null`) implementing `ExternalSecretVariable` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`
+- [X] T005 Update `ExternalSecretVariableSerializer` polymorphic deserializer in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionEnvironment.kt` to deserialize `KeePassXcExternalSecret` when `url`, `targetField`, or `customFilters` properties are present
+- [X] T006 [P] Add unit tests for `ExternalSecretType.KEEPASSXC` and `KeePassXcExternalSecret` JSON and YAML round-trip serialization in `core-storage/src/commonTest/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionExternalSecretsTest.kt`
+- [X] T007 [P] Define `KeePassXcEntry`, `KeePassXcStatus`, and `KeePassXcClient` interface in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/keepassxc/KeePassXcClient.kt`
+- [X] T008 Implement `PureJavaKeePassXcClient` using `org.purejava.KeepassProxyAccess` with workstation association persistence in `core-network/src/desktopMain/kotlin/io/github/crustack/clapi/core/network/keepassxc/PureJavaKeePassXcClient.kt`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -49,16 +49,16 @@
 **Independent Test**: Open Environment Editor -> External Secrets tab, select `keepassxc`, add a secret with Entry URL `https://test.api.payment.internal` and Target Field `password`, verify that the match indicator displays `✔ 1 entry matched` with zero credential values rendered or logged, and save the environment.
 
 ### Tests for User Story 1
-- [ ] T009 [P] [US1] Create unit tests for KeePassXC entry matching, custom filter filtering, and non-leaking match counting in `core-network/src/commonTest/kotlin/io/github/crustack/clapi/core/network/keepassxc/KeePassXcClientTest.kt`
-- [ ] T010 [P] [US1] Create unit tests for `MutableExternalSecret` and `EnvState` KeePassXC mapping in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/EnvironmentEditorSecretsTest.kt`
+- [X] T009 [P] [US1] Create unit tests for KeePassXC entry matching, custom filter filtering, and non-leaking match counting in `core-network/src/commonTest/kotlin/io/github/crustack/clapi/core/network/keepassxc/KeePassXcClientTest.kt`
+- [X] T010 [P] [US1] Create unit tests for `MutableExternalSecret` and `EnvState` KeePassXC mapping in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/EnvironmentEditorSecretsTest.kt`
 
 ### Implementation for User Story 1
-- [ ] T011 [US1] Extend `MutableExternalSecret` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` with `url: String`, `targetField: String = "password"`, and `customFilters: SnapshotStateMap<String, String>`
-- [ ] T012 [US1] Update `Environment.toEnvState()` and `EnvState.toOpenCollectionEnvironment()` mapping in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to map `KeePassXcExternalSecret` to/from `MutableExternalSecret`
-- [ ] T013 [US1] Update `ClapiEnvironmentDto` and persistence serialization in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/ImportExportRepository.kt` to serialize `url`, `targetField`, and `customFilters`
-- [ ] T014 [US1] Add `keepassxc` ("KeePassXC") to the provider dropdown options in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/EnvironmentEditDialog.kt`
-- [ ] T015 [US1] Implement secret configuration rows for KeePassXC in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/EnvironmentEditDialog.kt` (Name, Entry URL, Target Field, expandable Custom Field Filters table, Description, and Enabled toggle)
-- [ ] T016 [US1] Implement asynchronous, non-leaking entry match count indicator in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/EnvironmentEditDialog.kt` querying matching count with variable interpolation from active environment variables
+- [X] T011 [US1] Extend `MutableExternalSecret` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` with `url: String`, `targetField: String = "password"`, and `customFilters: SnapshotStateMap<String, String>`
+- [X] T012 [US1] Update `Environment.toEnvState()` and `EnvState.toOpenCollectionEnvironment()` mapping in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to map `KeePassXcExternalSecret` to/from `MutableExternalSecret`
+- [X] T013 [US1] Update `ClapiEnvironmentDto` and persistence serialization in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/ImportExportRepository.kt` to serialize `url`, `targetField`, and `customFilters`
+- [X] T014 [US1] Add `keepassxc` ("KeePassXC") to the provider dropdown options in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/EnvironmentEditDialog.kt`
+- [X] T015 [US1] Implement secret configuration rows for KeePassXC in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/EnvironmentEditDialog.kt` (Name, Entry URL, Target Field, expandable Custom Field Filters table, Description, and Enabled toggle)
+- [X] T016 [US1] Implement asynchronous, non-leaking entry match count indicator in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/EnvironmentEditDialog.kt` querying matching count with variable interpolation from active environment variables
 
 **Checkpoint**: User Story 1 is functional and testable independently (MVP ready).
 
