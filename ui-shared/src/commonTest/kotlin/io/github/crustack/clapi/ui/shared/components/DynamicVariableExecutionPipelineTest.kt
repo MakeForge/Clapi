@@ -144,4 +144,69 @@ class DynamicVariableExecutionPipelineTest {
         assertNotNull(tab.lastError)
         assertTrue(tab.lastError!!.contains("OAuth2 authentication"), "Expected OAuth2 error, got: ${tab.lastError}")
     }
+
+    @Test
+    fun grpc_request_metadata_authorization_resolves_oauth2_access_token() = runTest {
+        val state = AppState()
+        val tab = RequestTabState(
+            url = "localhost:50051",
+            kind = io.github.crustack.clapi.core.model.RequestKind.GRPC,
+        )
+        tab.authType = AuthType.OAUTH2
+        tab.authOAuth2AccessToken = "grpc-valid-access-token"
+        tab.authOAuth2ExpiresAtEpochMs = currentTimeMillis() + 60_000L
+        tab.grpcMetadata.add(MutableKeyValue("authorization", "Bearer {{_auth.oauth2.accessToken}}"))
+
+        val fakeClient = FakeOAuth2TokenClient()
+        val textsToScan = tab.grpcMetadata.flatMap { listOf(it.key, it.value) }
+
+        val resolved = resolveDynamicVariablesForTab(
+            state = state,
+            tab = tab,
+            textsToScan = textsToScan,
+            variableLayers = emptyList(),
+            tokenClient = fakeClient,
+        )
+
+        assertNotNull(resolved)
+        assertEquals("grpc-valid-access-token", resolved["_auth.oauth2.accessToken"])
+
+        val grpcCallRequest = resolveGrpcCallRequest(
+            tab = tab,
+            state = state,
+            requestScopedVars = resolved,
+            urlOverride = "localhost:50051",
+            metadataOverride = tab.grpcMetadata.map { io.github.crustack.clapi.core.model.KeyValueEntry(it.key, it.value) },
+            bodyOverride = "{}",
+        )
+
+        val authHeader = grpcCallRequest.metadata.firstOrNull { it.first.equals("authorization", ignoreCase = true) }
+        assertNotNull(authHeader, "Metadata must contain authorization header")
+        assertEquals("Bearer grpc-valid-access-token", authHeader.second)
+    }
+
+    @Test
+    fun grpc_request_halts_with_error_when_oauth2_is_not_enabled() = runTest {
+        val state = AppState()
+        val tab = RequestTabState(
+            url = "localhost:50051",
+            kind = io.github.crustack.clapi.core.model.RequestKind.GRPC,
+        )
+        tab.protoFilePath = "/tmp/fake.proto"
+        tab.grpcMethod = "Greeter/SayHello"
+        tab.authType = AuthType.NONE
+        tab.grpcMetadata.add(MutableKeyValue("authorization", "Bearer {{_auth.oauth2.accessToken}}"))
+
+        state.openTabs.add(tab)
+        state.activeTabIndex = 0
+
+        val fakeClient = FakeOAuth2TokenClient()
+
+        sendRequest(this, state, tab, tokenClient = fakeClient)
+        tab.currentJob?.join()
+
+        assertFalse(tab.isLoading)
+        assertNotNull(tab.lastError)
+        assertTrue(tab.lastError!!.contains("OAuth2 authentication"), "Expected OAuth2 error, got: ${tab.lastError}")
+    }
 }

@@ -65,15 +65,15 @@
 
 ### Tests for User Story 2
 
-- [ ] T014 [P] [US2] Pipeline test for gRPC metadata resolution with `{{_auth.oauth2.accessToken}}` in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/DynamicVariableExecutionPipelineTest.kt`
-- [ ] T015 [P] [US2] E2E integration test `resolves_oauth2_access_token_in_grpc_metadata_authorization` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/GrpcApiE2ETest.kt` running against `DummyApiServer`
+- [X] T014 [P] [US2] Pipeline test for gRPC metadata resolution with `{{_auth.oauth2.accessToken}}` in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/DynamicVariableExecutionPipelineTest.kt`
+- [X] T015 [P] [US2] E2E integration test `resolves_oauth2_access_token_in_grpc_metadata_authorization` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/GrpcApiE2ETest.kt` running against `DummyApiServer`
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Add `AUTH("Auth")` entry to `enum class GrpcEditorTab` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt`
-- [ ] T017 [US2] Update `GrpcEditorTabBar` and editor routing in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GrpcRequestEditor.kt` to include `GrpcEditorTab.AUTH` with `Res.drawable.ic_lock` and render `AuthEditor(tab, state)`
-- [ ] T018 [US2] Include OAuth2 configuration fields from `tab` and inherited auth in gRPC `textsToScan` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt`
-- [ ] T019 [US2] Integrate `dynamicVariableRegistry.resolveDynamicVariables(...)` into gRPC execution in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt`, merging resolved tokens into `mergedScopedVars` and halting execution on error before invoking `grpcClient.executeUnary`
+- [X] T016 [US2] Add `AUTH("Auth")` entry to `enum class GrpcEditorTab` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt`
+- [X] T017 [US2] Update `GrpcEditorTabBar` and editor routing in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GrpcRequestEditor.kt` to include `GrpcEditorTab.AUTH` with `Res.drawable.ic_lock` and render `AuthEditor(tab, state)`
+- [X] T018 [US2] Include OAuth2 configuration fields from `tab` and inherited auth in gRPC `textsToScan` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt`
+- [X] T019 [US2] Integrate `dynamicVariableRegistry.resolveDynamicVariables(...)` into gRPC execution in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt`, merging resolved tokens into `mergedScopedVars` and halting execution on error before invoking `grpcClient.executeUnary`
 
 **Checkpoint**: User Story 2 complete. Both HTTP and gRPC requests resolve `{{_auth.oauth2.accessToken}}` on execution.
 
@@ -87,12 +87,12 @@
 
 ### Tests for User Story 3
 
-- [ ] T020 [P] [US3] Unit tests for `DynamicVariableRegistry` in `core-network/src/commonTest/kotlin/io/github/crustack/clapi/core/network/dynamicvar/DynamicVariableRegistryTest.kt` verifying custom provider registration, unregistration, multiple provider execution order, and error handling
+- [X] T020 [P] [US3] Unit tests for `DynamicVariableRegistry` in `core-network/src/commonTest/kotlin/io/github/crustack/clapi/core/network/dynamicvar/DynamicVariableRegistryTest.kt` verifying custom provider registration, unregistration, multiple provider execution order, and error handling
 
 ### Implementation for User Story 3
 
-- [ ] T021 [US3] Refactor and verify `DynamicVariableRegistry` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/dynamicvar/DynamicVariableRegistry.kt` to ensure thread-safe provider list management and clean provider discovery API
-- [ ] T022 [US3] Expose `DynamicVariableRegistry` singleton or configurable instance on `AppState` / `RequestExecutionService` for clean extension
+- [X] T021 [US3] Refactor and verify `DynamicVariableRegistry` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/dynamicvar/DynamicVariableRegistry.kt` to ensure thread-safe provider list management and clean provider discovery API
+- [X] T022 [US3] Expose `DynamicVariableRegistry` singleton or configurable instance on `AppState` / `RequestExecutionService` for clean extension
 
 **Checkpoint**: User Story 3 complete. Dynamic variable resolution is modular and decoupled.
 
@@ -106,13 +106,13 @@
 
 ### Tests for User Story 4
 
-- [ ] T023 [P] [US4] Unit test in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/components/VariableHighlightSecretsTest.kt` (or new test file) verifying `getAvailableVariables` includes `_auth.oauth2.accessToken` when OAuth2 is active and excludes it when inactive
+- [X] T023 [P] [US4] Unit test in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/components/VariableHighlightSecretsTest.kt` (or new test file) verifying `getAvailableVariables` includes `_auth.oauth2.accessToken` when OAuth2 is active and excludes it when inactive
 
 ### Implementation for User Story 4
 
-- [ ] T024 [US4] Update `getAvailableVariables` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/VariableHighlight.kt` to append `_auth.oauth2.accessToken` when effective auth is OAuth2
-- [ ] T025 [US4] Update `definedNames` calculation in `VariableHighlight.kt` to include `_auth.oauth2.accessToken` when effective auth is OAuth2
-- [ ] T026 [US4] Add `"AUTH"` badge styling in `VariableDropdownList` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/VariableHighlight.kt` for variables with prefix `_auth.`
+- [X] T024 [US4] Update `getAvailableVariables` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/VariableHighlight.kt` to append `_auth.oauth2.accessToken` when effective auth is OAuth2
+- [X] T025 [US4] Update `definedNames` calculation in `VariableHighlight.kt` to include `_auth.oauth2.accessToken` when effective auth is OAuth2
+- [X] T026 [US4] Add `"AUTH"` badge styling in `VariableDropdownList` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/VariableHighlight.kt` for variables with prefix `_auth.`
 
 **Checkpoint**: User Story 4 complete. Dynamic variable authoring in UI has full autocomplete and visual distinction.
 
@@ -122,8 +122,8 @@
 
 **Purpose**: End-to-end verification and regression testing
 
-- [ ] T027 Run quickstart validation test scenarios from `specs/011-oauth2-token-variable/quickstart.md`
-- [ ] T028 Run full test suite `./gradlew check` across all modules to verify no regressions
+- [X] T027 Run quickstart validation test scenarios from `specs/011-oauth2-token-variable/quickstart.md`
+- [X] T028 Run full test suite `./gradlew check` across all modules to verify no regressions
 
 ---
 

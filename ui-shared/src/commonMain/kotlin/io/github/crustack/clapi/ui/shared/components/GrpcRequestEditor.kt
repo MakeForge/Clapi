@@ -59,6 +59,7 @@ import io.github.crustack.clapi.ui.shared.generated.resources.Res
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_arrow_drop_down
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_code
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_description
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_lock
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_play_arrow
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_save
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_send
@@ -231,6 +232,11 @@ fun GrpcRequestEditor(
                 GrpcEditorTab.HEADERS -> KeyValueEditor(
                     entries = tab.grpcMetadata,
                     tag = "metadata",
+                    state = state,
+                    onDirty = markDirty,
+                )
+                GrpcEditorTab.AUTH -> AuthEditor(
+                    tab = tab,
                     state = state,
                     onDirty = markDirty,
                 )
@@ -677,6 +683,11 @@ private fun GrpcEditorTabBar(
                     ) {
                         when (tab) {
                             GrpcEditorTab.MESSAGE -> Icon(painter = painterResource(Res.drawable.ic_code),
+                                contentDescription = null,
+                                tint = if (selected) ClapiColors.Primary else ClapiColors.OnSurfaceVariant,
+                                modifier = Modifier.size(14.dp),
+                            )
+                            GrpcEditorTab.AUTH -> Icon(painter = painterResource(Res.drawable.ic_lock),
                                 contentDescription = null,
                                 tint = if (selected) ClapiColors.Primary else ClapiColors.OnSurfaceVariant,
                                 modifier = Modifier.size(14.dp),

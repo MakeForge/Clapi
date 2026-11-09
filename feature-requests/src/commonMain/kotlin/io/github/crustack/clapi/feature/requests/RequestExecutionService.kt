@@ -17,6 +17,7 @@ import io.github.crustack.clapi.core.network.getEnvironmentVariable
 import io.github.crustack.clapi.core.network.grpc.DynamicGrpcClient
 import io.github.crustack.clapi.core.network.grpc.GrpcCallRequest
 import io.github.crustack.clapi.core.network.grpc.GrpcCallResponse
+import io.github.crustack.clapi.core.network.dynamicvar.DynamicVariableRegistry
 import io.github.crustack.clapi.core.network.grpc.parseGrpcEndpoint
 import io.github.crustack.clapi.core.network.vault.SecretDeclaration
 import io.github.crustack.clapi.core.network.vault.SecretResolutionService
@@ -27,6 +28,7 @@ class RequestExecutionService(
     private val adapter: HttpExecutionAdapter = DefaultHttpExecutionAdapter,
     private val grpcClient: DynamicGrpcClient? = null,
     private val secretResolutionService: SecretResolutionService = SecretResolutionService(),
+    val dynamicVariableRegistry: DynamicVariableRegistry = DynamicVariableRegistry(),
 ) {
     suspend fun resolveSecrets(
         texts: Iterable<String>,

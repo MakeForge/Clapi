@@ -115,7 +115,7 @@ internal fun sendRequestInternal(
     tokenClient: OAuth2TokenClient = KtorOAuth2TokenClient(),
 ) {
     if (tab.kind == RequestKind.GRPC) {
-        sendGrpcRequestInternal(scope, state, tab, chainDepth)
+        sendGrpcRequestInternal(scope, state, tab, chainDepth, tokenClient = tokenClient)
         return
     }
 
@@ -569,6 +569,7 @@ private fun sendGrpcRequestInternal(
     state: AppState,
     tab: RequestTabState,
     chainDepth: Int,
+    tokenClient: OAuth2TokenClient = KtorOAuth2TokenClient(),
 ) {
     if (tab.url.isBlank()) {
         tab.lastError = "URL is empty"
@@ -700,9 +701,51 @@ private fun sendGrpcRequestInternal(
         tab.protoFilePath?.let { textsToScan.add(it) }
         tab.grpcMethod?.let { textsToScan.add(it) }
 
+        textsToScan.add(tab.authOAuth2AccessTokenUrl)
+        textsToScan.add(tab.authOAuth2RefreshTokenUrl)
+        textsToScan.add(tab.authOAuth2ClientId)
+        textsToScan.add(tab.authOAuth2ClientSecret)
+        textsToScan.add(tab.authOAuth2Username)
+        textsToScan.add(tab.authOAuth2Password)
+        textsToScan.add(tab.authOAuth2RedirectUri)
+        textsToScan.add(tab.authOAuth2Scope)
+        if (tab.authType == AuthType.INHERIT) {
+            val resolvedAuth = state.resolveInheritedAuth(tab)
+            if (resolvedAuth != null) {
+                resolvedAuth.username?.let { textsToScan.add(it) }
+                resolvedAuth.password?.let { textsToScan.add(it) }
+                resolvedAuth.token?.let { textsToScan.add(it) }
+                resolvedAuth.apiKey?.let { textsToScan.add(it) }
+                resolvedAuth.apiValue?.let { textsToScan.add(it) }
+                resolvedAuth.oauth2ClientId?.let { textsToScan.add(it) }
+                resolvedAuth.oauth2ClientSecret?.let { textsToScan.add(it) }
+                resolvedAuth.oauth2Username?.let { textsToScan.add(it) }
+                resolvedAuth.oauth2Password?.let { textsToScan.add(it) }
+                resolvedAuth.oauth2AccessTokenUrl?.let { textsToScan.add(it) }
+                resolvedAuth.oauth2RefreshTokenUrl?.let { textsToScan.add(it) }
+                resolvedAuth.oauth2AuthorizationUrl?.let { textsToScan.add(it) }
+                resolvedAuth.oauth2RedirectUri?.let { textsToScan.add(it) }
+                resolvedAuth.oauth2Scope?.let { textsToScan.add(it) }
+            }
+        }
+
         val resolvedSecrets = resolveExternalSecretsForTab(state, tab, textsToScan) ?: return@launch
-        val mergedScopedVars = if (resolvedSecrets.isNotEmpty()) {
-            requestScopedScriptVars + resolvedSecrets
+        val baseVariableLayers = if (resolvedSecrets.isNotEmpty()) {
+            listOf(resolvedSecrets) + state.activeVariableLayers(tab)
+        } else {
+            state.activeVariableLayers(tab)
+        }
+
+        val resolvedDynamicVars = resolveDynamicVariablesForTab(
+            state = state,
+            tab = tab,
+            textsToScan = textsToScan,
+            variableLayers = baseVariableLayers,
+            tokenClient = tokenClient,
+        ) ?: return@launch
+
+        val mergedScopedVars = if (resolvedSecrets.isNotEmpty() || resolvedDynamicVars.isNotEmpty()) {
+            requestScopedScriptVars + resolvedSecrets + resolvedDynamicVars
         } else {
             requestScopedScriptVars
         }
@@ -1647,7 +1690,7 @@ internal suspend fun resolveDynamicVariablesForTab(
     tab: RequestTabState,
     textsToScan: Iterable<String>,
     variableLayers: List<Map<String, String>>,
-    registry: DynamicVariableRegistry = DynamicVariableRegistry(),
+    registry: DynamicVariableRegistry = state.dynamicVariableRegistry,
     tokenClient: OAuth2TokenClient = KtorOAuth2TokenClient(),
 ): Map<String, String>? {
     val context = buildDynamicVariableContext(state, tab, variableLayers, tokenClient)

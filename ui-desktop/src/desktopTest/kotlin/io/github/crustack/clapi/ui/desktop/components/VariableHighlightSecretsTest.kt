@@ -1,12 +1,16 @@
 package io.github.crustack.clapi.ui.desktop.components
 
+import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.ui.shared.components.getAvailableVariables
 import io.github.crustack.clapi.ui.shared.state.AppState
+import io.github.crustack.clapi.ui.shared.state.CollectionNode
 import io.github.crustack.clapi.ui.shared.state.EnvState
 import io.github.crustack.clapi.ui.shared.state.MutableExternalSecret
 import io.github.crustack.clapi.ui.shared.state.MutableKeyValue
+import io.github.crustack.clapi.ui.shared.state.RequestTabState
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class VariableHighlightSecretsTest {
@@ -119,5 +123,46 @@ class VariableHighlightSecretsTest {
 
         val varsWithNullState = getAvailableVariables(null, null)
         assertTrue(varsWithNullState.isEmpty())
+    }
+
+    @Test
+    fun getAvailableVariables_includes_oauth2_access_token_when_oauth2_configured_on_tab() {
+        val state = AppState()
+        val tab = RequestTabState(url = "https://example.com")
+        tab.authType = AuthType.OAUTH2
+
+        val vars = getAvailableVariables(state, tab)
+        assertTrue(vars.any { it.first == "_auth.oauth2.accessToken" })
+    }
+
+    @Test
+    fun getAvailableVariables_excludes_oauth2_access_token_when_auth_is_none() {
+        val state = AppState()
+        val tab = RequestTabState(url = "https://example.com")
+        tab.authType = AuthType.NONE
+
+        val vars = getAvailableVariables(state, tab)
+        assertFalse(vars.any { it.first == "_auth.oauth2.accessToken" })
+    }
+
+    @Test
+    fun getAvailableVariables_includes_oauth2_access_token_when_inherited_from_collection() {
+        val state = AppState()
+        val collection = CollectionNode(
+            id = "col-1",
+            name = "Auth Collection",
+            authType = AuthType.OAUTH2,
+            authOAuth2AccessTokenUrl = "https://auth.example.com/token",
+        )
+        state.collections.add(collection)
+
+        val tab = RequestTabState(
+            url = "https://example.com",
+            collectionId = "col-1",
+        )
+        tab.authType = AuthType.INHERIT
+
+        val vars = getAvailableVariables(state, tab)
+        assertTrue(vars.any { it.first == "_auth.oauth2.accessToken" })
     }
 }
