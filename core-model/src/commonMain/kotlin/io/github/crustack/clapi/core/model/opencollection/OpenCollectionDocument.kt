@@ -1,5 +1,6 @@
 package io.github.crustack.clapi.core.model.opencollection
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
@@ -42,10 +43,28 @@ data class ProxyConfig(
 )
 
 @Serializable
+enum class ProtoFileType(val value: String) {
+    @SerialName("file")
+    FILE("file");
+
+    override fun toString(): String = value
+
+    companion object {
+        fun fromValue(value: String?): ProtoFileType? =
+            entries.firstOrNull { it.value.equals(value, ignoreCase = true) }
+    }
+}
+
+@Serializable
 data class ProtoFile(
-    val type: String = "file",
+    val type: ProtoFileType = ProtoFileType.FILE,
     val path: String,
-)
+) {
+    constructor(type: String, path: String) : this(
+        type = ProtoFileType.fromValue(type) ?: ProtoFileType.FILE,
+        path = path
+    )
+}
 
 @Serializable
 data class ProtoFileImportPath(

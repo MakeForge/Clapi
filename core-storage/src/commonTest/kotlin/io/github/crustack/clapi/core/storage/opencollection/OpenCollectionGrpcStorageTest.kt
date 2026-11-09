@@ -5,6 +5,7 @@ import io.github.crustack.clapi.core.model.opencollection.CollectionInfo
 import io.github.crustack.clapi.core.model.opencollection.FolderInfo
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
 import io.github.crustack.clapi.core.model.opencollection.GrpcMetadata
+import io.github.crustack.clapi.core.model.opencollection.GrpcMethodType
 import io.github.crustack.clapi.core.model.opencollection.GrpcRequestDetails
 import io.github.crustack.clapi.core.model.opencollection.GrpcRequestInfo
 import io.github.crustack.clapi.core.model.opencollection.GrpcRequestItem
@@ -12,8 +13,10 @@ import io.github.crustack.clapi.core.model.opencollection.GrpcRequestRuntime
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestDetails
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestInfo
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestItem
+import io.github.crustack.clapi.core.model.opencollection.ItemType
 import io.github.crustack.clapi.core.model.opencollection.OpenCollectionDocument
 import io.github.crustack.clapi.core.model.opencollection.Script
+import io.github.crustack.clapi.core.model.opencollection.ScriptType
 import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -95,10 +98,10 @@ class OpenCollectionGrpcStorageTest {
 
         val grpcItem = assertIs<GrpcRequestItem>(folder.items[0])
         assertEquals("SayHello", grpcItem.info.name)
-        assertEquals("grpc", grpcItem.info.type)
+        assertEquals(ItemType.GRPC, grpcItem.info.type)
         assertEquals("grpc://localhost:50051", grpcItem.grpc.url)
         assertEquals("helloworld.Greeter/SayHello", grpcItem.grpc.method)
-        assertEquals("unary", grpcItem.grpc.methodType)
+        assertEquals(GrpcMethodType.UNARY, grpcItem.grpc.methodType)
         assertEquals("greeter.proto", grpcItem.grpc.protoFilePath)
         assertEquals("{\n  \"name\": \"World\"\n}", grpcItem.grpc.message)
 
@@ -115,9 +118,9 @@ class OpenCollectionGrpcStorageTest {
 
         val scripts = grpcItem.runtime?.scripts.orEmpty()
         assertEquals(2, scripts.size)
-        assertEquals("before-request", scripts[0].type)
+        assertEquals(ScriptType.BEFORE_REQUEST, scripts[0].type)
         assertEquals("console.log('pre');", scripts[0].code)
-        assertEquals("after-response", scripts[1].type)
+        assertEquals(ScriptType.AFTER_RESPONSE, scripts[1].type)
         assertEquals("console.log('post');", scripts[1].code)
     }
 
@@ -132,7 +135,7 @@ class OpenCollectionGrpcStorageTest {
         assertEquals("SayHello", grpcItem.info.name)
         assertEquals("grpc://localhost:50051", grpcItem.grpc.url)
         assertEquals("helloworld.Greeter/SayHello", grpcItem.grpc.method)
-        assertEquals("unary", grpcItem.grpc.methodType)
+        assertEquals(GrpcMethodType.UNARY, grpcItem.grpc.methodType)
         assertEquals("greeter.proto", grpcItem.grpc.protoFilePath)
         assertEquals("{\n  \"name\": \"World\"\n}", grpcItem.grpc.message)
         assertEquals(2, grpcItem.grpc.metadata.size)

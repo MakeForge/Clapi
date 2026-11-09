@@ -5,10 +5,12 @@ import io.github.crustack.clapi.core.model.opencollection.FileBody
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
 import io.github.crustack.clapi.core.model.opencollection.FormUrlEncodedBody
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestItem
+import io.github.crustack.clapi.core.model.opencollection.HttpRequestParamType
 import io.github.crustack.clapi.core.model.opencollection.MultipartFormBody
 import io.github.crustack.clapi.core.model.opencollection.OpenCollectionDocument
 import io.github.crustack.clapi.core.model.opencollection.OpenCollectionItem
 import io.github.crustack.clapi.core.model.opencollection.RawBody
+import io.github.crustack.clapi.core.model.opencollection.RequestBodyType
 import io.github.crustack.clapi.core.model.opencollection.RegularVariable
 import io.github.crustack.clapi.core.model.opencollection.SecretVariable
 import io.github.crustack.clapi.core.storage.opencollection.OpenCollectionSerializer
@@ -217,7 +219,7 @@ object OpenApiExporter {
 
         // Add path parameters
         for (paramName in pathParamNames) {
-            val matchingParam = item.http.params.firstOrNull { it.name == paramName && it.type == "path" }
+            val matchingParam = item.http.params.firstOrNull { it.name == paramName && it.type == HttpRequestParamType.PATH }
             parametersList.add(buildJsonObject {
                 put("name", paramName)
                 put("in", "path")
@@ -230,7 +232,7 @@ object OpenApiExporter {
         }
 
         // Add query parameters
-        val queryParams = item.http.params.filter { it.type == "query" }
+        val queryParams = item.http.params.filter { it.type == HttpRequestParamType.QUERY }
         val handledQueryParamNames = mutableSetOf<String>()
         for (param in queryParams) {
             val name = param.name.trim()
@@ -318,9 +320,9 @@ object OpenApiExporter {
         return when (body) {
             is RawBody -> {
                 val data = body.data.trim()
-                val contentType = when (body.type.lowercase()) {
-                    "xml" -> "application/xml"
-                    "text" -> "text/plain"
+                val contentType = when (body.type) {
+                    RequestBodyType.XML -> "application/xml"
+                    RequestBodyType.TEXT -> "text/plain"
                     else -> "application/json"
                 }
                 buildJsonObject {

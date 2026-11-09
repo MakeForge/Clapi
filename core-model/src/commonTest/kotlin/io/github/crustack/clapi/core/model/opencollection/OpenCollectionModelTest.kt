@@ -75,12 +75,12 @@ class OpenCollectionModelTest {
 
         val folder = assertIs<FolderItem>(decoded.items[0])
         assertEquals("Users", folder.info.name)
-        assertEquals("folder", folder.info.type)
+        assertEquals(ItemType.FOLDER, folder.info.type)
         assertEquals(1, folder.items.size)
 
         val request = assertIs<HttpRequestItem>(folder.items[0])
         assertEquals("Get Users", request.info.name)
-        assertEquals("http", request.info.type)
+        assertEquals(ItemType.HTTP, request.info.type)
         assertEquals("GET", request.http.method)
         assertEquals("{{baseUrl}}/users", request.http.url)
 
@@ -158,10 +158,104 @@ class OpenCollectionModelTest {
         assertNotNull(decoded.protobuf)
         assertEquals(1, decoded.protobuf!!.protoFiles.size)
         assertEquals("/path/to/service.proto", decoded.protobuf!!.protoFiles[0].path)
-        assertEquals("file", decoded.protobuf!!.protoFiles[0].type)
+        assertEquals(ProtoFileType.FILE, decoded.protobuf!!.protoFiles[0].type)
         assertEquals(2, decoded.protobuf!!.importPaths.size)
         assertEquals("/path/to/imports", decoded.protobuf!!.importPaths[0].path)
         assertEquals(false, decoded.protobuf!!.importPaths[0].disabled)
         assertEquals(true, decoded.protobuf!!.importPaths[1].disabled)
+    }
+
+    @Test
+    fun testOpenCollectionEnumSerializationRoundTrip() {
+        val env = Environment(
+            name = "TestEnv",
+            externalSecrets = ExternalSecrets(
+                type = ExternalSecretType.HASHICORP_VAULT_SERVER,
+                variables = listOf(
+                    HashicorpVaultExternalSecret(name = "secret1", path = "secret/data/app")
+                )
+            ),
+            clientCertificates = listOf(
+                PemCertificate(
+                    domain = "api.example.com",
+                    type = CertificateType.PEM,
+                    certificateFilePath = "/path/to/cert.pem",
+                    privateKeyFilePath = "/path/to/key.pem"
+                )
+            ),
+            variables = listOf(
+                SecretVariable(name = "token", type = VariableType.STRING),
+                RegularVariable(name = "num", value = VariableValue.of(VariableType.NUMBER, "42"))
+            )
+        )
+
+        val encodedEnv = json.encodeToString(Environment.serializer(), env)
+        assertTrue(encodedEnv.contains("\"type\":\"hashicorp-vault-server\""))
+        assertTrue(encodedEnv.contains("\"type\":\"pem\""))
+        assertTrue(encodedEnv.contains("\"type\":\"string\""))
+        assertTrue(encodedEnv.contains("\"type\":\"number\""))
+
+        val decodedEnv = json.decodeFromString(Environment.serializer(), encodedEnv)
+        assertEquals(ExternalSecretType.HASHICORP_VAULT_SERVER, decodedEnv.externalSecrets?.type)
+        val cert = assertIs<PemCertificate>(decodedEnv.clientCertificates[0])
+        assertEquals(CertificateType.PEM, cert.type)
+        val secretVar = assertIs<SecretVariable>(decodedEnv.variables[0])
+        assertEquals(VariableType.STRING, secretVar.type)
+        val numVar = assertIs<RegularVariable>(decodedEnv.variables[1])
+        val typedNum = assertIs<TypedVariableValue>(numVar.value)
+        assertEquals(VariableType.NUMBER, typedNum.type)
+
+        val requestDetails = HttpRequestDetails(
+            method = "POST",
+            url = "https://api.example.com/data",
+            params = listOf(
+                HttpRequestParam(name = "q", value = "search", type = HttpRequestParamType.QUERY)
+            ),
+            body = RawBody(type = RequestBodyType.JSON, data = "{}"),
+            auth = AuthApiKey(key = "X-Api-Key", value = "abc", placement = ApiKeyPlacement.HEADER)
+        )
+        val encodedReq = json.encodeToString(HttpRequestDetails.serializer(), requestDetails)
+        assertTrue(encodedReq.contains("\"type\":\"query\""))
+        assertTrue(encodedReq.contains("\"type\":\"json\""))
+        assertTrue(encodedReq.contains("\"type\":\"apikey\""))
+        assertTrue(encodedReq.contains("\"placement\":\"header\""))
+
+        val decodedReq = json.decodeFromString(HttpRequestDetails.serializer(), encodedReq)
+        assertEquals(HttpRequestParamType.QUERY, decodedReq.params[0].type)
+        val rawBody = assertIs<RawBody>(decodedReq.body)
+        assertEquals(RequestBodyType.JSON, rawBody.type)
+        val apiKeyAuth = assertIs<AuthApiKey>(decodedReq.auth)
+        assertEquals(AuthType.APIKEY, apiKeyAuth.type)
+        assertEquals(ApiKeyPlacement.HEADER, apiKeyAuth.placement)
+
+        val runtime = HttpRequestRuntime(
+            scripts = listOf(
+                Script(type = ScriptType.BEFORE_REQUEST, code = "console.log('before');"),
+                Script(type = ScriptType.AFTER_RESPONSE, code = "console.log('after');")
+            ),
+            actions = listOf(
+                ActionSetVariable(
+                    type = ActionType.SET_VARIABLE,
+                    phase = ActionPhase.AFTER_RESPONSE,
+                    selector = ActionSelector(expression = "data.token", method = ActionSelectorMethod.JSONQ),
+                    variable = ActionTargetVariable(name = "authToken", scope = ActionVariableScope.ENVIRONMENT)
+                )
+            )
+        )
+        val encodedRuntime = json.encodeToString(HttpRequestRuntime.serializer(), runtime)
+        assertTrue(encodedRuntime.contains("\"type\":\"before-request\""))
+        assertTrue(encodedRuntime.contains("\"type\":\"after-response\""))
+        assertTrue(encodedRuntime.contains("\"type\":\"set-variable\""))
+        assertTrue(encodedRuntime.contains("\"phase\":\"after-response\""))
+        assertTrue(encodedRuntime.contains("\"method\":\"jsonq\""))
+        assertTrue(encodedRuntime.contains("\"scope\":\"environment\""))
+
+        val decodedRuntime = json.decodeFromString(HttpRequestRuntime.serializer(), encodedRuntime)
+        assertEquals(ScriptType.BEFORE_REQUEST, decodedRuntime.scripts[0].type)
+        assertEquals(ScriptType.AFTER_RESPONSE, decodedRuntime.scripts[1].type)
+        assertEquals(ActionType.SET_VARIABLE, decodedRuntime.actions[0].type)
+        assertEquals(ActionPhase.AFTER_RESPONSE, decodedRuntime.actions[0].phase)
+        assertEquals(ActionSelectorMethod.JSONQ, decodedRuntime.actions[0].selector.method)
+        assertEquals(ActionVariableScope.ENVIRONMENT, decodedRuntime.actions[0].variable.scope)
     }
 }

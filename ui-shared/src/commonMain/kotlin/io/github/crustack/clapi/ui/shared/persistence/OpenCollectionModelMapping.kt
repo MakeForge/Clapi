@@ -8,6 +8,7 @@ import io.github.crustack.clapi.core.model.HttpMethodType
 import io.github.crustack.clapi.core.model.KeyValueEntry
 import io.github.crustack.clapi.core.model.McpConnectionConfig
 import io.github.crustack.clapi.core.model.RequestKind
+import io.github.crustack.clapi.core.model.opencollection.ApiKeyPlacement
 import io.github.crustack.clapi.core.model.opencollection.AuthApiKey
 import io.github.crustack.clapi.core.model.opencollection.AuthBasic
 import io.github.crustack.clapi.core.model.opencollection.AuthBearer
@@ -17,11 +18,13 @@ import io.github.crustack.clapi.core.model.opencollection.CollectionInfo
 import io.github.crustack.clapi.core.model.opencollection.CollectionProtobufConfig
 import io.github.crustack.clapi.core.model.opencollection.Description
 import io.github.crustack.clapi.core.model.opencollection.Environment
+import io.github.crustack.clapi.core.model.opencollection.ExternalSecretType
 import io.github.crustack.clapi.core.model.opencollection.ExternalSecrets
 import io.github.crustack.clapi.core.model.opencollection.FolderInfo
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
 import io.github.crustack.clapi.core.model.opencollection.FormParamEntry
 import io.github.crustack.clapi.core.model.opencollection.FormUrlEncodedBody
+import io.github.crustack.clapi.core.model.opencollection.GrpcMethodType
 import io.github.crustack.clapi.core.model.opencollection.HashicorpVaultExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestBody
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestDetails
@@ -29,17 +32,21 @@ import io.github.crustack.clapi.core.model.opencollection.HttpRequestHeader
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestInfo
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestItem
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestParam
+import io.github.crustack.clapi.core.model.opencollection.HttpRequestParamType
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestRuntime
 import io.github.crustack.clapi.core.model.opencollection.MultipartFormBody
 import io.github.crustack.clapi.core.model.opencollection.MultipartPartEntry
+import io.github.crustack.clapi.core.model.opencollection.MultipartPartType
 import io.github.crustack.clapi.core.model.opencollection.OpenCollectionDocument
 import io.github.crustack.clapi.core.model.opencollection.OpenCollectionItem
 import io.github.crustack.clapi.core.model.opencollection.ProtoFile
 import io.github.crustack.clapi.core.model.opencollection.ProtoFileImportPath
 import io.github.crustack.clapi.core.model.opencollection.RawBody
+import io.github.crustack.clapi.core.model.opencollection.RequestBodyType
 import io.github.crustack.clapi.core.model.opencollection.RegularVariable
 import io.github.crustack.clapi.core.model.opencollection.RequestDefaults
 import io.github.crustack.clapi.core.model.opencollection.Script
+import io.github.crustack.clapi.core.model.opencollection.ScriptType
 import io.github.crustack.clapi.core.model.opencollection.SecretVariable
 import io.github.crustack.clapi.core.model.opencollection.VariableEntry
 import io.github.crustack.clapi.core.model.opencollection.VariableValue
@@ -291,7 +298,7 @@ fun Environment.toEnvState(): EnvState {
         clientCertificates = clientCertificates,
         extends = extends,
         dotEnvFilePath = dotEnvFilePath,
-        externalSecretsProvider = externalSecrets?.type ?: "hashicorp-vault-server",
+        externalSecretsProvider = externalSecrets?.type?.value ?: "hashicorp-vault-server",
         externalSecrets = extSecrets,
     )
 }
@@ -396,7 +403,7 @@ fun EnvState.mergeFrom(incoming: Environment) {
     }
     incoming.externalSecrets?.let { ext ->
         if (externalSecretsProvider.isBlank()) {
-            externalSecretsProvider = ext.type
+            externalSecretsProvider = ext.type.value
         }
         val existingSecretNames = externalSecrets.map { it.name }.toMutableSet()
         for (sec in ext.variables) {
@@ -514,7 +521,7 @@ fun CollectionNode.toOpenCollectionItem(): OpenCollectionItem {
                 data = formDataEntries.map {
                     MultipartPartEntry(
                         name = it.key,
-                        type = if (it.type == FormEntryType.FILE) "file" else "text",
+                        type = if (it.type == FormEntryType.FILE) MultipartPartType.FILE else MultipartPartType.TEXT,
                         value = JsonPrimitive(it.value),
                         description = if (it.description.isNotBlank()) Description(it.description) else null,
                         disabled = if (it.enabled) null else true
@@ -576,11 +583,11 @@ fun CollectionNode.toOpenCollectionItem(): OpenCollectionItem {
                 null
             }
             return io.github.crustack.clapi.core.model.opencollection.GrpcRequestItem(
-                info = io.github.crustack.clapi.core.model.opencollection.GrpcRequestInfo(name = name, type = "grpc"),
+                info = io.github.crustack.clapi.core.model.opencollection.GrpcRequestInfo(name = name),
                 grpc = io.github.crustack.clapi.core.model.opencollection.GrpcRequestDetails(
                     url = url ?: "",
                     method = grpcMethod,
-                    methodType = grpcMethodType ?: "unary",
+                    methodType = grpcMethodType?.let { GrpcMethodType.fromValue(it) } ?: GrpcMethodType.UNARY,
                     protoFilePath = protoFilePath,
                     metadata = effectiveMetadata,
                     message = bodyContent ?: bodyContents[BodyType.JSON.name] ?: "",
@@ -683,15 +690,15 @@ fun OpenCollectionItem.toCollectionNode(
                     authType = AuthType.API_KEY
                     authApiKey = a.key
                     authApiValue = a.value
-                    authApiPlacement = a.placement
+                    authApiPlacement = a.placement.value
                 }
                 else -> {
                     authType = null
                 }
             }
 
-            val preScript = req?.scripts?.firstOrNull { it.type == "before-request" }?.code
-            val postScript = req?.scripts?.firstOrNull { it.type == "after-response" || it.type == "tests" }?.code
+            val preScript = req?.scripts?.firstOrNull { it.type == ScriptType.BEFORE_REQUEST }?.code
+            val postScript = req?.scripts?.firstOrNull { it.type == ScriptType.AFTER_RESPONSE || it.type == ScriptType.TESTS }?.code
 
             val meta = clapiExt
                 ?: (if (path.isNotEmpty()) clapiRequests?.get(path) as? JsonObject else null)
@@ -793,7 +800,7 @@ fun OpenCollectionItem.toCollectionNode(
                         val strVal = (it.value as? JsonPrimitive)?.content ?: it.value.toString()
                         FormDataEntryState(
                             key = it.name,
-                            type = if (it.type == "file") FormEntryType.FILE else FormEntryType.TEXT,
+                            type = if (it.type == MultipartPartType.FILE) FormEntryType.FILE else FormEntryType.TEXT,
                             value = strVal,
                             description = it.description?.content ?: "",
                             enabled = it.disabled != true
@@ -812,9 +819,9 @@ fun OpenCollectionItem.toCollectionNode(
                     }
                 }
                 is RawBody -> {
-                    bodyType = when (b.type.lowercase()) {
-                        "json" -> BodyType.JSON
-                        "xml" -> BodyType.XML
+                    bodyType = when (b.type) {
+                        RequestBodyType.JSON -> BodyType.JSON
+                        RequestBodyType.XML -> BodyType.XML
                         else -> BodyType.RAW_TEXT
                     }
                     bodyContent = b.data
@@ -850,7 +857,7 @@ fun OpenCollectionItem.toCollectionNode(
                     authType = AuthType.API_KEY
                     authApiKey = a.key
                     authApiValue = a.value
-                    authApiPlacement = a.placement
+                    authApiPlacement = a.placement.value
                 }
                 else -> {
                     authType = AuthType.NONE
@@ -898,8 +905,8 @@ fun OpenCollectionItem.toCollectionNode(
                 }
             }
 
-            val preScript = runtime?.scripts?.firstOrNull { it.type == "before-request" }?.code
-            val postScript = runtime?.scripts?.firstOrNull { it.type == "after-response" || it.type == "tests" }?.code
+            val preScript = runtime?.scripts?.firstOrNull { it.type == ScriptType.BEFORE_REQUEST }?.code
+            val postScript = runtime?.scripts?.firstOrNull { it.type == ScriptType.AFTER_RESPONSE || it.type == ScriptType.TESTS }?.code
 
             val httpMethod = HttpMethodType.entries.firstOrNull {
                 it.name.equals(http.method, ignoreCase = true)
@@ -978,7 +985,7 @@ fun OpenCollectionItem.toCollectionNode(
                     authType = AuthType.API_KEY
                     authApiKey = a.key
                     authApiValue = a.value
-                    authApiPlacement = a.placement
+                    authApiPlacement = a.placement.value
                 }
                 else -> {
                     authType = AuthType.NONE
@@ -987,7 +994,7 @@ fun OpenCollectionItem.toCollectionNode(
 
             var resolvedProtoFilePath: String? = grpc.protoFilePath
             var resolvedGrpcMethod: String? = grpc.method
-            var resolvedGrpcMethodType: String? = grpc.methodType ?: "unary"
+            var resolvedGrpcMethodType: String? = grpc.methodType?.value ?: "unary"
 
             val meta = (if (path.isNotEmpty()) clapiRequests?.get(path) as? JsonObject else null)
                 ?: clapiRequests?.get(info.name) as? JsonObject
@@ -1023,8 +1030,8 @@ fun OpenCollectionItem.toCollectionNode(
                 }
             }
 
-            val preScript = runtime?.scripts?.firstOrNull { it.type == "before-request" }?.code
-            val postScript = runtime?.scripts?.firstOrNull { it.type == "after-response" || it.type == "tests" }?.code
+            val preScript = runtime?.scripts?.firstOrNull { it.type == ScriptType.BEFORE_REQUEST }?.code
+            val postScript = runtime?.scripts?.firstOrNull { it.type == ScriptType.AFTER_RESPONSE || it.type == ScriptType.TESTS }?.code
 
             CollectionNode(
                 id = reqId,
