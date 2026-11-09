@@ -29,4 +29,5 @@ data class GitRepositoryClone(
     val remoteUrl: String,
     val workingDirectory: String,
     val activeBranch: String,
+    val registeredCollections: Set<String> = emptySet(),
 )

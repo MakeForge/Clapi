@@ -8,7 +8,9 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
 
-class ProtocJarParser : ProtoParser {
+class ProtocJarParser(
+    private val collectionBaseDir: String? = null,
+) : ProtoParser {
 
     suspend fun parseProtoFile(
         protoFile: File,
@@ -18,14 +20,38 @@ class ProtocJarParser : ProtoParser {
         includePaths = includePaths.map { it.absolutePath },
     )
 
+    suspend fun parseProtoFile(
+        protoFilePath: String,
+        includePaths: List<String>,
+        baseDir: String?,
+    ): ProtoSchemaDefinition {
+        val resolvedProto = resolvePath(protoFilePath, baseDir)
+        val resolvedIncludes = includePaths.map { resolvePath(it, baseDir) }
+        return parseProtoFile(resolvedProto, resolvedIncludes)
+    }
+
+    private fun resolvePath(rawPath: String, explicitBaseDir: String? = collectionBaseDir): String {
+        val trimmed = rawPath.trim()
+        if (trimmed.isEmpty()) return ""
+        val file = File(trimmed)
+        if (file.isAbsolute) return trimmed
+        val base = explicitBaseDir?.takeIf { it.isNotBlank() } ?: return trimmed
+        val rel = trimmed.replace('\\', '/').removePrefix("./").trimStart('/')
+        return File(base, rel).absolutePath
+    }
+
     override suspend fun parseProtoFile(
         protoFilePath: String,
         includePaths: List<String>,
     ): ProtoSchemaDefinition = withContext(Dispatchers.IO) {
-        val protoFile = File(protoFilePath)
+        val resolvedMainPath = resolvePath(protoFilePath)
+        val protoFile = File(resolvedMainPath)
         if (!protoFile.exists() || !protoFile.isFile) {
             throw ProtoParseException("Proto file does not exist: $protoFilePath")
         }
+
+        val inferredCollectionDir = inferCollectionDirFromProtoFile(protoFile) ?: collectionBaseDir
+        val resolvedIncludePaths = includePaths.map { resolvePath(it, inferredCollectionDir) }
 
         val tempDescriptorFile = File.createTempFile("clapi_proto_", ".desc")
         val stagingDir = File.createTempFile("clapi_proto_stage_", "").apply {
@@ -41,7 +67,7 @@ class ProtocJarParser : ProtoParser {
                 }
             }
 
-            val allIncludeDirs = normalizeIncludeDirs(stagingDir, includePaths)
+            val allIncludeDirs = normalizeIncludeDirs(stagingDir, resolvedIncludePaths)
 
             val args = buildList {
                 add("--include_imports")
@@ -138,6 +164,17 @@ class ProtocJarParser : ProtoParser {
         }
 
         return dirs.toList()
+    }
+
+    private fun inferCollectionDirFromProtoFile(protoFile: File): String? {
+        var current: File? = protoFile.parentFile
+        while (current != null) {
+            if (current.name == "protobuf" && current.parentFile != null) {
+                return current.parentFile.absolutePath
+            }
+            current = current.parentFile
+        }
+        return null
     }
 
     companion object {

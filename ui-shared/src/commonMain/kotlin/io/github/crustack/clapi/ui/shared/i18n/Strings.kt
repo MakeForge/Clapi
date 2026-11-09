@@ -61,6 +61,7 @@ object Strings {
     val gitNotInstalled: String @Composable @ReadOnlyComposable get() = t("git_not_installed")
     val gitAuthFailed: String @Composable @ReadOnlyComposable get() = t("git_auth_failed")
     val gitNetworkError: String @Composable @ReadOnlyComposable get() = t("git_network_error")
+    val syncToGit: String @Composable @ReadOnlyComposable get() = t("sync_to_git")
     val exportCollections: String @Composable @ReadOnlyComposable get() = t("export_collections")
     val collection: String @Composable @ReadOnlyComposable get() = t("collection")
     val addProtoFiles: String @Composable @ReadOnlyComposable get() = t("add_proto_files")

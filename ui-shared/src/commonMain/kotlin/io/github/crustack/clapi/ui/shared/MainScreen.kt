@@ -52,6 +52,7 @@ import io.github.crustack.clapi.ui.shared.components.ExportCollectionsDialog
 import io.github.crustack.clapi.ui.shared.components.EnvironmentEditDialog
 import io.github.crustack.clapi.ui.shared.components.ErrorMessageDialog
 import io.github.crustack.clapi.ui.shared.components.FolderEditor
+import io.github.crustack.clapi.ui.shared.components.GitSyncDialog
 import io.github.crustack.clapi.ui.shared.components.GlobalVariablesDialog
 import io.github.crustack.clapi.ui.shared.components.ImportSpecificationDialog
 import io.github.crustack.clapi.ui.shared.components.GraphQLPanel
@@ -265,6 +266,12 @@ fun MainScreen(state: AppState = remember { AppState() }) {
             ExportCollectionsDialog(
                 state = state,
                 onDismiss = { state.showExportCollectionsDialog = false },
+            )
+        }
+        if (state.showGitSyncDialog) {
+            GitSyncDialog(
+                state = state,
+                onDismiss = { state.showGitSyncDialog = false },
             )
         }
         if (state.showConfirmDialog) {

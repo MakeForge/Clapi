@@ -27,12 +27,16 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import io.github.crustack.clapi.core.model.storage.StorageType
+import io.github.crustack.clapi.core.storage.git.ProtoPathResolver
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -92,6 +96,10 @@ fun GrpcRequestEditor(
     val markDirty = { tab.markDirty() }
     var showProtoDialog by remember { mutableStateOf(false) }
 
+    val parentCollection = state.collections.firstOrNull { it.id == tab.collectionId }
+        ?: state.activeCollectionNode
+    val isGitSyncEnabled = parentCollection?.storageType == StorageType.GIT
+
     val importPathsKey = state.collectionImportPaths.joinToString(";") { "${it.path}:${it.enabled}" }
     // Automatically parse the configured .proto file when opening a saved/imported tab or when collection imports change
     LaunchedEffect(tab.protoFilePath, importPathsKey) {
@@ -99,8 +107,13 @@ fun GrpcRequestEditor(
         if (path.isNotEmpty() && !tab.isProtoLoading) {
             tab.isProtoLoading = true
             try {
-                val includePaths = state.collectionImportPaths.filter { it.enabled }.map { it.path }
-                val schema = NetworkClientFactory.createProtoParser().parseProtoFile(path, includePaths)
+                val collectionGitDir = state.getCollectionGitDirectory(tab)
+                val resolvedPath = ProtoPathResolver.resolve(path, collectionGitDir)
+                val includePaths = ProtoPathResolver.resolveAll(
+                    state.collectionImportPaths.filter { it.enabled }.map { it.path },
+                    collectionGitDir,
+                )
+                val schema = NetworkClientFactory.createProtoParser().parseProtoFile(resolvedPath, includePaths)
                 val methods = schema.services.flatMap { it.methods }
                 tab.availableMethods = methods
                 tab.protoLoadError = null
@@ -118,42 +131,52 @@ fun GrpcRequestEditor(
     }
 
     if (showProtoDialog) {
+        val handleSaveProto: (String, Boolean) -> Unit = { selectedPath, syncToGit ->
+            scope.launch {
+                tab.isProtoLoading = true
+                tab.protoLoadError = null
+                try {
+                    val collectionGitDir = state.getCollectionGitDirectory(tab)
+                    val resolvedPath = ProtoPathResolver.resolve(selectedPath, collectionGitDir)
+                    val includePaths = ProtoPathResolver.resolveAll(
+                        state.collectionImportPaths.filter { it.enabled }.map { it.path },
+                        collectionGitDir,
+                    )
+                    val schema = NetworkClientFactory.createProtoParser().parseProtoFile(resolvedPath, includePaths)
+                    val methods = schema.services.flatMap { it.methods }
+                    tab.protoFilePath = selectedPath
+                    tab.protoSyncToGit = syncToGit
+                    tab.availableMethods = methods
+                    if (methods.isNotEmpty()) {
+                        val current = tab.grpcMethod
+                        val matched = methods.firstOrNull { it.fullMethodName == current } ?: methods.first()
+                        tab.grpcMethod = matched.fullMethodName
+                        tab.grpcMethodType = methodTypeString(matched)
+                    } else {
+                        tab.grpcMethod = null
+                    }
+                    markDirty()
+                    showProtoDialog = false
+                } catch (e: ProtoParseException) {
+                    tab.protoLoadError = e.message ?: "Failed to parse .proto file"
+                    state.log("✗ Proto parse error: ${tab.protoLoadError}", LogLevel.ERROR)
+                } catch (e: Exception) {
+                    tab.protoLoadError = e.message ?: "Failed to parse .proto file"
+                    state.log("✗ Proto parse error: ${tab.protoLoadError}", LogLevel.ERROR)
+                } finally {
+                    tab.isProtoLoading = false
+                }
+            }
+        }
         SelectProtoFileDialog(
             currentProtoFilePath = tab.protoFilePath,
             errorMessage = tab.protoLoadError,
             isLoading = tab.isProtoLoading,
             collectionProtoFiles = state.collectionProtoFiles.map { it.path },
-            onSave = { selectedPath ->
-                scope.launch {
-                    tab.isProtoLoading = true
-                    tab.protoLoadError = null
-                    try {
-                        val includePaths = state.collectionImportPaths.filter { it.enabled }.map { it.path }
-                        val schema = NetworkClientFactory.createProtoParser().parseProtoFile(selectedPath, includePaths)
-                        val methods = schema.services.flatMap { it.methods }
-                        tab.protoFilePath = selectedPath
-                        tab.availableMethods = methods
-                        if (methods.isNotEmpty()) {
-                            val current = tab.grpcMethod
-                            val matched = methods.firstOrNull { it.fullMethodName == current } ?: methods.first()
-                            tab.grpcMethod = matched.fullMethodName
-                            tab.grpcMethodType = methodTypeString(matched)
-                        } else {
-                            tab.grpcMethod = null
-                        }
-                        markDirty()
-                        showProtoDialog = false
-                    } catch (e: ProtoParseException) {
-                        tab.protoLoadError = e.message ?: "Failed to parse .proto file"
-                        state.log("✗ Proto parse error: ${tab.protoLoadError}", LogLevel.ERROR)
-                    } catch (e: Exception) {
-                        tab.protoLoadError = e.message ?: "Failed to parse .proto file"
-                        state.log("✗ Proto parse error: ${tab.protoLoadError}", LogLevel.ERROR)
-                    } finally {
-                        tab.isProtoLoading = false
-                    }
-                }
-            },
+            isGitSyncEnabled = isGitSyncEnabled,
+            initialSyncToGit = tab.protoSyncToGit,
+            onSave = { selectedPath -> handleSaveProto(selectedPath, tab.protoSyncToGit) },
+            onSaveWithSync = { selectedPath, syncToGit -> handleSaveProto(selectedPath, syncToGit) },
             onDismiss = {
                 tab.protoLoadError = null
                 showProtoDialog = false
@@ -250,8 +273,10 @@ fun resolveGrpcCallRequest(
     val resolvedUrl = VariableResolver.resolve(rawUrl, allLayers, removeUnresolved = false)
     val endpoint = parseGrpcEndpoint(resolvedUrl)
 
+    val collectionGitDir = state.getCollectionGitDirectory(tab)
     val rawProtoPath = tab.protoFilePath?.trim().orEmpty()
-    val resolvedProtoPath = VariableResolver.resolve(rawProtoPath, allLayers, removeUnresolved = false)
+    val varResolvedProtoPath = VariableResolver.resolve(rawProtoPath, allLayers, removeUnresolved = false)
+    val resolvedProtoPath = ProtoPathResolver.resolve(varResolvedProtoPath, collectionGitDir)
 
     val rawMethod = tab.grpcMethod?.trim().orEmpty()
     val resolvedMethod = VariableResolver.resolve(rawMethod, allLayers, removeUnresolved = false)
@@ -275,9 +300,10 @@ fun resolveGrpcCallRequest(
                 VariableResolver.resolve(entry.value, allLayers, removeUnresolved = false)
         }
 
-    val enabledImportPaths = state.collectionImportPaths
-        .filter { it.enabled }
-        .map { it.path }
+    val enabledImportPaths = ProtoPathResolver.resolveAll(
+        state.collectionImportPaths.filter { it.enabled }.map { it.path },
+        collectionGitDir,
+    )
 
     return GrpcCallRequest(
         requestId = tab.id,
@@ -383,6 +409,45 @@ private fun GrpcRequestBar(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+        }
+
+        val parentCollection = state.collections.firstOrNull { it.id == tab.collectionId }
+            ?: state.activeCollectionNode
+        val isGitSyncEnabled = parentCollection?.storageType == StorageType.GIT
+        if (isGitSyncEnabled && !tab.protoFilePath.isNullOrBlank()) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(ClapiColors.SurfaceContainer)
+                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(6.dp))
+                    .clickable {
+                        tab.protoSyncToGit = !tab.protoSyncToGit
+                        tab.markDirty()
+                    }
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                    .testTag("grpc-proto-sync-toggle"),
+            ) {
+                Checkbox(
+                    checked = tab.protoSyncToGit,
+                    onCheckedChange = {
+                        tab.protoSyncToGit = it
+                        tab.markDirty()
+                    },
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = ClapiColors.Primary,
+                        checkmarkColor = ClapiColors.OnPrimary,
+                        uncheckedColor = ClapiColors.OnSurfaceDim,
+                    ),
+                    modifier = Modifier.size(16.dp),
+                )
+                Text(
+                    text = Strings.syncToGit,
+                    fontSize = 11.sp,
+                    color = if (tab.protoSyncToGit) ClapiColors.Primary else ClapiColors.OnSurfaceDim,
+                )
+            }
         }
 
         // Method selector dropdown

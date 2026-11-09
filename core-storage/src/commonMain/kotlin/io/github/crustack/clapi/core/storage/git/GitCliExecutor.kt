@@ -45,3 +45,6 @@ interface GitCliExecutor {
         timeoutMillis: Long = 30_000,
     ): GitCommandResult
 }
+
+expect fun createDefaultGitCliExecutor(): GitCliExecutor
+

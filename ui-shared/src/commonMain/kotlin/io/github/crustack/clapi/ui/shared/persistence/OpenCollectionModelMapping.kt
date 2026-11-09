@@ -12,6 +12,7 @@ import io.github.crustack.clapi.core.model.storage.StorageExtension
 import io.github.crustack.clapi.core.model.storage.StorageType
 import io.github.crustack.clapi.core.model.storage.getStorageExtension
 import io.github.crustack.clapi.core.model.storage.withStorageExtension
+import io.github.crustack.clapi.core.storage.git.ProtoPathResolver
 import io.github.crustack.clapi.core.model.opencollection.ApiKeyPlacement
 import io.github.crustack.clapi.core.model.opencollection.AuthApiKey
 import io.github.crustack.clapi.core.model.opencollection.AuthBasic
@@ -82,6 +83,7 @@ private fun collectClapiMetadata(
     node: CollectionNode,
     out: MutableMap<String, JsonObject>,
     path: String = "",
+    collectionDir: String? = null,
 ) {
     if (node.isFolder) {
         val folderMeta = mutableMapOf<String, JsonElement>()
@@ -96,9 +98,14 @@ private fun collectClapiMetadata(
         }
         node.children.forEachIndexed { index, child ->
             val childPath = if (path.isEmpty()) index.toString() else "$path/$index"
-            collectClapiMetadata(child, out, childPath)
+            collectClapiMetadata(child, out, childPath, collectionDir)
         }
     } else {
+        val effectiveProtoFilePath = if (collectionDir != null && node.protoSyncToGit && !node.protoFilePath.isNullOrBlank()) {
+            ProtoPathResolver.syncRequestProtoFile(node.protoFilePath, node.id, collectionDir)
+        } else {
+            node.protoFilePath
+        }
         val meta = buildJsonObject {
             put("id", node.id)
             put("name", node.name)
@@ -135,7 +142,10 @@ private fun collectClapiMetadata(
             node.authApiPlacement?.let { put("authApiPlacement", it) }
             put("kind", node.kind.name)
             node.requestRef?.let { put("requestRef", it) }
-            node.protoFilePath?.let { put("protoFilePath", it) }
+            effectiveProtoFilePath?.let { put("protoFilePath", it) }
+            if (node.protoSyncToGit) {
+                put("protoSyncToGit", true)
+            }
             node.grpcMethod?.let { put("grpcMethod", it) }
             node.grpcMethodType?.let { put("grpcMethodType", it) }
             node.mcpConfig?.let { mcp ->
@@ -154,11 +164,11 @@ private fun collectClapiMetadata(
  * Produces a standalone OpenCollection document for single-collection export.
  * Per FR-017, single-collection exports omit `config` and environments.
  */
-fun CollectionNode.toOpenCollectionDocument(): OpenCollectionDocument {
+fun CollectionNode.toOpenCollectionDocument(collectionDir: String? = null): OpenCollectionDocument {
     val ext = mutableMapOf<String, JsonElement>()
     ext["id"] = JsonPrimitive(id)
     val clapiMetaMap = mutableMapOf<String, JsonObject>()
-    collectClapiMetadata(this, clapiMetaMap)
+    collectClapiMetadata(this, clapiMetaMap, collectionDir = collectionDir)
     if (clapiMetaMap.isNotEmpty()) {
         ext["clapi"] = buildJsonObject {
             put("requests", buildJsonObject {
@@ -170,10 +180,24 @@ fun CollectionNode.toOpenCollectionDocument(): OpenCollectionDocument {
         CollectionProtobufConfig(
             protoFiles = protoFiles
                 .filter { it.path.isNotBlank() }
-                .map { ProtoFile(type = "file", path = it.path) },
+                .map { pf ->
+                    val effectivePath = if (collectionDir != null && pf.syncToGit) {
+                        ProtoPathResolver.syncCollectionProtoFile(pf.path, collectionDir)
+                    } else {
+                        pf.path
+                    }
+                    ProtoFile(type = "file", path = effectivePath)
+                },
             importPaths = importPaths
                 .filter { it.path.isNotBlank() }
-                .map { ProtoFileImportPath(path = it.path, disabled = if (!it.enabled) true else null) },
+                .map { ip ->
+                    val effectivePath = if (collectionDir != null && ip.syncToGit) {
+                        ProtoPathResolver.syncCollectionImportPath(ip.path, collectionDir)
+                    } else {
+                        ip.path
+                    }
+                    ProtoFileImportPath(path = effectivePath, disabled = if (!ip.enabled) true else null)
+                },
         )
     } else null
     val storage = storageExtension ?: StorageExtension(type = StorageType.LOCAL)
@@ -188,10 +212,13 @@ fun CollectionNode.toOpenCollectionDocument(): OpenCollectionDocument {
         config = if (protobufConfig != null) CollectionConfig(protobuf = protobufConfig) else null,
         request = toRequestDefaults(),
         bundled = true,
-        items = children.map { it.toOpenCollectionItem() },
+        items = children.map { it.toOpenCollectionItem(collectionDir = collectionDir) },
         extensions = extWithStorage,
     )
 }
+
+fun CollectionNode.toOpenCollectionDocumentForGitSync(collectionDir: String): OpenCollectionDocument =
+    toOpenCollectionDocument(collectionDir = collectionDir)
 
 /**
  * Maps a Clapi Collection [CollectionNode] to a top-level [FolderItem] of the global OpenCollection document.
@@ -211,12 +238,12 @@ fun CollectionNode.toCollectionFolder(asCollection: Boolean = isCollection): Fol
     version?.takeIf { it.isNotBlank() }?.let { clapiMap["version"] = JsonPrimitive(it) }
     if (protoFiles.isNotEmpty()) {
         clapiMap["protoFiles"] = buildJsonArray {
-            protoFiles.forEach { add(buildJsonObject { put("path", it.path) }) }
+            protoFiles.forEach { add(buildJsonObject { put("path", it.path); put("syncToGit", it.syncToGit) }) }
         }
     }
     if (importPaths.isNotEmpty()) {
         clapiMap["importPaths"] = buildJsonArray {
-            importPaths.forEach { add(buildJsonObject { put("path", it.path); put("enabled", it.enabled) }) }
+            importPaths.forEach { add(buildJsonObject { put("path", it.path); put("enabled", it.enabled); put("syncToGit", it.syncToGit) }) }
         }
     }
     if (clapiMap.isNotEmpty()) {
@@ -478,7 +505,7 @@ internal fun CollectionNode.toRequestDefaults(): RequestDefaults? {
     }
 }
 
-fun CollectionNode.toOpenCollectionItem(): OpenCollectionItem {
+fun CollectionNode.toOpenCollectionItem(collectionDir: String? = null): OpenCollectionItem {
     return if (isFolder) {
         val ext = mutableMapOf<String, JsonElement>()
         ext["id"] = JsonPrimitive(id)
@@ -491,7 +518,7 @@ fun CollectionNode.toOpenCollectionItem(): OpenCollectionItem {
         }
         FolderItem(
             info = FolderInfo(name = name, type = "folder"),
-            items = children.map { it.toOpenCollectionItem() },
+            items = children.map { it.toOpenCollectionItem(collectionDir = collectionDir) },
             request = toRequestDefaults(),
             extensions = ext
         )
@@ -590,13 +617,18 @@ fun CollectionNode.toOpenCollectionItem(): OpenCollectionItem {
             } else {
                 null
             }
+            val effectiveProtoFilePath = if (collectionDir != null && protoSyncToGit && !protoFilePath.isNullOrBlank()) {
+                ProtoPathResolver.syncRequestProtoFile(protoFilePath, id, collectionDir)
+            } else {
+                protoFilePath
+            }
             return io.github.crustack.clapi.core.model.opencollection.GrpcRequestItem(
                 info = io.github.crustack.clapi.core.model.opencollection.GrpcRequestInfo(name = name),
                 grpc = io.github.crustack.clapi.core.model.opencollection.GrpcRequestDetails(
                     url = url ?: "",
                     method = grpcMethod,
                     methodType = grpcMethodType?.let { GrpcMethodType.fromValue(it) } ?: GrpcMethodType.UNARY,
-                    protoFilePath = protoFilePath,
+                    protoFilePath = effectiveProtoFilePath,
                     metadata = effectiveMetadata,
                     message = bodyContent ?: bodyContents[BodyType.JSON.name] ?: "",
                     auth = auth,
@@ -725,13 +757,17 @@ fun OpenCollectionItem.toCollectionNode(
             val colSummary = (meta?.get("summary") as? JsonPrimitive)?.contentOrNull
             val colVersion = (meta?.get("version") as? JsonPrimitive)?.contentOrNull
             val colProtoFiles = (meta?.get("protoFiles") as? JsonArray)?.mapNotNull { el ->
-                (el as? JsonObject)?.get("path")?.jsonPrimitive?.contentOrNull?.let { ProtoFileItemState(it) }
+                val obj = el as? JsonObject ?: return@mapNotNull null
+                val p = obj["path"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                val syncToGit = obj["syncToGit"]?.jsonPrimitive?.booleanOrNull ?: ProtoPathResolver.isRelativeGitProtoPath(p)
+                ProtoFileItemState(p, syncToGit)
             }.orEmpty()
             val colImportPaths = (meta?.get("importPaths") as? JsonArray)?.mapNotNull { el ->
                 val obj = el as? JsonObject ?: return@mapNotNull null
                 val p = obj["path"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
                 val enabled = obj["enabled"]?.jsonPrimitive?.booleanOrNull ?: true
-                ProtoImportPathState(p, enabled)
+                val syncToGit = obj["syncToGit"]?.jsonPrimitive?.booleanOrNull ?: ProtoPathResolver.isRelativeGitProtoPath(p)
+                ProtoImportPathState(p, enabled, syncToGit)
             }.orEmpty()
             val colStorageExt = if (isCol) {
                 extensions.getStorageExtension()
@@ -1047,6 +1083,9 @@ fun OpenCollectionItem.toCollectionNode(
                 }
             }
 
+            val resolvedProtoSyncToGit = meta?.get("protoSyncToGit")?.jsonPrimitive?.booleanOrNull
+                ?: (resolvedProtoFilePath?.let { ProtoPathResolver.isRelativeGitProtoPath(it) } ?: false)
+
             val preScript = runtime?.scripts?.firstOrNull { it.type == ScriptType.BEFORE_REQUEST }?.code
             val postScript = runtime?.scripts?.firstOrNull { it.type == ScriptType.AFTER_RESPONSE || it.type == ScriptType.TESTS }?.code
 
@@ -1073,6 +1112,7 @@ fun OpenCollectionItem.toCollectionNode(
                 requestRef = reqRef ?: generateUuid(),
                 kind = RequestKind.GRPC,
                 protoFilePath = resolvedProtoFilePath,
+                protoSyncToGit = resolvedProtoSyncToGit,
                 grpcMethod = resolvedGrpcMethod,
                 grpcMethodType = resolvedGrpcMethodType,
             )

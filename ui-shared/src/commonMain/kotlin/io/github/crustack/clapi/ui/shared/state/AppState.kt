@@ -7,8 +7,13 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
+import io.github.crustack.clapi.core.model.storage.GitCredentialsConfig
+import io.github.crustack.clapi.core.model.storage.GitStorageConfig
 import io.github.crustack.clapi.core.model.storage.StorageExtension
 import io.github.crustack.clapi.core.model.storage.StorageType
+import io.github.crustack.clapi.core.storage.git.CollectionGitStatus
+import io.github.crustack.clapi.core.storage.git.GitRepositoryManager
+import io.github.crustack.clapi.core.storage.git.ProtoPathResolver
 import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.core.model.BodyType
 import io.github.crustack.clapi.core.model.FormEntryType
@@ -141,6 +146,7 @@ data class CollectionNode(
     val mcpConfig: McpConnectionConfig? = null,
     val variableEntries: List<KeyValueEntry>? = null,
     val protoFilePath: String? = null,
+    val protoSyncToGit: Boolean = protoFilePath?.let { ProtoPathResolver.isRelativeGitProtoPath(it) } ?: false,
     val grpcMethod: String? = null,
     val grpcMethodType: String? = "unary",
     val summary: String? = null,
@@ -260,8 +266,10 @@ class MutableExternalSecret(
 
 class ProtoFileItemState(
     path: String,
+    syncToGit: Boolean = ProtoPathResolver.isRelativeGitProtoPath(path),
 ) {
     var path by mutableStateOf(path)
+    var syncToGit by mutableStateOf(syncToGit)
     val fileName: String get() = path.substringAfterLast(java.io.File.separatorChar).substringAfterLast('/')
     val directory: String get() = path.substringBeforeLast(java.io.File.separatorChar, "").substringBeforeLast('/', "")
 }
@@ -269,9 +277,11 @@ class ProtoFileItemState(
 class ProtoImportPathState(
     path: String,
     enabled: Boolean = true,
+    syncToGit: Boolean = ProtoPathResolver.isRelativeGitProtoPath(path),
 ) {
     var path by mutableStateOf(path)
     var enabled by mutableStateOf(enabled)
+    var syncToGit by mutableStateOf(syncToGit)
     val fileName: String get() = path.substringAfterLast(java.io.File.separatorChar).substringAfterLast('/')
     val directory: String get() = path.substringBeforeLast(java.io.File.separatorChar, "").substringBeforeLast('/', "")
 }
@@ -436,12 +446,18 @@ class RequestTabState(
     val isCollectionTab: Boolean get() = kind == RequestKind.COLLECTION
     var collectionSummary by mutableStateOf(collectionSummary)
     var collectionVersion by mutableStateOf(collectionVersion)
+    var storageType by mutableStateOf(StorageType.LOCAL)
+    var gitRemoteUrl by mutableStateOf("")
+    var gitBranch by mutableStateOf("main")
+    var storageError by mutableStateOf<String?>(null)
+    var isSavingStorage by mutableStateOf(false)
     val collectionProtoFiles = mutableStateListOf<ProtoFileItemState>()
     val collectionImportPaths = mutableStateListOf<ProtoImportPathState>()
     var mcpConfig by mutableStateOf(McpConnectionConfig())
 
     // ── gRPC state ──────────────────────────────────────────────────────────
     var protoFilePath by mutableStateOf<String?>(null)
+    var protoSyncToGit by mutableStateOf(false)
     var grpcMethod by mutableStateOf<String?>(null)
     var grpcMethodType by mutableStateOf("unary")
     var availableMethods by mutableStateOf<List<ProtoMethodInfo>>(emptyList())
@@ -545,6 +561,11 @@ class RequestTabState(
             return listOf(
                 name,
                 kind.name,
+                collectionSummary.orEmpty(),
+                collectionVersion.orEmpty(),
+                storageType.name,
+                gitRemoteUrl,
+                gitBranch,
                 collectionSnapshotProvider?.invoke().orEmpty(),
             ).joinToString("#")
         }
@@ -593,13 +614,14 @@ class RequestTabState(
             kind.name,
             mcpClientFingerprint(),
             protoFilePath.orEmpty(),
+            protoSyncToGit.toString(),
             grpcMethod.orEmpty(),
             grpcMethodType,
             grpcMetadataSnapshot,
             collectionSummary.orEmpty(),
             collectionVersion.orEmpty(),
-            collectionProtoFiles.joinToString(";") { it.path },
-            collectionImportPaths.joinToString(";") { "${it.path}:${it.enabled}" },
+            collectionProtoFiles.joinToString(";") { "${it.path}:${it.syncToGit}" },
+            collectionImportPaths.joinToString(";") { "${it.path}:${it.enabled}:${it.syncToGit}" },
         ).joinToString("#")
     }
 
@@ -979,6 +1001,106 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     var editingEnvIndex      by mutableStateOf(-1)      // index into environments
     var showImportSpecificationDialog by mutableStateOf(false)
     var showExportCollectionsDialog   by mutableStateOf(false)
+    var showGitSyncDialog    by mutableStateOf(false)
+
+    // ── Git synchronization ──
+    var gitRepositoryManager: GitRepositoryManager = GitRepositoryManager()
+    val gitStatusesByRepoDir = mutableStateMapOf<String, CollectionGitStatus>()
+
+    val activeCollectionNode: CollectionNode?
+        get() {
+            val tab = activeTab
+            if (tab != null) {
+                if (tab.isCollectionTab) {
+                    collections.firstOrNull { it.id == tab.id || it.id == tab.collectionId }?.let { return it }
+                }
+                tab.collectionId?.let { cid ->
+                    collections.firstOrNull { it.id == cid }?.let { return it }
+                }
+                val rootId = rootCollectionIdContaining(tab.id)
+                if (rootId != null) {
+                    collections.firstOrNull { it.id == rootId }?.let { return it }
+                }
+                tab.collectionName?.let { cname ->
+                    collections.firstOrNull { it.name == cname }?.let { return it }
+                }
+            }
+            selectedCollectionId?.let { sid ->
+                collections.firstOrNull { it.id == sid }?.let { return it }
+                val rootId = rootCollectionIdContaining(sid)
+                if (rootId != null) {
+                    collections.firstOrNull { it.id == rootId }?.let { return it }
+                }
+            }
+            selectedRequestId?.let { rid ->
+                val rootId = rootCollectionIdContaining(rid)
+                if (rootId != null) {
+                    collections.firstOrNull { it.id == rootId }?.let { return it }
+                }
+            }
+            return collections.firstOrNull { it.storageType == StorageType.GIT } ?: collections.firstOrNull()
+        }
+
+    val activeGitCollectionNode: CollectionNode?
+        get() {
+            val active = activeCollectionNode
+            if (active != null && active.storageType == StorageType.GIT && active.gitRemoteUrl.isNotBlank()) {
+                return active
+            }
+            return null
+        }
+
+    val activeGitStatus: CollectionGitStatus?
+        get() {
+            val col = activeGitCollectionNode ?: return null
+            val repoDir = gitRepositoryManager.getRepositoryDirectory(col.gitRemoteUrl)
+            return gitStatusesByRepoDir[repoDir] ?: CollectionGitStatus(branch = col.gitBranch, isClean = true)
+        }
+
+    fun getCollectionGitDirectory(tab: RequestTabState? = activeTab): String? {
+        val colNode = if (tab != null) {
+            tab.collectionId?.let { cid -> collections.firstOrNull { it.id == cid } }
+                ?: rootCollectionIdContaining(tab.id)?.let { rid -> collections.firstOrNull { it.id == rid } }
+                ?: tab.collectionName?.let { cname -> collections.firstOrNull { it.name == cname } }
+                ?: activeCollectionNode
+        } else {
+            activeCollectionNode
+        }
+        if (colNode == null || colNode.storageType != StorageType.GIT || colNode.gitRemoteUrl.isBlank()) {
+            return null
+        }
+        return gitRepositoryManager.getCollectionDirectory(colNode.gitRemoteUrl, colNode.name)
+    }
+
+    suspend fun refreshGitStatusForCollection(collection: CollectionNode): CollectionGitStatus? {
+        if (collection.storageType != StorageType.GIT || collection.gitRemoteUrl.isBlank()) return null
+        val repoDir = gitRepositoryManager.getRepositoryDirectory(collection.gitRemoteUrl)
+        val status = runCatching {
+            gitRepositoryManager.checkStatus(repoDir)
+        }.getOrElse { e ->
+            CollectionGitStatus(branch = collection.gitBranch, isClean = false, lastError = e.message)
+        }
+        val effectiveStatus = if (status.branch.isBlank()) status.copy(branch = collection.gitBranch) else status
+        gitStatusesByRepoDir[repoDir] = effectiveStatus
+        return effectiveStatus
+    }
+
+    fun refreshActiveGitStatusAsync() {
+        val col = activeGitCollectionNode ?: return
+        appScope.launch {
+            refreshGitStatusForCollection(col)
+        }
+    }
+
+    fun refreshAllGitStatusesAsync() {
+        val gitCols = collections.filter { it.storageType == StorageType.GIT && it.gitRemoteUrl.isNotBlank() }
+        if (gitCols.isEmpty()) return
+        appScope.launch {
+            gitCols.distinctBy { it.gitRemoteUrl }.forEach { col ->
+                refreshGitStatusForCollection(col)
+            }
+        }
+    }
 
     // ── import/export operation dialog ──
     var showOperationDialog  by mutableStateOf(false)
@@ -1264,6 +1386,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
             tab.headers.clear()
             tab.bodyType = BodyType.JSON
             tab.protoFilePath = node?.protoFilePath
+            tab.protoSyncToGit = node?.protoSyncToGit ?: (node?.protoFilePath?.let { ProtoPathResolver.isRelativeGitProtoPath(it) } ?: false)
             tab.grpcMethod = node?.grpcMethod
             tab.grpcMethodType = node?.grpcMethodType ?: "unary"
             node?.bodyContent?.takeIf { it.isNotBlank() }?.let { tab.grpcMessageBody = it }
@@ -1357,8 +1480,8 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     }
 
     fun collectionProtobufSnapshot(): String {
-        val protos = collectionProtoFiles.joinToString(";") { it.path }
-        val imports = collectionImportPaths.joinToString(";") { "${it.path}:${it.enabled}" }
+        val protos = collectionProtoFiles.joinToString(";") { "${it.path}:${it.syncToGit}" }
+        val imports = collectionImportPaths.joinToString(";") { "${it.path}:${it.enabled}:${it.syncToGit}" }
         return "$protos#$imports"
     }
 
@@ -1390,6 +1513,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
             return
         }
 
+        selectedCollectionId = target.id
         val existingIdx = openTabs.indexOfFirst {
             it.kind == RequestKind.COLLECTION && (it.id == target.id || it.collectionId == target.id || it.id == "collection_${target.id}")
         }
@@ -1432,16 +1556,25 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         tab.testScript = target.testScript ?: ""
 
         // Populate collection-level protobuf
-        tab.collectionProtoFiles.clear()
-        tab.collectionProtoFiles.addAll(target.protoFiles.map { ProtoFileItemState(it.path) })
-        tab.collectionImportPaths.clear()
-        tab.collectionImportPaths.addAll(target.importPaths.map { ProtoImportPathState(it.path, it.enabled) })
-
-        tab.collectionSnapshotProvider = {
-            val protos = tab.collectionProtoFiles.joinToString(";") { it.path }
-            val imports = tab.collectionImportPaths.joinToString(";") { "${it.path}:${it.enabled}" }
-            "$protos#$imports"
+        if (target.protoFiles.isNotEmpty() || collectionProtoFiles.isEmpty()) {
+            collectionProtoFiles.clear()
+            collectionProtoFiles.addAll(target.protoFiles.map { ProtoFileItemState(it.path, it.syncToGit) })
         }
+        if (target.importPaths.isNotEmpty() || collectionImportPaths.isEmpty()) {
+            collectionImportPaths.clear()
+            collectionImportPaths.addAll(target.importPaths.map { ProtoImportPathState(it.path, it.enabled, it.syncToGit) })
+        }
+        tab.collectionProtoFiles.clear()
+        tab.collectionProtoFiles.addAll(collectionProtoFiles.map { ProtoFileItemState(it.path, it.syncToGit) })
+        tab.collectionImportPaths.clear()
+        tab.collectionImportPaths.addAll(collectionImportPaths.map { ProtoImportPathState(it.path, it.enabled, it.syncToGit) })
+
+        // Populate storage settings
+        tab.storageType = target.storageType
+        tab.gitRemoteUrl = target.gitRemoteUrl
+        tab.gitBranch = target.gitBranch
+
+        tab.collectionSnapshotProvider = { collectionProtobufSnapshot() }
         tab.markSaved()
         openTabs.add(tab)
         activeTabIndex = openTabs.size - 1
@@ -2251,6 +2384,14 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         val resolvedRequestId = resolveSidebarRequestId(tab.id)
         val wasAlreadySelected = selectedRequestId == resolvedRequestId
         selectedRequestId = resolvedRequestId
+        val rootColId = if (tab.isCollectionTab) {
+            tab.collectionId ?: tab.id
+        } else {
+            tab.collectionId ?: rootCollectionIdContaining(resolvedRequestId)
+        }
+        if (rootColId != null) {
+            selectedCollectionId = rootColId
+        }
         if (!wasAlreadySelected && expandAncestorsForRequest(collections, resolvedRequestId)) {
             // Reset signal first so repeated targets still trigger row scrolling.
             sidebarScrollToRequestId = null
@@ -2420,12 +2561,41 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                     updateTabsCollectionName(oldName, finalName)
                     tab.reanchorSavedSnapshotAfterRename(oldName)
                 }
+                val updatedStorageExt = if (tab.isCollectionTab) {
+                    if (tab.storageType == StorageType.GIT) {
+                        StorageExtension(
+                            type = StorageType.GIT,
+                            git = GitStorageConfig(
+                                remoteUrl = tab.gitRemoteUrl.trim(),
+                                branch = tab.gitBranch.trim().ifBlank { "main" },
+                                credentials = GitCredentialsConfig(type = "system"),
+                            ),
+                        )
+                    } else {
+                        StorageExtension(type = StorageType.LOCAL, git = null)
+                    }
+                } else {
+                    node.storageExtension
+                }
+                val effectiveProtoFiles = if (tab.isCollectionTab) {
+                    val src = if (collectionProtoFiles.isNotEmpty() || tab.collectionProtoFiles.isEmpty()) collectionProtoFiles else tab.collectionProtoFiles
+                    src.map { ProtoFileItemState(it.path, it.syncToGit) }
+                } else {
+                    node.protoFiles
+                }
+                val effectiveImportPaths = if (tab.isCollectionTab) {
+                    val src = if (collectionImportPaths.isNotEmpty() || tab.collectionImportPaths.isEmpty()) collectionImportPaths else tab.collectionImportPaths
+                    src.map { ProtoImportPathState(it.path, it.enabled, it.syncToGit) }
+                } else {
+                    node.importPaths
+                }
                 nodes[index] = node.copy(
                     name = finalName,
                     summary = if (tab.isCollectionTab) tab.collectionSummary else node.summary,
                     version = if (tab.isCollectionTab) tab.collectionVersion else node.version,
-                    protoFiles = if (tab.isCollectionTab) tab.collectionProtoFiles.map { ProtoFileItemState(it.path) } else node.protoFiles,
-                    importPaths = if (tab.isCollectionTab) tab.collectionImportPaths.map { ProtoImportPathState(it.path, it.enabled) } else node.importPaths,
+                    protoFiles = effectiveProtoFiles,
+                    importPaths = effectiveImportPaths,
+                    storageExtension = updatedStorageExt,
                     variableEntries = variableEntriesSnapshot,
                     queryEntries = null,
                     headerEntries = headerEntriesSnapshot,
@@ -2442,9 +2612,13 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                 )
                 if (tab.isCollectionTab) {
                     collectionProtoFiles.clear()
-                    collectionProtoFiles.addAll(tab.collectionProtoFiles.map { ProtoFileItemState(it.path) })
+                    collectionProtoFiles.addAll(effectiveProtoFiles.map { ProtoFileItemState(it.path, it.syncToGit) })
                     collectionImportPaths.clear()
-                    collectionImportPaths.addAll(tab.collectionImportPaths.map { ProtoImportPathState(it.path, it.enabled) })
+                    collectionImportPaths.addAll(effectiveImportPaths.map { ProtoImportPathState(it.path, it.enabled, it.syncToGit) })
+                    tab.collectionProtoFiles.clear()
+                    tab.collectionProtoFiles.addAll(effectiveProtoFiles.map { ProtoFileItemState(it.path, it.syncToGit) })
+                    tab.collectionImportPaths.clear()
+                    tab.collectionImportPaths.addAll(effectiveImportPaths.map { ProtoImportPathState(it.path, it.enabled, it.syncToGit) })
                 }
                 return true
             }
@@ -2501,6 +2675,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                         url = tab.url.ifBlank { tab.mcpConfig.url },
                     ),
                     protoFilePath      = tab.protoFilePath?.ifBlank { null },
+                    protoSyncToGit     = tab.protoSyncToGit,
                     grpcMethod         = tab.grpcMethod?.ifBlank { null },
                     grpcMethodType     = tab.grpcMethodType.ifBlank { "unary" },
                 )

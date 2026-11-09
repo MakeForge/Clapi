@@ -4,9 +4,34 @@ import io.github.crustack.clapi.core.storage.opencollection.fileExists
 import io.github.crustack.clapi.core.storage.opencollection.getDefaultStorageBaseDirectory
 
 class GitRepositoryManager(
-    val executor: GitCliExecutor,
+    val executor: GitCliExecutor = createDefaultGitCliExecutor(),
     val baseStorageDir: String = getDefaultStorageBaseDirectory(),
 ) {
+    private val registeredCollectionsByRepoId = mutableMapOf<String, MutableSet<String>>()
+    private val collectionFolderToDisplayName = mutableMapOf<String, String>()
+
+    fun registerCollection(remoteUrl: String, collectionName: String, branch: String = "main"): GitRepositoryClone {
+        val repoId = deriveRepoId(remoteUrl)
+        val set = registeredCollectionsByRepoId.getOrPut(repoId) { LinkedHashSet() }
+        set.add(collectionName)
+        collectionFolderToDisplayName[sanitizeCollectionName(collectionName)] = collectionName
+        return GitRepositoryClone(
+            repoId = repoId,
+            remoteUrl = remoteUrl,
+            workingDirectory = getRepositoryDirectory(remoteUrl),
+            activeBranch = branch,
+            registeredCollections = set.toSet(),
+        )
+    }
+
+    fun getRegisteredCollections(remoteUrl: String): Set<String> =
+        registeredCollectionsByRepoId[deriveRepoId(remoteUrl)]?.toSet() ?: emptySet()
+
+    fun resolveDisplayCollectionName(folderName: String): String =
+        collectionFolderToDisplayName[folderName] ?: folderName
+
+    fun groupChangesByCollection(status: CollectionGitStatus): Map<String, List<GitFileChange>> =
+        status.changes.groupBy { it.collectionName }
     fun deriveRepoId(remoteUrl: String): String {
         val sanitized = remoteUrl.lowercase().trim()
             .replace("https://", "")
@@ -34,10 +59,20 @@ class GitRepositoryManager(
     fun getCollectionDirectory(remoteUrl: String, collectionName: String): String {
         val repoDir = getRepositoryDirectory(remoteUrl)
         val colDir = sanitizeCollectionName(collectionName)
+        val repoId = deriveRepoId(remoteUrl)
+        registeredCollectionsByRepoId.getOrPut(repoId) { LinkedHashSet() }.add(collectionName)
+        collectionFolderToDisplayName[colDir] = collectionName
         return "$repoDir/$colDir"
     }
 
-    suspend fun ensureClonedOrCheckedOut(remoteUrl: String, branch: String = "main"): GitRepositoryClone {
+    suspend fun ensureClonedOrCheckedOut(
+        remoteUrl: String,
+        branch: String = "main",
+        collectionName: String? = null,
+    ): GitRepositoryClone {
+        if (!collectionName.isNullOrBlank()) {
+            registerCollection(remoteUrl, collectionName, branch)
+        }
         val repoDir = getRepositoryDirectory(remoteUrl)
         val repoId = deriveRepoId(remoteUrl)
 
@@ -101,6 +136,7 @@ class GitRepositoryManager(
             remoteUrl = remoteUrl,
             workingDirectory = repoDir,
             activeBranch = branch,
+            registeredCollections = getRegisteredCollections(remoteUrl),
         )
     }
 
@@ -113,7 +149,15 @@ class GitRepositoryManager(
             workingDir = repoDir,
             args = listOf("rev-parse", "--abbrev-ref", "HEAD"),
         )
-        val branch = if (branchResult.isSuccess) branchResult.stdout.trim() else "main"
+        val branch = if (branchResult.isSuccess && branchResult.stdout.trim().isNotBlank()) {
+            branchResult.stdout.trim()
+        } else {
+            val symResult = executor.execute(
+                workingDir = repoDir,
+                args = listOf("symbolic-ref", "--short", "HEAD"),
+            )
+            if (symResult.isSuccess && symResult.stdout.trim().isNotBlank()) symResult.stdout.trim() else "main"
+        }
 
         val statusResult = executor.execute(
             workingDir = repoDir,

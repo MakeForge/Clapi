@@ -29,15 +29,19 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,18 +52,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.crustack.clapi.core.model.storage.StorageType
 import io.github.crustack.clapi.ui.shared.i18n.Strings
+import io.github.crustack.clapi.ui.shared.persistence.TabsRepository
+import io.github.crustack.clapi.ui.shared.persistence.WorkspaceRepository
+import io.github.crustack.clapi.ui.shared.platform.ioDispatcher
 import io.github.crustack.clapi.ui.shared.platform.openFileInDefaultApp
 import io.github.crustack.clapi.ui.shared.platform.pickProtoFiles
 import io.github.crustack.clapi.ui.shared.state.AppState
+import io.github.crustack.clapi.ui.shared.state.LogLevel
 import io.github.crustack.clapi.ui.shared.state.ProtoFileItemState
 import io.github.crustack.clapi.ui.shared.state.ProtoImportPathState
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
 import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class CollectionEditorTab(val label: String) {
     INFO("Info"),
+    STORAGE("Storage"),
     VARIABLES("Variables"),
     HEADERS("Headers"),
     AUTH("Auth"),
@@ -154,6 +166,7 @@ fun CollectionEditor(
                 val isSelected = selectedTab == editorTab
                 val tag = when (editorTab) {
                     CollectionEditorTab.INFO -> "collection-tab-info"
+                    CollectionEditorTab.STORAGE -> "collection-tab-storage"
                     CollectionEditorTab.VARIABLES -> "collection-tab-variables"
                     CollectionEditorTab.HEADERS -> "collection-tab-headers"
                     CollectionEditorTab.AUTH -> "collection-tab-auth"
@@ -212,6 +225,13 @@ fun CollectionEditor(
                 CollectionEditorTab.INFO -> {
                     CollectionInfoSettings(
                         tab = tab,
+                        onFieldChange = { markDirty() },
+                    )
+                }
+                CollectionEditorTab.STORAGE -> {
+                    CollectionStorageSettings(
+                        tab = tab,
+                        state = state,
                         onFieldChange = { markDirty() },
                     )
                 }
@@ -341,6 +361,288 @@ fun CollectionInfoSettings(
 }
 
 @Composable
+fun CollectionStorageSettings(
+    tab: RequestTabState,
+    state: AppState,
+    onFieldChange: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scope = rememberCoroutineScope()
+    var savedBannerMessage by remember(tab.id) { mutableStateOf<String?>(null) }
+
+    val canSaveGit = tab.storageType == StorageType.LOCAL ||
+        (tab.gitRemoteUrl.isNotBlank() && tab.gitBranch.isNotBlank())
+
+    fun handleSaveStorage() {
+        tab.storageError = null
+        savedBannerMessage = null
+        if (tab.storageType == StorageType.GIT) {
+            if (tab.gitRemoteUrl.isBlank()) {
+                tab.storageError = "Git remoteUrl cannot be blank"
+                return
+            }
+            if (tab.gitBranch.isBlank()) {
+                tab.storageError = "Git branch cannot be blank"
+                return
+            }
+        }
+        tab.isSavingStorage = true
+        scope.launch {
+            try {
+                if (tab.storageType == StorageType.GIT) {
+                    val remoteUrl = tab.gitRemoteUrl.trim()
+                    val branch = tab.gitBranch.trim().ifBlank { "main" }
+                    withContext(ioDispatcher) {
+                        state.gitRepositoryManager.ensureClonedOrCheckedOut(remoteUrl, branch)
+                    }
+                }
+                state.syncTabToCollectionNode(tab)
+                val colNode = state.collections.firstOrNull {
+                    it.id == tab.id || it.id == tab.collectionId || "collection_${it.id}" == tab.id
+                }
+                if (tab.storageType == StorageType.GIT && colNode != null) {
+                    withContext(ioDispatcher) {
+                        WorkspaceRepository.exportCollectionToGitRepository(state, colNode)
+                    }
+                    state.refreshGitStatusForCollection(colNode)
+                }
+                tab.markSaved()
+                withContext(ioDispatcher) {
+                    TabsRepository.save(state)
+                    WorkspaceRepository.save(state)
+                }
+                savedBannerMessage = "Storage settings saved."
+                state.log("Storage settings saved for '${tab.name}'", LogLevel.SUCCESS)
+            } catch (e: Exception) {
+                tab.storageError = e.message ?: "Failed to save Git storage configuration"
+                state.log("Failed to configure Git storage: ${tab.storageError}", LogLevel.ERROR)
+            } finally {
+                tab.isSavingStorage = false
+            }
+        }
+    }
+
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp)
+            .testTag("collection-storage-panel"),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        item {
+            Text(
+                text = Strings.storageType,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = ClapiColors.OnSurface,
+            )
+            Text(
+                text = "Configure how this collection is stored and synchronized.",
+                style = MaterialTheme.typography.bodySmall,
+                color = ClapiColors.OnSurfaceDim,
+            )
+        }
+
+        item {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable {
+                            tab.storageType = StorageType.LOCAL
+                            tab.storageError = null
+                            savedBannerMessage = null
+                            onFieldChange()
+                        }
+                        .padding(end = 8.dp)
+                        .testTag("storage-radio-local"),
+                ) {
+                    RadioButton(
+                        selected = tab.storageType == StorageType.LOCAL,
+                        onClick = {
+                            tab.storageType = StorageType.LOCAL
+                            tab.storageError = null
+                            savedBannerMessage = null
+                            onFieldChange()
+                        },
+                        colors = RadioButtonDefaults.colors(
+                            selectedColor = ClapiColors.Primary,
+                            unselectedColor = ClapiColors.OnSurfaceDim,
+                        ),
+                    )
+                    Text(
+                        text = Strings.storageLocal,
+                        color = ClapiColors.OnSurface,
+                        fontSize = 14.sp,
+                    )
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable {
+                            tab.storageType = StorageType.GIT
+                            tab.storageError = null
+                            savedBannerMessage = null
+                            onFieldChange()
+                        }
+                        .padding(end = 8.dp)
+                        .testTag("storage-radio-git"),
+                ) {
+                    RadioButton(
+                        selected = tab.storageType == StorageType.GIT,
+                        onClick = {
+                            tab.storageType = StorageType.GIT
+                            tab.storageError = null
+                            savedBannerMessage = null
+                            onFieldChange()
+                        },
+                        colors = RadioButtonDefaults.colors(
+                            selectedColor = ClapiColors.Primary,
+                            unselectedColor = ClapiColors.OnSurfaceDim,
+                        ),
+                    )
+                    Text(
+                        text = Strings.storageGit,
+                        color = ClapiColors.OnSurface,
+                        fontSize = 14.sp,
+                    )
+                }
+            }
+        }
+
+        if (tab.storageType == StorageType.LOCAL) {
+            item {
+                Text(
+                    text = Strings.storageLocalDesc,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ClapiColors.OnSurfaceDim,
+                    modifier = Modifier.testTag("storage-local-description"),
+                )
+            }
+        } else {
+            item {
+                OutlinedTextField(
+                    value = tab.gitRemoteUrl,
+                    onValueChange = {
+                        tab.gitRemoteUrl = it
+                        tab.storageError = null
+                        savedBannerMessage = null
+                        onFieldChange()
+                    },
+                    label = { Text(Strings.storageGitRemoteUrl) },
+                    placeholder = { Text("git@github.com:org/repo.git or https://github.com/org/repo.git") },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("storage-git-remote-url"),
+                )
+            }
+
+            item {
+                OutlinedTextField(
+                    value = tab.gitBranch,
+                    onValueChange = {
+                        tab.gitBranch = it
+                        tab.storageError = null
+                        savedBannerMessage = null
+                        onFieldChange()
+                    },
+                    label = { Text(Strings.storageGitBranch) },
+                    placeholder = { Text("main") },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("storage-git-branch"),
+                )
+            }
+
+            item {
+                Text(
+                    text = Strings.storageGitCredentialsNote,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ClapiColors.OnSurfaceDim,
+                    modifier = Modifier.testTag("storage-git-credentials-note"),
+                )
+            }
+        }
+
+        if (tab.storageError != null) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(ClapiColors.Error.copy(alpha = 0.15f))
+                        .padding(12.dp)
+                        .testTag("storage-error-banner"),
+                ) {
+                    Text(
+                        text = tab.storageError!!,
+                        color = ClapiColors.Error,
+                        fontSize = 12.sp,
+                    )
+                }
+            }
+        }
+
+        if (savedBannerMessage != null) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(ClapiColors.Primary.copy(alpha = 0.15f))
+                        .padding(12.dp)
+                        .testTag("storage-saved-banner"),
+                ) {
+                    Text(
+                        text = savedBannerMessage!!,
+                        color = ClapiColors.Primary,
+                        fontSize = 12.sp,
+                    )
+                }
+            }
+        }
+
+        item {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Button(
+                    onClick = { handleSaveStorage() },
+                    enabled = !tab.isSavingStorage && canSaveGit,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ClapiColors.Primary,
+                        contentColor = ClapiColors.OnPrimary,
+                        disabledContainerColor = ClapiColors.SurfaceContainer,
+                        disabledContentColor = ClapiColors.OnSurfaceDim,
+                    ),
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier.testTag("storage-save-button"),
+                ) {
+                    if (tab.isSavingStorage) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = ClapiColors.OnPrimary,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text(Strings.storageSaveSettings, fontSize = 13.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun CollectionProtobufSettings(
     state: AppState,
     onSave: () -> Unit = {},
@@ -351,6 +653,7 @@ fun CollectionProtobufSettings(
     onOpenFile: ((String) -> Unit)? = null,
 ) {
     val fileOpener = onOpenFile ?: { path -> openFileInDefaultApp(path) }
+    val isGitSyncEnabled = (tab?.storageType ?: state.activeCollectionNode?.storageType) == StorageType.GIT
 
     LazyColumn(
         modifier = modifier
@@ -387,6 +690,7 @@ fun CollectionProtobufSettings(
                             for (p in pickedPaths) {
                                 if (state.collectionProtoFiles.none { it.path == p }) {
                                     state.collectionProtoFiles.add(ProtoFileItemState(p))
+                                    tab?.collectionProtoFiles?.add(ProtoFileItemState(p))
                                     changed = true
                                 }
                             }
@@ -423,9 +727,18 @@ fun CollectionProtobufSettings(
             items(state.collectionProtoFiles, key = { it.path }) { protoFile ->
                 ProtoFileRow(
                     item = protoFile,
+                    isGitSyncEnabled = isGitSyncEnabled,
+                    onToggleSyncToGit = {
+                        protoFile.syncToGit = !protoFile.syncToGit
+                        tab?.collectionProtoFiles?.firstOrNull { it.path == protoFile.path }?.let {
+                            it.syncToGit = protoFile.syncToGit
+                        }
+                        tab?.markDirty() ?: onSave()
+                    },
                     onOpen = { fileOpener(protoFile.path) },
                     onDelete = {
                         state.collectionProtoFiles.remove(protoFile)
+                        tab?.collectionProtoFiles?.removeAll { it.path == protoFile.path }
                         tab?.markDirty() ?: onSave()
                     },
                 )
@@ -460,6 +773,7 @@ fun CollectionProtobufSettings(
                             for (p in pickedPaths) {
                                 if (state.collectionImportPaths.none { it.path == p }) {
                                     state.collectionImportPaths.add(ProtoImportPathState(p, enabled = true))
+                                    tab?.collectionImportPaths?.add(ProtoImportPathState(p, enabled = true))
                                     changed = true
                                 }
                             }
@@ -496,13 +810,25 @@ fun CollectionProtobufSettings(
             items(state.collectionImportPaths, key = { it.path }) { importPath ->
                 ProtoImportPathRow(
                     item = importPath,
+                    isGitSyncEnabled = isGitSyncEnabled,
                     onToggle = {
                         importPath.enabled = !importPath.enabled
+                        tab?.collectionImportPaths?.firstOrNull { it.path == importPath.path }?.let {
+                            it.enabled = importPath.enabled
+                        }
+                        tab?.markDirty() ?: onSave()
+                    },
+                    onToggleSyncToGit = {
+                        importPath.syncToGit = !importPath.syncToGit
+                        tab?.collectionImportPaths?.firstOrNull { it.path == importPath.path }?.let {
+                            it.syncToGit = importPath.syncToGit
+                        }
                         tab?.markDirty() ?: onSave()
                     },
                     onOpen = { fileOpener(importPath.path) },
                     onDelete = {
                         state.collectionImportPaths.remove(importPath)
+                        tab?.collectionImportPaths?.removeAll { it.path == importPath.path }
                         tab?.markDirty() ?: onSave()
                     },
                 )
@@ -514,6 +840,8 @@ fun CollectionProtobufSettings(
 @Composable
 private fun ProtoFileRow(
     item: ProtoFileItemState,
+    isGitSyncEnabled: Boolean = false,
+    onToggleSyncToGit: () -> Unit = {},
     onOpen: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -548,6 +876,33 @@ private fun ProtoFileRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
+        if (isGitSyncEnabled) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .clickable { onToggleSyncToGit() }
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                    .testTag("proto-sync-toggle-${item.path}"),
+            ) {
+                Checkbox(
+                    checked = item.syncToGit,
+                    onCheckedChange = { onToggleSyncToGit() },
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = ClapiColors.Primary,
+                        checkmarkColor = ClapiColors.OnPrimary,
+                        uncheckedColor = ClapiColors.OnSurfaceDim,
+                    ),
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = Strings.syncToGit,
+                    fontSize = 11.sp,
+                    color = if (item.syncToGit) ClapiColors.Primary else ClapiColors.OnSurfaceDim,
+                )
+            }
+        }
         IconButton(
             onClick = onOpen,
             modifier = Modifier.size(24.dp).testTag("open-file-btn-${item.path}"),
@@ -576,7 +931,9 @@ private fun ProtoFileRow(
 @Composable
 private fun ProtoImportPathRow(
     item: ProtoImportPathState,
+    isGitSyncEnabled: Boolean = false,
     onToggle: () -> Unit,
+    onToggleSyncToGit: () -> Unit = {},
     onOpen: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -615,6 +972,33 @@ private fun ProtoImportPathRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
+        if (isGitSyncEnabled) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .clickable { onToggleSyncToGit() }
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                    .testTag("import-sync-toggle-${item.path}"),
+            ) {
+                Checkbox(
+                    checked = item.syncToGit,
+                    onCheckedChange = { onToggleSyncToGit() },
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = ClapiColors.Primary,
+                        checkmarkColor = ClapiColors.OnPrimary,
+                        uncheckedColor = ClapiColors.OnSurfaceDim,
+                    ),
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = Strings.syncToGit,
+                    fontSize = 11.sp,
+                    color = if (item.syncToGit) ClapiColors.Primary else ClapiColors.OnSurfaceDim,
+                )
+            }
+        }
         IconButton(
             onClick = onOpen,
             modifier = Modifier.size(24.dp).testTag("open-import-btn-${item.path}"),

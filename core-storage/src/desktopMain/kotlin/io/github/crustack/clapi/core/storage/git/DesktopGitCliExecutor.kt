@@ -83,3 +83,6 @@ class DesktopGitCliExecutor(
         }
     }
 }
+
+actual fun createDefaultGitCliExecutor(): GitCliExecutor = DesktopGitCliExecutor()
+
