@@ -6,6 +6,8 @@ import io.github.crustack.clapi.core.storage.opencollection.CollectionStorageExc
 import io.github.crustack.clapi.core.storage.opencollection.CollectionValidationException
 import io.github.crustack.clapi.core.storage.opencollection.DefaultCanonicalCollectionRepository
 import io.github.crustack.clapi.ui.shared.state.AppState
+import io.github.crustack.clapi.ui.shared.state.ProtoFileItemState
+import io.github.crustack.clapi.ui.shared.state.ProtoImportPathState
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
@@ -94,6 +96,18 @@ object WorkspaceRepository {
                 state.environments.clear()
                 state.environments.addAll(
                     globalDoc.config?.environments.orEmpty().map { it.toEnvState() }
+                )
+
+                state.collectionProtoFiles.clear()
+                state.collectionProtoFiles.addAll(
+                    globalDoc.config?.protobuf?.protoFiles.orEmpty()
+                        .map { ProtoFileItemState(path = it.path) }
+                )
+
+                state.collectionImportPaths.clear()
+                state.collectionImportPaths.addAll(
+                    globalDoc.config?.protobuf?.importPaths.orEmpty()
+                        .map { ProtoImportPathState(path = it.path, enabled = it.disabled != true) }
                 )
                 val savedName = state.settings.selectedEnvName
                 state.selectedEnvIndex = when {

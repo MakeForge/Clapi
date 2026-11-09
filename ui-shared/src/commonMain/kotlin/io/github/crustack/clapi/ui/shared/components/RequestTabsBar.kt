@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.DropdownMenu
@@ -223,6 +224,13 @@ private fun RequestTabChip(
                     contentDescription = null,
                     tint = ClapiColors.Tertiary,
                     modifier = Modifier.size(14.dp).testTag("tab-folder-icon-${tab.id}"),
+                )
+            } else if (tab.kind == RequestKind.COLLECTION) {
+                Icon(
+                    Icons.Default.Article,
+                    contentDescription = null,
+                    tint = ClapiColors.Tertiary,
+                    modifier = Modifier.size(14.dp).testTag("tab-collection-icon-${tab.id}"),
                 )
             } else {
                 val sse = tab.hasSseAccept()

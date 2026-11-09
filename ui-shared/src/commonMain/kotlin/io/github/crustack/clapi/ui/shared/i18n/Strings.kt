@@ -35,6 +35,10 @@ object Strings {
 
     val history: String @Composable @ReadOnlyComposable get() = t("history")
     val collections: String @Composable @ReadOnlyComposable get() = t("collections")
+    val collection: String @Composable @ReadOnlyComposable get() = t("collection")
+    val addProtoFiles: String @Composable @ReadOnlyComposable get() = t("add_proto_files")
+    val importPaths: String @Composable @ReadOnlyComposable get() = t("import_paths")
+    val openFileExternally: String @Composable @ReadOnlyComposable get() = t("open_file_externally")
     val folders: String @Composable @ReadOnlyComposable get() = t("folders")
     val folder: String @Composable @ReadOnlyComposable get() = t("folder")
     val environments: String @Composable @ReadOnlyComposable get() = t("environments")

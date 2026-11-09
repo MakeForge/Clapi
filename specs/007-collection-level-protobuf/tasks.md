@@ -15,9 +15,9 @@
 
 **Purpose**: Project initialization, strings, and cross-platform desktop hooks
 
-- [ ] T001 [P] Add collection string localization keys (`collection`, `add_proto_files`, `import_paths`, `open_file_externally`) to `ui-shared/src/commonMain/resources/i18n/en.json`
-- [ ] T002 [P] Declare `pickProtoFiles` (multi-file selection) and `openFileInDefaultApp` platform functions in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/platform/PlatformApi.kt`
-- [ ] T003 [P] Implement `pickProtoFiles` (using AWT `FileDialog` with `isMultipleMode = true`) and `openFileInDefaultApp` (using `Desktop.getDesktop().open` with OS fallback) in `ui-shared/src/desktopMain/kotlin/io/github/crustack/clapi/ui/shared/platform/PlatformApi.desktop.kt`
+- [X] T001 [P] Add collection string localization keys (`collection`, `add_proto_files`, `import_paths`, `open_file_externally`) to `ui-shared/src/commonMain/resources/i18n/en.json`
+- [X] T002 [P] Declare `pickProtoFiles` (multi-file selection) and `openFileInDefaultApp` platform functions in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/platform/PlatformApi.kt`
+- [X] T003 [P] Implement `pickProtoFiles` (using AWT `FileDialog` with `isMultipleMode = true`) and `openFileInDefaultApp` (using `Desktop.getDesktop().open` with OS fallback) in `ui-shared/src/desktopMain/kotlin/io/github/crustack/clapi/ui/shared/platform/PlatformApi.desktop.kt`
 
 ---
 
@@ -25,11 +25,11 @@
 
 **Purpose**: Core data models, RequestKind extension, and OpenCollection persistence mappings
 
-- [ ] T004 [P] Add `COLLECTION` to `enum class RequestKind` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/McpModels.kt`
-- [ ] T005 [P] Define `CollectionProtobufConfig`, `ProtoFile`, and `ProtoFileImportPath` data models conforming to OpenCollection schema, and add `val protobuf: CollectionProtobufConfig? = null` to `CollectionConfig` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionDocument.kt`
-- [ ] T006 [P] Add unit tests for `CollectionConfig.protobuf` serialization and schema validation in `core-model/src/desktopTest/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionModelTest.kt`
-- [ ] T007 Define `ProtoFileItemState` and `ProtoImportPathState` observable UI models, and add `collectionProtoFiles` and `collectionImportPaths` lists to `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt`
-- [ ] T008 Update `toGlobalOpenCollectionDocument` and `load` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` and `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/WorkspaceRepository.kt` to serialize and restore `config.protobuf`
+- [X] T004 [P] Add `COLLECTION` to `enum class RequestKind` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/McpModels.kt`
+- [X] T005 [P] Define `CollectionProtobufConfig`, `ProtoFile`, and `ProtoFileImportPath` data models conforming to OpenCollection schema, and add `val protobuf: CollectionProtobufConfig? = null` to `CollectionConfig` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionDocument.kt`
+- [X] T006 [P] Add unit tests for `CollectionConfig.protobuf` serialization and schema validation in `core-model/src/desktopTest/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionModelTest.kt`
+- [X] T007 Define `ProtoFileItemState` and `ProtoImportPathState` observable UI models, and add `collectionProtoFiles` and `collectionImportPaths` lists to `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt`
+- [X] T008 Update `toGlobalOpenCollectionDocument` and `load` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` and `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/WorkspaceRepository.kt` to serialize and restore `config.protobuf`
 
 **Checkpoint**: Foundation ready — user story implementations can now proceed.
 
@@ -41,12 +41,12 @@
 
 **Independent Test**: Click the top-level "Collection" item in the sidebar; verify a "Collection" editor tab opens with the Article icon, showing the Protobuf tab.
 
-- [ ] T009 [US1] Update `Sidebar.kt` to rename the root section from "Folders" (`Strings.folders`) to "Collection" (`Strings.collection`), use `Icons.Default.Article` instead of folder icon, and open Collection tab on click in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt`
-- [ ] T010 [US1] Implement `AppState.openCollection()` to open or focus a `RequestKind.COLLECTION` tab with ID `"collection_settings"` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt`
-- [ ] T011 [P] [US1] Update `RequestTabsBar.kt` to render `Icons.Default.Article` for tabs where `tab.kind == RequestKind.COLLECTION` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestTabsBar.kt`
-- [ ] T012 [US1] Create the `CollectionEditor` composable scaffold with tab bar (displaying "Protobuf" tab) in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/CollectionEditor.kt`
-- [ ] T013 [US1] Route `tab.kind == RequestKind.COLLECTION` to `CollectionEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/MainScreen.kt`
-- [ ] T014 [US1] Add UI test for opening and focusing the Collection tab from the sidebar in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/CollectionEditorNavigationUiTest.kt`
+- [X] T009 [US1] Update `Sidebar.kt` to rename the root section from "Folders" (`Strings.folders`) to "Collection" (`Strings.collection`), use `Icons.Default.Article` instead of folder icon, and open Collection tab on click in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt`
+- [X] T010 [US1] Implement `AppState.openCollection()` to open or focus a `RequestKind.COLLECTION` tab with ID `"collection_settings"` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt`
+- [X] T011 [P] [US1] Update `RequestTabsBar.kt` to render `Icons.Default.Article` for tabs where `tab.kind == RequestKind.COLLECTION` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestTabsBar.kt`
+- [X] T012 [US1] Create the `CollectionEditor` composable scaffold with tab bar (displaying "Protobuf" tab) in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/CollectionEditor.kt`
+- [X] T013 [US1] Route `tab.kind == RequestKind.COLLECTION` to `CollectionEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/MainScreen.kt`
+- [X] T014 [US1] Add UI test for opening and focusing the Collection tab from the sidebar in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/CollectionEditorNavigationUiTest.kt`
 
 **Checkpoint**: User Story 1 complete — Collection settings tab opens and displays from the sidebar.
 

@@ -42,8 +42,27 @@ data class ProxyConfig(
 )
 
 @Serializable
+data class ProtoFile(
+    val type: String = "file",
+    val path: String,
+)
+
+@Serializable
+data class ProtoFileImportPath(
+    val path: String,
+    val disabled: Boolean? = null,
+)
+
+@Serializable
+data class CollectionProtobufConfig(
+    val protoFiles: List<ProtoFile> = emptyList(),
+    val importPaths: List<ProtoFileImportPath> = emptyList(),
+)
+
+@Serializable
 data class CollectionConfig(
     val environments: List<Environment> = emptyList(),
+    val protobuf: CollectionProtobufConfig? = null,
     val proxy: ProxyConfig? = null,
     val clientCertificates: List<ClientCertificate> = emptyList(),
 )

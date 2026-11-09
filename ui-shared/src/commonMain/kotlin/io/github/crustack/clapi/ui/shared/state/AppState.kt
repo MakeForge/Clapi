@@ -245,6 +245,24 @@ class MutableExternalSecret(
     var enabled by mutableStateOf(enabled)
 }
 
+class ProtoFileItemState(
+    path: String,
+) {
+    var path by mutableStateOf(path)
+    val fileName: String get() = path.substringAfterLast(java.io.File.separatorChar).substringAfterLast('/')
+    val directory: String get() = path.substringBeforeLast(java.io.File.separatorChar, "").substringBeforeLast('/', "")
+}
+
+class ProtoImportPathState(
+    path: String,
+    enabled: Boolean = true,
+) {
+    var path by mutableStateOf(path)
+    var enabled by mutableStateOf(enabled)
+    val fileName: String get() = path.substringAfterLast(java.io.File.separatorChar).substringAfterLast('/')
+    val directory: String get() = path.substringBeforeLast(java.io.File.separatorChar, "").substringBeforeLast('/', "")
+}
+
 class EnvState(
     name: String,
     variables: List<MutableKeyValue> = emptyList(),
@@ -399,6 +417,7 @@ class RequestTabState(
     var testScript       by mutableStateOf("")
     var kind by mutableStateOf(kind)
     val isFolderTab: Boolean get() = kind == RequestKind.FOLDER
+    val isCollectionTab: Boolean get() = kind == RequestKind.COLLECTION
     var mcpConfig by mutableStateOf(McpConnectionConfig())
 
     // ── gRPC state ──────────────────────────────────────────────────────────
@@ -489,7 +508,7 @@ class RequestTabState(
     var liveStreamText by mutableStateOf("")
 
     init {
-        if (kind == RequestKind.FOLDER) {
+        if (kind == RequestKind.FOLDER || kind == RequestKind.COLLECTION) {
             headers.clear()
             selectedEditorTab = RequestEditorTab.VARIABLES
         } else if (kind == RequestKind.GRPC) {
@@ -712,7 +731,7 @@ class RequestTabState(
     }
 
     fun syncSystemHeaders() {
-        if (kind == RequestKind.FOLDER || kind == RequestKind.GRPC) return
+        if (kind == RequestKind.FOLDER || kind == RequestKind.GRPC || kind == RequestKind.COLLECTION) return
         // Content-Type always reflects the current body type (derived value).
         upsertSystemHeader(SystemHeaderRules.CONTENT_TYPE, SystemHeaderRules.defaultContentTypeFor(bodyType), overwriteIfExists = true)
         // Accept and User-Agent are only inserted when missing so that user
@@ -1002,6 +1021,10 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     }
     val collectionVariables = mutableStateMapOf<String, String>()
     var showGlobalVariablesDialog by mutableStateOf(false)
+
+    // ── collection protobuf ──
+    val collectionProtoFiles = mutableStateListOf<ProtoFileItemState>()
+    val collectionImportPaths = mutableStateListOf<ProtoImportPathState>()
 
     val selectedEnvironment: EnvState? get() = environments.getOrNull(selectedEnvIndex)
 
@@ -1297,6 +1320,26 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         openTabs.add(tab)
         activeTabIndex = openTabs.size - 1
         selectedCollectionId = folderId
+    }
+
+    /**
+     * Opens or focuses a dedicated settings tab for the top-level collection.
+     */
+    fun openCollection() {
+        val existingIdx = openTabs.indexOfFirst { it.kind == RequestKind.COLLECTION }
+        if (existingIdx >= 0) {
+            activeTabIndex = existingIdx
+            return
+        }
+
+        val tab = RequestTabState(
+            id = "collection_settings",
+            name = "Collection",
+            kind = RequestKind.COLLECTION,
+        )
+        tab.restoreSavedSnapshot(null)
+        openTabs.add(tab)
+        activeTabIndex = openTabs.size - 1
     }
 
     fun getAncestorFolders(tab: RequestTabState): List<CollectionNode> {
