@@ -13,3 +13,5 @@ actual fun writeTextFile(path: String, content: String) {
 actual fun deleteFile(path: String): Boolean = File(path).delete()
 
 actual fun fileExists(path: String): Boolean = File(path).exists()
+
+actual fun getDefaultStorageBaseDirectory(): String = File(System.getProperty("user.home"), ".clapi/storage").absolutePath

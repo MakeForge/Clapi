@@ -24,9 +24,9 @@ description: "Task list for Git Collection Sync implementation"
 
 **Purpose**: Define core data structures, storage extension types, and UI localization resources required by all user stories.
 
-- [ ] T001 Create `StorageExtension`, `StorageType`, `GitStorageConfig`, and `GitCredentialsConfig` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/storage/StorageExtension.kt` with validation rules (when `type == "git"`, `remoteUrl` and `branch` must be non-blank, `credentials.type == "system"`).
-- [ ] T002 [P] Update `OpenCollectionModelMapping.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to serialize and deserialize `extensions.storage` for both `"local"` and `"git"` configurations.
-- [ ] T003 [P] Add string localization entries for Storage tab, Git indicator, Git Sync Dialog, commit/push/pull actions, and Git error notices in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/i18n/Strings.kt`.
+- [x] T001 Create `StorageExtension`, `StorageType`, `GitStorageConfig`, and `GitCredentialsConfig` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/storage/StorageExtension.kt` with validation rules (when `type == "git"`, `remoteUrl` and `branch` must be non-blank, `credentials.type == "system"`).
+- [x] T002 [P] Update `OpenCollectionModelMapping.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to serialize and deserialize `extensions.storage` for both `"local"` and `"git"` configurations.
+- [x] T003 [P] Add string localization entries for Storage tab, Git indicator, Git Sync Dialog, commit/push/pull actions, and Git error notices in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/i18n/Strings.kt`.
 
 ---
 
@@ -36,10 +36,10 @@ description: "Task list for Git Collection Sync implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T004 Define `GitCliExecutor` interface, `GitCommandResult`, and Git exception hierarchy in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/git/GitCliExecutor.kt`.
-- [ ] T005 Implement `DesktopGitCliExecutor` in `core-storage/src/desktopMain/kotlin/io/github/crustack/clapi/core/storage/git/DesktopGitCliExecutor.kt` using `ProcessBuilder` on Dispatchers.IO to invoke host system `git` binary and capture stdout/stderr with timeouts.
-- [ ] T006 Implement `GitRepositoryManager` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/git/GitRepositoryManager.kt` handling clone, checkout, status (`git status --porcelain=v1`), stage/commit, push, and pull within `~/.clapi/storage/<repoId>/`.
-- [ ] T007 [P] Create unit tests for `DesktopGitCliExecutor` and `GitRepositoryManager` in `core-storage/src/desktopTest/kotlin/io/github/crustack/clapi/core/storage/git/GitCliExecutorTest.kt` verifying version check, command execution, and status parsing against a local test Git repo.
+- [x] T004 Define `GitCliExecutor` interface, `GitCommandResult`, and Git exception hierarchy in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/git/GitCliExecutor.kt`.
+- [x] T005 Implement `DesktopGitCliExecutor` in `core-storage/src/desktopMain/kotlin/io/github/crustack/clapi/core/storage/git/DesktopGitCliExecutor.kt` using `ProcessBuilder` on Dispatchers.IO to invoke host system `git` binary and capture stdout/stderr with timeouts.
+- [x] T006 Implement `GitRepositoryManager` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/git/GitRepositoryManager.kt` handling clone, checkout, status (`git status --porcelain=v1`), stage/commit, push, and pull within `~/.clapi/storage/<repoId>/`.
+- [x] T007 [P] Create unit tests for `DesktopGitCliExecutor` and `GitRepositoryManager` in `core-storage/src/desktopTest/kotlin/io/github/crustack/clapi/core/storage/git/GitCliExecutorTest.kt` verifying version check, command execution, and status parsing against a local test Git repo.
 
 **Checkpoint**: Foundation ready — user story implementation can now begin.
 

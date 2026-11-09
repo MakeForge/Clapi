@@ -7,6 +7,8 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
+import io.github.crustack.clapi.core.model.storage.StorageExtension
+import io.github.crustack.clapi.core.model.storage.StorageType
 import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.core.model.BodyType
 import io.github.crustack.clapi.core.model.FormEntryType
@@ -145,8 +147,12 @@ data class CollectionNode(
     val version: String? = null,
     val protoFiles: List<ProtoFileItemState> = emptyList(),
     val importPaths: List<ProtoImportPathState> = emptyList(),
+    val storageExtension: StorageExtension? = null,
 ) {
     val isCollection: Boolean get() = kind == RequestKind.COLLECTION
+    val storageType: StorageType get() = storageExtension?.type ?: StorageType.LOCAL
+    val gitRemoteUrl: String get() = storageExtension?.git?.remoteUrl.orEmpty()
+    val gitBranch: String get() = storageExtension?.git?.branch ?: "main"
 }
 
 /**

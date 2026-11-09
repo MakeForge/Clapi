@@ -8,6 +8,10 @@ import io.github.crustack.clapi.core.model.HttpMethodType
 import io.github.crustack.clapi.core.model.KeyValueEntry
 import io.github.crustack.clapi.core.model.McpConnectionConfig
 import io.github.crustack.clapi.core.model.RequestKind
+import io.github.crustack.clapi.core.model.storage.StorageExtension
+import io.github.crustack.clapi.core.model.storage.StorageType
+import io.github.crustack.clapi.core.model.storage.getStorageExtension
+import io.github.crustack.clapi.core.model.storage.withStorageExtension
 import io.github.crustack.clapi.core.model.opencollection.ApiKeyPlacement
 import io.github.crustack.clapi.core.model.opencollection.AuthApiKey
 import io.github.crustack.clapi.core.model.opencollection.AuthBasic
@@ -172,6 +176,8 @@ fun CollectionNode.toOpenCollectionDocument(): OpenCollectionDocument {
                 .map { ProtoFileImportPath(path = it.path, disabled = if (!it.enabled) true else null) },
         )
     } else null
+    val storage = storageExtension ?: StorageExtension(type = StorageType.LOCAL)
+    val extWithStorage = ext.withStorageExtension(storage)
     return OpenCollectionDocument(
         opencollection = "1.0.0",
         info = CollectionInfo(
@@ -183,7 +189,7 @@ fun CollectionNode.toOpenCollectionDocument(): OpenCollectionDocument {
         request = toRequestDefaults(),
         bundled = true,
         items = children.map { it.toOpenCollectionItem() },
-        extensions = ext,
+        extensions = extWithStorage,
     )
 }
 
@@ -198,6 +204,8 @@ fun CollectionNode.toCollectionFolder(asCollection: Boolean = isCollection): Fol
     }
     if (asCollection || isCollection) {
         clapiMap["isCollection"] = JsonPrimitive(true)
+        val storage = storageExtension ?: StorageExtension(type = StorageType.LOCAL)
+        ext.putAll(emptyMap<String, JsonElement>().withStorageExtension(storage))
     }
     summary?.takeIf { it.isNotBlank() }?.let { clapiMap["summary"] = JsonPrimitive(it) }
     version?.takeIf { it.isNotBlank() }?.let { clapiMap["version"] = JsonPrimitive(it) }
@@ -633,6 +641,7 @@ fun OpenCollectionDocument.toCollectionNode(
         .map { ProtoFileItemState(path = it.path) }
     val importPathsState = config?.protobuf?.importPaths.orEmpty()
         .map { ProtoImportPathState(path = it.path, enabled = it.disabled != true) }
+    val storageExt = extensions.getStorageExtension() ?: StorageExtension(type = StorageType.LOCAL)
 
     return baseNode.copy(
         kind = RequestKind.COLLECTION,
@@ -640,6 +649,7 @@ fun OpenCollectionDocument.toCollectionNode(
         version = info.version,
         protoFiles = protoFilesState,
         importPaths = importPathsState,
+        storageExtension = storageExt,
     )
 }
 
@@ -723,6 +733,12 @@ fun OpenCollectionItem.toCollectionNode(
                 val enabled = obj["enabled"]?.jsonPrimitive?.booleanOrNull ?: true
                 ProtoImportPathState(p, enabled)
             }.orEmpty()
+            val colStorageExt = if (isCol) {
+                extensions.getStorageExtension()
+                    ?: (meta?.get("storage")?.let {
+                        (emptyMap<String, JsonElement>() + ("storage" to it)).getStorageExtension()
+                    }) ?: StorageExtension(type = StorageType.LOCAL)
+            } else null
 
             val folderVariables = req?.variables?.map { v ->
                 when (v) {
@@ -750,6 +766,7 @@ fun OpenCollectionItem.toCollectionNode(
                 version = colVersion,
                 protoFiles = colProtoFiles,
                 importPaths = colImportPaths,
+                storageExtension = colStorageExt,
                 headerEntries = headers,
                 userHeaders = userHeaders,
                 variableEntries = folderVariables,
