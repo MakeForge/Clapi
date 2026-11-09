@@ -71,6 +71,9 @@ fun CollectionEditor(
     state: AppState,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
+    onPickProtoFiles: ((onSelected: (List<String>) -> Unit) -> Unit)? = null,
+    onPickImportPaths: ((onSelected: (List<String>) -> Unit) -> Unit)? = null,
+    onOpenFile: ((String) -> Unit)? = null,
 ) {
     var selectedTab by remember { mutableStateOf(CollectionEditorTab.PROTOBUF) }
 
@@ -105,9 +108,12 @@ fun CollectionEditor(
             )
             Button(
                 onClick = onSave,
+                enabled = tab.isDirty,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = ClapiColors.Primary,
                     contentColor = ClapiColors.OnPrimary,
+                    disabledContainerColor = ClapiColors.SurfaceContainer,
+                    disabledContentColor = ClapiColors.OnSurfaceDim,
                 ),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                 shape = RoundedCornerShape(6.dp),
@@ -161,8 +167,12 @@ fun CollectionEditor(
             when (selectedTab) {
                 CollectionEditorTab.PROTOBUF -> {
                     CollectionProtobufSettings(
+                        tab = tab,
                         state = state,
                         onSave = onSave,
+                        onPickProtoFiles = onPickProtoFiles,
+                        onPickImportPaths = onPickImportPaths,
+                        onOpenFile = onOpenFile,
                     )
                 }
             }
@@ -173,9 +183,15 @@ fun CollectionEditor(
 @Composable
 fun CollectionProtobufSettings(
     state: AppState,
-    onSave: () -> Unit,
+    onSave: () -> Unit = {},
+    tab: RequestTabState? = null,
     modifier: Modifier = Modifier,
+    onPickProtoFiles: ((onSelected: (List<String>) -> Unit) -> Unit)? = null,
+    onPickImportPaths: ((onSelected: (List<String>) -> Unit) -> Unit)? = null,
+    onOpenFile: ((String) -> Unit)? = null,
 ) {
+    val fileOpener = onOpenFile ?: { path -> openFileInDefaultApp(path) }
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -205,7 +221,8 @@ fun CollectionProtobufSettings(
                 }
                 Button(
                     onClick = {
-                        pickProtoFiles { pickedPaths ->
+                        val picker = onPickProtoFiles ?: { cb -> pickProtoFiles(cb) }
+                        picker { pickedPaths ->
                             var changed = false
                             for (p in pickedPaths) {
                                 if (state.collectionProtoFiles.none { it.path == p }) {
@@ -213,7 +230,9 @@ fun CollectionProtobufSettings(
                                     changed = true
                                 }
                             }
-                            if (changed) onSave()
+                            if (changed) {
+                                tab?.markDirty() ?: onSave()
+                            }
                         }
                     },
                     colors = ButtonDefaults.buttonColors(
@@ -244,10 +263,10 @@ fun CollectionProtobufSettings(
             items(state.collectionProtoFiles, key = { it.path }) { protoFile ->
                 ProtoFileRow(
                     item = protoFile,
-                    onOpen = { openFileInDefaultApp(protoFile.path) },
+                    onOpen = { fileOpener(protoFile.path) },
                     onDelete = {
                         state.collectionProtoFiles.remove(protoFile)
-                        onSave()
+                        tab?.markDirty() ?: onSave()
                     },
                 )
             }
@@ -275,7 +294,8 @@ fun CollectionProtobufSettings(
                 }
                 Button(
                     onClick = {
-                        pickProtoFiles { pickedPaths ->
+                        val picker = onPickImportPaths ?: { cb -> pickProtoFiles(cb) }
+                        picker { pickedPaths ->
                             var changed = false
                             for (p in pickedPaths) {
                                 if (state.collectionImportPaths.none { it.path == p }) {
@@ -283,7 +303,9 @@ fun CollectionProtobufSettings(
                                     changed = true
                                 }
                             }
-                            if (changed) onSave()
+                            if (changed) {
+                                tab?.markDirty() ?: onSave()
+                            }
                         }
                     },
                     colors = ButtonDefaults.buttonColors(
@@ -316,12 +338,12 @@ fun CollectionProtobufSettings(
                     item = importPath,
                     onToggle = {
                         importPath.enabled = !importPath.enabled
-                        onSave()
+                        tab?.markDirty() ?: onSave()
                     },
-                    onOpen = { openFileInDefaultApp(importPath.path) },
+                    onOpen = { fileOpener(importPath.path) },
                     onDelete = {
                         state.collectionImportPaths.remove(importPath)
-                        onSave()
+                        tab?.markDirty() ?: onSave()
                     },
                 )
             }

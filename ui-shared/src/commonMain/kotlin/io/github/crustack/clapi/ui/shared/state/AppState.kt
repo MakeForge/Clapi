@@ -372,6 +372,7 @@ class RequestTabState(
     var folderPath by mutableStateOf(folderPath)
 
     var selectedEditorTab by mutableStateOf(RequestEditorTab.PARAMS)
+    var collectionSnapshotProvider by mutableStateOf<(() -> String)?>(null)
 
     val params  = mutableStateListOf<MutableKeyValue>()
     val variables = mutableStateListOf<MutableKeyValue>()
@@ -521,6 +522,14 @@ class RequestTabState(
     private fun totalBodyLength(): Int = bodyContents.values.sumOf { it.length }
 
     private fun currentSnapshot(): String {
+        if (kind == RequestKind.COLLECTION) {
+            return listOf(
+                name,
+                kind.name,
+                collectionSnapshotProvider?.invoke().orEmpty(),
+            ).joinToString("#")
+        }
+
         val paramsSnapshot = params
             .filter { it.kind != HeaderKind.INHERITED }
             .joinToString(";") { p -> "${p.key}|${p.value}|${p.enabled}|${p.secret}" }
@@ -933,7 +942,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
 
     // ── bottom panel ──
     var selectedBottomTab    by mutableStateOf(BottomTab.CONSOLE)
-    var bottomPanelExpanded  by mutableStateOf(true)
+    var bottomPanelExpanded  by mutableStateOf(false)
     var bottomPanelHeight    by mutableStateOf(200f)
     val consoleLogs  = mutableStateListOf<ConsoleEntry>()
     /** Structured network-event log shown in the Logs tab (fixes M-3). */
@@ -1322,12 +1331,22 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         selectedCollectionId = folderId
     }
 
+    fun collectionProtobufSnapshot(): String {
+        val protos = collectionProtoFiles.joinToString(";") { it.path }
+        val imports = collectionImportPaths.joinToString(";") { "${it.path}:${it.enabled}" }
+        return "$protos#$imports"
+    }
+
     /**
      * Opens or focuses a dedicated settings tab for the top-level collection.
      */
     fun openCollection() {
         val existingIdx = openTabs.indexOfFirst { it.kind == RequestKind.COLLECTION }
         if (existingIdx >= 0) {
+            val existing = openTabs[existingIdx]
+            if (existing.collectionSnapshotProvider == null) {
+                existing.collectionSnapshotProvider = { collectionProtobufSnapshot() }
+            }
             activeTabIndex = existingIdx
             return
         }
@@ -1337,7 +1356,8 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
             name = "Collection",
             kind = RequestKind.COLLECTION,
         )
-        tab.restoreSavedSnapshot(null)
+        tab.collectionSnapshotProvider = { collectionProtobufSnapshot() }
+        tab.markSaved()
         openTabs.add(tab)
         activeTabIndex = openTabs.size - 1
     }

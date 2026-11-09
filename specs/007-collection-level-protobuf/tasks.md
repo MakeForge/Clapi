@@ -58,10 +58,10 @@
 
 **Independent Test**: In the Protobuf tab, add multiple `.proto` files, toggle an import path, click "Open File" to view externally, remove an item, and verify state persists.
 
-- [ ] T015 [US2] Implement the "Proto Files" UI section in `CollectionEditor.kt` supporting multi-file addition via `pickProtoFiles`, file path display, external open button, and remove action in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/CollectionEditor.kt`
-- [ ] T016 [US2] Implement the "Import Paths" UI section in `CollectionEditor.kt` with enabled/disabled checkbox toggle, path display, external open button, remove action, and add button in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/CollectionEditor.kt`
-- [ ] T017 [US2] Wire collection proto files and import paths mutations in `CollectionEditor.kt` to trigger `onSave` / `persistWorkspaceAsync()` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/MainScreen.kt`
-- [ ] T018 [US2] Add unit and UI tests for adding, toggling, and removing collection proto files and import paths in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/CollectionProtobufEditorUiTest.kt`
+- [X] T015 [US2] Implement the "Proto Files" UI section in `CollectionEditor.kt` supporting multi-file addition via `pickProtoFiles`, file path display, external open button, and remove action in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/CollectionEditor.kt`
+- [X] T016 [US2] Implement the "Import Paths" UI section in `CollectionEditor.kt` with enabled/disabled checkbox toggle, path display, external open button, remove action, and add button in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/CollectionEditor.kt`
+- [X] T017 [US2] Wire collection proto files and import paths mutations in `CollectionEditor.kt` to trigger `onSave` / `persistWorkspaceAsync()` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/MainScreen.kt`
+- [X] T018 [US2] Add unit and UI tests for adding, toggling, and removing collection proto files and import paths in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/CollectionProtobufEditorUiTest.kt`
 
 **Checkpoint**: User Story 2 complete — Collection-level proto files and import paths are fully manageable and editable in the UI.
 
@@ -73,9 +73,9 @@
 
 **Independent Test**: In a gRPC request, open the proto file dialog, select a collection-level proto file, save, and verify that the services and methods from that proto file populate the method dropdown.
 
-- [ ] T019 [US3] Update `SelectProtoFileDialog.kt` to accept `collectionProtoFiles: List<String>` and render a selectable "Collection Proto Files" list/dropdown alongside the manual file picker in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SelectProtoFileDialog.kt`
-- [ ] T020 [US3] Pass `state.collectionProtoFiles.map { it.path }` to `SelectProtoFileDialog` when opened from gRPC request editor in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/MainScreen.kt`
-- [ ] T021 [US3] Add UI test verifying selection of collection-level proto files in the gRPC Request Editor dialog in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/GrpcProtoSelectionUiTest.kt`
+- [X] T019 [US3] Update `SelectProtoFileDialog.kt` to accept `collectionProtoFiles: List<String>` and render a selectable "Collection Proto Files" list/dropdown alongside the manual file picker in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SelectProtoFileDialog.kt`
+- [X] T020 [US3] Pass `state.collectionProtoFiles.map { it.path }` to `SelectProtoFileDialog` when opened from gRPC request editor in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/MainScreen.kt`
+- [X] T021 [US3] Add UI test verifying selection of collection-level proto files in the gRPC Request Editor dialog in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/GrpcProtoSelectionUiTest.kt`
 
 **Checkpoint**: User Story 3 complete — gRPC requests can consume collection-level proto files seamlessly.
 
@@ -87,12 +87,12 @@
 
 **Independent Test**: Configure an enabled collection import path for `metadata.proto`, parse a service proto file that imports it, and execute an RPC call successfully.
 
-- [ ] T022 [US4] Update `ProtocJarParser.kt` to normalize `includePaths` (deriving parent and ancestor directory paths for files so relative imports like `import "protobuf/common/metadata.proto";` resolve) in `core-network/src/desktopMain/kotlin/io/github/crustack/clapi/core/network/grpc/ProtocJarParser.kt`
-- [ ] T023 [P] [US4] Add unit tests in `core-network/src/desktopTest/kotlin/io/github/crustack/clapi/core/network/grpc/ProtocJarParserTest.kt` verifying compilation with imported proto files across include paths
-- [ ] T024 [P] [US4] Add `includePaths: List<String> = emptyList()` to `GrpcCallRequest` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/grpc/GrpcModels.kt`
-- [ ] T025 [US4] Update `NettyDynamicGrpcClient.kt` to forward `request.includePaths` to `protoParser.parseProtoFile` in `core-network/src/desktopMain/kotlin/io/github/crustack/clapi/core/network/grpc/NettyDynamicGrpcClient.kt`
-- [ ] T026 [US4] Update `RequestExecutionService.kt` to accept and forward `includePaths: List<String>` in `executeGrpc(...)` in `feature-requests/src/commonMain/kotlin/io/github/crustack/clapi/feature/requests/RequestExecutionService.kt`
-- [ ] T027 [US4] Update `RequestTabState` method discovery and `MainScreen.kt` request execution to pass enabled collection import paths (`state.collectionImportPaths.filter { it.enabled }.map { it.path }`) to `protoParser` and `executionService` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` and `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/MainScreen.kt`
+- [X] T022 [US4] Update `ProtocJarParser.kt` to normalize `includePaths` (deriving parent and ancestor directory paths for files so relative imports like `import "protobuf/common/metadata.proto";` resolve) in `core-network/src/desktopMain/kotlin/io/github/crustack/clapi/core/network/grpc/ProtocJarParser.kt`
+- [X] T023 [P] [US4] Add unit tests in `core-network/src/desktopTest/kotlin/io/github/crustack/clapi/core/network/grpc/ProtocJarParserTest.kt` verifying compilation with imported proto files across include paths
+- [X] T024 [P] [US4] Add `includePaths: List<String> = emptyList()` to `GrpcCallRequest` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/grpc/GrpcModels.kt`
+- [X] T025 [US4] Update `NettyDynamicGrpcClient.kt` to forward `request.includePaths` to `protoParser.parseProtoFile` in `core-network/src/desktopMain/kotlin/io/github/crustack/clapi/core/network/grpc/NettyDynamicGrpcClient.kt`
+- [X] T026 [US4] Update `RequestExecutionService.kt` to accept and forward `includePaths: List<String>` in `executeGrpc(...)` in `feature-requests/src/commonMain/kotlin/io/github/crustack/clapi/feature/requests/RequestExecutionService.kt`
+- [X] T027 [US4] Update `RequestTabState` method discovery and `MainScreen.kt` request execution to pass enabled collection import paths (`state.collectionImportPaths.filter { it.enabled }.map { it.path }`) to `protoParser` and `executionService` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` and `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/MainScreen.kt`
 
 **Checkpoint**: User Story 4 complete — proto files with imported dependencies compile and execute dynamically.
 
@@ -104,8 +104,8 @@
 
 **Independent Test**: Export and re-import or reload a workspace with collection proto files and import paths; verify all fields and enabled states are identical.
 
-- [ ] T028 [US5] Add storage integration tests in `core-storage/src/commonTest/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionProtobufStorageTest.kt` verifying save and load roundtrip of `CollectionConfig.protobuf`
-- [ ] T029 [US5] Add workspace persistence tests in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/persistence/CollectionProtobufPersistenceTest.kt` verifying that collection proto files and import paths persist across app reloads
+- [X] T028 [US5] Add storage integration tests in `core-storage/src/commonTest/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionProtobufStorageTest.kt` verifying save and load roundtrip of `CollectionConfig.protobuf`
+- [X] T029 [US5] Add workspace persistence tests in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/persistence/CollectionProtobufPersistenceTest.kt` verifying that collection proto files and import paths persist across app reloads
 
 **Checkpoint**: User Story 5 complete — Full roundtrip persistence complies with OpenCollection v1.0.0.
 
@@ -115,10 +115,10 @@
 
 **Purpose**: Test server adaptation, end-to-end integration tests with imported types, and final validation
 
-- [ ] T030 Update `DummyApiServer.kt` to make `metadata.proto` available on classpath/temp dir and compile `greeter.proto` with its import path in `qa-tests/src/test/kotlin/io/github/crustack/clapi/testsupport/DummyApiServer.kt`
-- [ ] T031 Update `GrpcApiE2ETest.kt` to test unary RPC calls with `greeter.proto` using collection-level `importPaths` pointing to `metadata.proto` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/GrpcApiE2ETest.kt`
-- [ ] T032 Add a test in `GrpcApiE2ETest.kt` asserting that disabling the required import path causes a compilation failure with descriptive missing import error in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/GrpcApiE2ETest.kt`
-- [ ] T033 Execute complete quickstart validation suite per `specs/007-collection-level-protobuf/quickstart.md` across `:core-model:desktopTest`, `:core-network:desktopTest`, `:core-storage:desktopTest`, `:ui-desktop:desktopTest`, and `:qa-tests:jvmTest`
+- [X] T030 Update `DummyApiServer.kt` to make `metadata.proto` available on classpath/temp dir and compile `greeter.proto` with its import path in `qa-tests/src/test/kotlin/io/github/crustack/clapi/testsupport/DummyApiServer.kt`
+- [X] T031 Update `GrpcApiE2ETest.kt` to test unary RPC calls with `greeter.proto` using collection-level `importPaths` pointing to `metadata.proto` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/GrpcApiE2ETest.kt`
+- [X] T032 Add a test in `GrpcApiE2ETest.kt` asserting that disabling the required import path causes a compilation failure with descriptive missing import error in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/GrpcApiE2ETest.kt`
+- [X] T033 Execute complete quickstart validation suite per `specs/007-collection-level-protobuf/quickstart.md` across `:core-model:desktopTest`, `:core-network:desktopTest`, `:core-storage:desktopTest`, `:ui-desktop:desktopTest`, and `:qa-tests:jvmTest`
 
 ---
 

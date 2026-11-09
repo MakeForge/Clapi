@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -58,6 +59,7 @@ fun SelectProtoFileDialog(
     currentProtoFilePath: String?,
     errorMessage: String? = null,
     isLoading: Boolean = false,
+    collectionProtoFiles: List<String> = emptyList(),
     onSave: (protoFilePath: String) -> Unit,
     onDismiss: () -> Unit,
     onPickFile: ((onSelected: (String) -> Unit) -> Unit)? = null,
@@ -177,6 +179,63 @@ fun SelectProtoFileDialog(
                                 inner()
                             },
                         )
+                    }
+
+                    if (collectionProtoFiles.isNotEmpty()) {
+                        Text(
+                            text = "Collection Proto Files",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = ClapiColors.OnSurfaceVariant,
+                        )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(ClapiColors.SurfaceContainer)
+                                .border(1.dp, ClapiColors.Border, RoundedCornerShape(8.dp))
+                                .padding(4.dp)
+                                .testTag("proto-dialog-collection-list"),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            collectionProtoFiles.forEach { path ->
+                                val fileName = path.substringAfterLast(java.io.File.separatorChar).substringAfterLast('/')
+                                val isSelected = selectedPath == path
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(if (isSelected) ClapiColors.Primary.copy(alpha = 0.15f) else Color.Transparent)
+                                        .clickable { selectedPath = path }
+                                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                                        .testTag("proto-dialog-collection-item-$path"),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Icon(
+                                        Icons.Default.Description,
+                                        contentDescription = null,
+                                        tint = if (isSelected) ClapiColors.Primary else ClapiColors.OnSurfaceDim,
+                                        modifier = Modifier.size(14.dp),
+                                    )
+                                    Text(
+                                        text = fileName,
+                                        fontSize = 12.sp,
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                        color = if (isSelected) ClapiColors.Primary else ClapiColors.OnSurface,
+                                    )
+                                    Text(
+                                        text = path,
+                                        fontSize = 11.sp,
+                                        fontFamily = CodeFontFamily,
+                                        color = ClapiColors.OnSurfaceDim,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     // Select Proto File button

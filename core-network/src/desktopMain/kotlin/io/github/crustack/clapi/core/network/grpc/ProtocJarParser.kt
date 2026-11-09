@@ -28,9 +28,20 @@ class ProtocJarParser : ProtoParser {
         }
 
         val tempDescriptorFile = File.createTempFile("clapi_proto_", ".desc")
+        val stagingDir = File.createTempFile("clapi_proto_stage_", "").apply {
+            delete()
+            mkdirs()
+        }
         try {
-            val parentDir = protoFile.parentFile?.absolutePath ?: "."
-            val allIncludeDirs = (listOf(parentDir) + includePaths).distinct()
+            val stagedTargetFile = File(stagingDir, protoFile.name)
+            protoFile.copyTo(stagedTargetFile, overwrite = true)
+            protoFile.parentFile?.listFiles()?.forEach { sibling ->
+                if (sibling.isFile && sibling.extension == "proto" && sibling.name != protoFile.name) {
+                    sibling.copyTo(File(stagingDir, sibling.name), overwrite = true)
+                }
+            }
+
+            val allIncludeDirs = normalizeIncludeDirs(stagingDir, includePaths)
 
             val args = buildList {
                 add("--include_imports")
@@ -39,7 +50,7 @@ class ProtocJarParser : ProtoParser {
                     add("-I$dir")
                 }
                 add("--descriptor_set_out=${tempDescriptorFile.absolutePath}")
-                add(protoFile.absolutePath)
+                add(stagedTargetFile.absolutePath)
             }.toTypedArray()
 
             val stdoutStream = ByteArrayOutputStream()
@@ -95,7 +106,38 @@ class ProtocJarParser : ProtoParser {
             )
         } finally {
             runCatching { tempDescriptorFile.delete() }
+            runCatching { stagingDir.deleteRecursively() }
         }
+    }
+
+    private fun normalizeIncludeDirs(stagingDir: File, includePaths: List<String>): List<String> {
+        val dirs = LinkedHashSet<String>()
+
+        dirs.add(stagingDir.absolutePath)
+
+        fun addDirectoryAndAncestors(startDir: File?) {
+            var current: File? = startDir?.canonicalFile ?: startDir?.absoluteFile
+            var depth = 0
+            while (current != null && current.exists() && current.isDirectory && depth < 10) {
+                dirs.add(current.absolutePath)
+                current = current.parentFile
+                depth++
+            }
+        }
+
+        for (rawPath in includePaths) {
+            val trimmed = rawPath.trim()
+            if (trimmed.isEmpty()) continue
+            val f = File(trimmed).let { if (it.isAbsolute) it else it.absoluteFile }
+            if (!f.exists()) continue
+            if (f.isDirectory) {
+                addDirectoryAndAncestors(f)
+            } else if (f.isFile) {
+                f.parentFile?.let { addDirectoryAndAncestors(it) }
+            }
+        }
+
+        return dirs.toList()
     }
 
     companion object {
