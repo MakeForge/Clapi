@@ -27,6 +27,9 @@ import io.github.crustack.clapi.core.network.VariableResolver
 import io.github.crustack.clapi.core.network.encodeGraphQlEnvelope
 import io.github.crustack.clapi.core.network.encodeBase64
 import io.github.crustack.clapi.core.network.getEnvironmentVariable
+import io.github.crustack.clapi.core.network.dynamicvar.DynamicVariableContext
+import io.github.crustack.clapi.core.network.dynamicvar.DynamicVariableRegistry
+import io.github.crustack.clapi.core.network.dynamicvar.OAuth2ResolvedConfig
 import io.github.crustack.clapi.core.network.oauth2.KtorOAuth2TokenClient
 import io.github.crustack.clapi.core.network.oauth2.OAuth2Exception
 import io.github.crustack.clapi.core.network.oauth2.OAuth2TokenClient
@@ -334,10 +337,24 @@ internal fun sendRequestInternal(
             state.activeVariableLayers(tab)
         }
 
+        val resolvedDynamicVars = resolveDynamicVariablesForTab(
+            state = state,
+            tab = tab,
+            textsToScan = textsToScan,
+            variableLayers = variableLayersWithSecrets,
+            tokenClient = tokenClient,
+        ) ?: return@launch
+
+        val effectiveVariableLayers = if (resolvedDynamicVars.isNotEmpty()) {
+            listOf(resolvedDynamicVars) + variableLayersWithSecrets
+        } else {
+            variableLayersWithSecrets
+        }
+
         val hasValidAuth = ensureValidOAuth2Token(
             state = state,
             tab = tab,
-            variableLayers = variableLayersWithSecrets,
+            variableLayers = effectiveVariableLayers,
             tokenClient = tokenClient,
         )
         if (!hasValidAuth) {
@@ -348,7 +365,7 @@ internal fun sendRequestInternal(
 
         val resolvedBaseForLog = resolveUrlForLog(
             url = effectiveUrl,
-            variableLayers = variableLayersWithSecrets,
+            variableLayers = effectiveVariableLayers,
             requestScopedVars = requestScopedScriptVars,
         )
         val effectiveUrlForLog = if (effectiveQueryParams.isNotEmpty()) {
@@ -399,7 +416,7 @@ internal fun sendRequestInternal(
                 retryPolicy = retryPolicy,
             )
 
-            client.execute(request, variableLayersWithSecrets).collect { event ->
+            client.execute(request, effectiveVariableLayers).collect { event ->
                 when (event) {
                     is NetworkEvent.Started -> {
                         state.recordHistory(
@@ -1549,6 +1566,99 @@ internal suspend fun resolveExternalSecretsForTab(
         tab.isLoading = false
         tab.currentJob = null
         state.log("Secret resolution error: $errorMsg", LogLevel.ERROR)
+        null
+    }
+}
+
+internal fun buildDynamicVariableContext(
+    state: AppState,
+    tab: RequestTabState,
+    variableLayers: List<Map<String, String>>,
+    tokenClient: OAuth2TokenClient = KtorOAuth2TokenClient(),
+): DynamicVariableContext {
+    val effectiveAuthType = if (tab.authType == AuthType.INHERIT) {
+        state.resolveInheritedAuth(tab)?.authType ?: AuthType.NONE
+    } else {
+        tab.authType
+    }
+
+    val inherited = if (tab.authType == AuthType.INHERIT) state.resolveInheritedAuth(tab) else null
+
+    val flow = inherited?.oauth2Flow ?: tab.authOAuth2Flow
+    val rawTokenUrl = inherited?.oauth2AccessTokenUrl ?: tab.authOAuth2AccessTokenUrl
+    val rawRefreshTokenUrl = (inherited?.oauth2RefreshTokenUrl ?: tab.authOAuth2RefreshTokenUrl).ifBlank { rawTokenUrl }
+    val rawClientId = inherited?.oauth2ClientId ?: tab.authOAuth2ClientId
+    val rawClientSecret = inherited?.oauth2ClientSecret ?: tab.authOAuth2ClientSecret
+    val credentialsPlacement = inherited?.oauth2CredentialsPlacement ?: tab.authOAuth2CredentialsPlacement
+    val rawUsername = inherited?.oauth2Username ?: tab.authOAuth2Username
+    val rawPassword = inherited?.oauth2Password ?: tab.authOAuth2Password
+    val rawScope = inherited?.oauth2Scope ?: tab.authOAuth2Scope
+
+    val oauth2Config = if (effectiveAuthType == AuthType.OAUTH2) {
+        OAuth2ResolvedConfig(
+            flow = flow,
+            tokenUrl = rawTokenUrl,
+            refreshTokenUrl = rawRefreshTokenUrl,
+            clientId = rawClientId,
+            clientSecret = rawClientSecret,
+            credentialsPlacement = credentialsPlacement,
+            username = rawUsername,
+            password = rawPassword,
+            scope = rawScope.ifBlank { null },
+        )
+    } else {
+        null
+    }
+
+    val currentTokenState = OAuth2TokenState(
+        accessToken = tab.authOAuth2AccessToken,
+        refreshToken = tab.authOAuth2RefreshToken.ifBlank { null },
+        idToken = tab.authOAuth2IdToken.ifBlank { null },
+        expiresAtEpochMs = tab.authOAuth2ExpiresAtEpochMs,
+    )
+
+    return DynamicVariableContext(
+        effectiveAuthType = effectiveAuthType,
+        oauth2Config = oauth2Config,
+        oauth2TokenState = currentTokenState,
+        variableLayers = variableLayers,
+        oauth2TokenClient = tokenClient,
+        onOAuth2TokenUpdated = { accessToken, refreshToken, idToken, expiresAtEpochMs ->
+            tab.authOAuth2AccessToken = accessToken
+            if (!refreshToken.isNullOrBlank()) {
+                tab.authOAuth2RefreshToken = refreshToken
+            }
+            if (!idToken.isNullOrBlank()) {
+                tab.authOAuth2IdToken = idToken
+            }
+            if (expiresAtEpochMs != null) {
+                tab.authOAuth2ExpiresAtEpochMs = expiresAtEpochMs
+            }
+            tab.authOAuth2FetchError = null
+        },
+        log = { msg, isError ->
+            state.log(msg, if (isError) LogLevel.ERROR else LogLevel.INFO)
+        },
+    )
+}
+
+internal suspend fun resolveDynamicVariablesForTab(
+    state: AppState,
+    tab: RequestTabState,
+    textsToScan: Iterable<String>,
+    variableLayers: List<Map<String, String>>,
+    registry: DynamicVariableRegistry = DynamicVariableRegistry(),
+    tokenClient: OAuth2TokenClient = KtorOAuth2TokenClient(),
+): Map<String, String>? {
+    val context = buildDynamicVariableContext(state, tab, variableLayers, tokenClient)
+    return try {
+        registry.resolveDynamicVariables(textsToScan, context)
+    } catch (e: Exception) {
+        val errorMsg = e.message ?: "Failed to resolve dynamic variables"
+        tab.lastError = errorMsg
+        tab.isLoading = false
+        tab.currentJob = null
+        state.log("Dynamic variable resolution error: $errorMsg", LogLevel.ERROR)
         null
     }
 }
