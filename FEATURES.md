@@ -35,6 +35,17 @@ Clapi supports end-to-end API testing with:
 - **MCP client** for Streamable HTTP (2025-06-18), legacy HTTP+SSE, and desktop stdio. Tools (Form/JSON arguments), resources (read + subscribe), prompts, Activity JSON-RPC inspector, sampling/roots/elicitation, and auth (None, Basic, Bearer, API Key, JWT) match the REST workspace. See [docs/mcp.md](docs/mcp.md).
 - Copy request as `curl`
 
+### External Secret Managers (KeePassXC & HashiCorp Vault)
+
+- Support for referencing external secrets dynamically across request URLs, headers, bodies, and auth configurations using `{{_secret.<name>}}` and `secret: true` environment variables.
+- **KeePassXC Integration**:
+  - Connects to locally running KeePassXC via native messaging proxy (`org.purejava:keepassxc-proxy-access:1.3.2`).
+  - Configure Entry URL, Target Field (`password`, `login`, `totp`, or custom attribute), and optional Custom Field Filters supporting variable interpolation.
+  - Live, non-leaking match count indicator in the Environment Editor displaying match counts or lock status without exposing secret values.
+  - Clean lifecycle management: zero idle proxy socket or background thread footprint when KeePassXC is not used by the active environment.
+- **HashiCorp Vault Integration**:
+  - Vault Server (KV v2) integration with path grouping and encrypted token custody.
+
 ### Response Validation and Inspection
 
 - Response status code and status text

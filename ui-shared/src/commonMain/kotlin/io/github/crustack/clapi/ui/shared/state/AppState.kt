@@ -32,6 +32,7 @@ import io.github.crustack.clapi.core.model.opencollection.Description
 import io.github.crustack.clapi.core.model.opencollection.OAuth2CredentialsPlacement
 import io.github.crustack.clapi.core.model.opencollection.OAuth2Flow
 import io.github.crustack.clapi.core.network.dynamicvar.DynamicVariableRegistry
+import io.github.crustack.clapi.core.network.keepassxc.DefaultKeePassXcClientManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -1222,7 +1223,20 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     }
 
     // ── environment ──
-    var selectedEnvIndex by mutableStateOf(0)
+    private var _selectedEnvIndex by mutableStateOf(0)
+    var selectedEnvIndex: Int
+        get() = _selectedEnvIndex
+        set(value) {
+            _selectedEnvIndex = value
+            val current = environments.getOrNull(value)
+            val hasKeePassXc = current?.externalSecretsProvider.equals("keepassxc", ignoreCase = true) &&
+                    current?.externalSecrets?.any { it.enabled } == true
+            if (!hasKeePassXc) {
+                appScope.launch {
+                    DefaultKeePassXcClientManager.Shared.onEnvironmentSwitched(false)
+                }
+            }
+        }
     val environments = mutableStateListOf<EnvState>().also {
         if (withDemoData) {
             it.addAll(AppStateDemoData.environments())

@@ -40,6 +40,7 @@ import io.github.crustack.clapi.core.scripting.SendRequestResult
 import io.github.crustack.clapi.core.scripting.SendRequestSpec
 import io.github.crustack.clapi.core.network.vault.SecretDeclaration
 import io.github.crustack.clapi.core.network.vault.SecretResolutionService
+import io.github.crustack.clapi.core.network.keepassxc.KeePassXcClient
 import io.github.crustack.clapi.ui.shared.network.NetworkClientFactory
 import io.github.crustack.clapi.ui.shared.persistence.TabsRepository
 import io.github.crustack.clapi.ui.shared.persistence.WorkspaceRepository
@@ -1574,6 +1575,7 @@ internal suspend fun resolveExternalSecretsForTab(
     tab: RequestTabState,
     textsToScan: Iterable<String>,
     secretResolutionService: SecretResolutionService = SecretResolutionService(),
+    keepassClient: KeePassXcClient? = null,
     processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
 ): Map<String, String>? {
     val secretVariableNames = state.selectedEnvironment?.variables
@@ -1582,13 +1584,24 @@ internal suspend fun resolveExternalSecretsForTab(
         ?.toSet()
         ?: emptySet()
 
+    val provider = state.selectedEnvironment?.externalSecretsProvider?.ifBlank { "hashicorp-vault-server" } ?: "hashicorp-vault-server"
+
     val declarations = state.selectedEnvironment?.externalSecrets?.map {
         SecretDeclaration(
             name = it.name.trim(),
             path = it.path.trim(),
             enabled = it.enabled,
+            providerType = provider,
+            url = it.url.trim(),
+            targetField = it.targetField.ifBlank { "password" }.trim(),
+            customFilters = it.customFilters.toMap(),
         )
     } ?: emptyList()
+
+    val envVarsMap = state.selectedEnvironment?.variables
+        ?.filter { it.enabled && it.key.isNotBlank() }
+        ?.associate { it.key.trim() to it.value }
+        ?: emptyMap()
 
     return try {
         secretResolutionService.resolveAllSecrets(
@@ -1601,6 +1614,8 @@ internal suspend fun resolveExternalSecretsForTab(
             },
             mountPath = state.settings.vaultMountPath.ifBlank { "secret" },
             namespace = state.settings.vaultNamespace.ifBlank { null },
+            variableValues = envVarsMap,
+            keepassClient = keepassClient,
             processEnvProvider = processEnvProvider,
         )
     } catch (e: Exception) {

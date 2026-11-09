@@ -1,9 +1,11 @@
 package io.github.crustack.clapi.core.network.keepassxc
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.purejava.KeepassProxyAccess
 import java.util.prefs.Preferences
+import kotlin.time.Duration.Companion.milliseconds
 
 interface KeePassXcAssociationStorage {
     fun getAssociateId(): String?
@@ -66,18 +68,21 @@ class PureJavaKeePassXcClient(
         }
     }
 
-    private fun ensureAssociated(kpa: KeepassProxyAccess): Pair<String, String> {
+    private suspend fun ensureAssociated(kpa: KeepassProxyAccess): Pair<String, String> =withContext(Dispatchers.IO) {
         val storedId = associationStorage.getAssociateId()
         val storedKey = associationStorage.getIdKeyPairPublicKey()
 
         if (!storedId.isNullOrBlank() && !storedKey.isNullOrBlank()) {
             if (kpa.testAssociate(storedId, storedKey)) {
-                return storedId to storedKey
+                return@withContext storedId to storedKey
             }
         }
 
         // Trigger association
-        val associated = kpa.associate()
+        kpa.associate()
+        val associated = retryUntilTrue() {
+            kpa.getDatabasehash().isPresent && kpa.testAssociate(kpa.associateId, kpa.idKeyPairPublicKey)
+        }
         if (!associated) {
             throw IllegalStateException("KeePassXC association was denied or failed.")
         }
@@ -85,7 +90,21 @@ class PureJavaKeePassXcClient(
         val newKey = kpa.idKeyPairPublicKey ?: throw IllegalStateException("Failed to obtain ID key pair from KeePassXC.")
 
         associationStorage.saveAssociation(newId, newKey)
-        return newId to newKey
+        return@withContext newId to newKey
+    }
+
+    suspend fun retryUntilTrue(
+        maxAttempts: Int = 15,
+        delayMillis: Long = 2_000L,
+        block: suspend () -> Boolean
+    ): Boolean {
+        repeat(maxAttempts) { attempt ->
+            if (block()) return true
+            if (attempt < maxAttempts - 1) {
+                delay(delayMillis.milliseconds)
+            }
+        }
+        return false
     }
 
     override suspend fun queryLogins(
