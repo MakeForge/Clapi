@@ -32,6 +32,7 @@ import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -58,12 +59,18 @@ import io.github.crustack.clapi.ui.shared.theme.ClapiColors
 import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 
 enum class CollectionEditorTab(val label: String) {
+    INFO("Info"),
+    VARIABLES("Variables"),
+    HEADERS("Headers"),
+    AUTH("Auth"),
+    PRE_REQUEST("Pre-request"),
+    TESTS("Tests"),
     PROTOBUF("Protobuf"),
 }
 
 /**
  * Dedicated editor for configuring collection-level resources and settings
- * (such as shared Protocol Buffer files and import paths).
+ * (metadata, request defaults, and Protocol Buffer files).
  */
 @Composable
 fun CollectionEditor(
@@ -75,7 +82,12 @@ fun CollectionEditor(
     onPickImportPaths: ((onSelected: (List<String>) -> Unit) -> Unit)? = null,
     onOpenFile: ((String) -> Unit)? = null,
 ) {
-    var selectedTab by remember { mutableStateOf(CollectionEditorTab.PROTOBUF) }
+    var selectedTab by remember { mutableStateOf(CollectionEditorTab.INFO) }
+
+    fun markDirty() {
+        tab.markDirty()
+        tab.recomputeDirty()
+    }
 
     Column(
         modifier = modifier
@@ -128,7 +140,7 @@ fun CollectionEditor(
             }
         }
 
-        // Tab bar for Collection Editor
+        // Tab bar for Collection Editor (Info first on the left)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -136,24 +148,56 @@ fun CollectionEditor(
                 .background(ClapiColors.Surface)
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(
-                        if (selectedTab == CollectionEditorTab.PROTOBUF) ClapiColors.SurfaceContainer
-                        else Color.Transparent
-                    )
-                    .clickable { selectedTab = CollectionEditorTab.PROTOBUF }
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                    .testTag("collection-tab-protobuf"),
-            ) {
-                Text(
-                    text = "Protobuf",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = if (selectedTab == CollectionEditorTab.PROTOBUF) ClapiColors.OnSurface else ClapiColors.OnSurfaceDim,
-                )
+            CollectionEditorTab.entries.forEach { editorTab ->
+                val isSelected = selectedTab == editorTab
+                val tag = when (editorTab) {
+                    CollectionEditorTab.INFO -> "collection-tab-info"
+                    CollectionEditorTab.VARIABLES -> "collection-tab-variables"
+                    CollectionEditorTab.HEADERS -> "collection-tab-headers"
+                    CollectionEditorTab.AUTH -> "collection-tab-auth"
+                    CollectionEditorTab.PRE_REQUEST -> "collection-tab-pre-request"
+                    CollectionEditorTab.TESTS -> "collection-tab-tests"
+                    CollectionEditorTab.PROTOBUF -> "collection-tab-protobuf"
+                }
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(
+                            if (isSelected) ClapiColors.SurfaceContainer
+                            else Color.Transparent
+                        )
+                        .clickable { selectedTab = editorTab }
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .testTag(tag),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = editorTab.label,
+                            fontSize = 13.sp,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                            color = if (isSelected) ClapiColors.OnSurface else ClapiColors.OnSurfaceDim,
+                        )
+                        val count = when (editorTab) {
+                            CollectionEditorTab.VARIABLES -> tab.variables.count { it.enabled && it.key.isNotBlank() }
+                            CollectionEditorTab.HEADERS -> tab.headers.count { it.enabled && it.key.isNotBlank() }
+                            CollectionEditorTab.PROTOBUF -> tab.collectionProtoFiles.size
+                            else -> 0
+                        }
+                        if (count > 0) {
+                            Text(
+                                text = count.toString(),
+                                fontSize = 11.sp,
+                                color = ClapiColors.Primary,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -165,6 +209,45 @@ fun CollectionEditor(
                 .testTag("collection-editor-content"),
         ) {
             when (selectedTab) {
+                CollectionEditorTab.INFO -> {
+                    CollectionInfoSettings(
+                        tab = tab,
+                        onFieldChange = { markDirty() },
+                    )
+                }
+                CollectionEditorTab.VARIABLES -> {
+                    KeyValueEditor(tab.variables, "variable", state = state, tab = tab) {
+                        markDirty()
+                    }
+                }
+                CollectionEditorTab.HEADERS -> {
+                    KeyValueEditor(tab.headers, "header", state = state, tab = tab) {
+                        markDirty()
+                    }
+                }
+                CollectionEditorTab.AUTH -> {
+                    AuthEditor(tab, state) {
+                        markDirty()
+                    }
+                }
+                CollectionEditorTab.PRE_REQUEST -> {
+                    ScriptEditor(
+                        script = tab.preRequestScript,
+                        onScriptChanged = { tab.preRequestScript = it; markDirty() },
+                        title = "Pre-request Script",
+                        showCursorPosition = state.settings.showEditorPositionIndicator,
+                        availableVariables = getAvailableVariables(state, tab),
+                    )
+                }
+                CollectionEditorTab.TESTS -> {
+                    ScriptEditor(
+                        script = tab.testScript,
+                        onScriptChanged = { tab.testScript = it; markDirty() },
+                        title = "Post-request Script",
+                        showCursorPosition = state.settings.showEditorPositionIndicator,
+                        availableVariables = getAvailableVariables(state, tab),
+                    )
+                }
                 CollectionEditorTab.PROTOBUF -> {
                     CollectionProtobufSettings(
                         tab = tab,
@@ -176,6 +259,83 @@ fun CollectionEditor(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun CollectionInfoSettings(
+    tab: RequestTabState,
+    onFieldChange: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp)
+            .testTag("collection-info-panel"),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        item {
+            Text(
+                text = "Collection Information",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = ClapiColors.OnSurface,
+            )
+            Text(
+                text = "General metadata and descriptive details for this collection document.",
+                style = MaterialTheme.typography.bodySmall,
+                color = ClapiColors.OnSurfaceDim,
+            )
+        }
+
+        item {
+            OutlinedTextField(
+                value = tab.name,
+                onValueChange = {
+                    tab.name = it
+                    onFieldChange()
+                },
+                label = { Text("Name") },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("collection-info-name"),
+            )
+        }
+
+        item {
+            OutlinedTextField(
+                value = tab.collectionSummary ?: "",
+                onValueChange = {
+                    tab.collectionSummary = it
+                    onFieldChange()
+                },
+                label = { Text("Summary") },
+                placeholder = { Text("A brief overview or description of what this API collection covers...") },
+                minLines = 3,
+                maxLines = 6,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("collection-info-summary"),
+            )
+        }
+
+        item {
+            OutlinedTextField(
+                value = tab.collectionVersion ?: "",
+                onValueChange = {
+                    tab.collectionVersion = it
+                    onFieldChange()
+                },
+                label = { Text("Version") },
+                placeholder = { Text("1.0.0") },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("collection-info-version"),
+            )
         }
     }
 }

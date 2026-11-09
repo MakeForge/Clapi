@@ -50,7 +50,7 @@ import io.github.crustack.clapi.ui.shared.theme.ClapiColors
  */
 @Composable
 fun AuthEditor(tab: RequestTabState, state: AppState, onDirty: () -> Unit) {
-    val hasFolderAncestor = tab.folderPath.isNotEmpty() || tab.collectionId != null || state.getAncestorFolders(tab).isNotEmpty()
+    val hasFolderAncestor = !tab.isCollectionTab && (tab.folderPath.isNotEmpty() || tab.collectionId != null || state.getAncestorFolders(tab).isNotEmpty())
     val selectableAuthTypes = AuthType.entries.filterNot {
         it == AuthType.OAUTH2 || (!hasFolderAncestor && it == AuthType.INHERIT)
     }

@@ -350,7 +350,11 @@ fun Sidebar(state: AppState) {
     val onCommitInlineRename: (CollectionNode, String) -> Unit = { target, newName ->
         val trimmed = newName.trim()
         if (trimmed.isNotEmpty() && trimmed != target.name) {
-            if (target.isFolder) {
+            val isTopLevelCollection = target.isCollection || state.collections.any { it.id == target.id && it.isCollection }
+            if (isTopLevelCollection) {
+                state.renameCollection(target.id, trimmed)
+                persistWorkspaceAsync()
+            } else if (target.isFolder) {
                 val oldName = target.name
                 val isRootCollection = state.collections.any { it.id == target.id }
                 val renamed = renameFolderInCollections(state.collections, target.id, trimmed)
@@ -589,40 +593,28 @@ fun Sidebar(state: AppState) {
             item {
                 SectionHeader(
                     icon = Icons.Default.Article,
-                    title = Strings.collection,
+                    title = Strings.collectionsHeader,
                     expanded = state.collectionsExpanded,
-                    modifier = Modifier.testTag("sidebar-collection-header"),
+                    modifier = Modifier.testTag("sidebar-collections-header"),
                     onToggle = {
                         state.collectionsExpanded = !state.collectionsExpanded
                         state.settings.collectionsExpanded = state.collectionsExpanded
-                    },
-                    onClick = {
-                        state.openCollection()
-                        if (!state.collectionsExpanded) {
-                            state.collectionsExpanded = true
-                            state.settings.collectionsExpanded = true
-                        }
                     },
                     trailing = {
                         Row {
                             IconButton(
                                 onClick = {
-                                    val names = state.collections.map { it.name }.toSet()
-                                    val name = ImportExportNaming.generateUniqueCollectionName("New Folder", names)
-                                    state.collections.add(
-                                        CollectionNode(
-                                            id = generateUuid(),
-                                            name = name,
-                                            isFolder = true,
-                                            children = androidx.compose.runtime.mutableStateListOf(),
-                                        )
-                                    )
-                                    state.notifyCollectionsChanged()
+                                    val created = state.createNewCollection()
+                                    inlineRenamingId = created.id
+                                    if (!state.collectionsExpanded) {
+                                        state.collectionsExpanded = true
+                                        state.settings.collectionsExpanded = true
+                                    }
                                     persistWorkspaceAsync()
                                 },
-                                modifier = Modifier.size(24.dp),
+                                modifier = Modifier.size(24.dp).testTag("sidebar-add-collection-button"),
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = Strings.newFolder, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Add, contentDescription = Strings.addCollection, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
                             }
                         }
                     },
@@ -723,13 +715,22 @@ fun Sidebar(state: AppState) {
                                 }
                             },
                             onDuplicateCollection = { target ->
-                                val existingNames = state.collections.map { it.name }.toSet()
-                                val newName = ImportExportNaming.generateUniqueCollectionName(target.name, existingNames)
-                                val duplicated = duplicateNode(target, rootNameOverride = newName)
-                                state.collections.add(duplicated)
-                                state.notifyCollectionsChanged()
-                                persistWorkspaceAsync()
-                                state.log("Collection duplicated: $newName", LogLevel.SUCCESS)
+                                if (target.isCollection) {
+                                    val newName = state.disambiguateCollectionName(target.name)
+                                    val duplicated = duplicateNode(target, rootNameOverride = newName)
+                                    state.collections.add(duplicated)
+                                    state.notifyCollectionsChanged()
+                                    persistWorkspaceAsync()
+                                    state.log("Collection duplicated: $newName", LogLevel.SUCCESS)
+                                } else {
+                                    val existingNames = state.collections.map { it.name }.toSet()
+                                    val newName = ImportExportNaming.generateUniqueCollectionName(target.name, existingNames)
+                                    val duplicated = duplicateNode(target, rootNameOverride = newName)
+                                    state.collections.add(duplicated)
+                                    state.notifyCollectionsChanged()
+                                    persistWorkspaceAsync()
+                                    state.log("Folder duplicated: $newName", LogLevel.SUCCESS)
+                                }
                             },
                             onRenameCollection = { target ->
                                 inlineRenamingId = target.id
@@ -743,32 +744,50 @@ fun Sidebar(state: AppState) {
                                 }
                             },
                             onDeleteCollection = { target ->
-                                val requestCount = countRequestsInFolder(target)
-                                val action = {
-                                    val deleted = deleteFolderFromCollections(state.collections, target.id)
-                                    if (deleted != null) {
-                                        // Close all tabs belonging to requests in the deleted folder
-                                        val deletedIds = collectAllRequestIds(deleted)
-                                        state.closeTabsByIds(deletedIds)
+                                if (target.isCollection) {
+                                    val action = {
+                                        state.deleteCollection(target.id)
                                         state.selectedFolderIds.remove(target.id)
-                                        state.notifyCollectionsChanged()
                                         persistWorkspaceAsync()
-                                        state.log("Folder deleted: ${target.name}", LogLevel.INFO)
+                                        state.log("Collection deleted: ${target.name}", LogLevel.INFO)
                                     }
-                                }
-                                if (state.settings.confirmBeforeDelete) {
-                                    val message = if (requestCount > 0) {
-                                        "Delete \"${target.name}\" and $requestCount request(s)? This cannot be undone."
+                                    if (state.settings.confirmBeforeDelete) {
+                                        state.showConfirm(
+                                            title = "Delete collection?",
+                                            message = "Delete \"${target.name}\"? This cannot be undone.",
+                                            action = action,
+                                        )
                                     } else {
-                                        "Delete \"${target.name}\"? This cannot be undone."
+                                        action()
                                     }
-                                    state.showConfirm(
-                                        title = "Delete folder?",
-                                        message = message,
-                                        action = action,
-                                    )
                                 } else {
-                                    action()
+                                    val requestCount = countRequestsInFolder(target)
+                                    val action = {
+                                        val deleted = deleteFolderFromCollections(state.collections, target.id)
+                                        if (deleted != null) {
+                                            // Close all tabs belonging to requests in the deleted folder
+                                            val deletedIds = collectAllRequestIds(deleted)
+                                            state.closeTabsByIds(deletedIds)
+                                            state.selectedFolderIds.remove(target.id)
+                                            state.notifyCollectionsChanged()
+                                            persistWorkspaceAsync()
+                                            state.log("Folder deleted: ${target.name}", LogLevel.INFO)
+                                        }
+                                    }
+                                    if (state.settings.confirmBeforeDelete) {
+                                        val message = if (requestCount > 0) {
+                                            "Delete \"${target.name}\" and $requestCount request(s)? This cannot be undone."
+                                        } else {
+                                            "Delete \"${target.name}\"? This cannot be undone."
+                                        }
+                                        state.showConfirm(
+                                            title = "Delete folder?",
+                                            message = message,
+                                            action = action,
+                                        )
+                                    } else {
+                                        action()
+                                    }
                                 }
                             },
                             onAddFolder = { target ->
@@ -1743,7 +1762,14 @@ private fun CollectionTreeNode(
                         return@clickable
                     }
                     if (inlineRenamingId == node.id) return@clickable
-                    if (node.isFolder) {
+                    if (node.isCollection) {
+                        state.selectSidebarFolder(
+                            folderId = node.id,
+                            isCtrlPressed = false,
+                            isShiftPressed = false,
+                        )
+                        state.openCollection(node.id)
+                    } else if (node.isFolder) {
                         state.selectSidebarFolder(
                             folderId = node.id,
                             isCtrlPressed = false,
@@ -1795,12 +1821,14 @@ private fun CollectionTreeNode(
                         modifier = Modifier.size(14.dp).testTag("folder-chevron-${node.id}"),
                     )
                     Icon(
-                        imageVector = if (depth == 0) Icons.Default.FolderOpen else Icons.Default.Folder,
+                        imageVector = if (node.isCollection) Icons.Default.Article
+                            else if (depth == 0) Icons.Default.FolderOpen
+                            else Icons.Default.Folder,
                         contentDescription = null,
                         tint = ClapiColors.Tertiary,
                         modifier = Modifier
                             .size(14.dp)
-                            .testTag(if (depth == 0) "collection-root-icon-${node.id}" else "collection-subfolder-icon-${node.id}"),
+                            .testTag(if (node.isCollection) "collection-icon-${node.id}" else if (depth == 0) "collection-root-icon-${node.id}" else "collection-subfolder-icon-${node.id}"),
                     )
                 }
             } else if (node.kind == RequestKind.MCP) {
@@ -1915,7 +1943,11 @@ private fun CollectionTreeNode(
                                                 isShiftPressed = false,
                                             )
                                             state.collectionExpandedState[node.id] = true
-                                            state.openFolder(node.id)
+                                            if (node.isCollection) {
+                                                state.openCollection(node.id)
+                                            } else {
+                                                state.openFolder(node.id)
+                                            }
                                         },
                                     )
                                     .testTag("folder-name-${node.id}")
@@ -1980,6 +2012,15 @@ private fun CollectionTreeNode(
                         onDismissRequest = { showAddMenu = false },
                         modifier = Modifier.testTag("folder-add-menu-${node.id}"),
                     ) {
+                        DropdownMenuItem(
+                            text = { Text(Strings.t("add_folder")) },
+                            leadingIcon = { Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            onClick = {
+                                showAddMenu = false
+                                onAddFolder(node)
+                            },
+                            modifier = Modifier.testTag("folder-menu-new-folder"),
+                        )
                         DropdownMenuItem(
                             text = { Text(Strings.t("new_http_request")) },
                             leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp)) },

@@ -50,6 +50,8 @@ import io.github.crustack.clapi.ui.shared.state.EnvState
 import io.github.crustack.clapi.ui.shared.state.FormDataEntryState
 import io.github.crustack.clapi.ui.shared.state.MutableExternalSecret
 import io.github.crustack.clapi.ui.shared.state.MutableKeyValue
+import io.github.crustack.clapi.ui.shared.state.ProtoFileItemState
+import io.github.crustack.clapi.ui.shared.state.ProtoImportPathState
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -152,10 +154,25 @@ fun CollectionNode.toOpenCollectionDocument(): OpenCollectionDocument {
             })
         }
     }
+    val protobufConfig = if (protoFiles.isNotEmpty() || importPaths.isNotEmpty()) {
+        CollectionProtobufConfig(
+            protoFiles = protoFiles
+                .filter { it.path.isNotBlank() }
+                .map { ProtoFile(type = "file", path = it.path) },
+            importPaths = importPaths
+                .filter { it.path.isNotBlank() }
+                .map { ProtoFileImportPath(path = it.path, disabled = if (!it.enabled) true else null) },
+        )
+    } else null
     return OpenCollectionDocument(
         opencollection = "1.0.0",
-        info = CollectionInfo(name = name),
-        config = null,
+        info = CollectionInfo(
+            name = name,
+            summary = summary?.takeIf { it.isNotBlank() },
+            version = version?.takeIf { it.isNotBlank() },
+        ),
+        config = if (protobufConfig != null) CollectionConfig(protobuf = protobufConfig) else null,
+        request = toRequestDefaults(),
         bundled = true,
         items = children.map { it.toOpenCollectionItem() },
         extensions = ext,
@@ -579,11 +596,23 @@ fun OpenCollectionDocument.toCollectionNode(
 ): CollectionNode {
     val clapiRequests = (extensions["clapi"] as? JsonObject)?.get("requests")?.jsonObject
     val folder = toCollectionFolder(nameOverride = nameOverride)
-    return folder.toCollectionNode(
+    val baseNode = folder.toCollectionNode(
         preserveIds = preserveIds,
         clapiRequests = clapiRequests,
         path = "",
         existingIds = existingIds,
+    )
+    val protoFilesState = config?.protobuf?.protoFiles.orEmpty()
+        .map { ProtoFileItemState(path = it.path) }
+    val importPathsState = config?.protobuf?.importPaths.orEmpty()
+        .map { ProtoImportPathState(path = it.path, enabled = it.disabled != true) }
+
+    return baseNode.copy(
+        kind = RequestKind.COLLECTION,
+        summary = info.summary,
+        version = info.version,
+        protoFiles = protoFilesState,
+        importPaths = importPathsState,
     )
 }
 
