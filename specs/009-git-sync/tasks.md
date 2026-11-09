@@ -135,9 +135,9 @@ description: "Task list for Git Collection Sync implementation"
 
 **Purpose**: Error handling, end-to-end quickstart validation, and regression verification across all test suites.
 
-- [ ] T030 [P] Implement friendly error translation for Git errors (Git not installed, SSH authentication failure, network timeout, branch not found) in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/git/GitErrorTranslator.kt`.
-- [ ] T031 Create end-to-end Git sync round-trip QA integration test in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/GitSyncE2ETest.kt` executing the scenarios from `quickstart.md`.
-- [ ] T032 Run regression verification test suites: `:core-model:allTests`, `:core-storage:allTests`, `:core-network:allTests`, `:ui-shared:desktopTest`, `:ui-desktop:desktopTest`, and `:qa-tests:jvmTest`.
+- [x] T030 [P] Implement friendly error translation for Git errors (Git not installed, SSH authentication failure, network timeout, branch not found) in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/git/GitErrorTranslator.kt`.
+- [x] T031 Create end-to-end Git sync round-trip QA integration test in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/GitSyncE2ETest.kt` executing the scenarios from `quickstart.md`.
+- [x] T032 Run regression verification test suites: `:core-model:allTests`, `:core-storage:allTests`, `:core-network:allTests`, `:ui-shared:desktopTest`, `:ui-desktop:desktopTest`, and `:qa-tests:jvmTest`.
 
 ---
 

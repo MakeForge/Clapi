@@ -53,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.crustack.clapi.core.model.storage.StorageType
+import io.github.crustack.clapi.core.storage.git.GitErrorTranslator
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.persistence.TabsRepository
 import io.github.crustack.clapi.ui.shared.persistence.WorkspaceRepository
@@ -414,7 +415,7 @@ fun CollectionStorageSettings(
                 savedBannerMessage = "Storage settings saved."
                 state.log("Storage settings saved for '${tab.name}'", LogLevel.SUCCESS)
             } catch (e: Exception) {
-                tab.storageError = e.message ?: "Failed to save Git storage configuration"
+                tab.storageError = GitErrorTranslator.translate(e)
                 state.log("Failed to configure Git storage: ${tab.storageError}", LogLevel.ERROR)
             } finally {
                 tab.isSavingStorage = false

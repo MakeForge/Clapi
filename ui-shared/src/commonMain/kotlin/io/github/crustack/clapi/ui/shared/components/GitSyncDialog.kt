@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import io.github.crustack.clapi.core.storage.git.GitChangeKind
 import io.github.crustack.clapi.core.storage.git.GitConflictException
+import io.github.crustack.clapi.core.storage.git.GitErrorTranslator
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.persistence.WorkspaceRepository
 import io.github.crustack.clapi.ui.shared.platform.ioDispatcher
@@ -118,11 +119,11 @@ fun GitSyncDialog(
                     statusSuccessMessage = "Changes committed locally."
                     state.log("Git commit succeeded on branch ${refreshed?.branch ?: branch}", LogLevel.SUCCESS)
                 } else {
-                    errorMessage = result.stderr.ifBlank { result.stdout }.ifBlank { "Failed to commit changes." }
+                    errorMessage = GitErrorTranslator.translateStderr(result.stderr.ifBlank { result.stdout })
                     state.log("Git commit failed: $errorMessage", LogLevel.ERROR)
                 }
             } catch (e: Exception) {
-                errorMessage = e.message ?: "Failed to commit changes."
+                errorMessage = GitErrorTranslator.translate(e)
                 state.log("Git commit failed: $errorMessage", LogLevel.ERROR)
             } finally {
                 isExecuting = false
@@ -144,11 +145,11 @@ fun GitSyncDialog(
                     statusSuccessMessage = "Pushed to origin/${gitStatus?.branch ?: branch}."
                     state.log("Git push succeeded to origin/${gitStatus?.branch ?: branch}", LogLevel.SUCCESS)
                 } else {
-                    errorMessage = result.stderr.ifBlank { result.stdout }.ifBlank { "Failed to push to remote." }
+                    errorMessage = GitErrorTranslator.translateStderr(result.stderr.ifBlank { result.stdout })
                     state.log("Git push failed: $errorMessage", LogLevel.ERROR)
                 }
             } catch (e: Exception) {
-                errorMessage = e.message ?: "Failed to push to remote."
+                errorMessage = GitErrorTranslator.translate(e)
                 state.log("Git push failed: $errorMessage", LogLevel.ERROR)
             } finally {
                 isExecuting = false
@@ -175,7 +176,7 @@ fun GitSyncDialog(
                     statusSuccessMessage = "Pulled latest changes from origin/${gitStatus?.branch ?: branch}."
                     state.log("Git pull succeeded from origin/${gitStatus?.branch ?: branch}", LogLevel.SUCCESS)
                 } else {
-                    errorMessage = result.stderr.ifBlank { result.stdout }.ifBlank { "Failed to pull from remote." }
+                    errorMessage = GitErrorTranslator.translateStderr(result.stderr.ifBlank { result.stdout })
                     state.log("Git pull failed: $errorMessage", LogLevel.ERROR)
                 }
             } catch (e: GitConflictException) {
@@ -183,7 +184,7 @@ fun GitSyncDialog(
                 conflictWarning = "Merge conflict detected. Please resolve conflicts using an external Git client."
                 state.log("Merge conflict detected during pull: ${e.message}", LogLevel.WARNING)
             } catch (e: Exception) {
-                errorMessage = e.message ?: "Failed to pull from remote."
+                errorMessage = GitErrorTranslator.translate(e)
                 state.log("Git pull failed: $errorMessage", LogLevel.ERROR)
             } finally {
                 isExecuting = false

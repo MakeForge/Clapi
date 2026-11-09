@@ -245,7 +245,7 @@ class GitRepositoryManager(
     suspend fun pull(repoDir: String, branch: String): GitCommandResult {
         val pullResult = executor.execute(
             workingDir = repoDir,
-            args = listOf("pull", "origin", branch),
+            args = listOf("pull", "--no-rebase", "origin", branch),
         )
         if (!pullResult.isSuccess) {
             val combined = pullResult.stdout + "\n" + pullResult.stderr
