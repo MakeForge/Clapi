@@ -601,7 +601,8 @@ fun Sidebar(state: AppState) {
                         state.settings.collectionsExpanded = state.collectionsExpanded
                     },
                     trailing = {
-                        Row {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            var showHeaderMenu by remember { mutableStateOf(false) }
                             IconButton(
                                 onClick = {
                                     val created = state.createNewCollection()
@@ -615,6 +616,28 @@ fun Sidebar(state: AppState) {
                                 modifier = Modifier.size(24.dp).testTag("sidebar-add-collection-button"),
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = Strings.addCollection, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
+                            }
+                            Box {
+                                IconButton(
+                                    onClick = { showHeaderMenu = true },
+                                    modifier = Modifier.size(24.dp).testTag("sidebar-collections-menu-button"),
+                                ) {
+                                    Icon(Icons.Default.MoreVert, contentDescription = "More", tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
+                                }
+                                DropdownMenu(
+                                    expanded = showHeaderMenu,
+                                    onDismissRequest = { showHeaderMenu = false },
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text(Strings.exportCollections, fontSize = 12.sp) },
+                                        leadingIcon = { Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp)) },
+                                        onClick = {
+                                            showHeaderMenu = false
+                                            state.showExportCollectionsDialog = true
+                                        },
+                                        modifier = Modifier.testTag("menu-export-collections"),
+                                    )
+                                }
                             }
                         }
                     },

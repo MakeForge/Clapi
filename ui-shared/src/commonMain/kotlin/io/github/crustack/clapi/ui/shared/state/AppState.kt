@@ -972,6 +972,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     var showEnvEditDialog    by mutableStateOf(false)
     var editingEnvIndex      by mutableStateOf(-1)      // index into environments
     var showImportSpecificationDialog by mutableStateOf(false)
+    var showExportCollectionsDialog   by mutableStateOf(false)
 
     // ── import/export operation dialog ──
     var showOperationDialog  by mutableStateOf(false)
@@ -1342,6 +1343,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         folderNode.preRequestScript?.takeIf { it.isNotBlank() }?.let { tab.preRequestScript = it }
         folderNode.testScript?.takeIf { it.isNotBlank() }?.let { tab.testScript = it }
 
+        applyInheritedDefaults(tab)
         tab.restoreSavedSnapshot(null)
         openTabs.add(tab)
         activeTabIndex = openTabs.size - 1
@@ -1494,6 +1496,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     }
 
     fun getAncestorFolders(tab: RequestTabState): List<CollectionNode> {
+        if (tab.isCollectionTab) return emptyList()
         val chain = mutableListOf<CollectionNode>()
         for (root in collections) {
             if (findAncestorChain(root, tab.id, chain)) {
@@ -1512,7 +1515,11 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                     fallbackChain.add(next)
                     cursor = next
                 }
-                return fallbackChain
+                return if (tab.isFolderTab && fallbackChain.lastOrNull()?.id == tab.id) {
+                    fallbackChain.dropLast(1)
+                } else {
+                    fallbackChain
+                }
             }
         }
         return emptyList()
@@ -1566,14 +1573,19 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     }
 
     fun applyInheritedDefaults(tab: RequestTabState) {
-        if (tab.isFolderTab) return
+        if (tab.isCollectionTab) return
         val ancestors = getAncestorFolders(tab)
-        if (ancestors.isEmpty()) return
+        if (ancestors.isEmpty()) {
+            tab.headers.removeAll { it.kind == HeaderKind.INHERITED }
+            tab.variables.removeAll { it.kind == HeaderKind.INHERITED }
+            tab.params.removeAll { it.kind == HeaderKind.INHERITED }
+            return
+        }
 
         // 1. Cascade headers (root-to-leaf: closer ancestor overrides distant ancestor)
         val resolvedHeaders = mutableMapOf<String, KeyValueEntry>()
-        for (folder in ancestors) {
-            val entries = folder.headerEntries ?: folder.userHeaders.map { KeyValueEntry(it.first, it.second) }
+        for (ancestor in ancestors) {
+            val entries = ancestor.headerEntries ?: ancestor.userHeaders.map { KeyValueEntry(it.first, it.second) }
             for (entry in entries) {
                 if (entry.enabled && entry.key.isNotBlank()) {
                     resolvedHeaders[entry.key.lowercase()] = entry
@@ -1598,13 +1610,42 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
             }
         }
 
+        // 2. Cascade variables (root-to-leaf: closer ancestor overrides distant ancestor)
+        val resolvedVariables = mutableMapOf<String, KeyValueEntry>()
+        for (ancestor in ancestors) {
+            val entries = ancestor.variableEntries.orEmpty()
+            for (entry in entries) {
+                if (entry.enabled && entry.key.isNotBlank()) {
+                    resolvedVariables[entry.key.lowercase()] = entry
+                }
+            }
+        }
+
+        tab.variables.removeAll { it.kind == HeaderKind.INHERITED }
+
+        for (entry in resolvedVariables.values) {
+            val alreadyExists = tab.variables.any { it.key.equals(entry.key, ignoreCase = true) }
+            if (!alreadyExists) {
+                tab.variables.add(
+                    MutableKeyValue(
+                        key = entry.key,
+                        value = entry.value,
+                        enabled = true,
+                        secret = entry.secret,
+                        kind = HeaderKind.INHERITED,
+                        keyLocked = true,
+                    )
+                )
+            }
+        }
+
         // Folder settings no longer define query parameters; ensure inherited query params are cleared.
         tab.params.removeAll { it.kind == HeaderKind.INHERITED }
     }
 
     fun refreshInheritedDefaultsForOpenTabs() {
         for (openTab in openTabs) {
-            if (!openTab.isFolderTab) {
+            if (!openTab.isCollectionTab) {
                 applyInheritedDefaults(openTab)
             }
         }
@@ -2349,7 +2390,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     ): Boolean {
         nodes.indices.forEach { index ->
             val node = nodes[index]
-            if ((node.isFolder || node.isCollection) && (node.id == tab.id || node.id == tab.collectionId)) {
+            if ((node.isFolder || node.isCollection) && (node.id == tab.id || (tab.isCollectionTab && (node.id == tab.collectionId || tab.id == "collection_${node.id}")))) {
                 val variableEntriesSnapshot = tab.variables
                     .filter { it.kind != HeaderKind.INHERITED }
                     .map { KeyValueEntry(it.key, it.value, it.enabled, it.secret) }
@@ -2459,7 +2500,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                 )
                 return true
             }
-            if (node.isFolder && node.children.isNotEmpty()) {
+            if ((node.isFolder || node.isCollection) && node.children.isNotEmpty()) {
                 if (syncTabToNodeRecursive(node.children, tab)) return true
             }
         }
@@ -2469,7 +2510,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     private fun expandAncestorsForRequest(nodes: List<CollectionNode>, requestId: String): Boolean {
         for (node in nodes) {
             if (node.id == requestId) return true
-            if (node.isFolder && node.children.isNotEmpty()) {
+            if ((node.isFolder || node.isCollection) && node.children.isNotEmpty()) {
                 if (expandAncestorsForRequest(node.children, requestId)) {
                     collectionExpandedState[node.id] = true
                     return true

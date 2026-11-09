@@ -1,11 +1,15 @@
 package io.github.crustack.clapi.ui.shared.persistence
 
+import androidx.compose.runtime.toMutableStateList
+import io.github.crustack.clapi.core.model.RequestKind
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
 import io.github.crustack.clapi.core.storage.opencollection.CanonicalCollectionRepository
 import io.github.crustack.clapi.core.storage.opencollection.CollectionStorageException
 import io.github.crustack.clapi.core.storage.opencollection.CollectionValidationException
 import io.github.crustack.clapi.core.storage.opencollection.DefaultCanonicalCollectionRepository
+import io.github.crustack.clapi.ui.shared.platform.generateUuid
 import io.github.crustack.clapi.ui.shared.state.AppState
+import io.github.crustack.clapi.ui.shared.state.CollectionNode
 import io.github.crustack.clapi.ui.shared.state.ProtoFileItemState
 import io.github.crustack.clapi.ui.shared.state.ProtoImportPathState
 import kotlinx.coroutines.runBlocking
@@ -82,15 +86,35 @@ object WorkspaceRepository {
                 val clapiRequests = (globalDoc.extensions["clapi"] as? JsonObject)?.get("requests")?.jsonObject
                 state.collections.clear()
                 var existingIds = emptySet<String>()
-                globalDoc.items.filterIsInstance<FolderItem>().forEachIndexed { index, folder ->
-                    val node = folder.toCollectionNode(
+                val loadedItems = globalDoc.items.mapIndexed { index, item ->
+                    item.toCollectionNode(
                         preserveIds = true,
                         clapiRequests = clapiRequests,
                         path = index.toString(),
                         existingIds = existingIds,
+                    ).also { existingIds = existingIds + it.id }
+                }
+
+                // T028: Detect legacy single-collection files and wrap items into a primary collection on load
+                val hasLegacySingleCollection = loadedItems.isNotEmpty() && loadedItems.any { !it.isCollection }
+                if (hasLegacySingleCollection) {
+                    val primaryName = if (globalDoc.info.name != "Workspace" && globalDoc.info.name.isNotBlank()) {
+                        globalDoc.info.name
+                    } else {
+                        "Collection"
+                    }
+                    val primaryCol = CollectionNode(
+                        id = generateUuid(),
+                        name = primaryName,
+                        kind = RequestKind.COLLECTION,
+                        isFolder = true,
+                        summary = globalDoc.info.summary,
+                        version = globalDoc.info.version,
+                        children = loadedItems.toMutableStateList(),
                     )
-                    state.collections.add(node)
-                    existingIds = existingIds + node.id
+                    state.collections.add(primaryCol)
+                } else {
+                    state.collections.addAll(loadedItems)
                 }
 
                 state.environments.clear()

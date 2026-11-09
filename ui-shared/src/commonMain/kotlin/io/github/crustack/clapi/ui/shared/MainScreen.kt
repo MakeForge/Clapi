@@ -48,6 +48,7 @@ import io.github.crustack.clapi.ui.shared.components.CollectionEditor
 import io.github.crustack.clapi.ui.shared.components.ConfirmDeleteDialog
 import io.github.crustack.clapi.ui.shared.components.DirtyCloseDialog
 import io.github.crustack.clapi.ui.shared.components.DirtyMultiCloseDialog
+import io.github.crustack.clapi.ui.shared.components.ExportCollectionsDialog
 import io.github.crustack.clapi.ui.shared.components.EnvironmentEditDialog
 import io.github.crustack.clapi.ui.shared.components.ErrorMessageDialog
 import io.github.crustack.clapi.ui.shared.components.FolderEditor
@@ -258,6 +259,12 @@ fun MainScreen(state: AppState = remember { AppState() }) {
             ImportSpecificationDialog(
                 state = state,
                 onDismiss = { state.showImportSpecificationDialog = false }
+            )
+        }
+        if (state.showExportCollectionsDialog) {
+            ExportCollectionsDialog(
+                state = state,
+                onDismiss = { state.showExportCollectionsDialog = false },
             )
         }
         if (state.showConfirmDialog) {

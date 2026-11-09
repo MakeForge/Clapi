@@ -146,7 +146,8 @@ private fun sendRequestInternal(scope: CoroutineScope, state: AppState, tab: Req
         for (ancestor in ancestorFolders) {
             val s = ancestor.preRequestScript
             if (!s.isNullOrBlank()) {
-                preScriptChain.add("Folder '${ancestor.name}'" to s)
+                val label = if (ancestor.isCollection) "Collection '${ancestor.name}'" else "Folder '${ancestor.name}'"
+                preScriptChain.add(label to s)
             }
         }
         if (tab.preRequestScript.isNotBlank()) {
@@ -380,7 +381,8 @@ private fun sendRequestInternal(scope: CoroutineScope, state: AppState, tab: Req
                         for (ancestor in ancestorFolders.asReversed()) {
                             val s = ancestor.testScript
                             if (!s.isNullOrBlank()) {
-                                testScriptChain.add("Folder '${ancestor.name}'" to s)
+                                val label = if (ancestor.isCollection) "Collection '${ancestor.name}'" else "Folder '${ancestor.name}'"
+                                testScriptChain.add(label to s)
                             }
                         }
 
@@ -536,7 +538,8 @@ private fun sendGrpcRequestInternal(
         for (ancestor in ancestorFolders) {
             val s = ancestor.preRequestScript
             if (!s.isNullOrBlank()) {
-                preScriptChain.add("Folder '${ancestor.name}'" to s)
+                val label = if (ancestor.isCollection) "Collection '${ancestor.name}'" else "Folder '${ancestor.name}'"
+                preScriptChain.add(label to s)
             }
         }
         if (tab.preRequestScript.isNotBlank()) {
@@ -696,7 +699,8 @@ private fun sendGrpcRequestInternal(
             for (ancestor in ancestorFolders.asReversed()) {
                 val s = ancestor.testScript
                 if (!s.isNullOrBlank()) {
-                    testScriptChain.add("Folder '${ancestor.name}'" to s)
+                    val label = if (ancestor.isCollection) "Collection '${ancestor.name}'" else "Folder '${ancestor.name}'"
+                    testScriptChain.add(label to s)
                 }
             }
 

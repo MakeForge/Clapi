@@ -47,6 +47,10 @@ class CollectionProtobufEditorUiTest {
         }
         composeRule.waitForIdle()
 
+        // Switch to Protobuf tab
+        composeRule.onNodeWithTag("collection-tab-protobuf").performClick()
+        composeRule.waitForIdle()
+
         // Initially no changes -> Save button disabled
         composeRule.onNodeWithTag("collection-save-button").assertIsNotEnabled()
         assertFalse(tab.isDirty)
@@ -108,6 +112,10 @@ class CollectionProtobufEditorUiTest {
                 },
             )
         }
+        composeRule.waitForIdle()
+
+        // Switch to Protobuf tab
+        composeRule.onNodeWithTag("collection-tab-protobuf").performClick()
         composeRule.waitForIdle()
 
         // Initially clean
