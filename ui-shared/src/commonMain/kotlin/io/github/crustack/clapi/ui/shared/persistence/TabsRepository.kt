@@ -113,6 +113,25 @@ object TabsRepository {
                                 })
                             }
                         })
+                        put("graphQlMethod", tab.graphQlMethod)
+                        put("graphQlQuery", tab.graphQlQuery)
+                        put("graphQlVariables", tab.graphQlVariables)
+                        put("graphQlDocs", tab.graphQlDocs)
+                        put("graphQlTimeout", tab.graphQlTimeout ?: "inherit")
+                        put("graphQlEncodeUrl", tab.graphQlEncodeUrl ?: "inherit")
+                        put("graphQlFollowRedirects", tab.graphQlFollowRedirects ?: "inherit")
+                        put("graphQlForwardAuthHeader", tab.graphQlForwardAuthHeader ?: "inherit")
+                        put("graphQlMaxRedirects", tab.graphQlMaxRedirects ?: "inherit")
+                        put("graphQlVariants", buildJsonArray {
+                            tab.graphQlVariants.forEach { v ->
+                                add(buildJsonObject {
+                                    put("title", v.title)
+                                    put("selected", v.selected)
+                                    put("query", v.body.query)
+                                    put("variables", v.body.variables ?: "")
+                                })
+                            }
+                        })
                         put("mcp", json.parseToJsonElement(
                             json.encodeToString(McpConnectionConfig.serializer(), tab.mcpConfig),
                         ))
@@ -319,7 +338,7 @@ object TabsRepository {
                 if (savedHeaders.isNotEmpty()) {
                     tab.headers.clear()
                     tab.headers.addAll(savedHeaders)
-                } else if (savedKind == RequestKind.FOLDER || savedKind == RequestKind.GRPC || savedKind == RequestKind.WEBSOCKET) {
+                } else if (savedKind == RequestKind.FOLDER || savedKind == RequestKind.GRPC || savedKind == RequestKind.WEBSOCKET || savedKind == RequestKind.GRAPHQL) {
                     tab.headers.clear()
                 }
                 obj["grpcMetadata"]?.jsonArray?.forEach { kv ->
@@ -329,6 +348,33 @@ object TabsRepository {
                 tab.protoSyncToGit = obj["protoSyncToGit"]?.jsonPrimitive?.booleanOrNull ?: false
                 tab.grpcMethod = obj["grpcMethod"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
                 tab.grpcMethodType = obj["grpcMethodType"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } ?: "unary"
+
+                if (savedKind == RequestKind.GRAPHQL) {
+                    obj["graphQlMethod"]?.jsonPrimitive?.content?.let { tab.graphQlMethod = it }
+                    obj["graphQlQuery"]?.jsonPrimitive?.content?.let { tab.graphQlQuery = it }
+                    obj["graphQlVariables"]?.jsonPrimitive?.content?.let { tab.graphQlVariables = it }
+                    obj["graphQlDocs"]?.jsonPrimitive?.content?.let { tab.graphQlDocs = it }
+                    obj["graphQlTimeout"]?.jsonPrimitive?.content?.let { tab.graphQlTimeout = it }
+                    obj["graphQlEncodeUrl"]?.jsonPrimitive?.content?.let { tab.graphQlEncodeUrl = it }
+                    obj["graphQlFollowRedirects"]?.jsonPrimitive?.content?.let { tab.graphQlFollowRedirects = it }
+                    obj["graphQlForwardAuthHeader"]?.jsonPrimitive?.content?.let { tab.graphQlForwardAuthHeader = it }
+                    obj["graphQlMaxRedirects"]?.jsonPrimitive?.content?.let { tab.graphQlMaxRedirects = it }
+                    obj["graphQlVariants"]?.jsonArray?.forEach { el ->
+                        val vObj = el.jsonObject
+                        tab.graphQlVariants.add(
+                            io.github.crustack.clapi.core.model.opencollection.GraphQLBodyVariant(
+                                title = vObj["title"]?.jsonPrimitive?.content ?: "Variant",
+                                selected = vObj["selected"]?.jsonPrimitive?.booleanOrNull ?: false,
+                                body = io.github.crustack.clapi.core.model.opencollection.GraphQLBody(
+                                    query = vObj["query"]?.jsonPrimitive?.content ?: "",
+                                    variables = vObj["variables"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() },
+                                ),
+                            )
+                        )
+                    }
+                    val sel = tab.graphQlVariants.indexOfFirst { it.selected == true }
+                    tab.activeGraphQLVariantIndex = if (sel >= 0) sel else 0
+                }
 
                 if (savedKind == RequestKind.WEBSOCKET) {
                     tab.webSocketTimeout = obj["webSocketTimeout"]?.jsonPrimitive?.content ?: "inherit"

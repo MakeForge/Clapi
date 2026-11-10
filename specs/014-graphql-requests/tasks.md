@@ -117,11 +117,11 @@
 **Independent Test**: Save a collection with a GraphQL request to disk, export to OpenCollection JSON/YAML, re-import into a clean session, and assert that 100% of fields are preserved without schema errors.
 
 ### Implementation for User Story 7
-- [ ] T027 [P] [US5] Update `OpenCollectionSerializer.kt` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionSerializer.kt` to include `KNOWN_GRAPHQL_REQUEST_KEYS` and handle serialization/deserialization for `GraphQLRequestItem`
-- [ ] T028 [US5] Update `OpenCollectionModelMapping.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to map between `CollectionNode`/`RequestTabState` and `GraphQLRequestItem`
-- [ ] T029 [P] [US5] Update `OpenApiExporter.kt` and `OpenCollectionImporter.kt` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/` to handle `GraphQLRequestItem`
-- [ ] T030 [P] [US5] Update `TabsRepository.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/TabsRepository.kt` to persist and restore `RequestKind.GRAPHQL` open tab states across app restarts
-- [ ] T031 [US5] Add backward compatibility check in `OpenCollectionModelMapping.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` ensuring legacy HTTP requests with `BodyType.GRAPHQL` continue to load and can be converted to first-class GraphQL requests
+- [X] T027 [P] [US5] Update `OpenCollectionSerializer.kt` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionSerializer.kt` to include `KNOWN_GRAPHQL_REQUEST_KEYS` and handle serialization/deserialization for `GraphQLRequestItem`
+- [X] T028 [US5] Update `OpenCollectionModelMapping.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to map between `CollectionNode`/`RequestTabState` and `GraphQLRequestItem`
+- [X] T029 [P] [US5] Update `OpenApiExporter.kt` and `OpenCollectionImporter.kt` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/` to handle `GraphQLRequestItem`
+- [X] T030 [P] [US5] Update `TabsRepository.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/TabsRepository.kt` to persist and restore `RequestKind.GRAPHQL` open tab states across app restarts
+- [X] T031 [US5] Add backward compatibility check in `OpenCollectionModelMapping.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` ensuring legacy HTTP requests with `BodyType.GRAPHQL` continue to load and can be converted to first-class GraphQL requests
 
 **Checkpoint**: Full round-trip persistence and legacy compatibility verified.
 
@@ -131,9 +131,9 @@
 
 **Purpose**: Automated end-to-end regression testing against test server and collection round-trip validation
 
-- [ ] T032 [P] Create OpenCollection test fixture with single-body and multi-variant GraphQL requests in `qa-tests/fixtures/graphql-test-collection.json`
-- [ ] T033 Update `OpenCollectionRoundTripE2ETest.kt` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/OpenCollectionRoundTripE2ETest.kt` to verify `GraphQLRequestItem` survives save/load and YAML export/import round-trips
-- [ ] T034 [P] Create `GraphQLRequestE2ETest.kt` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/GraphQLRequestE2ETest.kt` testing query execution, variables interpolation, headers, and auth against `DummyApiServer` `/graphql` endpoint
+- [X] T032 [P] Create OpenCollection test fixture with single-body and multi-variant GraphQL requests in `qa-tests/fixtures/graphql-test-collection.json`
+- [X] T033 Update `OpenCollectionRoundTripE2ETest.kt` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/OpenCollectionRoundTripE2ETest.kt` to verify `GraphQLRequestItem` survives save/load and YAML export/import round-trips
+- [X] T034 [P] Create `GraphQLRequestE2ETest.kt` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/GraphQLRequestE2ETest.kt` testing query execution, variables interpolation, headers, and auth against `DummyApiServer` `/graphql` endpoint
 
 **Checkpoint**: Automated regression suite verifies GraphQL requests against mock server and schema validator in CI.
 
@@ -143,9 +143,9 @@
 
 **Purpose**: Cleanup, formatting, documentation, and validation
 
-- [ ] T035 [P] Run code formatting and static checks across modified modules (`core-model`, `core-network`, `core-storage`, `ui-shared`, `qa-tests`)
-- [ ] T036 [P] Update `FEATURES.md` and `docs/architecture.md` to document GraphQL first-class request support
-- [ ] T037 Execute manual verification steps per `specs/014-graphql-requests/quickstart.md`
+- [X] T035 [P] Run code formatting and static checks across modified modules (`core-model`, `core-network`, `core-storage`, `ui-shared`, `qa-tests`)
+- [X] T036 [P] Update `FEATURES.md` and `docs/architecture.md` to document GraphQL first-class request support
+- [X] T037 Execute manual verification steps per `specs/014-graphql-requests/quickstart.md`
 
 ---
 

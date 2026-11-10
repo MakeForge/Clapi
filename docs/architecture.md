@@ -75,7 +75,7 @@ Rules enforced at the module level:
 Pure Kotlin data classes, no runtime dependencies:
 
 - `RequestModels.kt` — request, response, body, auth, form-data types
-- `opencollection/` — canonical OpenCollection v1.0.0 models (`OpenCollectionDocument`, `FolderItem`, `HttpRequestItem`, `WebSocketRequestItem`, `Environment`, `ClapiExtensionData`, etc.)
+- `opencollection/` — canonical OpenCollection v1.0.0 models (`OpenCollectionDocument`, `FolderItem`, `HttpRequestItem`, `GraphQLRequestItem`, `WebSocketRequestItem`, `Environment`, `ClapiExtensionData`, etc.)
 - `EnvironmentModels.kt` — runtime environment and variable entries
 - `RealtimeModels.kt` — WebSocket connection and message models (`WebSocketLogMessage`, `MessageDirection`)
 

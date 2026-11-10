@@ -1210,6 +1210,8 @@ fun OpenCollectionItem.toCollectionNode(
                 }.getOrNull()
             }
 
+            val effectiveKind = if (bodyType == BodyType.GRAPHQL) RequestKind.GRAPHQL else requestKind
+
             CollectionNode(
                 id = reqId,
                 name = info.name,
@@ -1245,8 +1247,9 @@ fun OpenCollectionItem.toCollectionNode(
                 preRequestScript = preScript,
                 testScript = postScript,
                 requestRef = reqRef ?: generateUuid(),
-                kind = requestKind,
+                kind = effectiveKind,
                 mcpConfig = mcpConfig,
+                graphQlDocs = if (effectiveKind == RequestKind.GRAPHQL) docs else null,
             )
         }
         is io.github.crustack.clapi.core.model.opencollection.GrpcRequestItem -> {
