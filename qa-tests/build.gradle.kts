@@ -124,3 +124,11 @@ tasks.named<Test>("jvmTest") { // Or tasks.named<Test>("test")
     dependsOn(dockerComposeUp)
     finalizedBy(dockerComposeDown)
 }
+
+tasks.register<JavaExec>("runDummyServer") {
+    group = "application"
+    description = "Runs the DummyApiServer with HTTP, WebSocket, and gRPC endpoints for manual testing"
+    classpath = kotlin.jvm().compilations.getByName("test").output.classesDirs +
+        kotlin.jvm().compilations.getByName("test").runtimeDependencyFiles
+    mainClass.set("io.github.crustack.clapi.testsupport.DummyApiServerKt")
+}

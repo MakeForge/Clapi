@@ -75,9 +75,9 @@ Rules enforced at the module level:
 Pure Kotlin data classes, no runtime dependencies:
 
 - `RequestModels.kt` — request, response, body, auth, form-data types
-- `opencollection/` — canonical OpenCollection v1.0.0 models (`OpenCollectionDocument`, `FolderItem`, `HttpRequestItem`, `Environment`, `ClapiExtensionData`, etc.)
+- `opencollection/` — canonical OpenCollection v1.0.0 models (`OpenCollectionDocument`, `FolderItem`, `HttpRequestItem`, `WebSocketRequestItem`, `Environment`, `ClapiExtensionData`, etc.)
 - `EnvironmentModels.kt` — runtime environment and variable entries
-- `RealtimeModels.kt` — WebSocket connection and message models
+- `RealtimeModels.kt` — WebSocket connection and message models (`WebSocketLogMessage`, `MessageDirection`)
 
 #### HTTP methods
 
@@ -120,7 +120,7 @@ NONE, BASIC, BEARER, API_KEY, OAUTH2, JWT
 
 | Module | Responsibility |
 |---|---|
-| `core-network` | `KtorApiClient` executing HTTP requests; SSE/NDJSON streaming via `NetworkEvent.Chunk` (`SseParser`, `LlmTextAssembler`); MCP client (`McpClient`, Streamable HTTP, legacy HTTP+SSE, stdio); OAuth 2.1 for MCP; auth schemes (Basic, Bearer, API Key, OAuth2, JWT); retry; `{{variable}}` interpolation in URL/headers/body; WebSocket; `NetworkInterceptor` interface |
+| `core-network` | `KtorApiClient` executing HTTP requests; SSE/NDJSON streaming via `NetworkEvent.Chunk` (`SseParser`, `LlmTextAssembler`); `WebSocketClientManager` / `KtorWebSocketClientManager` managing persistent bi-directional tab-scoped WebSocket sessions; MCP client (`McpClient`, Streamable HTTP, legacy HTTP+SSE, stdio); OAuth 2.1 for MCP; auth schemes (Basic, Bearer, API Key, OAuth2, JWT); retry; `{{variable}}` interpolation in URL/headers/body; `NetworkInterceptor` interface |
 | `core-storage` | `PlatformStorage` abstraction; workspace, tab, settings, and environment JSON persistence |
 | `core-scripting` | JavaScript runtime contracts; pre-request / post-request execution; variable scope injection (`environment`, `globals`, `collectionVariables`); `pm.*` → `clapi.*` API rewriter |
 | `feature-requests` | `RequestExecutionService` — orchestrates an HTTP round-trip: resolves variables → runs pre-request script → dispatches via `KtorApiClient` → feeds response into post-request scripts |

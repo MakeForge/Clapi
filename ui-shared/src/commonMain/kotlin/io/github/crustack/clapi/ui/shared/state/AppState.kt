@@ -196,6 +196,11 @@ data class CollectionNode(
     val protoFiles: List<ProtoFileItemState> = emptyList(),
     val importPaths: List<ProtoImportPathState> = emptyList(),
     val storageExtension: StorageExtension? = null,
+    val webSocketVariants: List<WebSocketMessageVariant> = emptyList(),
+    val webSocketTimeout: String? = null,
+    val webSocketKeepAliveInterval: String? = null,
+    val webSocketDocs: String? = null,
+    val webSocketMessageFormat: WebSocketMessageType? = null,
 ) {
     val isCollection: Boolean get() = kind == RequestKind.COLLECTION
     val storageType: StorageType get() = storageExtension?.type ?: StorageType.LOCAL
@@ -1569,7 +1574,28 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                 tab.grpcMetadata.add(MutableKeyValue(k, v, kind = HeaderKind.USER))
             }
         }
-        if (tab.kind != RequestKind.FOLDER && tab.kind != RequestKind.GRPC) {
+        if (tab.kind == RequestKind.WEBSOCKET) {
+            tab.headers.clear()
+            node?.headerEntries?.let { entries ->
+                tab.headers.addAll(entries.map { MutableKeyValue(it.key, it.value, it.enabled, it.secret, kind = HeaderKind.USER) })
+            } ?: node?.userHeaders?.forEach { (k, v) ->
+                tab.headers.add(MutableKeyValue(k, v, kind = HeaderKind.USER))
+            }
+            if (!node?.webSocketVariants.isNullOrEmpty()) {
+                tab.webSocketMessageVariants.clear()
+                tab.webSocketMessageVariants.addAll(node!!.webSocketVariants)
+                val sel = tab.webSocketMessageVariants.indexOfFirst { it.selected == true }
+                tab.activeWebSocketVariantIndex = if (sel >= 0) sel else 0
+            }
+            node?.webSocketTimeout?.let { tab.webSocketTimeout = it }
+            node?.webSocketKeepAliveInterval?.let { tab.webSocketKeepAliveInterval = it }
+            node?.webSocketDocs?.let { tab.webSocketDocs = it }
+            node?.webSocketMessageFormat?.let { tab.webSocketMessageFormat = it }
+            if (node?.bodyContent != null && tab.webSocketMessageVariants.isEmpty()) {
+                tab.webSocketOutgoingPayload = node.bodyContent
+            }
+        }
+        if (tab.kind != RequestKind.FOLDER && tab.kind != RequestKind.GRPC && tab.kind != RequestKind.WEBSOCKET) {
             applyInheritedDefaults(tab)
         }
         // Re-anchor the saved snapshot after all fields (including system headers
@@ -2931,6 +2957,11 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                     protoSyncToGit     = tab.protoSyncToGit,
                     grpcMethod         = tab.grpcMethod?.ifBlank { null },
                     grpcMethodType     = tab.grpcMethodType.ifBlank { "unary" },
+                    webSocketVariants  = if (tab.kind == RequestKind.WEBSOCKET) tab.webSocketMessageVariants.toList() else emptyList(),
+                    webSocketTimeout   = if (tab.kind == RequestKind.WEBSOCKET) tab.webSocketTimeout else null,
+                    webSocketKeepAliveInterval = if (tab.kind == RequestKind.WEBSOCKET) tab.webSocketKeepAliveInterval else null,
+                    webSocketDocs      = if (tab.kind == RequestKind.WEBSOCKET) tab.webSocketDocs.ifBlank { null } else null,
+                    webSocketMessageFormat = if (tab.kind == RequestKind.WEBSOCKET) tab.effectiveWebSocketFormat else null,
                 )
                 return true
             }

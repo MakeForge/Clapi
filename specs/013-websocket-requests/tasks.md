@@ -118,10 +118,10 @@
 **Independent Test**: Export a collection containing WebSocket requests to JSON and YAML, re-import into a fresh workspace, and verify all properties (URL, headers, auth, message variants, settings, docs) match 100%.
 
 ### Implementation for User Story 5
-- [ ] T028 [P] [US5] Update `OpenCollectionSerializer.kt` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionSerializer.kt` to include `KNOWN_WEBSOCKET_REQUEST_KEYS` and handle serialization/deserialization for `WebSocketRequestItem`
-- [ ] T029 [US5] Update `OpenCollectionModelMapping.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to map between `CollectionNode`/`RequestTabState` and `WebSocketRequestItem`
-- [ ] T030 [US5] Implement legacy URL fallback in `OpenCollectionModelMapping.kt` and `KtorApiClient.kt` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/KtorApiClient.kt` ensuring existing HTTP requests with `ws://`/`wss://` URLs continue to function or can be upgraded to first-class WebSocket requests
-- [ ] T031 [US5] Update `TabsRepository.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/TabsRepository.kt` to persist and restore `RequestKind.WEBSOCKET` open tabs
+- [X] T028 [P] [US5] Update `OpenCollectionSerializer.kt` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionSerializer.kt` to include `KNOWN_WEBSOCKET_REQUEST_KEYS` and handle serialization/deserialization for `WebSocketRequestItem`
+- [X] T029 [US5] Update `OpenCollectionModelMapping.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to map between `CollectionNode`/`RequestTabState` and `WebSocketRequestItem`
+- [X] T030 [US5] Implement legacy URL fallback in `OpenCollectionModelMapping.kt` and `KtorApiClient.kt` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/KtorApiClient.kt` ensuring existing HTTP requests with `ws://`/`wss://` URLs continue to function or can be upgraded to first-class WebSocket requests
+- [X] T031 [US5] Update `TabsRepository.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/TabsRepository.kt` to persist and restore `RequestKind.WEBSOCKET` open tabs
 
 **Checkpoint**: OpenCollection v1.0.0 persistence, serialization, and legacy migration are complete.
 
@@ -134,9 +134,9 @@
 **Independent Test**: Run `./gradlew :qa-tests:test --tests "*WebSocket*"` and verify all tests pass.
 
 ### Tests & Implementation for QA Suite
-- [ ] T032 [P] Add sample WebSocket request item with message variants and settings to `clapi-test-collection.json` in `qa-tests/fixtures/clapi-test-collection.json`
-- [ ] T033 Update `OpenCollectionRoundTripE2ETest.kt` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/OpenCollectionRoundTripE2ETest.kt` to verify `WebSocketRequestItem` survives save/load and YAML export/import round-trips
-- [ ] T034 Extend `WebSocketE2ETest.kt` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/WebSocketE2ETest.kt` to test connection, message transmission, echo frame verification, and clean disconnection using `WebSocketClientManager` against `DummyApiServer`
+- [X] T032 [P] Add sample WebSocket request item with message variants and settings to `clapi-test-collection.json` in `qa-tests/fixtures/clapi-test-collection.json`
+- [X] T033 Update `OpenCollectionRoundTripE2ETest.kt` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/OpenCollectionRoundTripE2ETest.kt` to verify `WebSocketRequestItem` survives save/load and YAML export/import round-trips
+- [X] T034 Extend `WebSocketE2ETest.kt` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/WebSocketE2ETest.kt` to test connection, message transmission, echo frame verification, and clean disconnection using `WebSocketClientManager` against `DummyApiServer`
 
 **Checkpoint**: Automated regression suite verifies WebSocket requests against the mock server in CI.
 
@@ -146,9 +146,9 @@
 
 **Purpose**: Cleanup, formatting, documentation, and validation
 
-- [ ] T035 [P] Run code formatting and static checks across modified modules (`core-model`, `core-network`, `core-storage`, `ui-shared`, `qa-tests`)
-- [ ] T036 [P] Update `FEATURES.md` and `docs/architecture.md` to document WebSocket first-class request support
-- [ ] T037 Execute manual verification steps per `specs/013-websocket-requests/quickstart.md`
+- [X] T035 [P] Run code formatting and static checks across modified modules (`core-model`, `core-network`, `core-storage`, `ui-shared`, `qa-tests`)
+- [X] T036 [P] Update `FEATURES.md` and `docs/architecture.md` to document WebSocket first-class request support
+- [X] T037 Execute manual verification steps per `specs/013-websocket-requests/quickstart.md`
 
 ---
 
