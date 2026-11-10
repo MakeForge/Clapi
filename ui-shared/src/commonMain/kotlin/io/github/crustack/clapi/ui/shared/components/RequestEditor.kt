@@ -76,6 +76,15 @@ fun RequestEditor(
         return
     }
 
+    if (tab.kind == RequestKind.WEBSOCKET) {
+        WebSocketRequestEditor(
+            tab = tab,
+            state = state,
+            onSave = onSave,
+        )
+        return
+    }
+
     val markDirty = { tab.markDirty() }
 
     Column(

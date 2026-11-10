@@ -70,10 +70,10 @@
 **Independent Test**: Open a WebSocket request, enter target URL with `{{variables}}`, configure custom handshake headers, select Bearer authentication, update timeout settings, and verify values persist in tab state.
 
 ### Implementation for User Story 2
-- [ ] T016 [US2] Extend `RequestTabState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` with fields for `webSocketTimeout`, `webSocketKeepAliveInterval`, and selected editor tab routing
-- [ ] T017 [P] [US2] Implement top address bar in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt` with `WebSocketBadge`, URL input field with variable resolution preview, and connection status indicator
-- [ ] T018 [US2] Implement "Headers", "Auth", "Settings" (timeout and keep-alive interval), and "Docs" tabs in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt`
-- [ ] T019 [US2] Route `tab.kind == RequestKind.WEBSOCKET` to `WebSocketRequestEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestEditor.kt`
+- [X] T016 [US2] Extend `RequestTabState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` with fields for `webSocketTimeout`, `webSocketKeepAliveInterval`, and selected editor tab routing
+- [X] T017 [P] [US2] Implement top address bar in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt` with `WebSocketBadge`, URL input field with variable resolution preview, and connection status indicator
+- [X] T018 [US2] Implement "Headers", "Auth", "Settings" (timeout and keep-alive interval), and "Docs" tabs in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt`
+- [X] T019 [US2] Route `tab.kind == RequestKind.WEBSOCKET` to `WebSocketRequestEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestEditor.kt`
 
 **Checkpoint**: User Stories 1 and 2 operate together independently.
 
@@ -86,9 +86,9 @@
 **Independent Test**: Create two message variants with different titles and JSON payloads, toggle between them, and confirm the active variant payload and format update accordingly.
 
 ### Implementation for User Story 3
-- [ ] T020 [US3] Extend `RequestTabState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` with `webSocketMessageVariants` list, `activeWebSocketVariantIndex`, and `webSocketMessageFormat`
-- [ ] T021 [US3] Implement message format selector (`TEXT`, `JSON`, `XML`, `BINARY`) and syntax-highlighted code editor in the "Message" tab in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt`
-- [ ] T022 [US3] Implement Message Variants management UI (variant tabs/dropdown, add variant, delete variant, rename title, select active variant) in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt`
+- [X] T020 [US3] Extend `RequestTabState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` with `webSocketMessageVariants` list, `activeWebSocketVariantIndex`, and `webSocketMessageFormat`
+- [X] T021 [US3] Implement message format selector (`TEXT`, `JSON`, `XML`, `BINARY`) and syntax-highlighted code editor in the "Message" tab in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt`
+- [X] T022 [US3] Implement Message Variants management UI (variant tabs/dropdown, add variant, delete variant, rename title, select active variant) in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt`
 
 **Checkpoint**: Outgoing message composition and variant management are functional.
 
@@ -101,11 +101,11 @@
 **Independent Test**: Connect to a live WebSocket echo endpoint, verify status switches to "Connected", send a JSON message, observe both SENT and RECEIVED entries appear in the timeline with timestamps, and click Disconnect.
 
 ### Implementation for User Story 4
-- [ ] T023 [P] [US4] Implement `WebSocketClientManager` and `KtorWebSocketClientManager` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/websocket/WebSocketClientManager.kt` using Ktor `WebSockets` plugin to handle connect, frame sending, incoming frame loop, keep-alive, and graceful close
-- [ ] T024 [US4] Implement `sendWebSocketRequestInternal` and connection action handlers in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt` wired to `WebSocketClientManager`
-- [ ] T025 [US4] Implement timeline stream pane in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt` displaying chronological messages with SENT/RECEIVED direction badges, timestamps, byte size, format tag, copy button, and clear log action
-- [ ] T026 [US4] Add FIFO buffer cap (maximum 1,000 entries) and auto-scroll behavior for the message timeline in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt`
-- [ ] T027 [US4] Add cleanup handler on tab close in `AppState.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` to gracefully close active WebSocket sessions when tabs are closed
+- [X] T023 [P] [US4] Implement `WebSocketClientManager` and `KtorWebSocketClientManager` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/websocket/WebSocketClientManager.kt` using Ktor `WebSockets` plugin to handle connect, frame sending, incoming frame loop, keep-alive, and graceful close
+- [X] T024 [US4] Implement `sendWebSocketRequestInternal` and connection action handlers in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt` wired to `WebSocketClientManager`
+- [X] T025 [US4] Implement timeline stream pane in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt` displaying chronological messages with SENT/RECEIVED direction badges, timestamps, byte size, format tag, copy button, and clear log action
+- [X] T026 [US4] Add FIFO buffer cap (maximum 1,000 entries) and auto-scroll behavior for the message timeline in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt`
+- [X] T027 [US4] Add cleanup handler on tab close in `AppState.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` to gracefully close active WebSocket sessions when tabs are closed
 
 **Checkpoint**: End-to-end interactive WebSocket communication and real-time timeline are fully operational.
 

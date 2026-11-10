@@ -43,6 +43,12 @@ import io.github.crustack.clapi.ui.shared.mcp.McpSessionState
 import io.github.crustack.clapi.ui.shared.platform.generateUuid
 import io.github.crustack.clapi.ui.shared.platform.currentTimeMillis
 import io.github.crustack.clapi.ui.shared.components.syncParamsFromUrl
+import io.github.crustack.clapi.core.network.ConnectionState
+import io.github.crustack.clapi.core.network.websocket.WebSocketClientManager
+import io.github.crustack.clapi.core.model.WebSocketLogMessage
+import io.github.crustack.clapi.core.model.opencollection.WebSocketMessageType
+import io.github.crustack.clapi.core.model.opencollection.WebSocketMessageVariant
+import io.github.crustack.clapi.core.model.opencollection.WebSocketMessage
 import io.github.crustack.clapi.ui.shared.persistence.ImportExportNaming
 
 import io.github.crustack.clapi.ui.shared.i18n.AppLanguage
@@ -57,6 +63,16 @@ enum class RequestEditorTab(val label: String) {
 
 enum class GrpcEditorTab(val label: String) {
     MESSAGE("Message"), HEADERS("Headers"), AUTH("Auth"), SCRIPTS("Scripts")
+}
+
+enum class WebSocketEditorTab(val label: String) {
+    MESSAGE("Message"),
+    HEADERS("Headers"),
+    AUTH("Auth"),
+    SETTINGS("Settings"),
+    SCRIPTS("Scripts"),
+    VARIABLES("Variables"),
+    DOCS("Docs")
 }
 
 enum class ResponseTab(val label: String) {
@@ -527,6 +543,47 @@ class RequestTabState(
     val grpcMetadata = mutableStateListOf<MutableKeyValue>()
     var selectedGrpcTab by mutableStateOf(GrpcEditorTab.MESSAGE)
 
+    // ── WebSocket state ──────────────────────────────────────────────────────
+    var selectedWebSocketTab by mutableStateOf(WebSocketEditorTab.MESSAGE)
+    var webSocketTimeout by mutableStateOf<String?>("inherit")
+    var webSocketKeepAliveInterval by mutableStateOf<String?>("inherit")
+    var webSocketDocs by mutableStateOf("")
+    var webSocketConnectionState by mutableStateOf(ConnectionState.DISCONNECTED)
+    val webSocketLogMessages = mutableStateListOf<WebSocketLogMessage>()
+    val webSocketMessageVariants = mutableStateListOf<WebSocketMessageVariant>()
+    var activeWebSocketVariantIndex by mutableStateOf(0)
+    var webSocketMessageFormat by mutableStateOf(WebSocketMessageType.TEXT)
+    var webSocketOutgoingPayload by mutableStateOf("")
+
+    val activeWebSocketVariant: WebSocketMessageVariant?
+        get() = webSocketMessageVariants.getOrNull(activeWebSocketVariantIndex)
+
+    var webSocketOutgoingMessage: String
+        get() = activeWebSocketVariant?.message?.data ?: webSocketOutgoingPayload
+        set(value) {
+            val variant = activeWebSocketVariant
+            if (variant != null && activeWebSocketVariantIndex in webSocketMessageVariants.indices) {
+                webSocketMessageVariants[activeWebSocketVariantIndex] = variant.copy(
+                    message = variant.message.copy(data = value)
+                )
+            } else {
+                webSocketOutgoingPayload = value
+            }
+        }
+
+    var effectiveWebSocketFormat: WebSocketMessageType
+        get() = activeWebSocketVariant?.message?.type ?: webSocketMessageFormat
+        set(value) {
+            val variant = activeWebSocketVariant
+            if (variant != null && activeWebSocketVariantIndex in webSocketMessageVariants.indices) {
+                webSocketMessageVariants[activeWebSocketVariantIndex] = variant.copy(
+                    message = variant.message.copy(type = value)
+                )
+            } else {
+                webSocketMessageFormat = value
+            }
+        }
+
     /** JSON message payload for gRPC requests, backed by bodyContents[BodyType.JSON]. */
     var grpcMessageBody: String
         get() = bodyContents[BodyType.JSON] ?: ""
@@ -611,6 +668,11 @@ class RequestTabState(
         } else if (kind == RequestKind.GRPC) {
             headers.clear()
             bodyType = BodyType.JSON
+        } else if (kind == RequestKind.WEBSOCKET) {
+            headers.clear()
+            if (this.url.isBlank()) {
+                this.url = "ws://"
+            }
         }
         savedSnapshot = currentSnapshotForDirtyTracking()
     }
@@ -645,6 +707,8 @@ class RequestTabState(
         val grpcMetadataSnapshot = grpcMetadata
             .filter { it.kind != HeaderKind.INHERITED }
             .joinToString(";") { m -> "${m.key}|${m.value}|${m.enabled}|${m.secret}" }
+        val webSocketVariantsSnapshot = webSocketMessageVariants
+            .joinToString(";") { v -> "${v.title}|${v.selected}|${v.message.type.value}|${v.message.data}" }
         val allBodyContentsSnapshot = bodyContents.entries
             .sortedBy { entry -> entry.key.name }
             .joinToString(";") { entry -> "${entry.key.name}=${entry.value}" }
@@ -694,6 +758,12 @@ class RequestTabState(
             collectionVersion.orEmpty(),
             collectionProtoFiles.joinToString(";") { "${it.path}:${it.syncToGit}" },
             collectionImportPaths.joinToString(";") { "${it.path}:${it.enabled}:${it.syncToGit}" },
+            webSocketTimeout.orEmpty(),
+            webSocketKeepAliveInterval.orEmpty(),
+            webSocketDocs,
+            webSocketOutgoingPayload,
+            webSocketMessageFormat.value,
+            webSocketVariantsSnapshot,
         ).joinToString("#")
     }
 
@@ -2108,8 +2178,12 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
 
     fun closeTab(index: Int) {
         if (index !in openTabs.indices) return
-        openTabs[index].disposeBodyViewModels()
-        disposeMcpSession(openTabs[index].id)
+        val tab = openTabs[index]
+        tab.disposeBodyViewModels()
+        disposeMcpSession(tab.id)
+        if (tab.kind == RequestKind.WEBSOCKET) {
+            WebSocketClientManager.default.disconnect(tab.id)
+        }
         openTabs.removeAt(index)
         if (openTabs.isEmpty()) {
             activeTabIndex = -1
@@ -2131,8 +2205,12 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         openTabs.indices.reversed()
             .filter { openTabs[it].id in idSet }
             .forEach { idx ->
-                openTabs[idx].disposeBodyViewModels()
-                disposeMcpSession(openTabs[idx].id)
+                val tab = openTabs[idx]
+                tab.disposeBodyViewModels()
+                disposeMcpSession(tab.id)
+                if (tab.kind == RequestKind.WEBSOCKET) {
+                    WebSocketClientManager.default.disconnect(tab.id)
+                }
                 openTabs.removeAt(idx)
             }
         if (openTabs.isEmpty()) {
