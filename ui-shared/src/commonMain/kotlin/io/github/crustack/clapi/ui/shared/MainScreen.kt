@@ -48,6 +48,8 @@ import io.github.crustack.clapi.ui.shared.components.CollectionEditor
 import io.github.crustack.clapi.ui.shared.components.ConfirmDeleteDialog
 import io.github.crustack.clapi.ui.shared.components.DirtyCloseDialog
 import io.github.crustack.clapi.ui.shared.components.DirtyMultiCloseDialog
+import io.github.crustack.clapi.ui.shared.shortcuts.AppHotkeys
+import io.github.crustack.clapi.ui.shared.shortcuts.hotkeys
 import io.github.crustack.clapi.ui.shared.components.ExportCollectionsDialog
 import io.github.crustack.clapi.ui.shared.components.EnvironmentEditDialog
 import io.github.crustack.clapi.ui.shared.components.ErrorMessageDialog
@@ -197,54 +199,50 @@ fun MainScreen(state: AppState = remember { AppState() }) {
             .fillMaxSize()
             .background(ClapiColors.Background)
             .testTag("main-screen")
-            .onPreviewKeyEvent { event ->
-                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-                val isMeta = event.isMetaPressed || event.isCtrlPressed
-                when {
-                    isMeta && event.key == Key.Enter -> {
-                        val activeTab = state.activeTab
-                        if (activeTab != null) {
-                            if (activeTab.kind == RequestKind.MCP) {
-                                val session = state.getOrCreateMcpSession(activeTab.id)
-                                if (activeTab.isLoading) session.cancelCall() else session.pendingShortcut?.invoke()
-                            } else if (activeTab.isLoading) {
-                                activeTab.currentJob?.cancel()
-                                activeTab.isLoading = false
-                            } else {
-                                sendRequest(scope, state, activeTab)
-                            }
+            .hotkeys {
+                on(AppHotkeys.Send) {
+                    val activeTab = state.activeTab
+                    if (activeTab != null) {
+                        if (activeTab.kind == RequestKind.MCP) {
+                            val session = state.getOrCreateMcpSession(activeTab.id)
+                            if (activeTab.isLoading) session.cancelCall() else session.pendingShortcut?.invoke()
+                        } else if (activeTab.isLoading) {
+                            activeTab.currentJob?.cancel()
+                            activeTab.isLoading = false
+                        } else {
+                            sendRequest(scope, state, activeTab)
                         }
-                        true
                     }
-                    isMeta && event.key == Key.LeftBracket && event.isShiftPressed && !event.isAltPressed &&
-                        event.utf16CodePoint != '{'.code && event.utf16CodePoint != '['.code -> {
+                }
+                on(AppHotkeys.Save) {
+                    state.activeTab?.let { saveRequest(scope, state, it) }
+                }
+                on(AppHotkeys.CloseTab) {
+                    requestCloseTab(state.activeTabIndex)
+                }
+                on(AppHotkeys.NewTab) {
+                    state.addTabInSelectedCollection()
+                }
+                on(AppHotkeys.Settings) {
+                    state.showSettingsDialog = true
+                }
+                onConditional(AppHotkeys.MoveTabLeft) { event ->
+                    if (event.utf16CodePoint != '{'.code && event.utf16CodePoint != '['.code) {
                         val from = state.activeTabIndex
-                        if (from > 0) state.moveTab(from, from - 1)
-                        true
-                    }
-                    isMeta && event.key == Key.RightBracket && event.isShiftPressed && !event.isAltPressed &&
-                        event.utf16CodePoint != '}'.code && event.utf16CodePoint != ']'.code -> {
+                        if (from > 0) {
+                            state.moveTab(from, from - 1)
+                            true
+                        } else false
+                    } else false
+                }
+                onConditional(AppHotkeys.MoveTabRight) { event ->
+                    if (event.utf16CodePoint != '}'.code && event.utf16CodePoint != ']'.code) {
                         val from = state.activeTabIndex
-                        if (from < state.openTabs.lastIndex) state.moveTab(from, from + 1)
-                        true
-                    }
-                    isMeta && event.key == Key.S -> {
-                        state.activeTab?.let { saveRequest(scope, state, it) }
-                        true
-                    }
-                    isMeta && event.key == Key.W -> {
-                        requestCloseTab(state.activeTabIndex)
-                        true
-                    }
-                    isMeta && event.key == Key.N -> {
-                        state.addTabInSelectedCollection()
-                        true
-                    }
-                    isMeta && event.key == Key.Comma -> {
-                        state.showSettingsDialog = true
-                        true
-                    }
-                    else -> false
+                        if (from < state.openTabs.lastIndex) {
+                            state.moveTab(from, from + 1)
+                            true
+                        } else false
+                    } else false
                 }
             },
     ) {

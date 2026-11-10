@@ -31,6 +31,7 @@ import io.github.crustack.clapi.ui.shared.generated.resources.ic_code
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_lock
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_play_arrow
 import io.github.crustack.clapi.ui.shared.i18n.Strings
+import io.github.crustack.clapi.ui.shared.shortcuts.onSaveHotkey
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.MutableKeyValue
 import io.github.crustack.clapi.ui.shared.state.RequestEditorTab
@@ -81,6 +82,7 @@ fun RequestEditor(
         modifier = Modifier
             .fillMaxSize()
             .background(ClapiColors.Background)
+            .onSaveHotkey { onSave() }
             .testTag("request-editor"),
     ) {
         RequestBar(

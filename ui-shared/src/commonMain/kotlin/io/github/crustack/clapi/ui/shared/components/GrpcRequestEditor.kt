@@ -63,6 +63,7 @@ import io.github.crustack.clapi.ui.shared.generated.resources.ic_lock
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_play_arrow
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_save
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_send
+import io.github.crustack.clapi.ui.shared.shortcuts.onSaveHotkey
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_stop
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.network.NetworkClientFactory
@@ -133,7 +134,7 @@ fun GrpcRequestEditor(
     }
 
     if (showProtoDialog) {
-        val handleSaveProto: (String, Boolean) -> Unit = { selectedPath, syncToGit ->
+        val handleSaveProto: (String, Boolean, Boolean) -> Unit = { selectedPath, syncToGit, closeDialog ->
             scope.launch {
                 tab.isProtoLoading = true
                 tab.protoLoadError = null
@@ -158,7 +159,9 @@ fun GrpcRequestEditor(
                         tab.grpcMethod = null
                     }
                     markDirty()
-                    showProtoDialog = false
+                    if (closeDialog) {
+                        showProtoDialog = false
+                    }
                 } catch (e: ProtoParseException) {
                     tab.protoLoadError = e.message ?: "Failed to parse .proto file"
                     state.log("✗ Proto parse error: ${tab.protoLoadError}", LogLevel.ERROR)
@@ -177,8 +180,9 @@ fun GrpcRequestEditor(
             collectionProtoFiles = state.collectionProtoFiles.map { it.path },
             isGitSyncEnabled = isGitSyncEnabled,
             initialSyncToGit = tab.protoSyncToGit,
-            onSave = { selectedPath -> handleSaveProto(selectedPath, tab.protoSyncToGit) },
-            onSaveWithSync = { selectedPath, syncToGit -> handleSaveProto(selectedPath, syncToGit) },
+            onSave = { selectedPath -> handleSaveProto(selectedPath, tab.protoSyncToGit, true) },
+            onSaveWithSync = { selectedPath, syncToGit -> handleSaveProto(selectedPath, syncToGit, true) },
+            onSaveWithClose = { selectedPath, syncToGit, closeDialog -> handleSaveProto(selectedPath, syncToGit, closeDialog) },
             onDismiss = {
                 tab.protoLoadError = null
                 showProtoDialog = false
@@ -190,6 +194,7 @@ fun GrpcRequestEditor(
         modifier = Modifier
             .fillMaxSize()
             .background(ClapiColors.Background)
+            .onSaveHotkey { onSave() }
             .testTag("grpc-request-editor"),
     ) {
         // ── Top Request Bar ──────────────────────────────────────────

@@ -56,7 +56,10 @@ import io.github.crustack.clapi.ui.shared.generated.resources.ic_public
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_visibility
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_visibility_off
 import io.github.crustack.clapi.ui.shared.i18n.Strings
+import io.github.crustack.clapi.ui.shared.shortcuts.AppHotkeys
+import io.github.crustack.clapi.ui.shared.shortcuts.hotkeys
 import io.github.crustack.clapi.ui.shared.state.AppState
+import io.github.crustack.clapi.ui.shared.state.LogLevel
 import io.github.crustack.clapi.ui.shared.state.MutableKeyValue
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
 import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
@@ -81,11 +84,21 @@ fun GlobalVariablesDialog(state: AppState) {
         }
     }
 
+    val captureSnapshot: () -> List<Any?> = {
+        workingVars.filter { it.key.isNotBlank() || it.value.isNotBlank() }
+            .map { listOf(it.key, it.value, it.enabled, it.secret) }
+    }
+
+    var baselineSnapshot by remember { mutableStateOf(captureSnapshot()) }
+    var showUnsavedConfirm by remember { mutableStateOf(false) }
+
+    fun isDirty(): Boolean = captureSnapshot() != baselineSnapshot
+
     fun cancelDialog() {
         state.showGlobalVariablesDialog = false
     }
 
-    fun saveDialog() {
+    fun saveDialog(closeDialog: Boolean = false) {
         state.globalVariables.clear()
         workingVars.forEach { v ->
             if (v.key.isNotBlank() || v.value.isNotBlank()) {
@@ -93,17 +106,29 @@ fun GlobalVariablesDialog(state: AppState) {
             }
         }
         state.pruneEmptyGlobalVariables()
-        state.showGlobalVariablesDialog = false
+        baselineSnapshot = captureSnapshot()
+        state.log("✓ Global variables saved (${state.globalVariables.size} variables)", LogLevel.SUCCESS)
+        if (closeDialog) {
+            state.showGlobalVariablesDialog = false
+        }
     }
 
-    Dialog(onDismissRequest = { cancelDialog() }) {
+    fun requestClose() {
+        if (isDirty()) {
+            showUnsavedConfirm = true
+        } else {
+            cancelDialog()
+        }
+    }
+
+    Dialog(onDismissRequest = { requestClose() }) {
         var dialogSize by remember { mutableStateOf(IntSize.Zero) }
 
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(Unit) {
-                    detectTapGestures { cancelDialog() }
+                    detectTapGestures { requestClose() }
                 },
             contentAlignment = Alignment.Center,
         ) {
@@ -115,6 +140,14 @@ fun GlobalVariablesDialog(state: AppState) {
                     .background(ClapiColors.Surface)
                     .border(1.dp, ClapiColors.Border, RoundedCornerShape(12.dp))
                     .pointerInput(Unit) { detectTapGestures { /* consume tap */ } }
+                    .hotkeys {
+                        on(AppHotkeys.Save) {
+                            saveDialog(closeDialog = false)
+                        }
+                        on(AppHotkeys.Escape) {
+                            requestClose()
+                        }
+                    }
                     .onSizeChanged { dialogSize = it }
                     .testTag("global-variables-dialog"),
             ) {
@@ -140,7 +173,7 @@ fun GlobalVariablesDialog(state: AppState) {
                     )
                     Spacer(Modifier.weight(1f))
                     IconButton(
-                        onClick = { cancelDialog() },
+                        onClick = { requestClose() },
                         modifier = Modifier.size(28.dp),
                     ) {
                         Icon(painter = painterResource(Res.drawable.ic_close), Strings.close, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
@@ -257,7 +290,7 @@ fun GlobalVariablesDialog(state: AppState) {
                             .clip(RoundedCornerShape(8.dp))
                             .background(ClapiColors.SurfaceContainer)
                             .border(1.dp, ClapiColors.Border, RoundedCornerShape(8.dp))
-                            .clickable { cancelDialog() }
+                            .clickable { requestClose() }
                             .padding(horizontal = 14.dp, vertical = 8.dp)
                             .testTag("global-vars-cancel"),
                     ) {
@@ -270,7 +303,7 @@ fun GlobalVariablesDialog(state: AppState) {
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
                             .background(ClapiColors.Primary)
-                            .clickable { saveDialog() }
+                            .clickable { saveDialog(closeDialog = true) }
                             .padding(horizontal = 14.dp, vertical = 8.dp)
                             .testTag("global-vars-save"),
                     ) {
@@ -279,6 +312,24 @@ fun GlobalVariablesDialog(state: AppState) {
                 }
             }
         }
+    }
+
+    if (showUnsavedConfirm) {
+        DirtyCloseDialog(
+            title = "Unsaved Changes",
+            message = Strings.t("request_unsaved_changes_message"),
+            onSave = {
+                saveDialog(closeDialog = true)
+                showUnsavedConfirm = false
+            },
+            onDiscard = {
+                showUnsavedConfirm = false
+                cancelDialog()
+            },
+            onCancel = {
+                showUnsavedConfirm = false
+            },
+        )
     }
 }
 

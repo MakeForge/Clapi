@@ -88,6 +88,8 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
+import io.github.crustack.clapi.ui.shared.shortcuts.AppHotkeys
+import io.github.crustack.clapi.ui.shared.shortcuts.hotkeys
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -2459,6 +2461,10 @@ private fun RenameItemDialog(
                 .clip(RoundedCornerShape(12.dp))
                 .background(ClapiColors.Surface)
                 .border(1.dp, ClapiColors.Border, RoundedCornerShape(12.dp))
+                .hotkeys {
+                    on(AppHotkeys.Save) { onConfirm() }
+                    on(AppHotkeys.Escape) { onDismiss() }
+                }
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {

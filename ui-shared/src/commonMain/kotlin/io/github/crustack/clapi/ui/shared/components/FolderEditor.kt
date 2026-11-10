@@ -28,6 +28,7 @@ import io.github.crustack.clapi.ui.shared.generated.resources.Res
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_folder
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_save
 import io.github.crustack.clapi.ui.shared.i18n.Strings
+import io.github.crustack.clapi.ui.shared.shortcuts.onSaveHotkey
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.RequestEditorTab
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
@@ -54,6 +55,7 @@ fun FolderEditor(
         modifier = modifier
             .fillMaxSize()
             .background(ClapiColors.Background)
+            .onSaveHotkey { onSave() }
             .testTag("folder-editor"),
     ) {
         // Header bar displaying folder icon, name, and Save button
