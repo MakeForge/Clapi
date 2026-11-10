@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.purejava.KeepassProxyAccess
+import java.io.File
 import java.util.prefs.Preferences
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -11,6 +12,7 @@ interface KeePassXcAssociationStorage {
     fun getAssociateId(): String?
     fun getIdKeyPairPublicKey(): String?
     fun saveAssociation(associateId: String, idKeyPairPublicKey: String)
+    fun clearAssociation()
 }
 
 class PreferencesKeePassXcAssociationStorage : KeePassXcAssociationStorage {
@@ -20,6 +22,11 @@ class PreferencesKeePassXcAssociationStorage : KeePassXcAssociationStorage {
     override fun saveAssociation(associateId: String, idKeyPairPublicKey: String) {
         prefs.put("associateId", associateId)
         prefs.put("idKeyPairPublicKey", idKeyPairPublicKey)
+        prefs.flush()
+    }
+    override fun clearAssociation() {
+        prefs.remove("associateId")
+        prefs.remove("idKeyPairPublicKey")
         prefs.flush()
     }
 }
@@ -136,11 +143,108 @@ class PureJavaKeePassXcClient(
     override suspend fun disconnect(): Unit = withContext(Dispatchers.IO) {
         synchronized(this@PureJavaKeePassXcClient) {
             try {
-                proxyAccess = null
-                connected = false
+                proxyAccess?.closeConnection()
             } catch (_: Exception) {
             }
+            try {
+                proxyAccess?.shutdown()
+            } catch (_: Exception) {
+            }
+            proxyAccess = null
+            connected = false
         }
+    }
+
+    override suspend fun getAssociateId(): String? = withContext(Dispatchers.IO) {
+        associationStorage.getAssociateId()
+    }
+
+    override suspend fun associate(): String = withContext(Dispatchers.IO) {
+        val kpa = getOrConnectProxy()
+        if (kpa.isDatabaseLocked) {
+            throw IllegalStateException("KeePassXC database is locked. Please unlock your database first.")
+        }
+        kpa.associate()
+        val associated = retryUntilTrue {
+            kpa.getDatabasehash().isPresent && kpa.testAssociate(kpa.associateId, kpa.idKeyPairPublicKey)
+        }
+        if (!associated) {
+            throw IllegalStateException("KeePassXC association was denied or timed out.")
+        }
+        val newId = kpa.associateId ?: throw IllegalStateException("Failed to obtain associate ID from KeePassXC.")
+        val newKey = kpa.idKeyPairPublicKey ?: throw IllegalStateException("Failed to obtain ID key pair from KeePassXC.")
+
+        associationStorage.saveAssociation(newId, newKey)
+        newId
+    }
+
+    override suspend fun unassociate(): Unit = withContext(Dispatchers.IO) {
+        associationStorage.clearAssociation()
+        try {
+            val userHome = System.getProperty("user.home") ?: ""
+            val osName = System.getProperty("os.name").orEmpty().lowercase()
+            val datPath = when {
+                osName.contains("win") -> (System.getenv("AppData") ?: "") + "/keepass-proxy-access/keepass-proxy-access.dat"
+                osName.contains("mac") -> "$userHome/Library/Application Support/keepass-proxy-access/keepass-proxy-access.dat"
+                else -> "$userHome/.config/keepass-proxy-access/keepass-proxy-access.dat"
+            }
+            val datFile = File(datPath)
+            if (datFile.exists()) {
+                datFile.delete()
+            }
+        } catch (_: Exception) {
+        }
+        disconnect()
+    }
+
+    override fun getProxyPath(): String {
+        return resolveKeePassXcProxyPath()
+    }
+}
+
+fun resolveKeePassXcProxyPath(): String {
+    val osName = System.getProperty("os.name").orEmpty().lowercase()
+    val proxyName = "org.keepassxc.KeePassXC.BrowserServer"
+    val flatpakPath = "/app/org.keepassxc.KeePassXC"
+    return when {
+        osName.contains("win") -> {
+            val username = System.getenv("USERNAME") ?: ""
+            "\\\\.\\pipe\\$proxyName" + if (username.isNotBlank()) "_$username" else ""
+        }
+        osName.contains("mac") -> {
+            val tmpDir = System.getenv("TMPDIR") ?: "/tmp"
+            "${tmpDir.trimEnd('/')}/$proxyName"
+        }
+        osName.contains("linux") -> {
+            val type = try {
+                org.keepassxc.KindOfKeePassXC.determineType().orElse(null)
+            } catch (_: Throwable) {
+                null
+            }
+            val socketDir = when (type) {
+                org.keepassxc.KeePassXCType.Flatpak -> {
+                    (System.getenv("XDG_RUNTIME_DIR") ?: "") + flatpakPath
+                }
+                org.keepassxc.KeePassXCType.Snap -> {
+                    System.getProperty("user.home") + "/snap/keepassxc/common"
+                }
+                else -> {
+                    val xdg = System.getenv("XDG_RUNTIME_DIR")
+                    if (xdg == null) {
+                        System.getenv("TMPDIR") ?: "/tmp"
+                    } else {
+                        val flatpakDir = File(xdg + flatpakPath)
+                        if (flatpakDir.exists()) {
+                            xdg + flatpakPath
+                        } else {
+                            xdg
+                        }
+                    }
+                }
+            }
+            "${socketDir.trimEnd('/')}/$proxyName"
+        }
+        else -> "-"
     }
 }
 
