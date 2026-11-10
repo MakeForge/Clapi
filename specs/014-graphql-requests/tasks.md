@@ -69,10 +69,10 @@
 **Independent Test**: Open a GraphQL request, enter target URL with `{{variables}}`, configure custom headers and query params, select Bearer authentication, update timeout settings, and verify all values persist in tab state.
 
 ### Implementation for User Story 2
-- [ ] T015 [US2] Extend `RequestTabState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` with fields for `graphQlMethod`, `graphQlSettings`, and `graphQlDocs`
-- [ ] T016 [P] [US2] Implement top address bar in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GraphQLRequestEditor.kt` with `GraphQLBadge`, HTTP method selector (POST/GET), URL input field with variable resolution preview, Send button, and Save button
-- [ ] T017 [US2] Implement "Headers", "Params", "Auth" (using `AuthEditor`), "Settings" (timeout, encodeUrl, followRedirects, forwardAuthHeader, maxRedirects), and "Docs" tabs in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GraphQLRequestEditor.kt`
-- [ ] T018 [US2] Route `tab.kind == RequestKind.GRAPHQL` to `GraphQLRequestEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestEditor.kt`
+- [X] T015 [US2] Extend `RequestTabState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` with fields for `graphQlMethod`, `graphQlSettings`, and `graphQlDocs`
+- [X] T016 [P] [US2] Implement top address bar in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GraphQLRequestEditor.kt` with `GraphQLBadge`, HTTP method selector (POST/GET), URL input field with variable resolution preview, Send button, and Save button
+- [X] T017 [US2] Implement "Headers", "Params", "Auth" (using `AuthEditor`), "Settings" (timeout, encodeUrl, followRedirects, forwardAuthHeader, maxRedirects), and "Docs" tabs in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GraphQLRequestEditor.kt`
+- [X] T018 [US2] Route `tab.kind == RequestKind.GRAPHQL` to `GraphQLRequestEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestEditor.kt`
 
 **Checkpoint**: User Stories 1 and 2 operate together independently.
 
@@ -85,10 +85,10 @@
 **Independent Test**: In the Body tab of a GraphQL request, write a query and variables, format the query, add a second body variant with a different title and query, switch between variants, and verify content preserves correctly.
 
 ### Implementation for User Story 3
-- [ ] T019 [US3] Extend `RequestTabState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` with `graphQlQuery`, `graphQlVariables`, `graphQlVariants`, and `graphQlActiveVariantIndex`
-- [ ] T020 [P] [US3] Implement Body variant management strip (add variant, select active variant, rename variant, remove variant) in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GraphQLRequestEditor.kt`
-- [ ] T021 [US3] Integrate GraphQL query editor with line numbers, `highlightGraphql` syntax highlighting, brace folding, and "Prettify" query formatting action in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GraphQLRequestEditor.kt`
-- [ ] T022 [US3] Integrate Variables editor with line numbers, `highlightJson` syntax highlighting, JSON formatting, and dynamic variable interpolation in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GraphQLRequestEditor.kt`
+- [X] T019 [US3] Extend `RequestTabState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` with `graphQlQuery`, `graphQlVariables`, `graphQlVariants`, and `graphQlActiveVariantIndex`
+- [X] T020 [P] [US3] Implement Body variant management strip (add variant, select active variant, rename variant, remove variant) in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GraphQLRequestEditor.kt`
+- [X] T021 [US3] Integrate GraphQL query editor with line numbers, `highlightGraphql` syntax highlighting, brace folding, and "Prettify" query formatting action in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GraphQLRequestEditor.kt`
+- [X] T022 [US3] Integrate Variables editor with line numbers, `highlightJson` syntax highlighting, JSON formatting, and dynamic variable interpolation in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GraphQLRequestEditor.kt`
 
 **Checkpoint**: User Stories 1, 2, and 3 provide a complete authoring experience.
 
@@ -101,10 +101,10 @@
 **Independent Test**: Target `DummyApiServer` at `http://localhost:<port>/graphql`, send a GraphQL query with variables, and verify that HTTP 200 is received with status timing and syntax-highlighted JSON response body in `ResponseViewer`.
 
 ### Implementation for User Story 4
-- [ ] T023 [US4] Implement `sendGraphQlRequestInternal` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt` that resolves variables, constructs POST JSON envelope via `encodeGraphQlEnvelope` or GET query parameters, and executes via network client
-- [ ] T024 [US4] Wire `tab.kind == RequestKind.GRAPHQL` execution handling in `sendRequestInternal` and hotkeys in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt`
-- [ ] T025 [US4] Integrate pre-request and post-request test scripts and assertions execution for GraphQL requests in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt`
-- [ ] T026 [US4] Display status badge, latency, response headers, and formatted JSON body using `ResponseViewer` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GraphQLRequestEditor.kt`
+- [X] T023 [US4] Implement `sendGraphQlRequestInternal` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt` that resolves variables, constructs POST JSON envelope via `encodeGraphQlEnvelope` or GET query parameters, and executes via network client
+- [X] T024 [US4] Wire `tab.kind == RequestKind.GRAPHQL` execution handling in `sendRequestInternal` and hotkeys in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt`
+- [X] T025 [US4] Integrate pre-request and post-request test scripts and assertions execution for GraphQL requests in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt`
+- [X] T026 [US4] Display status badge, latency, response headers, and formatted JSON body using `ResponseViewer` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GraphQLRequestEditor.kt`
 
 **Checkpoint**: End-to-end execution and response inspection are fully functional.
 
