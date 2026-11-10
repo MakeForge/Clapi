@@ -32,3 +32,6 @@ rtk gain --history    # Per-command savings history
 rtk discover          # Find missed rtk opportunities
 rtk proxy <cmd>       # Run raw (no filtering) but track usage
 ```
+
+## IntelliJ MCP
+You can utilize connected IntelliJ MCP to e.g. easily search through external library code, find files more easily. Leverage it whenever useful.
