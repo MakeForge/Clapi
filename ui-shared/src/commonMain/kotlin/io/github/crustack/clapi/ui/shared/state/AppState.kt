@@ -201,6 +201,9 @@ data class CollectionNode(
     val webSocketKeepAliveInterval: String? = null,
     val webSocketDocs: String? = null,
     val webSocketMessageFormat: WebSocketMessageType? = null,
+    val graphQlVariants: List<io.github.crustack.clapi.core.model.opencollection.GraphQLBodyVariant> = emptyList(),
+    val graphQlSettings: io.github.crustack.clapi.core.model.opencollection.GraphQLRequestSettings? = null,
+    val graphQlDocs: String? = null,
 ) {
     val isCollection: Boolean get() = kind == RequestKind.COLLECTION
     val storageType: StorageType get() = storageExtension?.type ?: StorageType.LOCAL
@@ -2378,6 +2381,28 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         selectedCollectionId = rootCollectionIdContaining(collectionId) ?: collectionId
         selectedRequestId = requestId
         addTab(requestId = requestId, name = name, method = HttpMethodType.GET, url = "ws://")
+    }
+
+    /** Add a new GraphQL request node inside the given collection (folder). Opens it as a tab. */
+    fun addGraphQLRequestToCollection(collectionId: String) {
+        val folder = findFolder(collectionId) ?: return
+        val siblingNames = folder.children.map { it.name }.toSet()
+        val name = generateUniqueName("New Request", siblingNames)
+        val requestId = generateUuid()
+        val node = CollectionNode(
+            id = requestId,
+            requestRef = generateUuid(),
+            name = name,
+            isFolder = false,
+            method = HttpMethodType.POST,
+            url = "https://",
+            kind = RequestKind.GRAPHQL,
+        )
+        folder.children.add(node)
+        notifyCollectionsChanged()
+        selectedCollectionId = rootCollectionIdContaining(collectionId) ?: collectionId
+        selectedRequestId = requestId
+        addTab(requestId = requestId, name = name, method = HttpMethodType.POST, url = "https://")
     }
 
     fun addMcpConnectionToCollection(collectionId: String) {

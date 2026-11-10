@@ -759,6 +759,53 @@ fun CollectionNode.toOpenCollectionItem(collectionDir: String? = null): OpenColl
             )
         }
 
+        if (kind == RequestKind.GRAPHQL) {
+            val effectiveHeaders = (headerEntries ?: userHeaders.map { KeyValueEntry(it.first, it.second) }).map {
+                io.github.crustack.clapi.core.model.opencollection.HttpRequestHeader(
+                    name = it.key,
+                    value = it.value,
+                    disabled = if (it.enabled) null else true,
+                )
+            }
+            val effectiveParams = queryEntries?.map {
+                io.github.crustack.clapi.core.model.opencollection.HttpRequestParam(
+                    name = it.key,
+                    value = it.value,
+                    disabled = if (it.enabled) null else true,
+                )
+            } ?: emptyList()
+            val gqlRuntime = if (scripts.isNotEmpty()) {
+                io.github.crustack.clapi.core.model.opencollection.GraphQLRequestRuntime(scripts = scripts)
+            } else {
+                null
+            }
+            val bodyPayload = if (graphQlVariants.isNotEmpty()) {
+                io.github.crustack.clapi.core.model.opencollection.GraphQLBodyPayload.Variants(graphQlVariants)
+            } else if (!bodyContent.isNullOrBlank()) {
+                io.github.crustack.clapi.core.model.opencollection.GraphQLBodyPayload.Single(
+                    io.github.crustack.clapi.core.model.opencollection.GraphQLBody(
+                        query = bodyContent!!,
+                    )
+                )
+            } else null
+
+            return io.github.crustack.clapi.core.model.opencollection.GraphQLRequestItem(
+                info = io.github.crustack.clapi.core.model.opencollection.GraphQLRequestInfo(name = name),
+                graphql = io.github.crustack.clapi.core.model.opencollection.GraphQLRequestDetails(
+                    method = method?.name ?: "POST",
+                    url = url ?: "https://",
+                    headers = effectiveHeaders,
+                    params = effectiveParams,
+                    body = bodyPayload,
+                    auth = auth,
+                ),
+                runtime = gqlRuntime,
+                settings = graphQlSettings,
+                docs = graphQlDocs,
+                extensions = ext,
+            )
+        }
+
         val runtime = if (scripts.isNotEmpty()) HttpRequestRuntime(scripts = scripts) else null
 
         HttpRequestItem(
@@ -1410,6 +1457,56 @@ fun OpenCollectionItem.toCollectionNode(
                 webSocketKeepAliveInterval = (settings?.keepAliveInterval as? JsonPrimitive)?.content,
                 webSocketDocs = docs,
                 webSocketMessageFormat = msgFormat,
+            )
+        }
+        is io.github.crustack.clapi.core.model.opencollection.GraphQLRequestItem -> {
+            val reqId = generateUuid()
+            val reqRef = (extensions["requestRef"] as? JsonPrimitive)?.content
+            val headerEntries: List<KeyValueEntry> = graphql.headers.map {
+                KeyValueEntry(key = it.name, value = it.value, enabled = it.disabled != true)
+            }
+            val userHeaders = graphql.headers.map { it.name to it.value }
+            val queryEntries: List<KeyValueEntry> = graphql.params.map {
+                KeyValueEntry(key = it.name, value = it.value, enabled = it.disabled != true)
+            }
+            val variants = when (val b = graphql.body) {
+                is io.github.crustack.clapi.core.model.opencollection.GraphQLBodyPayload.Variants -> b.variants
+                is io.github.crustack.clapi.core.model.opencollection.GraphQLBodyPayload.Single -> listOf(
+                    io.github.crustack.clapi.core.model.opencollection.GraphQLBodyVariant(
+                        title = "Default",
+                        selected = true,
+                        body = b.body
+                    )
+                )
+                null -> emptyList()
+            }
+            val firstQuery = when (val b = graphql.body) {
+                is io.github.crustack.clapi.core.model.opencollection.GraphQLBodyPayload.Single -> b.body.query
+                is io.github.crustack.clapi.core.model.opencollection.GraphQLBodyPayload.Variants -> b.variants.firstOrNull { it.selected == true }?.body?.query
+                    ?: b.variants.firstOrNull()?.body?.query
+                null -> null
+            }
+            val preScript = runtime?.scripts?.firstOrNull { it.type == ScriptType.BEFORE_REQUEST }?.code
+            val postScript = runtime?.scripts?.firstOrNull { it.type == ScriptType.AFTER_RESPONSE || it.type == ScriptType.TESTS }?.code
+            val resolvedMethod = runCatching { HttpMethodType.valueOf(graphql.method?.uppercase() ?: "POST") }.getOrDefault(HttpMethodType.POST)
+
+            CollectionNode(
+                id = reqId,
+                name = info.name,
+                isFolder = false,
+                url = graphql.url,
+                method = resolvedMethod,
+                headerEntries = headerEntries,
+                userHeaders = userHeaders,
+                queryEntries = queryEntries,
+                bodyContent = firstQuery,
+                preRequestScript = preScript,
+                testScript = postScript,
+                requestRef = reqRef ?: generateUuid(),
+                kind = RequestKind.GRAPHQL,
+                graphQlVariants = variants,
+                graphQlSettings = settings,
+                graphQlDocs = docs,
             )
         }
     }

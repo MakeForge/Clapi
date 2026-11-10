@@ -20,9 +20,9 @@
 
 **Purpose**: Theme color additions and i18n string definitions for GraphQL requests
 
-- [ ] T001 Add `methodGraphQl` color property using `#e10098` (`Color(0xFFE10098)`) to `AppColorPalette` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/theme/AppColorPalette.kt`
-- [ ] T002 [P] Expose `ClapiColors.MethodGraphQl` accessor in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/theme/ClapiTheme.kt`
-- [ ] T003 [P] Add i18n localization keys (`new_graphql_request`, `graphql_query`, `graphql_variables`, `graphql_variants`, `graphql_prettify`) in `ui-shared/src/commonMain/resources/i18n/en.json`, `de.json`, `es.json`, and `fr.json`
+- [X] T001 Add `methodGraphQl` color property using `#e10098` (`Color(0xFFE10098)`) to `AppColorPalette` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/theme/AppColorPalette.kt`
+- [X] T002 [P] Expose `ClapiColors.MethodGraphQl` accessor in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/theme/ClapiTheme.kt`
+- [X] T003 [P] Add i18n localization keys (`new_graphql_request`, `graphql_query`, `graphql_variables`, `graphql_variants`, `graphql_prettify`) in `ui-shared/src/commonMain/resources/i18n/en.json`, `de.json`, `es.json`, and `fr.json`
 
 ---
 
@@ -32,11 +32,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this foundational phase is complete
 
-- [ ] T004 Extend `RequestKind` enum with `GRAPHQL` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/McpModels.kt`
-- [ ] T005 [P] Define `GraphQLRequestInfo`, `GraphQLBody`, `GraphQLBodyVariant`, `GraphQLBodyPayload`, `GraphQLRequestDetails`, `GraphQLRequestSettings`, `GraphQLRequestRuntime`, and `GraphQLRequestItem` conforming to OpenCollection schema in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt`
-- [ ] T006 Implement `GraphQLBodyPayloadSerializer` handling polymorphic serialization of `GraphQLBodyPayload` (Single `GraphQLBody` vs Variants `List<GraphQLBodyVariant>`) in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt`
-- [ ] T007 Update `OpenCollectionItemSerializer` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt` to handle polymorphic deserialization for `GraphQLRequestItem` when element has `graphql` or `info.type == "graphql"`
-- [ ] T008 [P] Add unit tests for `GraphQLRequestItem` serialization and polymorphic `GraphQLBodyPayload` in `core-model/src/commonTest/kotlin/io/github/crustack/clapi/core/model/opencollection/GraphQLSerializationTest.kt`
+- [X] T004 Extend `RequestKind` enum with `GRAPHQL` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/McpModels.kt`
+- [X] T005 [P] Define `GraphQLRequestInfo`, `GraphQLBody`, `GraphQLBodyVariant`, `GraphQLBodyPayload`, `GraphQLRequestDetails`, `GraphQLRequestSettings`, `GraphQLRequestRuntime`, and `GraphQLRequestItem` conforming to OpenCollection schema in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt`
+- [X] T006 Implement `GraphQLBodyPayloadSerializer` handling polymorphic serialization of `GraphQLBodyPayload` (Single `GraphQLBody` vs Variants `List<GraphQLBodyVariant>`) in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt`
+- [X] T007 Update `OpenCollectionItemSerializer` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt` to handle polymorphic deserialization for `GraphQLRequestItem` when element has `graphql` or `info.type == "graphql"`
+- [X] T008 [P] Add unit tests for `GraphQLRequestItem` serialization and polymorphic `GraphQLBodyPayload` in `core-model/src/commonTest/kotlin/io/github/crustack/clapi/core/model/opencollection/GraphQLSerializationTest.kt`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -49,14 +49,14 @@
 **Independent Test**: Click "+" on any collection folder in sidebar, select "New GraphQL Request", and verify item is created and rendered with a "GQL" badge displaying `MethodGraphQl` (`#e10098`) accent color.
 
 ### Tests for User Story 1
-- [ ] T009 [P] [US1] Create UI unit test verifying `GraphQLBadge` rendering and folder "+" context menu in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/components/SidebarGraphQLBadgeTest.kt`
+- [X] T009 [P] [US1] Create UI unit test verifying `GraphQLBadge` rendering and folder "+" context menu in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/components/SidebarGraphQLBadgeTest.kt`
 
 ### Implementation for User Story 1
-- [ ] T010 [P] [US1] Create `GraphQLBadge` composable with `ClapiColors.MethodGraphQl` styling in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt`
-- [ ] T011 [US1] Update `CollectionTreeNode` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` to display `GraphQLBadge` when `node.kind == RequestKind.GRAPHQL`
-- [ ] T012 [P] [US1] Update `RequestTabsBar` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestTabsBar.kt` to render `GraphQLBadge` for tabs with `RequestKind.GRAPHQL`
-- [ ] T013 [US1] Update folder and collection "+" dropdown menus in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` to include "New GraphQL Request" action
-- [ ] T014 [US1] Add handler `onAddGraphQLRequest` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` and `AppState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` to create a `CollectionNode` with `kind = RequestKind.GRAPHQL`, method `HttpMethodType.POST`, and default URL `https://`
+- [X] T010 [P] [US1] Create `GraphQLBadge` composable with `ClapiColors.MethodGraphQl` styling in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt`
+- [X] T011 [US1] Update `CollectionTreeNode` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` to display `GraphQLBadge` when `node.kind == RequestKind.GRAPHQL`
+- [X] T012 [P] [US1] Update `RequestTabsBar` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestTabsBar.kt` to render `GraphQLBadge` for tabs with `RequestKind.GRAPHQL`
+- [X] T013 [US1] Update folder and collection "+" dropdown menus in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` to include "New GraphQL Request" action
+- [X] T014 [US1] Add handler `onAddGraphQLRequest` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` and `AppState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` to create a `CollectionNode` with `kind = RequestKind.GRAPHQL`, method `HttpMethodType.POST`, and default URL `https://`
 
 **Checkpoint**: User Story 1 is functional and testable independently (MVP ready).
 

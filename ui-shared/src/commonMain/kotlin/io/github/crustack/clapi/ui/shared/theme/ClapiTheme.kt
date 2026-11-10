@@ -58,6 +58,7 @@ object ClapiColors {
     val MethodTrace: Color         @Composable @ReadOnlyComposable get() = LocalAppColors.current.methodTrace
     val MethodConnect: Color       @Composable @ReadOnlyComposable get() = LocalAppColors.current.methodConnect
     val MethodWebSocket: Color     @Composable @ReadOnlyComposable get() = LocalAppColors.current.methodWebSocket
+    val MethodGraphQl: Color       @Composable @ReadOnlyComposable get() = LocalAppColors.current.methodGraphQl
 
     val StatusSuccess: Color       @Composable @ReadOnlyComposable get() = LocalAppColors.current.statusSuccess
     val StatusRedirect: Color      @Composable @ReadOnlyComposable get() = LocalAppColors.current.statusRedirect
