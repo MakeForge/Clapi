@@ -709,6 +709,41 @@ fun CollectionNode.toOpenCollectionItem(collectionDir: String? = null): OpenColl
             )
         }
 
+        if (kind == RequestKind.WEBSOCKET) {
+            val effectiveHeaders = (headerEntries ?: userHeaders.map { KeyValueEntry(it.first, it.second) }).map {
+                io.github.crustack.clapi.core.model.opencollection.HttpRequestHeader(
+                    name = it.key,
+                    value = it.value,
+                    disabled = if (it.enabled) null else true,
+                )
+            }
+            val wsRuntime = if (scripts.isNotEmpty()) {
+                io.github.crustack.clapi.core.model.opencollection.WebSocketRequestRuntime(scripts = scripts)
+            } else {
+                null
+            }
+            val messagePayload = if (!bodyContent.isNullOrBlank()) {
+                io.github.crustack.clapi.core.model.opencollection.WebSocketMessagePayload.Single(
+                    io.github.crustack.clapi.core.model.opencollection.WebSocketMessage(
+                        type = io.github.crustack.clapi.core.model.opencollection.WebSocketMessageType.TEXT,
+                        data = bodyContent!!
+                    )
+                )
+            } else null
+
+            return io.github.crustack.clapi.core.model.opencollection.WebSocketRequestItem(
+                info = io.github.crustack.clapi.core.model.opencollection.WebSocketRequestInfo(name = name),
+                websocket = io.github.crustack.clapi.core.model.opencollection.WebSocketRequestDetails(
+                    url = url ?: "ws://",
+                    headers = effectiveHeaders,
+                    message = messagePayload,
+                    auth = auth,
+                ),
+                runtime = wsRuntime,
+                extensions = ext,
+            )
+        }
+
         val runtime = if (scripts.isNotEmpty()) HttpRequestRuntime(scripts = scripts) else null
 
         HttpRequestItem(
@@ -1303,6 +1338,33 @@ fun OpenCollectionItem.toCollectionNode(
                 protoSyncToGit = resolvedProtoSyncToGit,
                 grpcMethod = resolvedGrpcMethod,
                 grpcMethodType = resolvedGrpcMethodType,
+            )
+        }
+        is io.github.crustack.clapi.core.model.opencollection.WebSocketRequestItem -> {
+            val reqId = generateUuid()
+            val reqRef = (extensions["requestRef"] as? JsonPrimitive)?.content
+            val headerEntries: List<KeyValueEntry> = websocket.headers.map {
+                KeyValueEntry(key = it.name, value = it.value, enabled = it.disabled != true)
+            }
+            val userHeaders = websocket.headers.map { it.name to it.value }
+            val firstMsg = websocket.message?.singleMessage?.data
+                ?: websocket.message?.variantList?.firstOrNull()?.message?.data
+            val preScript = runtime?.scripts?.firstOrNull { it.type == ScriptType.BEFORE_REQUEST }?.code
+            val postScript = runtime?.scripts?.firstOrNull { it.type == ScriptType.AFTER_RESPONSE || it.type == ScriptType.TESTS }?.code
+
+            CollectionNode(
+                id = reqId,
+                name = info.name,
+                isFolder = false,
+                url = websocket.url,
+                method = HttpMethodType.GET,
+                headerEntries = headerEntries,
+                userHeaders = userHeaders,
+                bodyContent = firstMsg,
+                preRequestScript = preScript,
+                testScript = postScript,
+                requestRef = reqRef ?: generateUuid(),
+                kind = RequestKind.WEBSOCKET,
             )
         }
     }

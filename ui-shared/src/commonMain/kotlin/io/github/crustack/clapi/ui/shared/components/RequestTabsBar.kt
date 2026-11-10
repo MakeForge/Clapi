@@ -217,6 +217,8 @@ private fun RequestTabChip(
                 McpMethodBadge(compact = true, modifier = Modifier.testTag("tab-mcp-badge-${tab.id}"))
             } else if (tab.kind == RequestKind.GRPC) {
                 GrpcBadge(compact = true, modifier = Modifier.testTag("tab-grpc-badge-${tab.id}"))
+            } else if (tab.kind == RequestKind.WEBSOCKET) {
+                WebSocketBadge(compact = true, modifier = Modifier.testTag("tab-websocket-badge-${tab.id}"))
             } else if (tab.kind == RequestKind.FOLDER) {
                 Icon(painter = painterResource(Res.drawable.ic_folder),
                     contentDescription = null,

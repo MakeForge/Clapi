@@ -2254,6 +2254,28 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         addTab(requestId = requestId, name = name, method = HttpMethodType.POST, url = "")
     }
 
+    /** Add a new WebSocket request node inside the given collection (folder). Opens it as a tab. */
+    fun addWebSocketRequestToCollection(collectionId: String) {
+        val folder = findFolder(collectionId) ?: return
+        val siblingNames = folder.children.map { it.name }.toSet()
+        val name = generateUniqueName("New Request", siblingNames)
+        val requestId = generateUuid()
+        val node = CollectionNode(
+            id = requestId,
+            requestRef = generateUuid(),
+            name = name,
+            isFolder = false,
+            method = HttpMethodType.GET,
+            url = "ws://",
+            kind = RequestKind.WEBSOCKET,
+        )
+        folder.children.add(node)
+        notifyCollectionsChanged()
+        selectedCollectionId = rootCollectionIdContaining(collectionId) ?: collectionId
+        selectedRequestId = requestId
+        addTab(requestId = requestId, name = name, method = HttpMethodType.GET, url = "ws://")
+    }
+
     fun addMcpConnectionToCollection(collectionId: String) {
         val folder = findFolder(collectionId) ?: return
         val siblingNames = folder.children.map { it.name }.toSet()

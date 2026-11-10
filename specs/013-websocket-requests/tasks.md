@@ -20,9 +20,9 @@
 
 **Purpose**: Theme color additions and i18n string definitions for WebSocket requests
 
-- [ ] T001 Add `methodWebSocket` color property to `AppColorPalette` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/theme/AppColorPalette.kt` with dark color `Color(0xFF29B6F6)` and light color `Color(0xFF0288D1)`
-- [ ] T002 [P] Expose `ClapiColors.MethodWebSocket` accessor in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/theme/ClapiTheme.kt`
-- [ ] T003 [P] Add i18n localization keys (`new_websocket_request`, `websocket_connect`, `websocket_disconnect`, `websocket_send`, `websocket_variants`, `websocket_messages`) in `ui-shared/src/commonMain/resources/i18n/en.json`, `de.json`, `es.json`, and `fr.json`
+- [X] T001 Add `methodWebSocket` color property to `AppColorPalette` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/theme/AppColorPalette.kt` with dark color `Color(0xFF29B6F6)` and light color `Color(0xFF0288D1)`
+- [X] T002 [P] Expose `ClapiColors.MethodWebSocket` accessor in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/theme/ClapiTheme.kt`
+- [X] T003 [P] Add i18n localization keys (`new_websocket_request`, `websocket_connect`, `websocket_disconnect`, `websocket_send`, `websocket_variants`, `websocket_messages`) in `ui-shared/src/commonMain/resources/i18n/en.json`, `de.json`, `es.json`, and `fr.json`
 
 ---
 
@@ -32,12 +32,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this foundational phase is complete
 
-- [ ] T004 Extend `RequestKind` enum with `WEBSOCKET` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/McpModels.kt`
-- [ ] T005 [P] Define `WebSocketMessageType`, `WebSocketMessage`, `WebSocketMessageVariant`, `WebSocketMessagePayload`, `WebSocketRequestSettings`, `WebSocketRequestRuntime`, `WebSocketRequestDetails`, `WebSocketRequestInfo`, and `WebSocketRequestItem` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt`
-- [ ] T006 Implement `WebSocketMessagePayloadSerializer` handling polymorphic serialization of `WebSocketMessagePayload` (Single `WebSocketMessage` vs Variants `List<WebSocketMessageVariant>`) in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt`
-- [ ] T007 Update `OpenCollectionItemSerializer` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt` to handle polymorphic deserialization for `WebSocketRequestItem` when element has `websocket` or `info.type == "websocket"`
-- [ ] T008 [P] Define `WebSocketLogMessage` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/RealtimeModels.kt`
-- [ ] T009 [P] Add unit tests for `WebSocketRequestItem` serialization and polymorphic `WebSocketMessagePayload` in `core-model/src/commonTest/kotlin/io/github/crustack/clapi/core/model/opencollection/WebSocketSerializationTest.kt`
+- [X] T004 Extend `RequestKind` enum with `WEBSOCKET` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/McpModels.kt`
+- [X] T005 [P] Define `WebSocketMessageType`, `WebSocketMessage`, `WebSocketMessageVariant`, `WebSocketMessagePayload`, `WebSocketRequestSettings`, `WebSocketRequestRuntime`, `WebSocketRequestDetails`, `WebSocketRequestInfo`, and `WebSocketRequestItem` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt`
+- [X] T006 Implement `WebSocketMessagePayloadSerializer` handling polymorphic serialization of `WebSocketMessagePayload` (Single `WebSocketMessage` vs Variants `List<WebSocketMessageVariant>`) in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt`
+- [X] T007 Update `OpenCollectionItemSerializer` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt` to handle polymorphic deserialization for `WebSocketRequestItem` when element has `websocket` or `info.type == "websocket"`
+- [X] T008 [P] Define `WebSocketLogMessage` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/RealtimeModels.kt`
+- [X] T009 [P] Add unit tests for `WebSocketRequestItem` serialization and polymorphic `WebSocketMessagePayload` in `core-model/src/commonTest/kotlin/io/github/crustack/clapi/core/model/opencollection/WebSocketSerializationTest.kt`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -50,14 +50,14 @@
 **Independent Test**: Click "+" on any collection folder in sidebar, select "New WebSocket Request", and verify item is created and rendered with a "WS" badge displaying `MethodWebSocket` accent color.
 
 ### Tests for User Story 1
-- [ ] T010 [P] [US1] Create UI unit test verifying `WebSocketBadge` rendering and folder "+" context menu in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/components/SidebarWebSocketBadgeTest.kt`
+- [X] T010 [P] [US1] Create UI unit test verifying `WebSocketBadge` rendering and folder "+" context menu in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/components/SidebarWebSocketBadgeTest.kt`
 
 ### Implementation for User Story 1
-- [ ] T011 [P] [US1] Create `WebSocketBadge` composable with `ClapiColors.MethodWebSocket` styling in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt`
-- [ ] T012 [US1] Update `CollectionTreeNode` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` to display `WebSocketBadge` when `node.kind == RequestKind.WEBSOCKET`
-- [ ] T013 [P] [US1] Update `RequestTabsBar` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestTabsBar.kt` to render `WebSocketBadge` for tabs with `RequestKind.WEBSOCKET`
-- [ ] T014 [US1] Update folder and collection "+" dropdown menus in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` to include "New WebSocket Request" action
-- [ ] T015 [US1] Add handler `onAddWebSocketRequest` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` and `AppState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` to create a `CollectionNode` with `kind = RequestKind.WEBSOCKET` and default URL `ws://`
+- [X] T011 [P] [US1] Create `WebSocketBadge` composable with `ClapiColors.MethodWebSocket` styling in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt`
+- [X] T012 [US1] Update `CollectionTreeNode` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` to display `WebSocketBadge` when `node.kind == RequestKind.WEBSOCKET`
+- [X] T013 [P] [US1] Update `RequestTabsBar` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestTabsBar.kt` to render `WebSocketBadge` for tabs with `RequestKind.WEBSOCKET`
+- [X] T014 [US1] Update folder and collection "+" dropdown menus in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` to include "New WebSocket Request" action
+- [X] T015 [US1] Add handler `onAddWebSocketRequest` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` and `AppState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` to create a `CollectionNode` with `kind = RequestKind.WEBSOCKET` and default URL `ws://`
 
 **Checkpoint**: User Story 1 is functional and testable independently (MVP ready).
 
