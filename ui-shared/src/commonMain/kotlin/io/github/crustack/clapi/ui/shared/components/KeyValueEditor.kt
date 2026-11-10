@@ -231,7 +231,12 @@ private fun KeyValueRow(
             }
         }
 
-        IconButton(onClick = onDelete, modifier = Modifier.size(24.dp).testTag("$testTag-remove"), enabled = !isSystemHeader && !isInherited) {
+        IconButtonWithTooltip(
+            onClick = onDelete,
+            tooltip = Strings.t("remove"),
+            modifier = Modifier.size(24.dp).testTag("$testTag-remove"),
+            enabled = !isSystemHeader && !isInherited,
+        ) {
             Icon(painter = painterResource(Res.drawable.ic_delete), contentDescription = Strings.t("remove"), tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
         }
     }
