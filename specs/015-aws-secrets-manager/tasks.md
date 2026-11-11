@@ -20,8 +20,8 @@
 
 **Purpose**: Project initialization and client infrastructure package setup
 
-- [ ] T001 Verify and add Ktor client dependencies in `core-network/build.gradle.kts` if needed for AWS HTTP communication
-- [ ] T002 [P] Create package directory structure for AWS Secrets Manager in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/aws/`
+- [X] T001 Verify and add Ktor client dependencies in `core-network/build.gradle.kts` if needed for AWS HTTP communication
+- [X] T002 [P] Create package directory structure for AWS Secrets Manager in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/aws/`
 
 ---
 
@@ -31,12 +31,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this foundational phase is complete
 
-- [ ] T003 Implement `AwsSecretsManagerExternalSecret` data class (`name: String`, `secretName: String`, `targetField: String = ""`, `customFilters: Map<String, String> = emptyMap()`, `description: Description? = null`, `disabled: Boolean? = null`) implementing `ExternalSecretVariable` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`
-- [ ] T004 Update `ExternalSecretVariableSerializer` polymorphic deserializer in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionEnvironment.kt` to deserialize `AwsSecretsManagerExternalSecret` when `secretName` or `secretId` is present
-- [ ] T005 [P] Create `AwsSigV4Signer` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/aws/AwsSigV4Signer.kt` implementing AWS Signature Version 4 HMAC-SHA256 signing for `secretsmanager` service RPC POST requests
-- [ ] T006 [P] Create `AwsSecretsManagerConfig` data class (`secretId: String`, `accessKey: String`, `secretKey: String`, `region: String = "us-east-1"`, `endpointUrl: String? = null`, `sessionToken: String? = null`, `versionStage: String? = "AWSCURRENT"`) in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/aws/AwsSecretsManagerConfig.kt`
-- [ ] T007 Implement `AwsSecretsManagerClient` interface and `KtorAwsSecretsManagerClient` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/aws/AwsSecretsManagerClient.kt` sending `secretsmanager.GetSecretValue` via Ktor `HttpClient` and parsing `SecretString` as a JSON map or raw string
-- [ ] T008 [P] Create unit tests for `AwsSigV4Signer` and `KtorAwsSecretsManagerClient` with MockEngine in `core-network/src/commonTest/kotlin/io/github/crustack/clapi/core/network/aws/AwsSecretsManagerClientTest.kt`
+- [X] T003 Implement `AwsSecretsManagerExternalSecret` data class (`name: String`, `secretName: String`, `targetField: String = ""`, `customFilters: Map<String, String> = emptyMap()`, `description: Description? = null`, `disabled: Boolean? = null`) implementing `ExternalSecretVariable` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`
+- [X] T004 Update `ExternalSecretVariableSerializer` polymorphic deserializer in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionEnvironment.kt` to deserialize `AwsSecretsManagerExternalSecret` when `secretName` or `secretId` is present
+- [X] T005 [P] Create `AwsSigV4Signer` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/aws/AwsSigV4Signer.kt` implementing AWS Signature Version 4 HMAC-SHA256 signing for `secretsmanager` service RPC POST requests
+- [X] T006 [P] Create `AwsSecretsManagerConfig` data class (`secretId: String`, `accessKey: String`, `secretKey: String`, `region: String = "us-east-1"`, `endpointUrl: String? = null`, `sessionToken: String? = null`, `versionStage: String? = "AWSCURRENT"`) in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/aws/AwsSecretsManagerConfig.kt`
+- [X] T007 Implement `AwsSecretsManagerClient` interface and `KtorAwsSecretsManagerClient` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/aws/AwsSecretsManagerClient.kt` sending `secretsmanager.GetSecretValue` via Ktor `HttpClient` and parsing `SecretString` as a JSON map or raw string
+- [X] T008 [P] Create unit tests for `AwsSigV4Signer` and `KtorAwsSecretsManagerClient` with MockEngine in `core-network/src/commonTest/kotlin/io/github/crustack/clapi/core/network/aws/AwsSecretsManagerClientTest.kt`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -49,12 +49,12 @@
 **Independent Test**: Open Settings dialog -> Secrets Manager tab, select `AWS Secrets Manager`, input test credentials and endpoint URL `http://localhost:4566`, close and reopen dialog, verifying settings persist and sensitive fields remain masked.
 
 ### Tests for User Story 1
-- [ ] T009 [P] [US1] Create unit tests for AWS settings persistence, masking, and encrypted storage in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/SecretsManagerSettingsTest.kt`
+- [X] T009 [P] [US1] Create unit tests for AWS settings persistence, masking, and encrypted storage in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/SecretsManagerSettingsTest.kt`
 
 ### Implementation for User Story 1
-- [ ] T010 [US1] Add AWS settings properties (`awsRegion`, `awsAccessKeyId`, `awsSecretAccessKey`, `awsSessionToken`, `awsEndpointUrl`, `awsVersionStage`) to `AppSettings` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppSettings.kt`
-- [ ] T011 [US1] Update `SettingsRepository.load` and `SettingsRepository.save` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/SettingsRepository.kt` to persist AWS settings using `PlatformStorage.putSecretString` for `awsSecretAccessKey` and `awsSessionToken`
-- [ ] T012 [US1] Add `aws-secrets-manager` option to provider dropdown and implement `AwsSecretsSettings` form (Region, Access Key ID, masked Secret Access Key, masked Session Token, Endpoint URL Override, Version Stage) in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SettingsDialog.kt`
+- [X] T010 [US1] Add AWS settings properties (`awsRegion`, `awsAccessKeyId`, `awsSecretAccessKey`, `awsSessionToken`, `awsEndpointUrl`, `awsVersionStage`) to `AppSettings` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppSettings.kt`
+- [X] T011 [US1] Update `SettingsRepository.load` and `SettingsRepository.save` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/SettingsRepository.kt` to persist AWS settings using `PlatformStorage.putSecretString` for `awsSecretAccessKey` and `awsSessionToken`
+- [X] T012 [US1] Add `aws-secrets-manager` option to provider dropdown and implement `AwsSecretsSettings` form (Region, Access Key ID, masked Secret Access Key, masked Session Token, Endpoint URL Override, Version Stage) in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SettingsDialog.kt`
 
 **Checkpoint**: User Story 1 is functional and testable independently (MVP ready).
 

@@ -42,6 +42,9 @@ class SecretsManagerSettingsTest {
         settings.vaultProviderType = "keepassxc"
         assertEquals("keepassxc", settings.vaultProviderType)
 
+        settings.vaultProviderType = "aws-secrets-manager"
+        assertEquals("aws-secrets-manager", settings.vaultProviderType)
+
         settings.vaultProviderType = "hashicorp-vault-server"
         assertEquals("hashicorp-vault-server", settings.vaultProviderType)
     }

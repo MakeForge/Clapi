@@ -427,6 +427,7 @@ private fun SecretsSettings(s: AppSettings) {
         options = listOf(
             "hashicorp-vault-server" to "HashiCorp Vault (Server)",
             "keepassxc" to "KeePassXC",
+            "aws-secrets-manager" to "AWS Secrets Manager",
         ),
         selected = s.vaultProviderType,
         onSelected = { s.vaultProviderType = it },
@@ -434,11 +435,62 @@ private fun SecretsSettings(s: AppSettings) {
     )
     SettingsDivider()
 
-    if (s.vaultProviderType == "keepassxc") {
-        KeePassXcSettings()
-    } else {
-        VaultSettings(s)
+    when (s.vaultProviderType) {
+        "keepassxc" -> KeePassXcSettings()
+        "aws-secrets-manager" -> AwsSecretsSettings(s)
+        else -> VaultSettings(s)
     }
+}
+
+@Composable
+private fun AwsSecretsSettings(s: AppSettings) {
+    SettingTextField(
+        label = Strings.t("aws_region"),
+        value = s.awsRegion,
+        onValueChange = { s.awsRegion = it },
+        placeholder = "us-east-1",
+        tag = "aws-region",
+    )
+    SettingsDivider()
+    SettingTextField(
+        label = Strings.t("aws_access_key_id"),
+        value = s.awsAccessKeyId,
+        onValueChange = { s.awsAccessKeyId = it },
+        placeholder = "AKIA...",
+        tag = "aws-access-key-id",
+    )
+    SettingsDivider()
+    SettingPasswordField(
+        label = Strings.t("aws_secret_access_key"),
+        value = s.awsSecretAccessKey,
+        onValueChange = { s.awsSecretAccessKey = it },
+        placeholder = "••••••••••••••••",
+        tag = "aws-secret-access-key",
+    )
+    SettingsDivider()
+    SettingPasswordField(
+        label = Strings.t("aws_session_token"),
+        value = s.awsSessionToken,
+        onValueChange = { s.awsSessionToken = it },
+        placeholder = "Optional STS Token",
+        tag = "aws-session-token",
+    )
+    SettingsDivider()
+    SettingTextField(
+        label = Strings.t("aws_endpoint_url"),
+        value = s.awsEndpointUrl,
+        onValueChange = { s.awsEndpointUrl = it },
+        placeholder = "http://localhost:4566",
+        tag = "aws-endpoint-url",
+    )
+    SettingsDivider()
+    SettingTextField(
+        label = Strings.t("aws_version_stage"),
+        value = s.awsVersionStage,
+        onValueChange = { s.awsVersionStage = it },
+        placeholder = "AWSCURRENT",
+        tag = "aws-version-stage",
+    )
 }
 
 @Composable
