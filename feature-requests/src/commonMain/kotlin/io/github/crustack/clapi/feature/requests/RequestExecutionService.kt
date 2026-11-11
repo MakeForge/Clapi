@@ -2,6 +2,7 @@ package io.github.crustack.clapi.feature.requests
 
 import io.github.crustack.clapi.core.model.RequestBody
 import io.github.crustack.clapi.core.model.RequestDefinition
+import io.github.crustack.clapi.core.model.opencollection.AwsSecretsManagerExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.ExternalSecretVariable
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
 import io.github.crustack.clapi.core.model.opencollection.GraphQLRequestItem
@@ -48,6 +49,15 @@ class RequestExecutionService(
                     name = sec.name,
                     path = sec.path,
                     enabled = sec.disabled != true,
+                )
+                is AwsSecretsManagerExternalSecret -> SecretDeclaration(
+                    name = sec.name,
+                    path = sec.secretName,
+                    secretId = sec.secretName,
+                    targetField = sec.targetField,
+                    customFilters = sec.customFilters,
+                    enabled = sec.disabled != true,
+                    providerType = "aws-secrets-manager",
                 )
                 else -> null
             }

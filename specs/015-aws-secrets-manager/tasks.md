@@ -67,12 +67,12 @@
 **Independent Test**: Open Environment Editor -> External Secrets tab, select `AWS Secrets Manager`, add a row with Name `client_id`, Secret ID `local/payment/foo`, and Target Field `client_id`, then save and verify that the environment model updates with `AwsSecretsManagerExternalSecret`.
 
 ### Tests for User Story 2
-- [ ] T013 [P] [US2] Create unit tests for AWS external secrets mapping and UI state in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/EnvironmentEditorSecretsTest.kt`
+- [X] T013 [P] [US2] Create unit tests for AWS external secrets mapping and UI state in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/EnvironmentEditorSecretsTest.kt`
 
 ### Implementation for User Story 2
-- [ ] T014 [US2] Update `EnvironmentState.toOpenCollectionEnvironment()` and `Environment.toEnvState()` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to map between `MutableExternalSecret` and `AwsSecretsManagerExternalSecret`
-- [ ] T015 [US2] Update `ClapiEnvironmentDto` and persistence serialization in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/ImportExportRepository.kt` to serialize `targetField` and `customFilters` for `aws-secrets-manager`
-- [ ] T016 [US2] Add `aws-secrets-manager` to provider dropdown and configure table headers and rows in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/EnvironmentEditDialog.kt` (Name, Secret ID / Name, Target Field, Custom Filters button, Description, Enabled toggle)
+- [X] T014 [US2] Update `EnvironmentState.toOpenCollectionEnvironment()` and `Environment.toEnvState()` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to map between `MutableExternalSecret` and `AwsSecretsManagerExternalSecret`
+- [X] T015 [US2] Update `ClapiEnvironmentDto` and persistence serialization in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/ImportExportRepository.kt` to serialize `targetField` and `customFilters` for `aws-secrets-manager`
+- [X] T016 [US2] Add `aws-secrets-manager` to provider dropdown and configure table headers and rows in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/EnvironmentEditDialog.kt` (Name, Secret ID / Name, Target Field, Custom Filters button, Description, Enabled toggle)
 
 **Checkpoint**: User Stories 1 and 2 operate together independently.
 
@@ -85,13 +85,13 @@
 **Independent Test**: Send an HTTP request referencing `{{_secret.client_id}}` and `{{_secret.client_secret}}` sharing secret ID `local/payment/foo`. Verify the request executes with substituted values from LocalStack and issues only one query to AWS Secrets Manager.
 
 ### Tests for User Story 3
-- [ ] T017 [P] [US3] Create unit tests for AWS secret resolution and query deduplication by Secret ID in `core-network/src/commonTest/kotlin/io/github/crustack/clapi/core/network/vault/SecretResolutionServiceTest.kt`
-- [ ] T018 [P] [US3] Create unit tests for `resolveExternalSecretsForTab` with `aws-secrets-manager` provider in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutorSecretsTest.kt`
+- [X] T017 [P] [US3] Create unit tests for AWS secret resolution and query deduplication by Secret ID in `core-network/src/commonTest/kotlin/io/github/crustack/clapi/core/network/vault/SecretResolutionServiceTest.kt`
+- [X] T018 [P] [US3] Create unit tests for `resolveExternalSecretsForTab` with `aws-secrets-manager` provider in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutorSecretsTest.kt`
 
 ### Implementation for User Story 3
-- [ ] T019 [US3] Extend `SecretDeclaration` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/vault/SecretResolutionService.kt` to ensure `path`, `targetField`, `customFilters`, and `secretId` are exposed for AWS secrets
-- [ ] T020 [US3] Implement `resolveAwsSecrets` in `SecretResolutionService.kt` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/vault/SecretResolutionService.kt` (batching by secret ID, querying `AwsSecretsManagerClient`, extracting `targetField` from JSON map or raw string, and evaluating custom filters with variable substitution)
-- [ ] T021 [US3] Wire AWS settings credentials from `AppState.settings` and dispatch AWS resolution in `resolveExternalSecretsForTab` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/executor/RequestVariableResolution.kt`
+- [X] T019 [US3] Extend `SecretDeclaration` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/vault/SecretResolutionService.kt` to ensure `path`, `targetField`, `customFilters`, and `secretId` are exposed for AWS secrets
+- [X] T020 [US3] Implement `resolveAwsSecrets` in `SecretResolutionService.kt` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/vault/SecretResolutionService.kt` (batching by secret ID, querying `AwsSecretsManagerClient`, extracting `targetField` from JSON map or raw string, and evaluating custom filters with variable substitution)
+- [X] T021 [US3] Wire AWS settings credentials from `AppState.settings` and dispatch AWS resolution in `resolveExternalSecretsForTab` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/executor/RequestVariableResolution.kt`
 
 **Checkpoint**: User Stories 1, 2, and 3 provide end-to-end secret resolution during live request dispatch.
 
@@ -104,10 +104,10 @@
 **Independent Test**: In request editor URL bar with an active AWS secret environment, press `Ctrl+Space`, verify `{{_secret.<name>}}` appears in the dropdown with a secret badge, and select it to insert.
 
 ### Tests for User Story 4
-- [ ] T022 [P] [US4] Create unit tests for AWS external secrets in request autocomplete in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/RequestEditorSecretsAutocompleteTest.kt`
+- [X] T022 [P] [US4] Create unit tests for AWS external secrets in request autocomplete in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/RequestEditorSecretsAutocompleteTest.kt`
 
 ### Implementation for User Story 4
-- [ ] T023 [US4] Verify and update autocomplete suggestion builder in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/VariableHighlight.kt` to include enabled AWS external secrets with `_secret` prefix and secret badge
+- [X] T023 [US4] Verify and update autocomplete suggestion builder in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/VariableHighlight.kt` to include enabled AWS external secrets with `_secret` prefix and secret badge
 
 **Checkpoint**: Autocomplete discoverability works seamlessly for AWS external secrets.
 
