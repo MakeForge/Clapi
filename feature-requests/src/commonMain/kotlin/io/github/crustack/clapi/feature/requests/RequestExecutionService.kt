@@ -41,6 +41,12 @@ class RequestExecutionService(
         vaultToken: String? = null,
         mountPath: String = "secret",
         namespace: String? = null,
+        awsRegion: String = "us-east-1",
+        awsAccessKeyId: String? = null,
+        awsSecretAccessKey: String? = null,
+        awsSessionToken: String? = null,
+        awsEndpointUrl: String? = null,
+        awsVersionStage: String? = "AWSCURRENT",
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
     ): Map<String, String> {
         val declarations = externalSecrets.mapNotNull { sec ->
@@ -74,6 +80,12 @@ class RequestExecutionService(
             vaultToken = vaultToken,
             mountPath = mountPath,
             namespace = namespace,
+            awsRegion = awsRegion,
+            awsAccessKeyId = awsAccessKeyId,
+            awsSecretAccessKey = awsSecretAccessKey,
+            awsSessionToken = awsSessionToken,
+            awsEndpointUrl = awsEndpointUrl,
+            awsVersionStage = awsVersionStage,
             processEnvProvider = processEnvProvider,
         )
     }
@@ -87,6 +99,12 @@ class RequestExecutionService(
         vaultToken: String? = null,
         mountPath: String = "secret",
         namespace: String? = null,
+        awsRegion: String = "us-east-1",
+        awsAccessKeyId: String? = null,
+        awsSecretAccessKey: String? = null,
+        awsSessionToken: String? = null,
+        awsEndpointUrl: String? = null,
+        awsVersionStage: String? = "AWSCURRENT",
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
     ): Flow<NetworkEvent> {
         val textsToScan = mutableListOf<String>()
@@ -102,6 +120,12 @@ class RequestExecutionService(
             vaultToken = vaultToken,
             mountPath = mountPath,
             namespace = namespace,
+            awsRegion = awsRegion,
+            awsAccessKeyId = awsAccessKeyId,
+            awsSecretAccessKey = awsSecretAccessKey,
+            awsSessionToken = awsSessionToken,
+            awsEndpointUrl = awsEndpointUrl,
+            awsVersionStage = awsVersionStage,
             processEnvProvider = processEnvProvider,
         )
         val effectiveLayers = if (secretMap.isNotEmpty()) listOf(secretMap) + variableLayers else variableLayers

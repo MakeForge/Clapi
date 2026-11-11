@@ -1,5 +1,6 @@
 package io.github.crustack.clapi.core.storage.opencollection
 
+import io.github.crustack.clapi.core.model.opencollection.AwsSecretsManagerExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.CollectionConfig
 import io.github.crustack.clapi.core.model.opencollection.CollectionInfo
 import io.github.crustack.clapi.core.model.opencollection.Description
@@ -222,6 +223,135 @@ class OpenCollectionExternalSecretsTest {
         for (kw in forbiddenKeywords) {
             assertFalse(jsonOutput.contains(kw), "JSON export leaked credential keyword: $kw")
             assertFalse(yamlOutput.contains(kw), "YAML export leaked credential keyword: $kw")
+        }
+    }
+
+    @Test
+    fun roundtrip_aws_secrets_manager_external_secrets_json_and_yaml() {
+        val doc = OpenCollectionDocument(
+            opencollection = "1.0.0",
+            info = CollectionInfo(
+                name = "AWS Collection",
+                version = "1.0.0",
+            ),
+            bundled = true,
+            config = CollectionConfig(
+                environments = listOf(
+                    Environment(
+                        name = "AWS Production",
+                        externalSecrets = ExternalSecrets(
+                            type = ExternalSecretType.AWS_SECRETS_MANAGER,
+                            variables = listOf(
+                                AwsSecretsManagerExternalSecret(
+                                    name = "client_id",
+                                    secretName = "local/payment/foo",
+                                    targetField = "client_id",
+                                    customFilters = mapOf("stage" to "prod"),
+                                    description = Description("Payment Client ID"),
+                                    disabled = false,
+                                ),
+                                AwsSecretsManagerExternalSecret(
+                                    name = "client_secret",
+                                    secretName = "local/payment/foo",
+                                    targetField = "client_secret",
+                                    disabled = true,
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+            items = emptyList(),
+        )
+
+        // Test JSON roundtrip
+        val jsonOutput = OpenCollectionSerializer.serializeJson(doc)
+        assertTrue(jsonOutput.contains("\"aws-secrets-manager\""))
+        assertTrue(jsonOutput.contains("\"local/payment/foo\""))
+        assertTrue(jsonOutput.contains("\"client_id\""))
+        assertTrue(jsonOutput.contains("\"targetField\""))
+        assertTrue(jsonOutput.contains("\"customFilters\""))
+
+        val deserializedJson = OpenCollectionSerializer.deserializeJson(jsonOutput)
+        val envJson = deserializedJson.config?.environments?.firstOrNull()
+        assertNotNull(envJson)
+        val extJson = envJson.externalSecrets
+        assertNotNull(extJson)
+        assertEquals(ExternalSecretType.AWS_SECRETS_MANAGER, extJson.type)
+        assertEquals(2, extJson.variables.size)
+
+        val a1 = extJson.variables[0] as AwsSecretsManagerExternalSecret
+        assertEquals("client_id", a1.name)
+        assertEquals("local/payment/foo", a1.secretName)
+        assertEquals("client_id", a1.targetField)
+        assertEquals("prod", a1.customFilters["stage"])
+        assertEquals("Payment Client ID", a1.description?.content)
+        assertEquals(false, a1.disabled)
+
+        val a2 = extJson.variables[1] as AwsSecretsManagerExternalSecret
+        assertEquals("client_secret", a2.name)
+        assertEquals("local/payment/foo", a2.secretName)
+        assertEquals("client_secret", a2.targetField)
+        assertEquals(true, a2.disabled)
+
+        // Test YAML roundtrip
+        val yamlOutput = OpenCollectionSerializer.serializeYaml(doc)
+        assertTrue(yamlOutput.contains("type: aws-secrets-manager"))
+        assertTrue(yamlOutput.contains("client_id"))
+        assertTrue(yamlOutput.contains("local/payment/foo"))
+
+        val deserializedYaml = OpenCollectionSerializer.deserializeYaml(yamlOutput)
+        val envYaml = deserializedYaml.config?.environments?.firstOrNull()
+        assertNotNull(envYaml)
+        val extYaml = envYaml.externalSecrets
+        assertNotNull(extYaml)
+        assertEquals(ExternalSecretType.AWS_SECRETS_MANAGER, extYaml.type)
+        assertEquals(2, extYaml.variables.size)
+
+        val y1 = extYaml.variables[0] as AwsSecretsManagerExternalSecret
+        assertEquals("client_id", y1.name)
+        assertEquals("local/payment/foo", y1.secretName)
+        assertEquals("client_id", y1.targetField)
+        assertEquals("prod", y1.customFilters["stage"])
+    }
+
+    @Test
+    fun zero_credential_leakage_guarantees_aws_keys_never_serialized() {
+        val doc = OpenCollectionDocument(
+            opencollection = "1.0.0",
+            info = CollectionInfo(name = "AWS Credentials Leak Check"),
+            config = CollectionConfig(
+                environments = listOf(
+                    Environment(
+                        name = "AWS Env",
+                        externalSecrets = ExternalSecrets(
+                            type = ExternalSecretType.AWS_SECRETS_MANAGER,
+                            variables = listOf(
+                                AwsSecretsManagerExternalSecret(
+                                    name = "payment_key",
+                                    secretName = "local/payment/foo",
+                                    targetField = "client_secret",
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val jsonOutput = OpenCollectionSerializer.serializeJson(doc)
+        val yamlOutput = OpenCollectionSerializer.serializeYaml(doc)
+
+        val forbiddenAwsKeywords = listOf(
+            "accessKeyId", "secretAccessKey", "sessionToken", "awsSecretAccessKey",
+            "awsSessionToken", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
+            "AKIAIOSFODNN7EXAMPLE", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+            "awsEndpointUrl",
+        )
+
+        for (kw in forbiddenAwsKeywords) {
+            assertFalse(jsonOutput.contains(kw), "JSON export leaked AWS credential keyword: $kw")
+            assertFalse(yamlOutput.contains(kw), "YAML export leaked AWS credential keyword: $kw")
         }
     }
 }

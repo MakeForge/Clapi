@@ -35,6 +35,37 @@
             }
           ]
         }
+      },
+      {
+        "name": "AWS Staging",
+        "variables": [
+          {
+            "name": "baseUrl",
+            "value": "http://localhost:8080"
+          },
+          {
+            "name": "wsBaseUrl",
+            "value": "ws://localhost:8080"
+          }
+        ],
+        "externalSecrets": {
+          "type": "aws-secrets-manager",
+          "variables": [
+            {
+              "name": "client_id",
+              "secretName": "local/payment/foo",
+              "targetField": "client_id",
+              "description": "AWS Gateway Client ID",
+              "disabled": false
+            },
+            {
+              "name": "client_secret",
+              "secretName": "local/payment/foo",
+              "targetField": "client_secret",
+              "description": "AWS Gateway Secret"
+            }
+          ]
+        }
       }
     ]
   },

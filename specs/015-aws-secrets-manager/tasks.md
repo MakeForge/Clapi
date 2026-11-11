@@ -120,10 +120,10 @@
 **Independent Test**: Export a collection with an AWS external secret environment to JSON and YAML. Inspect exported files to verify `externalSecrets` structure is present and no AWS credentials or secret payloads are included.
 
 ### Tests for User Story 5
-- [ ] T024 [P] [US5] Add unit tests for `AwsSecretsManagerExternalSecret` JSON and YAML round-trip serialization and credential leakage prevention in `core-storage/src/commonTest/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionExternalSecretsTest.kt`
+- [X] T024 [P] [US5] Add unit tests for `AwsSecretsManagerExternalSecret` JSON and YAML round-trip serialization and credential leakage prevention in `core-storage/src/commonTest/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionExternalSecretsTest.kt`
 
 ### Implementation for User Story 5
-- [ ] T025 [US5] Ensure `OpenCollectionSerializer` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionSerializer.kt` serializes `AwsSecretsManagerExternalSecret` with `type: "aws-secrets-manager"` and `secretName` property in conformance with schema definitions
+- [X] T025 [US5] Ensure `OpenCollectionSerializer` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionSerializer.kt` serializes `AwsSecretsManagerExternalSecret` with `type: "aws-secrets-manager"` and `secretName` property in conformance with schema definitions
 
 **Checkpoint**: OpenCollection documents are portable, standards-compliant, and leak zero credentials.
 
@@ -136,9 +136,9 @@
 **Independent Test**: Execute `./gradlew :qa-tests:test --tests "io.github.crustack.clapi.qa.AwsSecretsManagerIntegrationTest"` against running LocalStack container and verify all assertions pass.
 
 ### Implementation & Tests for User Story 6
-- [ ] T026 [P] [US6] Add LocalStack `secretsmanager` service and seeder container to `qa-tests/docker/secret-managers-compose.yml` seeding `local/payment/foo` with `{"client_id":"foo_client_123","client_secret":"sk_live_secret_456"}`
-- [ ] T027 [P] [US6] Add `AWS Staging` environment with `aws-secrets-manager` external secrets to test fixture in `qa-tests/fixtures/clapi-test-collection.json`
-- [ ] T028 [US6] Implement end-to-end integration test in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/AwsSecretsManagerIntegrationTest.kt` verifying live secret retrieval, multi-value JSON target field extraction, request substitution, and error handling for missing secrets against LocalStack
+- [X] T026 [P] [US6] Add LocalStack `secretsmanager` service and seeder container to `qa-tests/docker/secret-managers-compose.yml` seeding `local/payment/foo` with `{"client_id":"foo_client_123","client_secret":"sk_live_secret_456"}`
+- [X] T027 [P] [US6] Add `AWS Staging` environment with `aws-secrets-manager` external secrets to test fixture in `qa-tests/fixtures/clapi-test-collection.json`
+- [X] T028 [US6] Implement end-to-end integration test in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/AwsSecretsManagerIntegrationTest.kt` verifying live secret retrieval, multi-value JSON target field extraction, request substitution, and error handling for missing secrets against LocalStack
 
 **Checkpoint**: CI and automated test pipelines verify AWS Secrets Manager integration against LocalStack.
 
@@ -148,9 +148,9 @@
 
 **Purpose**: Improvements and validation that cross multiple user stories
 
-- [ ] T029 Execute full validation walkthrough per `specs/015-aws-secrets-manager/quickstart.md`
-- [ ] T030 [P] Verify error diagnostics and ensure zero secret or credential leakage across logs and error toasts in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/vault/SecretResolutionService.kt`
-- [ ] T031 Run complete project test suite `./gradlew test` to ensure zero regressions across all modules
+- [X] T029 Execute full validation walkthrough per `specs/015-aws-secrets-manager/quickstart.md`
+- [X] T030 [P] Verify error diagnostics and ensure zero secret or credential leakage across logs and error toasts in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/vault/SecretResolutionService.kt`
+- [X] T031 Run complete project test suite `./gradlew test` to ensure zero regressions across all modules
 
 ---
 
