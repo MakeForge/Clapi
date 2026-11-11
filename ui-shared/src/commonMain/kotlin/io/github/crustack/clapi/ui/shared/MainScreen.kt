@@ -79,6 +79,8 @@ import io.github.crustack.clapi.ui.shared.persistence.SettingsRepository
 import io.github.crustack.clapi.ui.shared.persistence.TabsRepository
 import io.github.crustack.clapi.ui.shared.persistence.WorkspaceRepository
 import io.github.crustack.clapi.ui.shared.platform.ioDispatcher
+import io.github.crustack.clapi.ui.shared.state.AppAlert
+import io.github.crustack.clapi.ui.shared.state.AppDialog
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.ResponseLayout
 import io.github.crustack.clapi.ui.shared.state.WorkspaceMode
@@ -250,50 +252,48 @@ fun MainScreen(state: AppState = remember { AppState() }) {
         TopToolbar(state)
 
         // ── Dialog overlays ─────────────────────────────────
-        EnvironmentEditDialog(state)
-        SettingsDialog(state)
-        HelpAboutDialog(state)
-        GlobalVariablesDialog(state)
-        if (state.showImportSpecificationDialog) {
-            ImportSpecificationDialog(
-                state = state,
-                onDismiss = { state.showImportSpecificationDialog = false }
-            )
-        }
-        if (state.showExportCollectionsDialog) {
-            ExportCollectionsDialog(
-                state = state,
-                onDismiss = { state.showExportCollectionsDialog = false },
-            )
-        }
-        if (state.showGitSyncDialog) {
-            GitSyncDialog(
-                state = state,
-                onDismiss = { state.showGitSyncDialog = false },
-            )
-        }
-        if (state.showConfirmDialog) {
-            ConfirmDeleteDialog(
-                title   = state.confirmDialogTitle,
-                message = state.confirmDialogMessage,
-                onConfirm = { state.resolveConfirm(true) },
-                onDismiss = { state.resolveConfirm(false) },
-            )
-        }
-        if (state.showOperationDialog) {
-            OperationProgressDialog(
-                title = state.operationTitle,
-                message = state.operationMessage,
-                onCancel = { state.cancelOperation() },
-            )
-        }
-        if (state.showErrorDialog) {
-            ErrorMessageDialog(
-                title = state.errorDialogTitle,
-                message = state.errorDialogMessage,
-                onDismiss = { state.dismissError() },
-            )
-        }
+        // Feature dialogs render bottom-to-top, so a dialog opened later (e.g. Help from Settings) is on top.
+        state.dialogs.dialogs.forEach { dialog -> key(dialog) {
+            when (dialog) {
+                is AppDialog.EnvironmentEdit -> EnvironmentEditDialog(state)
+                AppDialog.Settings -> SettingsDialog(state)
+                AppDialog.Help -> HelpAboutDialog(state)
+                AppDialog.GlobalVariables -> GlobalVariablesDialog(state)
+                AppDialog.ImportSpecification -> ImportSpecificationDialog(
+                    state = state,
+                    onDismiss = { state.showImportSpecificationDialog = false },
+                )
+                AppDialog.ExportCollections -> ExportCollectionsDialog(
+                    state = state,
+                    onDismiss = { state.showExportCollectionsDialog = false },
+                )
+                AppDialog.GitSync -> GitSyncDialog(
+                    state = state,
+                    onDismiss = { state.showGitSyncDialog = false },
+                )
+            }
+        } }
+        // Alerts always sit above feature dialogs.
+        state.dialogs.alerts.forEach { alert -> key(alert) {
+            when (alert) {
+                is AppAlert.Confirm -> ConfirmDeleteDialog(
+                    title = alert.title,
+                    message = alert.message,
+                    onConfirm = { state.resolveConfirm(true) },
+                    onDismiss = { state.resolveConfirm(false) },
+                )
+                is AppAlert.Operation -> OperationProgressDialog(
+                    title = alert.title,
+                    message = alert.message,
+                    onCancel = { state.cancelOperation() },
+                )
+                is AppAlert.Error -> ErrorMessageDialog(
+                    title = alert.title,
+                    message = alert.message,
+                    onDismiss = { state.dismissError() },
+                )
+            }
+        } }
         dirtyCloseTabIndex?.let { closeIndex ->
             DirtyCloseDialog(
                 onSave = {
