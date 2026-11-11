@@ -1,22 +1,21 @@
 package io.github.crustack.clapi.ui.desktop
 
-import io.github.crustack.clapi.ui.shared.MainScreen
-
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import io.github.crustack.clapi.core.model.HttpMethodType
-import io.github.crustack.clapi.ui.shared.components.deleteRequestFromCollections
-import io.github.crustack.clapi.ui.shared.components.moveRequestToCollection
-import io.github.crustack.clapi.ui.shared.components.renameRequestInCollections
+import io.github.crustack.clapi.ui.shared.MainScreen
+import io.github.crustack.clapi.ui.shared.components.sidebar.deleteRequestFromCollections
+import io.github.crustack.clapi.ui.shared.components.sidebar.moveRequestToCollection
+import io.github.crustack.clapi.ui.shared.components.sidebar.renameRequestInCollections
+import io.github.crustack.clapi.ui.shared.platform.currentTimeMillis
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.HistoryItem
-import io.github.crustack.clapi.ui.shared.platform.currentTimeMillis
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals

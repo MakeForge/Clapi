@@ -126,7 +126,7 @@ class NewFeaturesUiTest {
     fun delete_subfolder_from_context_menu_removes_node_from_tree() {
         val state = AppState(withDemoData = true).apply { settings.confirmBeforeDelete = false }
         val root = state.collections.first()
-        val folder = io.github.crustack.clapi.ui.shared.components.addSubfolderInCollections(state.collections, root.id, "Temp Folder")
+        val folder = io.github.crustack.clapi.ui.shared.components.sidebar.addSubfolderInCollections(state.collections, root.id, "Temp Folder")
             ?: error("Folder creation failed")
         composeRule.setContent { MainScreen(state) }
 
@@ -142,7 +142,7 @@ class NewFeaturesUiTest {
     fun subfolder_icon_is_distinct_from_root_collection_icon() {
         val state = AppState(withDemoData = true)
         val root = state.collections.first()
-        val sub = io.github.crustack.clapi.ui.shared.components.addSubfolderInCollections(state.collections, root.id, "Nested")
+        val sub = io.github.crustack.clapi.ui.shared.components.sidebar.addSubfolderInCollections(state.collections, root.id, "Nested")
             ?: error("Folder creation failed")
 
         composeRule.setContent { MainScreen(state) }
@@ -372,7 +372,7 @@ class NewFeaturesUiTest {
     fun add_request_from_nested_folder_context_menu() {
         val state = AppState(withDemoData = true)
         val root = state.collections.first()
-        val folder = io.github.crustack.clapi.ui.shared.components.addSubfolderInCollections(state.collections, root.id, "Nested")
+        val folder = io.github.crustack.clapi.ui.shared.components.sidebar.addSubfolderInCollections(state.collections, root.id, "Nested")
             ?: error("Folder creation failed")
         composeRule.setContent { MainScreen(state) }
 
