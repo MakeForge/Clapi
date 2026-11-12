@@ -20,7 +20,7 @@
 
 **Purpose**: Project initialization and client infrastructure package setup
 
-- [ ] T001 [P] Create package directory structure for GCP Secret Manager in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/gcp/`
+- [X] T001 [P] Create package directory structure for GCP Secret Manager in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/gcp/`
 
 ---
 
@@ -30,11 +30,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this foundational phase is complete
 
-- [ ] T002 Implement `GcpSecretsManagerExternalSecret` data class (`name: String`, `secretId: String`, `version: String = "latest"`, `targetField: String = ""`, `projectId: String = ""`, `customFilters: Map<String, String> = emptyMap()`, `description: Description? = null`, `disabled: Boolean? = null`) implementing `ExternalSecretVariable` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`
-- [ ] T003 Update `ExternalSecretVariableSerializer` polymorphic deserializer in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionEnvironment.kt` to deserialize `GcpSecretsManagerExternalSecret` when `type: "gcp-secrets-manager"` or `secretId` is present (and distinct from AWS/Azure)
-- [ ] T004 [P] Create `GcpSecretManagerConfig` data class (`projectId: String`, `secretId: String`, `version: String = "latest"`, `propertyKey: String? = null`, `accessToken: String`, `endpointUrl: String = "https://secretmanager.googleapis.com"`) and response models `GcpAccessSecretVersionResponse` and `GcpSecretPayload` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/gcp/GcpSecretManagerConfig.kt`
-- [ ] T005 Implement `GcpSecretManagerClient` interface and `KtorGcpSecretManagerClient` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/gcp/GcpSecretManagerClient.kt` handling HTTP GET `/v1/projects/{projectId}/secrets/{secretId}/versions/{version}:access`, Bearer authentication, Base64 decoding of `payload.data`, JSON property key extraction, and plain text fallback
-- [ ] T006 [P] Create unit tests for `KtorGcpSecretManagerClient` with MockEngine verifying Bearer auth, Base64 payload decoding, JSON property extraction, and plaintext fallback in `core-network/src/commonTest/kotlin/io/github/crustack/clapi/core/network/gcp/GcpSecretManagerClientTest.kt`
+- [X] T002 Implement `GcpSecretsManagerExternalSecret` data class (`name: String`, `secretId: String`, `version: String = "latest"`, `targetField: String = ""`, `projectId: String = ""`, `customFilters: Map<String, String> = emptyMap()`, `description: Description? = null`, `disabled: Boolean? = null`) implementing `ExternalSecretVariable` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`
+- [X] T003 Update `ExternalSecretVariableSerializer` polymorphic deserializer in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionEnvironment.kt` to deserialize `GcpSecretsManagerExternalSecret` when `type: "gcp-secrets-manager"` or `secretId` is present (and distinct from AWS/Azure)
+- [X] T004 [P] Create `GcpSecretManagerConfig` data class (`projectId: String`, `secretId: String`, `version: String = "latest"`, `propertyKey: String? = null`, `accessToken: String`, `endpointUrl: String = "https://secretmanager.googleapis.com"`) and response models `GcpAccessSecretVersionResponse` and `GcpSecretPayload` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/gcp/GcpSecretManagerConfig.kt`
+- [X] T005 Implement `GcpSecretManagerClient` interface and `KtorGcpSecretManagerClient` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/gcp/GcpSecretManagerClient.kt` handling HTTP GET `/v1/projects/{projectId}/secrets/{secretId}/versions/{version}:access`, Bearer authentication, Base64 decoding of `payload.data`, JSON property key extraction, and plain text fallback
+- [X] T006 [P] Create unit tests for `KtorGcpSecretManagerClient` with MockEngine verifying Bearer auth, Base64 payload decoding, JSON property extraction, and plaintext fallback in `core-network/src/commonTest/kotlin/io/github/crustack/clapi/core/network/gcp/GcpSecretManagerClientTest.kt`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -47,13 +47,13 @@
 **Independent Test**: Open Settings dialog -> Secrets Manager tab, select `GCP Secret Manager`, input Project ID, Access Token, and a custom Endpoint URL, close and reopen dialog, verifying settings persist and sensitive fields remain masked.
 
 ### Tests for User Story 1
-- [ ] T007 [P] [US1] Create unit tests for GCP settings persistence, masking, and encrypted storage in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/GcpSettingsTest.kt`
+- [X] T007 [P] [US1] Create unit tests for GCP settings persistence, masking, and encrypted storage in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/GcpSettingsTest.kt`
 
 ### Implementation for User Story 1
-- [ ] T008 [US1] Add GCP settings properties (`gcpProjectId`, `gcpAccessToken`, `gcpEndpointUrl`) to `AppSettings` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppSettings.kt`
-- [ ] T009 [US1] Update `SettingsRepository.load` and `SettingsRepository.save` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/SettingsRepository.kt` to persist GCP settings using `PlatformStorage.putSecretString` for `gcpAccessToken`
-- [ ] T010 [US1] Add `gcp-secrets-manager` option to provider dropdown and build GCP settings input form (Project ID, masked Access Token, Endpoint URL Override) in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SettingsDialog.kt`
-- [ ] T011 [US1] Add desktop UI tests for GCP settings form rendering and provider switching in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/SettingsDialogUiTest.kt`
+- [X] T008 [US1] Add GCP settings properties (`gcpProjectId`, `gcpAccessToken`, `gcpEndpointUrl`) to `AppSettings` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppSettings.kt`
+- [X] T009 [US1] Update `SettingsRepository.load` and `SettingsRepository.save` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/SettingsRepository.kt` to persist GCP settings using `PlatformStorage.putSecretString` for `gcpAccessToken`
+- [X] T010 [US1] Add `gcp-secrets-manager` option to provider dropdown and build GCP settings input form (Project ID, masked Access Token, Endpoint URL Override) in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SettingsDialog.kt`
+- [X] T011 [US1] Add desktop UI tests for GCP settings form rendering and provider switching in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/SettingsDialogUiTest.kt`
 
 **Checkpoint**: Users can configure and securely persist GCP Secret Manager credentials in application settings.
 

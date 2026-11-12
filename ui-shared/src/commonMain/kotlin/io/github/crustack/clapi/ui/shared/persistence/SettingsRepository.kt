@@ -83,6 +83,11 @@ object SettingsRepository {
         settings.azureClientSecret  = PlatformStorage.getSecretString(PREFIX + "azureClientSecret") ?: settings.azureClientSecret
         settings.azureAuthorityHost = PlatformStorage.getString(PREFIX + "azureAuthorityHost") ?: settings.azureAuthorityHost
         settings.azureApiVersion    = PlatformStorage.getString(PREFIX + "azureApiVersion") ?: settings.azureApiVersion
+
+        // Secrets Manager (GCP)
+        settings.gcpProjectId       = PlatformStorage.getString(PREFIX + "gcpProjectId") ?: settings.gcpProjectId
+        settings.gcpAccessToken     = PlatformStorage.getSecretString(PREFIX + "gcpAccessToken") ?: settings.gcpAccessToken
+        settings.gcpEndpointUrl     = PlatformStorage.getString(PREFIX + "gcpEndpointUrl") ?: settings.gcpEndpointUrl
     }
 
     // ── Save ───────────────────────────────────────────────────────────────
@@ -132,6 +137,11 @@ object SettingsRepository {
         PlatformStorage.putSecretString(PREFIX + "azureClientSecret", settings.azureClientSecret)
         PlatformStorage.putString(PREFIX + "azureAuthorityHost", settings.azureAuthorityHost)
         PlatformStorage.putString(PREFIX + "azureApiVersion", settings.azureApiVersion)
+
+        // Secrets Manager (GCP)
+        PlatformStorage.putString(PREFIX + "gcpProjectId", settings.gcpProjectId)
+        PlatformStorage.putSecretString(PREFIX + "gcpAccessToken", settings.gcpAccessToken)
+        PlatformStorage.putString(PREFIX + "gcpEndpointUrl", settings.gcpEndpointUrl)
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────
