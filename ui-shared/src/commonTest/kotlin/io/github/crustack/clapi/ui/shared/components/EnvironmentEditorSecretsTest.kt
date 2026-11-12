@@ -7,6 +7,7 @@ import io.github.crustack.clapi.core.model.opencollection.ExternalSecrets
 import io.github.crustack.clapi.core.model.opencollection.HashicorpVaultExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.KeePassXcExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.AwsSecretsManagerExternalSecret
+import io.github.crustack.clapi.core.model.opencollection.AzureKeyVaultExternalSecret
 import io.github.crustack.clapi.ui.shared.persistence.toEnvState
 import io.github.crustack.clapi.ui.shared.persistence.toOpenCollectionEnvironment
 import io.github.crustack.clapi.ui.shared.state.EnvState
@@ -358,6 +359,77 @@ class EnvironmentEditorSecretsTest {
         assertEquals("gateway_secret", a2.name)
         assertEquals("local/payment/foo", a2.secretName)
         assertEquals("client_secret", a2.targetField)
+        assertEquals(true, a2.disabled)
+    }
+
+    @Test
+    fun azure_key_vault_external_secrets_maps_to_and_from_env_state() {
+        val original = Environment(
+            name = "Azure Staging",
+            externalSecrets = ExternalSecrets(
+                type = "azure-key-vault",
+                variables = listOf(
+                    AzureKeyVaultExternalSecret(
+                        name = "api_key",
+                        secretName = "payment-key",
+                        vaultName = "https://my-vault.vault.azure.net",
+                        targetField = "key",
+                        customFilters = mapOf("tier" to "staging"),
+                        description = Description("Staging API Key"),
+                        disabled = false,
+                    ),
+                    AzureKeyVaultExternalSecret(
+                        name = "db_pass",
+                        secretName = "database-password",
+                        vaultName = "",
+                        targetField = "",
+                        disabled = true,
+                    ),
+                ),
+            ),
+        )
+
+        val envState = original.toEnvState()
+
+        assertEquals("Azure Staging", envState.name)
+        assertEquals("azure-key-vault", envState.externalSecretsProvider)
+        assertEquals(2, envState.externalSecrets.size)
+
+        val first = envState.externalSecrets[0]
+        assertEquals("api_key", first.name)
+        assertEquals("payment-key", first.path)
+        assertEquals("https://my-vault.vault.azure.net", first.url)
+        assertEquals("key", first.targetField)
+        assertEquals("staging", first.customFilters["tier"])
+        assertEquals("Staging API Key", first.description)
+        assertTrue(first.enabled)
+
+        val second = envState.externalSecrets[1]
+        assertEquals("db_pass", second.name)
+        assertEquals("database-password", second.path)
+        assertEquals("", second.url)
+        assertFalse(second.enabled)
+
+        // Map back to OpenCollection Environment
+        val mappedBack = envState.toOpenCollectionEnvironment()
+        assertNotNull(mappedBack.externalSecrets)
+        assertEquals(ExternalSecretType.AZURE_KEY_VAULT, mappedBack.externalSecrets?.type)
+        assertEquals(2, mappedBack.externalSecrets?.variables?.size)
+
+        val a1 = mappedBack.externalSecrets!!.variables[0] as AzureKeyVaultExternalSecret
+        assertEquals("api_key", a1.name)
+        assertEquals("payment-key", a1.secretName)
+        assertEquals("https://my-vault.vault.azure.net", a1.vaultName)
+        assertEquals("key", a1.targetField)
+        assertEquals("staging", a1.customFilters["tier"])
+        assertEquals("Staging API Key", a1.description?.content)
+        assertNull(a1.disabled)
+
+        val a2 = mappedBack.externalSecrets!!.variables[1] as AzureKeyVaultExternalSecret
+        assertEquals("db_pass", a2.name)
+        assertEquals("database-password", a2.secretName)
+        assertEquals("", a2.vaultName)
+        assertEquals("", a2.targetField)
         assertEquals(true, a2.disabled)
     }
 }

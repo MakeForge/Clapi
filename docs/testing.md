@@ -155,6 +155,10 @@ Compose Desktop UI automation, regression, integration, and persistence tests (5
 ### `qa-tests`
 JVM integration and E2E tests against the running `sample-server`.
 - `ApiClientE2ETest` — all HTTP methods, body types (JSON, form-data, urlencoded, raw, binary), auth (Basic, Bearer, API Key), dynamic variables, timing metrics, retry
+- `AwsSecretsManagerIntegrationTest` — live AWS Secrets Manager integration against LocalStack
+- `AzureKeyVaultIntegrationTest` — live Azure Key Vault integration against containerized Lowkey Vault (JSON & plaintext secret retrieval, propertyKey extraction)
+- `AzureRequestExecutionIntegrationTest` — live HTTP request execution with variable substitution from containerized Lowkey Vault
+- `ExternalSecretsIntegrationTest` — live HashiCorp Vault external secret resolution
 - `NetworkClientWsAndMultipartE2ETest` — WebSocket connect/send/receive/disconnect; multipart upload
 - `SampleCollectionE2ETest` — scripted collection run against the sample collection fixture
 - `LlmApiE2ETest` — OpenAI-compatible chat, SSE/NDJSON assembly, embeddings, tools, JSON mode, error statuses, visible `demo=true` stream

@@ -211,4 +211,47 @@ class SettingsDialogUiTest {
         composeRule.onNodeWithTag("vault-token", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithTag("vault-token-toggle", useUnmergedTree = true).assertIsDisplayed()
     }
+
+    @Test
+    fun secrets_manager_settings_tab_allows_switching_providers_via_dropdown() {
+        val state = AppState()
+        composeRule.setContent { MainScreen(state = state) }
+
+        composeRule.onNodeWithTag("settings-button", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("settings-section-secrets", useUnmergedTree = true)
+            .assertIsDisplayed()
+            .performClick()
+        composeRule.waitForIdle()
+
+        // Selection box should be displayed
+        composeRule.onNodeWithTag("secrets-provider-selector", useUnmergedTree = true).assertIsDisplayed()
+
+        // Switch to AWS Secrets Manager
+        composeRule.onNodeWithTag("secrets-provider-selector", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("secrets-provider-option-aws-secrets-manager", useUnmergedTree = true)
+            .assertIsDisplayed()
+            .performClick()
+        composeRule.waitForIdle()
+
+        kotlin.test.assertEquals("aws-secrets-manager", state.settings.vaultProviderType)
+        composeRule.onNodeWithTag("aws-region", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("aws-access-key-id", useUnmergedTree = true).assertIsDisplayed()
+
+        // Switch to Azure Key Vault
+        composeRule.onNodeWithTag("secrets-provider-selector", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("secrets-provider-option-azure-key-vault", useUnmergedTree = true)
+            .assertIsDisplayed()
+            .performClick()
+        composeRule.waitForIdle()
+
+        kotlin.test.assertEquals("azure-key-vault", state.settings.vaultProviderType)
+        composeRule.onNodeWithTag("azure-vault-name", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("azure-tenant-id", useUnmergedTree = true).assertIsDisplayed()
+    }
 }

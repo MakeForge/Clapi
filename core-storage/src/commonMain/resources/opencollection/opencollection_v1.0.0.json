@@ -2742,9 +2742,24 @@
           "type": "boolean",
           "description": "Whether the external secret is disabled"
         },
+        "secretName": {
+          "type": "string",
+          "description": "The name of the secret within Azure Key Vault"
+        },
         "vaultName": {
           "type": "string",
-          "description": "The name of the Azure Key Vault that holds the secret"
+          "description": "The name of the Azure Key Vault that holds the secret (optional override)"
+        },
+        "targetField": {
+          "type": "string",
+          "description": "The target key or attribute within the secret value"
+        },
+        "customFilters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Key-value filters to match against attributes"
         }
       },
       "required": ["name", "vaultName"],
