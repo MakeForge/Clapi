@@ -16,6 +16,7 @@ protobuf = "4.28.3"
 protoc-jar = "3.11.4"
 ksafe = "3.3.0"
 keepassxc-proxy-access = "1.2.9" # higher versions require java >=21
+cyclonedxBom = "3.5.1"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -68,3 +69,4 @@ kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+cyclonedx-bom = { id = "org.cyclonedx.bom", version.ref = "cyclonedxBom" }

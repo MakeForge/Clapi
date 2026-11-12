@@ -78,6 +78,7 @@ secrets.properties
 test-results/
 reports/
 coverage/
+*.sarif
 
 # ── Python / Scripts ─────────────────────────────────────────
 __pycache__/
