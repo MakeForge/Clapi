@@ -5,6 +5,9 @@ import io.github.crustack.clapi.core.network.aws.KtorAwsSecretsManagerClient
 import io.github.crustack.clapi.core.network.azure.AzureKeyVaultClient
 import io.github.crustack.clapi.core.network.azure.AzureKeyVaultConfig
 import io.github.crustack.clapi.core.network.azure.KtorAzureKeyVaultClient
+import io.github.crustack.clapi.core.network.gcp.GcpSecretManagerClient
+import io.github.crustack.clapi.core.network.gcp.GcpSecretManagerConfig
+import io.github.crustack.clapi.core.network.gcp.KtorGcpSecretManagerClient
 import io.github.crustack.clapi.core.network.getEnvironmentVariable
 import io.github.crustack.clapi.core.network.keepassxc.DefaultKeePassXcClientManager
 import io.github.crustack.clapi.core.network.keepassxc.KeePassXcClient
@@ -21,6 +24,7 @@ data class SecretDeclaration(
     val targetField: String = "password",
     val customFilters: Map<String, String> = emptyMap(),
     val secretId: String = path,
+    val version: String = "latest",
 )
 
 class SecretResolutionService(
@@ -28,6 +32,7 @@ class SecretResolutionService(
     private val keepassClientManager: KeePassXcClientManager = DefaultKeePassXcClientManager.Shared,
     private val awsClient: AwsSecretsManagerClient = KtorAwsSecretsManagerClient(),
     private val azureClient: AzureKeyVaultClient = KtorAzureKeyVaultClient(),
+    private val gcpClient: GcpSecretManagerClient = KtorGcpSecretManagerClient(),
 ) {
     private val variablePattern = Regex("\\{\\{\\s*([^{}]+?)\\s*\\}\\}")
 
@@ -468,6 +473,108 @@ class SecretResolutionService(
     }
 
     /**
+     * Resolves external secret tokens against GCP Secret Manager.
+     */
+    suspend fun resolveGcpSecrets(
+        requiredSecretNames: Set<String>,
+        declarations: List<SecretDeclaration>,
+        projectId: String,
+        accessToken: String,
+        endpointUrl: String = "https://secretmanager.googleapis.com",
+        variableValues: Map<String, String> = emptyMap(),
+        client: GcpSecretManagerClient? = null,
+    ): Map<String, String> {
+        if (requiredSecretNames.isEmpty()) {
+            return emptyMap()
+        }
+
+        val declarationMap = declarations.associateBy { it.name.trim() }
+
+        // Validate all required secrets exist and are enabled
+        for (name in requiredSecretNames) {
+            val decl = declarationMap[name]
+                ?: throw IllegalStateException("External secret '_secret.$name' is not defined in the active environment.")
+            if (!decl.enabled) {
+                throw IllegalStateException("External secret '_secret.$name' is disabled in the active environment.")
+            }
+            val secId = decl.secretId.ifBlank { decl.path }.trim()
+            if (secId.isBlank()) {
+                throw IllegalStateException("External secret '_secret.$name' does not have a Secret ID configured.")
+            }
+        }
+
+        // Group required secrets by (projectIdOverride ?: projectId, secretId, version) to avoid duplicate network queries
+        val secretsByTarget = mutableMapOf<Triple<String, String, String>, MutableList<String>>()
+        for (name in requiredSecretNames) {
+            val decl = declarationMap.getValue(name)
+            val secId = decl.secretId.ifBlank { decl.path }.trim()
+            val effectiveProject = decl.url.ifBlank { projectId }.trim()
+            if (effectiveProject.isBlank()) {
+                throw IllegalStateException("GCP Project ID is not configured. Please configure GCP Secret Manager in Settings -> Secrets Manager.")
+            }
+            val version = decl.version.ifBlank { "latest" }.trim()
+            secretsByTarget.getOrPut(Triple(effectiveProject, secId, version)) { mutableListOf() }.add(name)
+        }
+
+        val resolved = mutableMapOf<String, String>()
+        val gcClient = client ?: gcpClient
+
+        for ((target, names) in secretsByTarget) {
+            val (effectiveProject, secretId, version) = target
+            val config = GcpSecretManagerConfig(
+                projectId = effectiveProject,
+                secretId = secretId,
+                version = version,
+                accessToken = accessToken,
+                endpointUrl = endpointUrl.ifBlank { "https://secretmanager.googleapis.com" },
+            )
+            val secretData = gcClient.fetchSecret(config)
+
+            for (secName in names) {
+                val decl = declarationMap.getValue(secName)
+
+                // Interpolate variables in customFilters
+                val resolvedFilters = decl.customFilters.mapValues { (_, v) ->
+                    var text = v
+                    variableValues.forEach { (vk, vv) ->
+                        text = text.replace("{{$vk}}", vv)
+                    }
+                    text
+                }
+
+                for ((filterKey, expectedValue) in resolvedFilters) {
+                    val actualValue = secretData[filterKey]
+                    if (actualValue != expectedValue) {
+                        throw IllegalStateException(
+                            "GCP Secret Manager secret '$secretId' did not match custom filter '$filterKey'. Expected: '$expectedValue', found: '$actualValue'."
+                        )
+                    }
+                }
+
+                val targetField = decl.targetField.trim()
+                val value = when {
+                    targetField.isNotBlank() && secretData.containsKey(targetField) -> secretData.getValue(targetField)
+                    targetField.isNotBlank() && secretData.containsKey(targetField.lowercase()) -> secretData.getValue(targetField.lowercase())
+                    targetField.isBlank() && secretData.containsKey(secName) -> secretData.getValue(secName)
+                    targetField.isBlank() && secretData.containsKey("secret") -> secretData.getValue("secret")
+                    targetField.isBlank() && secretData.containsKey("value") -> secretData.getValue("value")
+                    targetField.isBlank() && secretData.size == 1 -> secretData.values.first()
+                    targetField.isNotBlank() -> throw IllegalStateException(
+                        "Field '$targetField' not found in GCP Secret Manager secret '$secretId'. Available keys: ${secretData.keys.joinToString(", ")}"
+                    )
+                    else -> throw IllegalStateException(
+                        "Target field is not specified and GCP Secret Manager secret '$secretId' contains multiple keys: ${secretData.keys.joinToString(", ")}"
+                    )
+                }
+
+                resolved["_secret.$secName"] = value
+            }
+        }
+
+        return resolved
+    }
+
+    /**
      * Resolves secret tokens from both direct `{{_secret.<name>}}` references and OpenCollection
      * `secret: true` environment variables referenced as `{{<name>}}`.
      *
@@ -502,6 +609,10 @@ class SecretResolutionService(
         azureAuthorityHost: String = "https://login.microsoftonline.com",
         azureApiVersion: String = "7.4",
         azureClient: AzureKeyVaultClient? = null,
+        gcpProjectId: String = "",
+        gcpAccessToken: String = "",
+        gcpEndpointUrl: String = "https://secretmanager.googleapis.com",
+        gcpClient: GcpSecretManagerClient? = null,
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
     ): Map<String, String> {
         val allTokens = extractAllVariableTokens(texts)
@@ -566,6 +677,7 @@ class SecretResolutionService(
         val keepassSecretsToFetch = mutableSetOf<String>()
         val awsSecretsToFetch = mutableSetOf<String>()
         val azureSecretsToFetch = mutableSetOf<String>()
+        val gcpSecretsToFetch = mutableSetOf<String>()
 
         for (name in allSecretsToFetch) {
             val decl = declarationMap.getValue(name)
@@ -573,6 +685,7 @@ class SecretResolutionService(
                 decl.providerType.equals("keepassxc", ignoreCase = true) -> keepassSecretsToFetch.add(name)
                 decl.providerType.equals("aws-secrets-manager", ignoreCase = true) -> awsSecretsToFetch.add(name)
                 decl.providerType.equals("azure-key-vault", ignoreCase = true) -> azureSecretsToFetch.add(name)
+                decl.providerType.equals("gcp-secrets-manager", ignoreCase = true) -> gcpSecretsToFetch.add(name)
                 else -> vaultSecretsToFetch.add(name)
             }
         }
@@ -639,6 +752,29 @@ class SecretResolutionService(
             )
             for (name in azureSecretsToFetch) {
                 val value = azResolved["_secret.$name"] ?: continue
+                if (name in directSecretNames) {
+                    resolved["_secret.$name"] = value
+                }
+                if (name in secretVarToExternalSecret) {
+                    val varName = secretVarToExternalSecret.getValue(name)
+                    resolved[varName] = value
+                }
+            }
+        }
+
+        // Resolve GCP secrets
+        if (gcpSecretsToFetch.isNotEmpty()) {
+            val gcpResolved = resolveGcpSecrets(
+                requiredSecretNames = gcpSecretsToFetch,
+                declarations = declarations,
+                projectId = gcpProjectId,
+                accessToken = gcpAccessToken,
+                endpointUrl = gcpEndpointUrl,
+                variableValues = variableValues,
+                client = gcpClient,
+            )
+            for (name in gcpSecretsToFetch) {
+                val value = gcpResolved["_secret.$name"] ?: continue
                 if (name in directSecretNames) {
                     resolved["_secret.$name"] = value
                 }

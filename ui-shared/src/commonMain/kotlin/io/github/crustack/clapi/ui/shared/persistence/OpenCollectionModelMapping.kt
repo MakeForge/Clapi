@@ -386,6 +386,7 @@ fun EnvState.toOpenCollectionEnvironment(): Environment {
     val isKeePassXc = externalSecretsProvider.equals("keepassxc", ignoreCase = true)
     val isAws = externalSecretsProvider.equals("aws-secrets-manager", ignoreCase = true)
     val isAzure = externalSecretsProvider.equals("azure-key-vault", ignoreCase = true)
+    val isGcp = externalSecretsProvider.equals("gcp-secrets-manager", ignoreCase = true)
     val extSecretList: List<ExternalSecretVariable> = when {
         isKeePassXc -> {
             externalSecrets
@@ -424,6 +425,22 @@ fun EnvState.toOpenCollectionEnvironment(): Environment {
                         secretName = it.path.trim(),
                         vaultName = it.url.trim(),
                         targetField = it.targetField.trim(),
+                        customFilters = it.customFilters.toMap(),
+                        description = if (it.description.isNotBlank()) Description(content = it.description.trim()) else null,
+                        disabled = if (!it.enabled) true else null,
+                    )
+                }
+        }
+        isGcp -> {
+            externalSecrets
+                .filter { it.name.trim().isNotEmpty() && it.path.trim().isNotEmpty() }
+                .map {
+                    GcpSecretsManagerExternalSecret(
+                        name = it.name.trim(),
+                        secretId = it.path.trim(),
+                        version = "latest",
+                        targetField = it.targetField.trim(),
+                        projectId = it.url.trim(),
                         customFilters = it.customFilters.toMap(),
                         description = if (it.description.isNotBlank()) Description(content = it.description.trim()) else null,
                         disabled = if (!it.enabled) true else null,

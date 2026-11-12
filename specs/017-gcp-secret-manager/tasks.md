@@ -66,12 +66,12 @@
 **Independent Test**: In Environment Editor -> External Secrets, select `GCP Secret Manager`, add a row with Variable Name `payment_key`, Secret ID `payment-foo`, Target Field `client_secret`, and Version `latest`, then save. Verify environment persistence and OpenCollection serialization.
 
 ### Tests for User Story 2
-- [ ] T012 [P] [US2] Create unit tests for GCP external secret editor mapping in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/EnvironmentEditorGcpTest.kt`
+- [X] T012 [P] [US2] Create unit tests for GCP external secret editor mapping in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/EnvironmentEditorGcpTest.kt`
 
 ### Implementation for User Story 2
-- [ ] T013 [US2] Update `ClapiEnvironmentDto` and persistence serialization in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/ImportExportRepository.kt` to serialize `targetField`, `version`, and `customFilters` for `gcp-secrets-manager`
-- [ ] T014 [US2] Add `gcp-secrets-manager` to provider dropdown and configure table headers and rows (`EnvGcpSecretRow`) in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/EnvironmentEditDialog.kt` (Name, Secret ID, Target Field, Version, Custom Filters button, Description, Enabled toggle)
-- [ ] T015 [US2] Update `EnvState.toOpenCollectionEnvironment` and `toEnvState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to map `GcpSecretsManagerExternalSecret` bidirectionally with `MutableExternalSecret`
+- [X] T013 [US2] Update `ClapiEnvironmentDto` and persistence serialization in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/ImportExportRepository.kt` to serialize `targetField`, `version`, and `customFilters` for `gcp-secrets-manager`
+- [X] T014 [US2] Add `gcp-secrets-manager` to provider dropdown and configure table headers and rows (`EnvGcpSecretRow`) in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/EnvironmentEditDialog.kt` (Name, Secret ID, Target Field, Version, Custom Filters button, Description, Enabled toggle)
+- [X] T015 [US2] Update `EnvState.toOpenCollectionEnvironment` and `toEnvState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to map `GcpSecretsManagerExternalSecret` bidirectionally with `MutableExternalSecret`
 
 **Checkpoint**: Users can define, edit, and persist GCP external secrets within environments.
 
@@ -84,13 +84,13 @@
 **Independent Test**: Execute an HTTP request with header `Authorization: Bearer {{_secret.plain_api_token}}` against seeded GCP emulator secrets. Verify secret is resolved and substituted into the outgoing request with zero credential leakage.
 
 ### Tests for User Story 3
-- [ ] T016 [P] [US3] Create unit tests for `resolveGcpSecrets` and query deduplication batching in `core-network/src/commonTest/kotlin/io/github/crustack/clapi/core/network/vault/SecretResolutionServiceGcpTest.kt`
-- [ ] T017 [P] [US3] Create unit tests for request execution with GCP secret resolution and error handling in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutorGcpSecretsTest.kt`
+- [X] T016 [P] [US3] Create unit tests for `resolveGcpSecrets` and query deduplication batching in `core-network/src/commonTest/kotlin/io/github/crustack/clapi/core/network/vault/SecretResolutionServiceGcpTest.kt`
+- [X] T017 [P] [US3] Create unit tests for request execution with GCP secret resolution and error handling in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutorGcpSecretsTest.kt`
 
 ### Implementation for User Story 3
-- [ ] T018 [US3] Implement `resolveGcpSecrets` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/vault/SecretResolutionService.kt` with query deduplication by `(projectId, secretId, version)`, JSON property extraction, custom filters evaluation with variable interpolation, and plain text fallback
-- [ ] T019 [US3] Update `resolveAllSecrets` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/vault/SecretResolutionService.kt` and `feature-requests/src/commonMain/kotlin/io/github/crustack/clapi/feature/requests/RequestExecutionService.kt` to accept GCP connection parameters and map `GcpSecretsManagerExternalSecret` to `SecretDeclaration`
-- [ ] T020 [US3] Wire `AppState.settings` GCP properties into `resolveExternalSecretsForTab` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/executor/RequestVariableResolution.kt`
+- [X] T018 [US3] Implement `resolveGcpSecrets` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/vault/SecretResolutionService.kt` with query deduplication by `(projectId, secretId, version)`, JSON property extraction, custom filters evaluation with variable interpolation, and plain text fallback
+- [X] T019 [US3] Update `resolveAllSecrets` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/vault/SecretResolutionService.kt` and `feature-requests/src/commonMain/kotlin/io/github/crustack/clapi/feature/requests/RequestExecutionService.kt` to accept GCP connection parameters and map `GcpSecretsManagerExternalSecret` to `SecretDeclaration`
+- [X] T020 [US3] Wire `AppState.settings` GCP properties into `resolveExternalSecretsForTab` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/executor/RequestVariableResolution.kt`
 
 **Checkpoint**: Runtime request execution transparently resolves and substitutes GCP secrets.
 
@@ -103,10 +103,10 @@
 **Independent Test**: Open a request editor, type `{{_secret.` in a header value field, and verify that all enabled GCP external secrets appear in autocomplete suggestions with Secret badges.
 
 ### Tests for User Story 4
-- [ ] T021 [P] [US4] Create unit test for GCP secret autocomplete suggestions in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/RequestEditorGcpSecretsAutocompleteTest.kt`
+- [X] T021 [P] [US4] Create unit test for GCP secret autocomplete suggestions in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/RequestEditorGcpSecretsAutocompleteTest.kt`
 
 ### Implementation for User Story 4
-- [ ] T022 [US4] Verify and update autocomplete provider logic in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestEditor.kt` to surface active GCP external secrets with secret badge and variable documentation
+- [X] T022 [US4] Verify and update autocomplete provider logic in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestEditor.kt` to surface active GCP external secrets with secret badge and variable documentation
 
 **Checkpoint**: Autocomplete suggests declared GCP secrets across all request input fields.
 
