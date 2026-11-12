@@ -119,10 +119,10 @@
 **Independent Test**: Export an environment with GCP external secrets to OpenCollection JSON and YAML. Inspect exported files to verify `type: "gcp-secrets-manager"` is present and assert zero GCP tokens or emulator URLs exist in output.
 
 ### Tests for User Story 5
-- [ ] T023 [P] [US5] Add unit tests in `core-storage/src/commonTest/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionExternalSecretsTest.kt` validating JSON/YAML roundtrip for GCP external secrets and asserting zero credential leakage (no access tokens or local URLs in exported files)
+- [X] T023 [P] [US5] Add unit tests in `core-storage/src/commonTest/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionExternalSecretsTest.kt` validating JSON/YAML roundtrip for GCP external secrets and asserting zero credential leakage (no access tokens or local URLs in exported files)
 
 ### Implementation for User Story 5
-- [ ] T024 [US5] Update `core-storage/src/commonMain/resources/opencollection/opencollection_v1.0.0.json` schema to include `secretId`, `version`, `targetField`, `projectId`, and `customFilters` for `GcpSecretsManagerExternalSecret`
+- [X] T024 [US5] Update `core-storage/src/commonMain/resources/opencollection/opencollection_v1.0.0.json` schema to include `secretId`, `version`, `targetField`, `projectId`, and `customFilters` for `GcpSecretsManagerExternalSecret`
 
 **Checkpoint**: Portable OpenCollection documents safely export and import GCP external secrets.
 
@@ -135,9 +135,9 @@
 **Independent Test**: Run `./gradlew :qa-tests:test --tests "io.github.crustack.clapi.qa.GcpSecretManagerIntegrationTest"` against running emulator container and verify all assertions pass.
 
 ### Implementation & Tests for User Story 6
-- [ ] T025 [P] [US6] Add GCP Secret Manager REST emulator service `gcp-secretmanager` (`ghcr.io/blackwell-systems/gcp-secret-manager-emulator-rest:1.9`) and seeder container `gcp-seeder` to `qa-tests/docker/secret-managers-compose.yml` seeding `payment-foo` with `{"client_id":"gcp_client_789","client_secret":"sk_gcp_secret_999"}` and `plain-token` with `gcp-plain-token-value-12345`
-- [ ] T026 [P] [US6] Add `GCP Staging` environment with `gcp-secrets-manager` external secrets to test fixture in `qa-tests/fixtures/clapi-test-collection.json`
-- [ ] T027 [US6] Implement end-to-end integration test in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/GcpSecretManagerIntegrationTest.kt` verifying live secret retrieval, multi-value JSON target field extraction, plaintext secret retrieval, request substitution, and error handling for missing secrets against the GCP emulator container
+- [X] T025 [P] [US6] Add GCP Secret Manager REST emulator service `gcp-secretmanager` (`ghcr.io/blackwell-systems/gcp-secret-manager-emulator-rest:1.9`) and seeder container `gcp-seeder` to `qa-tests/docker/secret-managers-compose.yml` seeding `payment-foo` with `{"client_id":"gcp_client_789","client_secret":"sk_gcp_secret_999"}` and `plain-token` with `gcp-plain-token-value-12345`
+- [X] T026 [P] [US6] Add `GCP Staging` environment with `gcp-secrets-manager` external secrets to test fixture in `qa-tests/fixtures/clapi-test-collection.json`
+- [X] T027 [US6] Implement end-to-end integration test in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/GcpSecretManagerIntegrationTest.kt` verifying live secret retrieval, multi-value JSON target field extraction, plaintext secret retrieval, request substitution, and error handling for missing secrets against the GCP emulator container
 
 **Checkpoint**: CI and automated test pipelines verify GCP Secret Manager integration against the container emulator.
 
@@ -147,9 +147,9 @@
 
 **Purpose**: Improvements and validation that cross multiple user stories
 
-- [ ] T028 Execute full validation walkthrough per `specs/017-gcp-secret-manager/quickstart.md`
-- [ ] T029 [P] Verify error diagnostics and ensure zero secret or credential leakage across logs and error toasts in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/gcp/GcpSecretManagerClient.kt`
-- [ ] T030 Run complete project test suite `./gradlew test` to ensure zero regressions across all modules
+- [X] T028 Execute full validation walkthrough per `specs/017-gcp-secret-manager/quickstart.md`
+- [X] T029 [P] Verify error diagnostics and ensure zero secret or credential leakage across logs and error toasts in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/gcp/GcpSecretManagerClient.kt`
+- [X] T030 Run complete project test suite `./gradlew test` to ensure zero regressions across all modules
 
 ---
 

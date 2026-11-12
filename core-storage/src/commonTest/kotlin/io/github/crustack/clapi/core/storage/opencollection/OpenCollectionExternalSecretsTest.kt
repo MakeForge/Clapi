@@ -2,6 +2,7 @@ package io.github.crustack.clapi.core.storage.opencollection
 
 import io.github.crustack.clapi.core.model.opencollection.AwsSecretsManagerExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.AzureKeyVaultExternalSecret
+import io.github.crustack.clapi.core.model.opencollection.GcpSecretsManagerExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.CollectionConfig
 import io.github.crustack.clapi.core.model.opencollection.CollectionInfo
 import io.github.crustack.clapi.core.model.opencollection.Description
@@ -478,6 +479,136 @@ class OpenCollectionExternalSecretsTest {
         for (kw in forbiddenAzureKeywords) {
             assertFalse(jsonOutput.contains(kw), "JSON export leaked Azure credential keyword: $kw")
             assertFalse(yamlOutput.contains(kw), "YAML export leaked Azure credential keyword: $kw")
+        }
+    }
+
+    @Test
+    fun roundtrip_json_and_yaml_serialization_preserves_gcp_external_secrets_structure() {
+        val doc = OpenCollectionDocument(
+            opencollection = "1.0.0",
+            info = CollectionInfo(name = "GCP Secrets API"),
+            config = CollectionConfig(
+                environments = listOf(
+                    Environment(
+                        name = "GCP Staging",
+                        externalSecrets = ExternalSecrets(
+                            type = ExternalSecretType.GCP_SECRETS_MANAGER,
+                            variables = listOf(
+                                GcpSecretsManagerExternalSecret(
+                                    name = "payment_client_id",
+                                    secretId = "payment-foo",
+                                    projectId = "my-custom-project",
+                                    version = "latest",
+                                    targetField = "client_id",
+                                    customFilters = mapOf("env" to "staging"),
+                                    description = Description("Payment Gateway Client ID"),
+                                    disabled = false,
+                                ),
+                                GcpSecretsManagerExternalSecret(
+                                    name = "payment_client_secret",
+                                    secretId = "payment-foo",
+                                    projectId = "",
+                                    version = "latest",
+                                    targetField = "client_secret",
+                                    disabled = true,
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        // JSON Roundtrip
+        val jsonOutput = OpenCollectionSerializer.serializeJson(doc)
+        assertTrue(jsonOutput.contains("\"gcp-secrets-manager\""))
+        assertTrue(jsonOutput.contains("\"payment-foo\""))
+        assertTrue(jsonOutput.contains("\"my-custom-project\""))
+        assertTrue(jsonOutput.contains("\"client_id\""))
+        assertTrue(jsonOutput.contains("\"latest\""))
+
+        val deserializedJson = OpenCollectionSerializer.deserializeJson(jsonOutput)
+        val envJson = deserializedJson.config?.environments?.firstOrNull()
+        assertNotNull(envJson)
+        val extJson = envJson.externalSecrets
+        assertNotNull(extJson)
+        assertEquals(ExternalSecretType.GCP_SECRETS_MANAGER, extJson.type)
+        assertEquals(2, extJson.variables.size)
+
+        val j1 = extJson.variables[0] as GcpSecretsManagerExternalSecret
+        assertEquals("payment_client_id", j1.name)
+        assertEquals("payment-foo", j1.secretId)
+        assertEquals("my-custom-project", j1.projectId)
+        assertEquals("latest", j1.version)
+        assertEquals("client_id", j1.targetField)
+        assertEquals("staging", j1.customFilters["env"])
+        assertEquals("Payment Gateway Client ID", j1.description?.content)
+        assertFalse(j1.disabled == true)
+
+        val j2 = extJson.variables[1] as GcpSecretsManagerExternalSecret
+        assertEquals("payment_client_secret", j2.name)
+        assertEquals("payment-foo", j2.secretId)
+        assertEquals("client_secret", j2.targetField)
+        assertEquals(true, j2.disabled)
+
+        // YAML Roundtrip
+        val yamlOutput = OpenCollectionSerializer.serializeYaml(doc)
+        assertTrue(yamlOutput.contains("gcp-secrets-manager"))
+        assertTrue(yamlOutput.contains("payment-foo"))
+        assertTrue(yamlOutput.contains("my-custom-project"))
+
+        val deserializedYaml = OpenCollectionSerializer.deserializeYaml(yamlOutput)
+        val envYaml = deserializedYaml.config?.environments?.firstOrNull()
+        assertNotNull(envYaml)
+        val extYaml = envYaml.externalSecrets
+        assertNotNull(extYaml)
+        assertEquals(ExternalSecretType.GCP_SECRETS_MANAGER, extYaml.type)
+        assertEquals(2, extYaml.variables.size)
+
+        val y1 = extYaml.variables[0] as GcpSecretsManagerExternalSecret
+        assertEquals("payment_client_id", y1.name)
+        assertEquals("payment-foo", y1.secretId)
+        assertEquals("my-custom-project", y1.projectId)
+        assertEquals("latest", y1.version)
+        assertEquals("client_id", y1.targetField)
+        assertEquals("staging", y1.customFilters["env"])
+    }
+
+    @Test
+    fun zero_credential_leakage_guarantees_gcp_credentials_never_serialized() {
+        val doc = OpenCollectionDocument(
+            opencollection = "1.0.0",
+            info = CollectionInfo(name = "GCP Credentials Leak Check"),
+            config = CollectionConfig(
+                environments = listOf(
+                    Environment(
+                        name = "GCP Env",
+                        externalSecrets = ExternalSecrets(
+                            type = ExternalSecretType.GCP_SECRETS_MANAGER,
+                            variables = listOf(
+                                GcpSecretsManagerExternalSecret(
+                                    name = "payment_key",
+                                    secretId = "payment-foo",
+                                    targetField = "client_secret",
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val jsonOutput = OpenCollectionSerializer.serializeJson(doc)
+        val yamlOutput = OpenCollectionSerializer.serializeYaml(doc)
+
+        val forbiddenGcpKeywords = listOf(
+            "gcpAccessToken", "accessToken", "ya29.", "gcpEndpointUrl",
+            "Authorization", "Bearer",
+        )
+
+        for (kw in forbiddenGcpKeywords) {
+            assertFalse(jsonOutput.contains(kw), "JSON export leaked GCP credential keyword: $kw")
+            assertFalse(yamlOutput.contains(kw), "YAML export leaked GCP credential keyword: $kw")
         }
     }
 }
