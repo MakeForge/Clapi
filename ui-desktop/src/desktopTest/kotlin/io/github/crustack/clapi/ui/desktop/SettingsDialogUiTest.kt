@@ -1,5 +1,6 @@
 package io.github.crustack.clapi.ui.desktop
 
+import io.github.crustack.clapi.core.model.opencollection.ExternalSecretType
 import io.github.crustack.clapi.ui.shared.MainScreen
 
 import androidx.compose.ui.test.assertCountEquals
@@ -237,7 +238,7 @@ class SettingsDialogUiTest {
             .performClick()
         composeRule.waitForIdle()
 
-        kotlin.test.assertEquals("aws-secrets-manager", state.settings.vaultProviderType)
+        kotlin.test.assertEquals(ExternalSecretType.AWS_SECRETS_MANAGER, state.settings.vaultProviderType)
         composeRule.onNodeWithTag("aws-region", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithTag("aws-access-key-id", useUnmergedTree = true).assertIsDisplayed()
 
@@ -250,7 +251,7 @@ class SettingsDialogUiTest {
             .performClick()
         composeRule.waitForIdle()
 
-        kotlin.test.assertEquals("azure-key-vault", state.settings.vaultProviderType)
+        kotlin.test.assertEquals(ExternalSecretType.AZURE_KEY_VAULT, state.settings.vaultProviderType)
         composeRule.onNodeWithTag("azure-vault-name", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithTag("azure-tenant-id", useUnmergedTree = true).assertIsDisplayed()
     }

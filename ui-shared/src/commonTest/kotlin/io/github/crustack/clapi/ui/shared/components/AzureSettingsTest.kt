@@ -1,5 +1,6 @@
 package io.github.crustack.clapi.ui.shared.components
 
+import io.github.crustack.clapi.core.model.opencollection.ExternalSecretType
 import io.github.crustack.clapi.ui.shared.persistence.SettingsRepository
 import io.github.crustack.clapi.ui.shared.platform.PlatformStorage
 import io.github.crustack.clapi.ui.shared.state.AppSettings
@@ -36,7 +37,7 @@ class AzureSettingsTest {
     @Test
     fun settings_repository_persists_and_restores_azure_settings() {
         val original = AppSettings().apply {
-            vaultProviderType = "azure-key-vault"
+            vaultProviderType = ExternalSecretType.AZURE_KEY_VAULT
             azureVaultName = "https://prod-vault.vault.azure.net"
             azureTenantId = "11111111-2222-3333-4444-555555555555"
             azureClientId = "client-app-id-xyz"
@@ -50,7 +51,7 @@ class AzureSettingsTest {
         val loaded = AppSettings()
         SettingsRepository.load(loaded)
 
-        assertEquals("azure-key-vault", loaded.vaultProviderType)
+        assertEquals(ExternalSecretType.AZURE_KEY_VAULT, loaded.vaultProviderType)
         assertEquals("https://prod-vault.vault.azure.net", loaded.azureVaultName)
         assertEquals("11111111-2222-3333-4444-555555555555", loaded.azureTenantId)
         assertEquals("client-app-id-xyz", loaded.azureClientId)

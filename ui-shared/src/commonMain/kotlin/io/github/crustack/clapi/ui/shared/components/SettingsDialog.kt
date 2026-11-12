@@ -1,5 +1,6 @@
 package io.github.crustack.clapi.ui.shared.components
 
+import io.github.crustack.clapi.core.model.opencollection.ExternalSecretType
 import org.jetbrains.compose.resources.painterResource
 import io.github.crustack.clapi.ui.shared.generated.resources.Res
 
@@ -428,10 +429,10 @@ private fun SecretsSettings(s: AppSettings) {
         label = Strings.t("secret_provider"),
         description = Strings.t("secret_provider_desc"),
         options = listOf(
-            "hashicorp-vault-server" to "HashiCorp Vault (Server)",
-            "keepassxc" to "KeePassXC",
-            "aws-secrets-manager" to "AWS Secrets Manager",
-            "azure-key-vault" to "Azure Key Vault",
+            ExternalSecretType.HASHICORP_VAULT_SERVER to "HashiCorp Vault (Server)",
+            ExternalSecretType.KEEPASSXC to "KeePassXC",
+            ExternalSecretType.AWS_SECRETS_MANAGER to "AWS Secrets Manager",
+            ExternalSecretType.AZURE_KEY_VAULT to "Azure Key Vault",
         ),
         selected = s.vaultProviderType,
         onSelected = { s.vaultProviderType = it },
@@ -440,9 +441,9 @@ private fun SecretsSettings(s: AppSettings) {
     SettingsDivider()
 
     when (s.vaultProviderType) {
-        "keepassxc" -> KeePassXcSettings()
-        "aws-secrets-manager" -> AwsSecretsSettings(s)
-        "azure-key-vault" -> AzureKeyVaultSettings(s)
+        ExternalSecretType.KEEPASSXC -> KeePassXcSettings()
+        ExternalSecretType.AWS_SECRETS_MANAGER -> AwsSecretsSettings(s)
+        ExternalSecretType.AZURE_KEY_VAULT -> AzureKeyVaultSettings(s)
         else -> VaultSettings(s)
     }
 }
