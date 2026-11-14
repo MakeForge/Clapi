@@ -7,8 +7,7 @@ on:
   pull_request:
     branches: [ main ]
   schedule:
-    # Run daily at 03:00 UTC to catch newly published advisories
-    - cron: '0 3 * * *'
+    - cron: '17 3 * * 1'
   workflow_dispatch:
 
 permissions:

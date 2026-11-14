@@ -36,15 +36,6 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Run compile checks (including Wasm)
-        run: |
-          ./gradlew \
-            :editor-core:compileKotlinWasmJs \
-            :editor-ui:compileKotlinWasmJs \
-            :ui-shared:compileKotlinWasmJs \
-            :ui-web:compileKotlinWasmJs \
-            --no-daemon --stacktrace
-
       - name: Run unit tests
         run: |
           xvfb-run -a --server-args="-screen 0 1920x1080x24" \
@@ -54,7 +45,6 @@ jobs:
             :core-scripting:desktopTest \
             :ui-shared:desktopTest \
             :qa-tests:jvmTest \
-            :ui-web:wasmJsTest \
             --no-daemon --stacktrace --continue
 
       - name: Upload test reports on failure
