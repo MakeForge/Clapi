@@ -681,7 +681,6 @@ object AppStateExamples {
         state.collections.addAll(richExampleCollections())
         state.collectionExpandedState["c1"] = true
         state.collectionExpandedState["c2"] = false
-        state.requestResponseSplit = 60f
 
         state.ensureRequestRefsInitialized()
         state.syncHistoryWithCollections()

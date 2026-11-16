@@ -2,6 +2,7 @@ package io.github.makeforge.clapi.ui.shared.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,12 +28,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import io.github.makeforge.clapi.ui.shared.build.GeneratedBuildInfo
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
+import io.github.makeforge.clapi.ui.shared.platform.DocsLinks
 import io.github.makeforge.clapi.ui.shared.platform.PlatformColumnVerticalScrollbar
+import io.github.makeforge.clapi.ui.shared.platform.openUrlInBrowser
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
 
@@ -73,6 +77,13 @@ fun HelpAboutDialog(
                         fontSize = 18.sp,
                     )
                     Spacer(Modifier.weight(1f))
+                    DocsHelpButton(
+                        url = DocsLinks.baseUrl,
+                        tooltip = "Online Documentation",
+                        tag = "help-about-docs-btn",
+                        size = 28.dp,
+                    )
+                    Spacer(Modifier.width(6.dp))
                     Text(
                         text = "Close",
                         color = ClapiColors.Primary,
@@ -96,11 +107,31 @@ fun HelpAboutDialog(
                             .padding(end = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                    HelpSection("About ${Strings.appName}") {
+                    HelpSection("About ${Strings.appName}", DocsLinks.baseUrl) {
                         HelpText("Clapi is a lightweight API client for HTTP workflows with local-first request editing, scripting, environments, and test assertions.")
                     }
 
-                    HelpSection("Feature Overview") {
+                    HelpSection("Documentation", DocsLinks.baseUrl) {
+                        HelpText("Comprehensive documentation and guides are available at:")
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable { openUrlInBrowser(DocsLinks.baseUrl) }
+                                .padding(vertical = 2.dp)
+                                .testTag("help-about-docs-link"),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Text(
+                                text = DocsLinks.baseUrl,
+                                color = ClapiColors.Primary,
+                                fontSize = 12.sp,
+                                textDecoration = TextDecoration.Underline,
+                            )
+                        }
+                    }
+
+                    HelpSection("Feature Overview", DocsLinks.baseUrl) {
                         HelpText("• Request builder for methods, URL, params, headers, auth, and body")
                         HelpText("• Pre-request and post-request scripts")
                         HelpText("• Collections, history, environments, and global variables")
@@ -108,7 +139,7 @@ fun HelpAboutDialog(
                         HelpText("• Response viewer plus network/test logs")
                     }
 
-                    HelpSection("How to Use") {
+                    HelpSection("How to Use", DocsLinks.baseUrl) {
                         HelpText("1) Create or open a request tab.")
                         HelpText("2) Configure URL, method, auth, headers, and body.")
                         HelpText("3) Choose an environment for variable values.")
@@ -116,7 +147,7 @@ fun HelpAboutDialog(
                         HelpText("5) Send request and inspect response, logs, and tests.")
                     }
 
-                    HelpSection("Shortcuts") {
+                    HelpSection("Shortcuts", DocsLinks.shortcuts) {
                         ShortcutRow("⌘ + Enter / Ctrl + Enter", "Send request or run MCP tool (or cancel if in progress)")
                         ShortcutRow("⌘ + Shift + [ / Ctrl + Shift + [", "Move active tab left")
                         ShortcutRow("⌘ + Shift + ] / Ctrl + Shift + ]", "Move active tab right")
@@ -126,13 +157,13 @@ fun HelpAboutDialog(
                         ShortcutRow("⌘ + , / Ctrl + ,", "Open settings")
                     }
 
-                    HelpSection("Scripting Overview") {
+                    HelpSection("Scripting Overview", DocsLinks.scriptingArchitecture) {
                         HelpText("Use pre-request scripts to prepare headers, query values, body, and variables before dispatch.")
                         HelpText("Use post-request scripts to assert response behavior and persist extracted values into variables.")
                         HelpText("The default scripting namespace is clapi and can be changed in Settings → Scripts.")
                     }
 
-                    HelpSection("Version & Build Info") {
+                    HelpSection("Version & Build Info", DocsLinks.zeroTelemetry) {
                         HelpText("Version: ${GeneratedBuildInfo.APP_VERSION}")
                         HelpText("Build: Kotlin Multiplatform + Compose Multiplatform")
                         HelpText("Supported platforms: macOS, Windows, Linux")
@@ -149,14 +180,28 @@ fun HelpAboutDialog(
 }
 
 @Composable
-private fun HelpSection(title: String, content: @Composable () -> Unit) {
+private fun HelpSection(title: String, helpUrl: String? = null, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
-            text = title,
-            color = ClapiColors.OnSurface,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 14.sp,
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = title,
+                color = ClapiColors.OnSurface,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
+            )
+            if (helpUrl != null) {
+                DocsHelpButton(
+                    url = helpUrl,
+                    tooltip = "$title documentation",
+                    tag = "help-section-${title.lowercase().replace(" ", "-")}-docs-btn",
+                    size = 18.dp,
+                    iconSize = 13.dp,
+                )
+            }
+        }
         content()
     }
 }

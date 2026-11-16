@@ -35,6 +35,7 @@ import io.github.makeforge.clapi.core.network.keepassxc.KeePassXcStatus
 import io.github.makeforge.clapi.core.network.keepassxc.createKeePassXcClient
 import io.github.makeforge.clapi.core.network.keeper.createKeeperClient
 import io.github.makeforge.clapi.core.network.keeper.initializeAndBindKeeperStorage
+import io.github.makeforge.clapi.ui.shared.components.DocsHelpButton
 import io.github.makeforge.clapi.ui.shared.components.externalSecretIcon
 import io.github.makeforge.clapi.ui.shared.components.externalSecretSetupUrl
 import io.github.makeforge.clapi.ui.shared.components.handPointerHover
@@ -43,6 +44,7 @@ import io.github.makeforge.clapi.ui.shared.generated.resources.*
 import io.github.makeforge.clapi.ui.shared.i18n.AppLanguage
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
 import io.github.makeforge.clapi.ui.shared.persistence.SettingsRepository
+import io.github.makeforge.clapi.ui.shared.platform.DocsLinks
 import io.github.makeforge.clapi.ui.shared.platform.*
 import io.github.makeforge.clapi.ui.shared.state.*
 import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
@@ -69,30 +71,42 @@ internal fun SecretsSettings(s: AppSettings) {
         onSelected = { s.vaultProviderType = it },
         tagPrefix = "secrets-provider",
         optionIcon = { externalSecretIcon(it) },
-        headerAction = setupUrl?.let { url ->
-            {
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .clickable { openUrlInBrowser(url) }
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                        .testTag("secret-manager-setup-btn"),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Icon(
-                        painter = painterResource(Res.drawable.ic_open_in_new),
-                        contentDescription = "Setup Secrets",
-                        tint = ClapiColors.Primary,
-                        modifier = Modifier.size(13.dp),
-                    )
-                    Text(
-                        text = "Setup Secrets",
-                        fontSize = 11.sp,
-                        color = ClapiColors.Primary,
-                        fontWeight = FontWeight.Medium,
-                    )
+        headerAction = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                setupUrl?.let { url ->
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .clickable { openUrlInBrowser(url) }
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .testTag("secret-manager-setup-btn"),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_open_in_new),
+                            contentDescription = "Setup Secrets",
+                            tint = ClapiColors.Primary,
+                            modifier = Modifier.size(13.dp),
+                        )
+                        Text(
+                            text = "Setup Secrets",
+                            fontSize = 11.sp,
+                            color = ClapiColors.Primary,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
                 }
+                DocsHelpButton(
+                    url = DocsLinks.secretManagers,
+                    tooltip = "Secret Managers documentation",
+                    tag = "secret-managers-docs-btn",
+                    size = 20.dp,
+                    iconSize = 14.dp,
+                )
             }
         },
     )
@@ -393,19 +407,14 @@ internal fun KeeperSecretsSettings(s: AppSettings) {
                 modifier = Modifier.weight(1f),
             )
 
-            IconButton(
-                onClick = {
-                    openUrlInBrowser("https://docs.keeper.io/keeperpam/secrets-manager/quick-start-guide#create-a-secrets-manager-application")
-                },
-                modifier = Modifier.size(24.dp).testTag("keeper-docs-link-btn"),
-            ) {
-                Icon(
-                    painter = painterResource(Res.drawable.ic_help_outline),
-                    contentDescription = "Help Documentation",
-                    tint = ClapiColors.Primary,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
+            DocsHelpButton(
+                url = "https://docs.keeper.io/keeperpam/secrets-manager/quick-start-guide#create-a-secrets-manager-application",
+                tooltip = "Help Documentation",
+                tag = "keeper-docs-link-btn",
+                size = 24.dp,
+                iconSize = 16.dp,
+                tint = ClapiColors.Primary,
+            )
         }
 
         if (actionMessage != null) {

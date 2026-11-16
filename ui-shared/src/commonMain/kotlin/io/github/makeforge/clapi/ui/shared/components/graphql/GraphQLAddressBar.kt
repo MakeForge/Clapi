@@ -31,6 +31,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.makeforge.clapi.ui.shared.components.DocsHelpButton
 import io.github.makeforge.clapi.ui.shared.components.GraphQLBadge
 import io.github.makeforge.clapi.ui.shared.components.SaveButton
 import io.github.makeforge.clapi.ui.shared.components.VariableAwareTextField
@@ -40,6 +41,7 @@ import io.github.makeforge.clapi.ui.shared.generated.resources.ic_arrow_drop_dow
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_send
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_stop
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
+import io.github.makeforge.clapi.ui.shared.platform.DocsLinks
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.state.RequestTabState
 import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
@@ -213,5 +215,11 @@ fun GraphQLAddressBar(
 
         // Save Button
         SaveButton(isLoading = false, onClick = onSave)
+        DocsHelpButton(
+            url = DocsLinks.graphql,
+            tooltip = "GraphQL documentation",
+            tag = "graphql-docs-button",
+            size = 32.dp,
+        )
     }
 }

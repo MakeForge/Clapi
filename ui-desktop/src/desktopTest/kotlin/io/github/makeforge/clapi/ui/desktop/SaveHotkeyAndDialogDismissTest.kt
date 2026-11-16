@@ -324,7 +324,8 @@ class SaveHotkeyAndDialogDismissTest {
         composeRule.setContent { MainScreen(state) }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithTag("url-input").performClick()
+        composeRule.onNodeWithTag("url-input").performTextReplacement("https://api.example.com/modified")
+        composeRule.waitForIdle()
         composeRule.onNodeWithTag("url-input").performKeyPress(ctrlS)
         composeRule.waitUntil(timeoutMillis = 8_000) { !tab.isDirty }
 

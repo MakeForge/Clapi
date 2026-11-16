@@ -39,3 +39,7 @@ clapi.request.headers.set("X-Signature", signature);
 ```javascript
 clapi.request.headers.set("X-Client-Trace-Id", clapi.utils.uuid());
 ```
+
+## Dynamic Variables
+
+If you would simply like to set a dynamic value per request, you may also like to look into the [Dynamic Variables](../environments/dynamic-variables) feature

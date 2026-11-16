@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.makeforge.clapi.core.model.storage.StorageType
+import io.github.makeforge.clapi.ui.shared.components.DocsHelpButton
 import io.github.makeforge.clapi.ui.shared.components.handPointerHover
 import io.github.makeforge.clapi.ui.shared.generated.resources.Res
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_add
@@ -49,6 +50,7 @@ import io.github.makeforge.clapi.ui.shared.generated.resources.ic_folder
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_help_outline
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_open_in_new
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
+import io.github.makeforge.clapi.ui.shared.platform.DocsLinks
 import io.github.makeforge.clapi.ui.shared.platform.PlatformLazyVerticalScrollbar
 import io.github.makeforge.clapi.ui.shared.platform.openFileInDefaultApp
 import io.github.makeforge.clapi.ui.shared.platform.pickProtoFiles
@@ -91,12 +93,24 @@ fun CollectionProtobufSettings(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Column {
-                        Text(
-                            text = "Proto Files",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = ClapiColors.OnSurface,
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Text(
+                                text = "Proto Files",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = ClapiColors.OnSurface,
+                            )
+                            DocsHelpButton(
+                                url = DocsLinks.protobufSettings,
+                                tooltip = "Protobuf settings documentation",
+                                tag = "protobuf-settings-docs-btn",
+                                size = 20.dp,
+                                iconSize = 14.dp,
+                            )
+                        }
                         Text(
                             text = "Linked proto files available for gRPC request selection across the collection.",
                             fontSize = 12.sp,

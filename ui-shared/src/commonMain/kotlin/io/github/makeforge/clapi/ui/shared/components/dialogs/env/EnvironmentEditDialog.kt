@@ -116,7 +116,9 @@ import io.github.makeforge.clapi.ui.shared.generated.resources.ic_refresh
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_search
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_visibility
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_visibility_off
+import io.github.makeforge.clapi.ui.shared.components.DocsHelpButton
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
+import io.github.makeforge.clapi.ui.shared.platform.DocsLinks
 import io.github.makeforge.clapi.ui.shared.platform.PlatformLazyVerticalScrollbar
 import io.github.makeforge.clapi.ui.shared.platform.horizontalResizeCursor
 import io.github.makeforge.clapi.ui.shared.platform.insetScrollbar
@@ -514,6 +516,12 @@ fun EnvironmentEditDialog(
                             modifier = Modifier.weight(1f),
                         )
                         val maxTooltip = if (isMaximized) Strings.restoreDialog else Strings.maximizeDialog
+                        DocsHelpButton(
+                            url = DocsLinks.environments,
+                            tooltip = "Environments documentation",
+                            tag = "env-docs-btn",
+                            size = 28.dp,
+                        )
                         IconButtonWithTooltip(
                             onClick = {
                                 if (isMaximized) {
@@ -1228,19 +1236,14 @@ fun EnvironmentEditDialog(
 
                             val helpUrl = externalSecretHelpUrl(workingProvider)
                             if (helpUrl != null) {
-                                IconButtonWithTooltip(
-                                    onClick = { openUrlInBrowser(helpUrl) },
+                                DocsHelpButton(
+                                    url = helpUrl,
                                     tooltip = "Secret creation documentation",
                                     tooltipTag = "env-provider-help-btn",
-                                    modifier = Modifier.size(28.dp).testTag("env-provider-help-btn"),
-                                ) {
-                                    Icon(
-                                        painter = painterResource(Res.drawable.ic_help_outline),
-                                        contentDescription = "Help Documentation",
-                                        tint = ClapiColors.Primary,
-                                        modifier = Modifier.size(16.dp),
-                                    )
-                                }
+                                    tag = "env-provider-help-btn",
+                                    size = 28.dp,
+                                    tint = ClapiColors.Primary,
+                                )
                             }
                         }
 

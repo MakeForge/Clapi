@@ -545,16 +545,16 @@ fun VariableAwareTextField(
                     }
                 }
                 .pointerInput(state != null) {
-                if (state == null) return@pointerInput
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent(PointerEventPass.Initial)
-                        if (event.type == PointerEventType.Press) {
-                            pendingClickRef.value = true
+                    if (state == null) return@pointerInput
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            if (event.type == PointerEventType.Press) {
+                                pendingClickRef.value = true
+                            }
                         }
                     }
-                }
-            },
+                },
             decorationBox = { inner ->
                 if (fieldValue.text.isEmpty()) {
                     Text(
@@ -614,7 +614,9 @@ private fun KeyEvent.isUndoEvent(): Boolean =
  * formatted as `_secret.<name>` ordered alphabetically.
  */
 fun getAvailableVariables(state: AppState?, tab: RequestTabState?): List<Pair<String, String>> {
-    val regularVars = if (state != null) {
+    if (state == null) return emptyList()
+
+    val regularVars = {
         val layers = state.activeVariableLayers(tab)
         val regularMap = linkedMapOf<String, String>()
         for (layer in layers) {
@@ -625,11 +627,9 @@ fun getAvailableVariables(state: AppState?, tab: RequestTabState?): List<Pair<St
             }
         }
         regularMap.entries.map { it.key to it.value }.sortedBy { it.first }
-    } else {
-        emptyList()
-    }
+    }()
 
-    val secretVars = if (state != null) {
+    val secretVars = {
         val secretMap = linkedMapOf<String, String>()
         val env = state.selectedEnvironment
         if (env != null) {
@@ -648,44 +648,36 @@ fun getAvailableVariables(state: AppState?, tab: RequestTabState?): List<Pair<St
             }
         }
         secretMap.entries.map { it.key to it.value }.sortedBy { it.first }
-    } else {
-        emptyList()
-    }
+    }()
 
     val authVars = mutableListOf<Pair<String, String>>()
-    if (state != null) {
-        val effectiveAuthType = if (tab != null) {
-            if (tab.authType == AuthType.INHERIT) {
-                state.resolveInheritedAuth(tab)?.authType ?: AuthType.NONE
-            } else {
-                tab.authType
-            }
+    val effectiveAuthType = if (tab != null) {
+        if (tab.authType == AuthType.INHERIT) {
+            state.resolveInheritedAuth(tab)?.authType ?: AuthType.NONE
         } else {
-            AuthType.NONE
+            tab.authType
         }
-        if (effectiveAuthType == AuthType.OAUTH2) {
-            authVars.add("_auth.oauth2.accessToken" to "OAuth2 Access Token")
-        }
+    } else {
+        AuthType.NONE
+    }
+    if (effectiveAuthType == AuthType.OAUTH2) {
+        authVars.add("_auth.oauth2.accessToken" to "OAuth2 Access Token")
     }
 
-    val userDynamicVars: List<Pair<String, String>> = if (state != null) {
-        state.activeDynamicVariables(tab).map { dv ->
-            val tokenName = if (dv.parameters.isEmpty()) {
-                dv.name
-            } else {
-                val argList = dv.parameters.joinToString(", ") { p ->
-                    val def = p.defaultValue
-                    if (!def.isNullOrEmpty()) def else p.name
-                }
-                "${dv.name}($argList)"
+    val userDynamicVars: List<Pair<String, String>> = state.activeDynamicVariables(tab).map { dv ->
+        val tokenName = if (dv.parameters.isEmpty()) {
+            dv.name
+        } else {
+            val argList = dv.parameters.joinToString(", ") { p ->
+                val def = p.defaultValue
+                if (!def.isNullOrEmpty()) def else p.name
             }
-            val descContent = dv.description?.content
-            val desc = if (!descContent.isNullOrBlank()) descContent else "Dynamic Script"
-            tokenName to "[Dynamic] $desc"
-        }.sortedBy { it.first }
-    } else {
-        emptyList()
-    }
+            "${dv.name}($argList)"
+        }
+        val descContent = dv.description?.content
+        val desc = if (!descContent.isNullOrBlank()) descContent else "Dynamic Script"
+        tokenName to "[Dynamic] $desc"
+    }.sortedBy { it.first }
 
     val dynamicVars = VariableResolver.dynamicVariables.map { it.name to it.description }
 

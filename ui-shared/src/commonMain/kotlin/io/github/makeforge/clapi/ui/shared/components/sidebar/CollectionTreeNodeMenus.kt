@@ -46,6 +46,8 @@ fun CollectionTreeNodeAddMenu(
     onAddGrpcRequest: (CollectionNode) -> Unit,
     onAddWebSocketRequest: (CollectionNode) -> Unit,
     onAddGraphQLRequest: (CollectionNode) -> Unit,
+    onAddMcpConnection: (CollectionNode) -> Unit = {},
+    onAddSseRequest: (CollectionNode) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     DropdownMenu(
@@ -117,6 +119,32 @@ fun CollectionTreeNodeAddMenu(
                 onAddGraphQLRequest(node)
             },
             modifier = Modifier.testTag("folder-menu-new-graphql"),
+        )
+        DropdownMenuItem(
+            text = { Text(Strings.t("new_mcp_connection")) },
+            leadingIcon = {
+                Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
+                    McpMethodBadge(compact = true)
+                }
+            },
+            onClick = {
+                onDismissRequest()
+                onAddMcpConnection(node)
+            },
+            modifier = Modifier.testTag("folder-menu-new-mcp"),
+        )
+        DropdownMenuItem(
+            text = { Text(Strings.t("new_sse_request")) },
+            leadingIcon = {
+                Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
+                    MethodBadge(HttpMethodType.GET, compact = true, sse = true)
+                }
+            },
+            onClick = {
+                onDismissRequest()
+                onAddSseRequest(node)
+            },
+            modifier = Modifier.testTag("folder-menu-new-sse"),
         )
     }
 }

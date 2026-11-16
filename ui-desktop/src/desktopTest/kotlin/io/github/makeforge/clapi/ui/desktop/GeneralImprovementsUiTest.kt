@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -198,7 +199,9 @@ class GeneralImprovementsUiTest {
         assertEquals(0, state.activeTabIndex)
 
         // Focus URL input inside editor and press Shift+Tab
-        composeRule.onNodeWithTag("url-input").performClick()
+        composeRule.onNodeWithTag("url-input").performTextReplacement("http://test.com/1")
+        composeRule.waitForIdle()
+
         composeRule.onNodeWithTag("url-input").performKeyPress(
             KeyEvent(key = Key.Tab, type = KeyEventType.KeyDown, isShiftPressed = true)
         )
@@ -208,7 +211,8 @@ class GeneralImprovementsUiTest {
         assertEquals(1, state.activeTabIndex)
 
         // Focus and press Shift+Tab again -> Tab 3 (index 2)
-        composeRule.onNodeWithTag("url-input").performClick()
+        composeRule.onNodeWithTag("url-input").performTextReplacement("http://test.com/2")
+        composeRule.waitForIdle()
         composeRule.onNodeWithTag("url-input").performKeyPress(
             KeyEvent(key = Key.Tab, type = KeyEventType.KeyDown, isShiftPressed = true)
         )
@@ -216,7 +220,8 @@ class GeneralImprovementsUiTest {
         assertEquals(2, state.activeTabIndex)
 
         // Focus and press Shift+Tab again -> Tab 1 (index 0)
-        composeRule.onNodeWithTag("url-input").performClick()
+        composeRule.onNodeWithTag("url-input").performTextReplacement("http://test.com/3")
+        composeRule.waitForIdle()
         composeRule.onNodeWithTag("url-input").performKeyPress(
             KeyEvent(key = Key.Tab, type = KeyEventType.KeyDown, isShiftPressed = true)
         )

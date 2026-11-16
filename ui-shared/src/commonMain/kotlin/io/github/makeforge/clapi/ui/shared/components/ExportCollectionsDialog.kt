@@ -50,6 +50,7 @@ import io.github.makeforge.clapi.ui.shared.generated.resources.Res
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_article
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_close
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
+import io.github.makeforge.clapi.ui.shared.platform.DocsLinks
 import io.github.makeforge.clapi.ui.shared.persistence.ImportExportRepository
 import io.github.makeforge.clapi.ui.shared.platform.pickDirectory
 import io.github.makeforge.clapi.ui.shared.state.AppState
@@ -118,15 +119,26 @@ fun ExportCollectionsDialog(
                         color = ClapiColors.OnSurface,
                     )
                 }
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.size(24.dp).testTag("export-collections-close-button"),
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Icon(painter = painterResource(Res.drawable.ic_close),
-                        contentDescription = "Close",
-                        tint = ClapiColors.OnSurfaceDim,
-                        modifier = Modifier.size(16.dp),
+                    DocsHelpButton(
+                        url = DocsLinks.exportDocs,
+                        tooltip = "Export documentation",
+                        tag = "export-docs-btn",
+                        size = 24.dp,
                     )
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(24.dp).testTag("export-collections-close-button"),
+                    ) {
+                        Icon(painter = painterResource(Res.drawable.ic_close),
+                            contentDescription = "Close",
+                            tint = ClapiColors.OnSurfaceDim,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
                 }
             }
 

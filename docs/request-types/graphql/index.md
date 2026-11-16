@@ -12,8 +12,8 @@ description: Complete guide to querying, mutating, and introspecting GraphQL API
 ## Overview
 
 <ThemedScreenshot
-  light="/generated/screenshots/MainScreenPreviewsKt.MainScreenGraphQlPreviewLight.W1920dp_H1080dp.png"
-  dark="/generated/screenshots/MainScreenPreviewsKt.MainScreenGraphQlPreviewDark.W1920dp_H1080dp.png"
+  light="/generated/screenshots/MainScreenPreviewsKt.MainScreenGraphQlPreviewLight.W1600dp_H800dp.png"
+  dark="/generated/screenshots/MainScreenPreviewsKt.MainScreenGraphQlPreviewDark.W1600dp_H800dp.png"
   alt="Clapi GraphQL Request Editor"
 />
 

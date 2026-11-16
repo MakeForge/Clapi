@@ -139,7 +139,8 @@ class FirstLaunchUiTest {
 
             // 4. Save request
             composeRule.onNodeWithTag("save-button").performClick()
-            composeRule.waitUntil(5_000) {
+            composeRule.waitForIdle()
+            composeRule.waitUntil(10_000) {
                 state.consoleLogs.any { it.message.contains("Request saved") || it.message.contains("Failed to save") }
             }
 

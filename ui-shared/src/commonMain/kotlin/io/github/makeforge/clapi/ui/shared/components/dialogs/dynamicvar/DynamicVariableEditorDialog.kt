@@ -48,6 +48,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import io.github.makeforge.clapi.ui.shared.components.DocsHelpButton
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -212,6 +213,13 @@ fun DynamicVariableEditorDialog(
                     )
                 }
                 Spacer(Modifier.weight(1f))
+                DocsHelpButton(
+                    url = DocsLinks.dynamicVariables,
+                    tooltip = "Dynamic variables documentation",
+                    tag = "dynamic-var-docs-button",
+                    size = 28.dp,
+                )
+                Spacer(Modifier.width(4.dp))
                 IconButton(
                     onClick = onDismiss,
                     modifier = Modifier.size(28.dp).testTag("dynamic-var-close-button"),

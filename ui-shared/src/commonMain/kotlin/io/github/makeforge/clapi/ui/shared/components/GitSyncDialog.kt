@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import io.github.makeforge.clapi.ui.shared.platform.DocsLinks
 import io.github.makeforge.clapi.ui.shared.platform.PlatformLazyVerticalScrollbar
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -238,15 +239,26 @@ fun GitSyncDialog(
                         )
                     }
                 }
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.size(24.dp).testTag("git-sync-close-icon"),
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Icon(painter = painterResource(Res.drawable.ic_close),
-                        contentDescription = Strings.close,
-                        tint = ClapiColors.OnSurfaceDim,
-                        modifier = Modifier.size(16.dp),
+                    DocsHelpButton(
+                        url = DocsLinks.gitSync,
+                        tooltip = "Git sync documentation",
+                        tag = "git-sync-docs-btn",
+                        size = 24.dp,
                     )
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(24.dp).testTag("git-sync-close-icon"),
+                    ) {
+                        Icon(painter = painterResource(Res.drawable.ic_close),
+                            contentDescription = Strings.close,
+                            tint = ClapiColors.OnSurfaceDim,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
                 }
             }
 

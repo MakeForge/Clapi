@@ -156,7 +156,7 @@ function onKeyDown(e: KeyboardEvent) {
 .screenshot-img {
   width: 119.4% !important;
   max-width: none !important;
-  transform: translateX(-16.25%);
+  transform: translateX(-184px); /* Closer to 0% = shows more of the left */
   display: block;
   margin: 0 !important;
   border-radius: 0 !important;

@@ -165,7 +165,7 @@ expect fun handleCtrlSpaceKeyEvent(
 ): Boolean
 
 /** Returns true if a Ctrl+Space shortcut was triggered recently within [thresholdMs]. */
-expect fun isRecentCtrlSpaceTriggered(thresholdMs: Long = 600L): Boolean
+expect fun isRecentCtrlSpaceTriggered(thresholdMs: Long = 2500L): Boolean
 
 /** Resets the recent Ctrl+Space trigger tracking. */
 expect fun resetCtrlSpaceTrigger()

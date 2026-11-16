@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.makeforge.clapi.core.network.ConnectionState
+import io.github.makeforge.clapi.ui.shared.components.DocsHelpButton
 import io.github.makeforge.clapi.ui.shared.components.SaveButton
 import io.github.makeforge.clapi.ui.shared.components.VariableAwareTextField
 import io.github.makeforge.clapi.ui.shared.components.WebSocketBadge
@@ -30,6 +31,7 @@ import io.github.makeforge.clapi.ui.shared.generated.resources.Res
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_play_arrow
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_stop
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
+import io.github.makeforge.clapi.ui.shared.platform.DocsLinks
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.state.RequestTabState
 import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
@@ -142,6 +144,12 @@ internal fun WebSocketAddressBar(
 
         // Save Button
         SaveButton(isLoading = false, onClick = onSave)
+        DocsHelpButton(
+            url = DocsLinks.websocket,
+            tooltip = "WebSocket documentation",
+            tag = "websocket-docs-button",
+            size = 32.dp,
+        )
     }
 }
 

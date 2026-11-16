@@ -150,6 +150,12 @@ internal fun ConnectionBar(
                 onDisconnect = onDisconnect,
                 onReconnect = onReconnect,
             )
+            DocsHelpButton(
+                url = DocsLinks.mcp,
+                tooltip = "MCP documentation",
+                tag = "mcp-docs-btn",
+                size = 32.dp,
+            )
         }
         if (showStdioConfirm) {
             Row(verticalAlignment = Alignment.CenterVertically) {
