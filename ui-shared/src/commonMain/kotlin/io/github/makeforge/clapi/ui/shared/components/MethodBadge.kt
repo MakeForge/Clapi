@@ -41,6 +41,28 @@ fun MethodBadge(
 }
 
 @Composable
+fun HttpBadge(
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+    onClick: (() -> Unit)? = null,
+) {
+    val clickModifier = if (onClick != null) {
+        Modifier.handPointerHover().clickable(onClick = onClick)
+    } else Modifier
+    Text(
+        text = "HTTP",
+        color = ClapiColors.MethodGet,
+        fontSize = if (compact) 10.sp else 12.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(ClapiColors.MethodGet.copy(alpha = 0.12f))
+            .then(clickModifier)
+            .padding(horizontal = if (compact) 4.dp else 6.dp, vertical = 2.dp),
+    )
+}
+
+@Composable
 fun McpMethodBadge(
     modifier: Modifier = Modifier,
     compact: Boolean = false,
