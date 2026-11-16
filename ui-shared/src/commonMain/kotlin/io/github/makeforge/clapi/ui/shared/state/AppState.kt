@@ -2087,7 +2087,13 @@ class AppState(openDefaultTab: Boolean = true) {
                 }
                 return true
             }
-            if (!node.isFolder && node.id == tab.id) {
+            if (!node.isFolder && (node.id == tab.id || (tab.requestRef != null && node.requestRef == tab.requestRef))) {
+                if (tab.id != node.id) {
+                    tab.id = node.id
+                }
+                if (tab.requestRef == null && node.requestRef != null) {
+                    tab.requestRef = node.requestRef
+                }
                 val effectiveHeaderSource = if (tab.kind == RequestKind.GRPC) tab.grpcMetadata else tab.headers
                 val userHeadersSnapshot = effectiveHeaderSource
                     .filter { it.kind == HeaderKind.USER && it.enabled }

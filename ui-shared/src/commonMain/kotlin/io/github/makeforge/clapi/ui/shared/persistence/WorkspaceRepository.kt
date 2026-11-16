@@ -211,7 +211,8 @@ object WorkspaceRepository {
                 }
 
                 // T028: Detect legacy single-collection files and wrap items into a primary collection on load
-                val hasLegacySingleCollection = loadedItems.isNotEmpty() && loadedItems.any { !it.isCollection }
+                val isWorkspaceDoc = globalDoc.info.name == "Workspace"
+                val hasLegacySingleCollection = !isWorkspaceDoc && loadedItems.isNotEmpty() && loadedItems.any { !it.isCollection }
                 if (hasLegacySingleCollection) {
                     val primaryName = if (globalDoc.info.name != "Workspace" && globalDoc.info.name.isNotBlank()) {
                         globalDoc.info.name
@@ -229,7 +230,16 @@ object WorkspaceRepository {
                     )
                     state.collections.add(primaryCol)
                 } else {
-                    state.collections.addAll(loadedItems)
+                    var itemsToLoad = loadedItems
+                    while (isWorkspaceDoc && itemsToLoad.size == 1 && itemsToLoad.first().name == "Collection" && itemsToLoad.first().children.isNotEmpty() && itemsToLoad.first().children.all { it.isFolder }) {
+                        itemsToLoad = itemsToLoad.first().children
+                    }
+                    val normalizedItems = if (isWorkspaceDoc) {
+                        itemsToLoad.map { if (it.isFolder && !it.isCollection) it.copy(kind = RequestKind.COLLECTION) else it }
+                    } else {
+                        itemsToLoad
+                    }
+                    state.collections.addAll(normalizedItems)
                 }
 
                 state.environments.clear()
