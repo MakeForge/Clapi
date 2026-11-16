@@ -2,6 +2,8 @@ package io.github.crustack.clapi.ui.shared.components
 
 import io.github.crustack.clapi.ui.shared.components.executor.*
 
+import io.github.crustack.clapi.core.network.aws.AwsSecretsManagerClient
+import io.github.crustack.clapi.core.network.aws.AwsSecretsManagerConfig
 import io.github.crustack.clapi.core.network.keepassxc.KeePassXcClient
 import io.github.crustack.clapi.core.network.keepassxc.KeePassXcEntry
 import io.github.crustack.clapi.core.network.keepassxc.KeePassXcStatus
@@ -323,5 +325,159 @@ class RequestExecutorSecretsTest {
         assertEquals(null, resolved)
         assertNotNull(tab.lastError)
         assertTrue(tab.lastError!!.contains("locked", ignoreCase = true))
+    }
+
+    private class FakeTestAwsSecretsManagerClient(
+        private val secrets: Map<String, Map<String, String>>,
+    ) : AwsSecretsManagerClient {
+        val calls = mutableListOf<String>()
+
+        override suspend fun fetchSecret(config: AwsSecretsManagerConfig): Map<String, String> {
+            calls.add(config.secretId)
+            return secrets[config.secretId]
+                ?: throw IllegalStateException("External secret not found in AWS Secrets Manager (Secret ID: '${config.secretId}')")
+        }
+
+        override suspend fun fetchSecret(
+            secretId: String,
+            accessKey: String,
+            secretKey: String,
+            region: String,
+            sessionToken: String?,
+            endpointUrl: String?,
+            versionStage: String?,
+        ): Map<String, String> {
+            calls.add(secretId)
+            return secrets[secretId]
+                ?: throw IllegalStateException("External secret not found in AWS Secrets Manager (Secret ID: '$secretId')")
+        }
+    }
+
+    @Test
+    fun resolveExternalSecretsForTab_resolves_aws_secrets_and_interpolates_filter_variables() = runTest {
+        val fakeAws = FakeTestAwsSecretsManagerClient(
+            mapOf(
+                "local/payment/foo" to mapOf(
+                    "stage" to "sandbox",
+                    "client_secret" to "live_secret_999",
+                )
+            )
+        )
+
+        val state = AppState()
+        state.settings.awsAccessKeyId = "test_key"
+        state.settings.awsSecretAccessKey = "test_secret"
+
+        val env = EnvState(
+            name = "AwsEnv",
+            externalSecretsProvider = "aws-secrets-manager",
+            variables = listOf(
+                MutableKeyValue(key = "stage", value = "sandbox", enabled = true),
+            ),
+            externalSecrets = listOf(
+                MutableExternalSecret(
+                    name = "payment_key",
+                    path = "local/payment/foo",
+                    targetField = "client_secret",
+                    customFilters = mapOf("stage" to "{{stage}}"),
+                    enabled = true,
+                )
+            )
+        )
+        state.environments.add(env)
+        state.selectedEnvIndex = 0
+
+        val tab = RequestTabState(url = "https://example.com/charge?token={{_secret.payment_key}}")
+        state.openTabs.add(tab)
+        state.activeTabIndex = 0
+
+        val resolved = resolveExternalSecretsForTab(
+            state = state,
+            tab = tab,
+            textsToScan = listOf(tab.url),
+            awsClient = fakeAws,
+        )
+
+        assertNotNull(resolved)
+        assertEquals("live_secret_999", resolved["_secret.payment_key"])
+        assertEquals(1, fakeAws.calls.size)
+    }
+
+    @Test
+    fun resolveExternalSecretsForTab_sets_error_when_aws_credentials_missing() = runTest {
+        val state = AppState()
+        // No AWS access key set
+        val env = EnvState(
+            name = "AwsEnv",
+            externalSecretsProvider = "aws-secrets-manager",
+            externalSecrets = listOf(
+                MutableExternalSecret(
+                    name = "payment_key",
+                    path = "local/payment/foo",
+                    enabled = true,
+                )
+            )
+        )
+        state.environments.add(env)
+        state.selectedEnvIndex = 0
+
+        val tab = RequestTabState(url = "https://example.com/charge?token={{_secret.payment_key}}")
+        state.openTabs.add(tab)
+        state.activeTabIndex = 0
+
+        val resolved = resolveExternalSecretsForTab(
+            state = state,
+            tab = tab,
+            textsToScan = listOf(tab.url),
+        )
+
+        assertEquals(null, resolved)
+        assertNotNull(tab.lastError)
+        assertTrue(tab.lastError!!.contains("AWS Access Key ID is not configured"))
+    }
+
+    @Test
+    fun resolveExternalSecretsForTab_sets_error_when_aws_secret_target_field_missing() = runTest {
+        val fakeAws = FakeTestAwsSecretsManagerClient(
+            mapOf(
+                "local/payment/foo" to mapOf(
+                    "client_id" to "123",
+                )
+            )
+        )
+
+        val state = AppState()
+        state.settings.awsAccessKeyId = "test_key"
+        state.settings.awsSecretAccessKey = "test_secret"
+
+        val env = EnvState(
+            name = "AwsEnv",
+            externalSecretsProvider = "aws-secrets-manager",
+            externalSecrets = listOf(
+                MutableExternalSecret(
+                    name = "payment_key",
+                    path = "local/payment/foo",
+                    targetField = "client_secret",
+                    enabled = true,
+                )
+            )
+        )
+        state.environments.add(env)
+        state.selectedEnvIndex = 0
+
+        val tab = RequestTabState(url = "https://example.com/charge?token={{_secret.payment_key}}")
+        state.openTabs.add(tab)
+        state.activeTabIndex = 0
+
+        val resolved = resolveExternalSecretsForTab(
+            state = state,
+            tab = tab,
+            textsToScan = listOf(tab.url),
+            awsClient = fakeAws,
+        )
+
+        assertEquals(null, resolved)
+        assertNotNull(tab.lastError)
+        assertTrue(tab.lastError!!.contains("Field 'client_secret' not found in AWS secret"))
     }
 }

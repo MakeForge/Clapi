@@ -213,6 +213,7 @@ object ImportExportRepository {
             }
         }
         val isKeePassXc = environment.externalSecretsProvider.equals("keepassxc", ignoreCase = true)
+        val isAws = environment.externalSecretsProvider.equals("aws-secrets-manager", ignoreCase = true)
         val extSecretsJson = if (environment.externalSecrets.isNotEmpty()) {
             buildJsonObject {
                 put("type", environment.externalSecretsProvider.ifBlank { "hashicorp-vault-server" })
@@ -224,6 +225,27 @@ object ImportExportRepository {
                                     put("name", sec.name.trim())
                                     put("url", sec.url.trim())
                                     put("targetField", sec.targetField.ifBlank { "password" }.trim())
+                                    if (sec.customFilters.isNotEmpty()) {
+                                        put("customFilters", buildJsonObject {
+                                            sec.customFilters.forEach { (k, v) -> put(k, v) }
+                                        })
+                                    }
+                                    if (sec.description.isNotBlank()) {
+                                        put("description", sec.description.trim())
+                                    }
+                                    if (!sec.enabled) {
+                                        put("disabled", true)
+                                    }
+                                })
+                            }
+                        } else if (isAws) {
+                            if (sec.name.isNotBlank() && (sec.path.isNotBlank() || sec.url.isNotBlank())) {
+                                add(buildJsonObject {
+                                    put("name", sec.name.trim())
+                                    put("secretName", sec.path.trim().ifBlank { sec.url.trim() })
+                                    if (sec.targetField.isNotBlank()) {
+                                        put("targetField", sec.targetField.trim())
+                                    }
                                     if (sec.customFilters.isNotEmpty()) {
                                         put("customFilters", buildJsonObject {
                                             sec.customFilters.forEach { (k, v) -> put(k, v) }
@@ -278,9 +300,12 @@ object ImportExportRepository {
         extSecretsObj?.get("variables")?.jsonArray?.forEach { el ->
             val obj = el.jsonObject
             val secName = obj["name"]?.jsonPrimitive?.contentOrNull.orEmpty()
-            val path = obj["path"]?.jsonPrimitive?.contentOrNull.orEmpty()
+            val path = obj["path"]?.jsonPrimitive?.contentOrNull
+                ?: obj["secretName"]?.jsonPrimitive?.contentOrNull
+                ?: obj["secretId"]?.jsonPrimitive?.contentOrNull
+                ?: ""
             val url = obj["url"]?.jsonPrimitive?.contentOrNull.orEmpty()
-            val targetField = obj["targetField"]?.jsonPrimitive?.contentOrNull ?: "password"
+            val targetField = obj["targetField"]?.jsonPrimitive?.contentOrNull.orEmpty()
             val customFiltersObj = obj["customFilters"]?.jsonObject
             val customFilters = customFiltersObj?.mapValues { it.value.jsonPrimitive.contentOrNull.orEmpty() } ?: emptyMap()
             val desc = obj["description"]?.jsonPrimitive?.contentOrNull.orEmpty()

@@ -6,6 +6,7 @@ import io.github.crustack.clapi.core.model.opencollection.ExternalSecretType
 import io.github.crustack.clapi.core.model.opencollection.ExternalSecrets
 import io.github.crustack.clapi.core.model.opencollection.HashicorpVaultExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.KeePassXcExternalSecret
+import io.github.crustack.clapi.core.model.opencollection.AwsSecretsManagerExternalSecret
 import io.github.crustack.clapi.ui.shared.persistence.toEnvState
 import io.github.crustack.clapi.ui.shared.persistence.toOpenCollectionEnvironment
 import io.github.crustack.clapi.ui.shared.state.EnvState
@@ -292,5 +293,71 @@ class EnvironmentEditorSecretsTest {
         assertFalse(filteredForVar.any { it.first == "api_host" })
         assertTrue(filteredForVar.any { it.first == "api_port" })
         assertTrue(filteredForVar.any { it.first == "_secret.my_keepass_secret" })
+    }
+
+    @Test
+    fun environment_with_aws_external_secrets_maps_to_env_state_and_back() {
+        val original = Environment(
+            name = "AWS Staging",
+            externalSecrets = ExternalSecrets(
+                type = "aws-secrets-manager",
+                variables = listOf(
+                    AwsSecretsManagerExternalSecret(
+                        name = "gateway_id",
+                        secretName = "local/payment/foo",
+                        targetField = "client_id",
+                        customFilters = mapOf("tier" to "staging"),
+                        description = Description("Staging Client ID"),
+                        disabled = false,
+                    ),
+                    AwsSecretsManagerExternalSecret(
+                        name = "gateway_secret",
+                        secretName = "local/payment/foo",
+                        targetField = "client_secret",
+                        disabled = true,
+                    ),
+                ),
+            ),
+        )
+
+        val envState = original.toEnvState()
+
+        assertEquals("AWS Staging", envState.name)
+        assertEquals("aws-secrets-manager", envState.externalSecretsProvider)
+        assertEquals(2, envState.externalSecrets.size)
+
+        val first = envState.externalSecrets[0]
+        assertEquals("gateway_id", first.name)
+        assertEquals("local/payment/foo", first.path)
+        assertEquals("client_id", first.targetField)
+        assertEquals("staging", first.customFilters["tier"])
+        assertEquals("Staging Client ID", first.description)
+        assertTrue(first.enabled)
+
+        val second = envState.externalSecrets[1]
+        assertEquals("gateway_secret", second.name)
+        assertEquals("local/payment/foo", second.path)
+        assertEquals("client_secret", second.targetField)
+        assertFalse(second.enabled)
+
+        // Map back to OpenCollection Environment
+        val mappedBack = envState.toOpenCollectionEnvironment()
+        assertNotNull(mappedBack.externalSecrets)
+        assertEquals(ExternalSecretType.AWS_SECRETS_MANAGER, mappedBack.externalSecrets?.type)
+        assertEquals(2, mappedBack.externalSecrets?.variables?.size)
+
+        val a1 = mappedBack.externalSecrets!!.variables[0] as AwsSecretsManagerExternalSecret
+        assertEquals("gateway_id", a1.name)
+        assertEquals("local/payment/foo", a1.secretName)
+        assertEquals("client_id", a1.targetField)
+        assertEquals("staging", a1.customFilters["tier"])
+        assertEquals("Staging Client ID", a1.description?.content)
+        assertNull(a1.disabled)
+
+        val a2 = mappedBack.externalSecrets!!.variables[1] as AwsSecretsManagerExternalSecret
+        assertEquals("gateway_secret", a2.name)
+        assertEquals("local/payment/foo", a2.secretName)
+        assertEquals("client_secret", a2.targetField)
+        assertEquals(true, a2.disabled)
     }
 }

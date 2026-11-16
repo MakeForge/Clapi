@@ -61,4 +61,12 @@ class AppSettings {
     var vaultMountPath       by mutableStateOf("secret")
     var vaultNamespace       by mutableStateOf("")
     var vaultToken           by mutableStateOf("")
+
+    // Secrets Manager (AWS)
+    var awsRegion          by mutableStateOf("us-east-1")
+    var awsAccessKeyId     by mutableStateOf("")
+    var awsSecretAccessKey by mutableStateOf("")
+    var awsSessionToken    by mutableStateOf("")
+    var awsEndpointUrl     by mutableStateOf("")
+    var awsVersionStage    by mutableStateOf("AWSCURRENT")
 }

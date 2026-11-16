@@ -64,6 +64,14 @@ object SettingsRepository {
         settings.vaultMountPath    = PlatformStorage.getString(PREFIX + "vaultMountPath") ?: settings.vaultMountPath
         settings.vaultNamespace    = PlatformStorage.getString(PREFIX + "vaultNamespace") ?: settings.vaultNamespace
         settings.vaultToken        = PlatformStorage.getSecretString(PREFIX + "vaultToken") ?: settings.vaultToken
+
+        // Secrets Manager (AWS)
+        settings.awsRegion          = PlatformStorage.getString(PREFIX + "awsRegion") ?: settings.awsRegion
+        settings.awsAccessKeyId     = PlatformStorage.getString(PREFIX + "awsAccessKeyId") ?: settings.awsAccessKeyId
+        settings.awsSecretAccessKey = PlatformStorage.getSecretString(PREFIX + "awsSecretAccessKey") ?: settings.awsSecretAccessKey
+        settings.awsSessionToken    = PlatformStorage.getSecretString(PREFIX + "awsSessionToken") ?: settings.awsSessionToken
+        settings.awsEndpointUrl     = PlatformStorage.getString(PREFIX + "awsEndpointUrl") ?: settings.awsEndpointUrl
+        settings.awsVersionStage    = PlatformStorage.getString(PREFIX + "awsVersionStage") ?: settings.awsVersionStage
     }
 
     // ── Save ───────────────────────────────────────────────────────────────
@@ -97,6 +105,14 @@ object SettingsRepository {
         PlatformStorage.putString(PREFIX + "vaultMountPath", settings.vaultMountPath)
         PlatformStorage.putString(PREFIX + "vaultNamespace", settings.vaultNamespace)
         PlatformStorage.putSecretString(PREFIX + "vaultToken", settings.vaultToken)
+
+        // Secrets Manager (AWS)
+        PlatformStorage.putString(PREFIX + "awsRegion", settings.awsRegion)
+        PlatformStorage.putString(PREFIX + "awsAccessKeyId", settings.awsAccessKeyId)
+        PlatformStorage.putSecretString(PREFIX + "awsSecretAccessKey", settings.awsSecretAccessKey)
+        PlatformStorage.putSecretString(PREFIX + "awsSessionToken", settings.awsSessionToken)
+        PlatformStorage.putString(PREFIX + "awsEndpointUrl", settings.awsEndpointUrl)
+        PlatformStorage.putString(PREFIX + "awsVersionStage", settings.awsVersionStage)
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────

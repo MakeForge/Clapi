@@ -308,14 +308,24 @@ data class KeePassXcExternalSecret(
     override val disabled: Boolean? = null,
 ) : ExternalSecretVariable
 
+@Serializable
+data class AwsSecretsManagerExternalSecret(
+    override val name: String,
+    val secretName: String,
+    val targetField: String = "",
+    val customFilters: Map<String, String> = emptyMap(),
+    override val description: Description? = null,
+    override val disabled: Boolean? = null,
+) : ExternalSecretVariable
+
 object ExternalSecretVariableSerializer :
     JsonContentPolymorphicSerializer<ExternalSecretVariable>(ExternalSecretVariable::class) {
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<ExternalSecretVariable> {
         val obj = element.jsonObject
-        return if (obj.containsKey("url") || obj.containsKey("targetField") || obj.containsKey("customFilters")) {
-            KeePassXcExternalSecret.serializer()
-        } else {
-            HashicorpVaultExternalSecret.serializer()
+        return when {
+            obj.containsKey("secretName") || obj.containsKey("secretId") -> AwsSecretsManagerExternalSecret.serializer()
+            obj.containsKey("url") || (obj.containsKey("targetField") && !obj.containsKey("path")) -> KeePassXcExternalSecret.serializer()
+            else -> HashicorpVaultExternalSecret.serializer()
         }
     }
 }
