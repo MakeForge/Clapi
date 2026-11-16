@@ -352,6 +352,14 @@ Platform-specific actuals are in `desktopMain/` (JVM).
 `ui-desktop/src/desktopMain/kotlin/io/github/crustack/ui/desktop/Main.kt` — ~44 lines.
 Opens a Compose `Window`, loads settings/tabs/workspace, and renders `MainScreen`.
 
+### UI Development Guidelines & Skills
+
+For authoring and evaluating Compose Multiplatform Desktop UI elements, refer to the [create-compose-ui-kmp-desktop](/.agents/skills/create-compose-ui-kmp-desktop/SKILL.md) skill. It covers:
+- **Modifier hygiene**: Mandatory `modifier: Modifier = Modifier` first optional parameter on the root element.
+- **Desktop ergonomics**: Pairing scrollable containers with `VerticalScrollbar` / `HorizontalScrollbar`, cursor hover icons (`PointerIcon.Hand`), hover feedback, and `Key.Escape` dialog dismissal.
+- **State management**: Aligning with `AppState` / `DialogState` / `RequestTabState` without Android ViewModels or mobile lifecycles.
+- **Desktop previews**: Previews are reserved for sophisticated views (e.g. `MainScreen`, `RequestEditor`, `Sidebar`) to ease maintenance and debugging, and must live strictly in the `ui-desktop` module under `preview/` (`io.github.crustack.clapi.ui.desktop.preview`). Individual leaf components/buttons do not require previews.
+
 ---
 
 ## Useful Gradle Tasks
