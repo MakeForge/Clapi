@@ -15,12 +15,14 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import io.github.makeforge.clapi.core.storage.opencollection.DefaultCanonicalCollectionRepository
 import io.github.makeforge.clapi.ui.shared.MainScreen
 import io.github.makeforge.clapi.ui.shared.persistence.SettingsRepository
 import io.github.makeforge.clapi.ui.shared.persistence.TabsRepository
 import io.github.makeforge.clapi.ui.shared.persistence.WorkspaceRepository
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.theme.ClapiTheme
+import java.io.File
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -31,6 +33,13 @@ import kotlinx.coroutines.runBlocking
  * used by the packaging task to catch stale or incomplete fat-JAR contents.
  */
 fun main(args: Array<String>) {
+    // Initialize persistent workspace repository with the configured or default app directory.
+    val storageDir = System.getProperty("clapi.dir")?.takeIf { it.isNotBlank() }
+        ?: System.getenv("CLAPI_DIR")?.takeIf { it.isNotBlank() }
+        ?: (System.getProperty("user.home") + "/.clapi")
+    File(storageDir).mkdirs()
+    WorkspaceRepository.canonicalRepository = DefaultCanonicalCollectionRepository(baseDirectory = storageDir)
+
     if ("--shutdown-smoke-test" in args) {
         runBlocking {
             AppState(openDefaultTab = false).disposeAndAwait()

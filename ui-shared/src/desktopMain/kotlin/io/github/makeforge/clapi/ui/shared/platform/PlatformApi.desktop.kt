@@ -334,17 +334,48 @@ actual fun isPointerDoubleClick(targetId: String, event: PointerEvent): Boolean 
 }
 
 actual object PlatformStorage {
-    private val prefs: Preferences =
+    private val rootPrefs: Preferences =
         Preferences.userNodeForPackage(PlatformStorage::class.java)
 
-    private val ksafe by lazy { KSafe(fileName = "clapi_secrets") }
+    private fun customStorageDir(): String? =
+        System.getProperty("clapi.dir")?.takeIf { it.isNotBlank() }
+            ?: System.getenv("CLAPI_DIR")?.takeIf { it.isNotBlank() }
 
-    // Values larger than this are written to a file in ~/.clapi/pstore/ instead of being
-    // chunked into Preferences entries.  Java Preferences flushes to an XML plist on every
-    // write; storing MB-scale data there creates thousands of entries and freezes the UI.
+    private val prefs: Preferences
+        get() {
+            val custom = customStorageDir()
+            return if (custom != null) {
+                val nodeName = custom.hashCode().let { if (it < 0) "dir_${-it}" else "dir_$it" }
+                rootPrefs.node(nodeName)
+            } else {
+                rootPrefs
+            }
+        }
+
+    private val ksafe by lazy {
+        val custom = customStorageDir()
+        if (custom != null) {
+            val nodeName = custom.hashCode().let { if (it < 0) "dir_${-it}" else "dir_$it" }
+            KSafe(fileName = "clapi_secrets_$nodeName")
+        } else {
+            KSafe(fileName = "clapi_secrets")
+        }
+    }
+
+    // Values larger than this are written to a file in ~/.clapi/pstore/ (or <clapi.dir>/pstore/)
+    // instead of being chunked into Preferences entries. Java Preferences flushes to an XML
+    // plist on every write; storing MB-scale data there creates thousands of entries and freezes the UI.
     private const val FILE_THRESHOLD = 65_536  // 64 KB
+
+    val pstoreDirectory: File
+        get() {
+            val custom = customStorageDir()
+            val base = if (custom != null) File(custom) else File(System.getProperty("user.home"), ".clapi")
+            return File(base, "pstore").also { it.mkdirs() }
+        }
+
     private val pstoreDir: File
-        get() = File(System.getProperty("user.home"), ".clapi/pstore").also { it.mkdirs() }
+        get() = pstoreDirectory
 
     private fun fileForKey(key: String): File {
         val safeName = key.replace(".", "_").replace("/", "_")

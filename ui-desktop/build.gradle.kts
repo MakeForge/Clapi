@@ -74,6 +74,30 @@ tasks.register("copyMainScreenPreviews") {
     dependsOn(copyScreenshots)
 }
 
+val devStorageDir = rootProject.file(".clapi-dev")
+
+val jvmDev = tasks.register<JavaExec>("jvmDev") {
+    group = "application"
+    description = "Runs Clapi desktop in development mode with persistent, isolated storage in .clapi-dev/"
+    mainClass.set("io.github.makeforge.clapi.ui.desktop.MainKt")
+    classpath = kotlin.jvm("desktop").compilations.getByName("main").runtimeDependencyFiles +
+                kotlin.jvm("desktop").compilations.getByName("main").output.allOutputs
+    devStorageDir.mkdirs()
+    systemProperty("clapi.dir", devStorageDir.absolutePath)
+}
+
+tasks.register("desktopRunDev") {
+    group = "application"
+    description = "Alias for jvmDev"
+    dependsOn(jvmDev)
+}
+
+tasks.register("runDev") {
+    group = "application"
+    description = "Alias for jvmDev"
+    dependsOn(jvmDev)
+}
+
 configurations.named("desktopRuntimeClasspath") {
     exclude(group = "org.jetbrains.compose.material", module = "material")
     exclude(group = "org.jetbrains.compose.material", module = "material-desktop")

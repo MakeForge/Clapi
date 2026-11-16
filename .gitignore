@@ -75,6 +75,8 @@ local.properties
 .env.*
 *.pem
 secrets.properties
+.clapi-dev/
+*.clapi-dev/
 
 # ── Test outputs ─────────────────────────────────────────────
 test-results/
