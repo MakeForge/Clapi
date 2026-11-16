@@ -48,6 +48,7 @@ fun DirtyMultiCloseDialog(
     onSaveAll: () -> Unit,
     onDiscardAll: () -> Unit,
     onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     // M-2: Make the dialog draggable.
     var offsetX by remember { mutableStateOf(0f) }
@@ -59,12 +60,13 @@ fun DirtyMultiCloseDialog(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .dialogEscape(onDismiss = onCancel)
                 .onSizeChanged { viewportSize = it }
                 .pointerInput(Unit) { detectTapGestures { onCancel() } },
             contentAlignment = Alignment.Center,
         ) {
         Box(
-            modifier = Modifier
+            modifier = modifier
                 .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                 .widthIn(min = 400.dp, max = 540.dp)
                 .onSizeChanged { cardSize = it }

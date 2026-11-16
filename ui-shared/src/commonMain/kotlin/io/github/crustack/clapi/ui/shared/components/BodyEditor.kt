@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -18,6 +19,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import io.github.crustack.clapi.ui.shared.platform.PlatformLazyVerticalScrollbar
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -148,10 +151,15 @@ private val REMOVE_WIDTH = 22.dp
  */
 @kotlinx.serialization.ExperimentalSerializationApi
 @Composable
-fun BodyEditor(tab: RequestTabState, state: AppState, onDirty: () -> Unit) {
+fun BodyEditor(
+    tab: RequestTabState,
+    state: AppState,
+    modifier: Modifier = Modifier,
+    onDirty: () -> Unit,
+) {
     val activeCategory = tab.bodyType.category()
 
-    Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
+    Column(modifier = modifier.fillMaxSize().padding(8.dp)) {
 
         // ── Category chip row ───────────────────────────────────
         Row(
@@ -402,17 +410,28 @@ private fun FormDataTableEditor(
             showTypeColumn = true,
             modifier = Modifier.testTag("body-form-table-header"),
         )
-        LazyColumn(modifier = Modifier.weight(1f).testTag("body-form-table-list")) {
-            items(rows, key = { it.uid }) { row ->
-                FormDataRowItem(
-                    row = row,
-                    showTypeColumn = true,
-                    onRowChange = onRowChange,
-                    onRemove = { onRemove(row) },
-                    state = state,
-                    tab = tab,
-                )
+        val formListState = rememberLazyListState()
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            LazyColumn(
+                state = formListState,
+                modifier = Modifier.fillMaxSize().padding(end = 12.dp).testTag("body-form-table-list"),
+            ) {
+                items(rows, key = { it.uid }) { row ->
+                    FormDataRowItem(
+                        row = row,
+                        showTypeColumn = true,
+                        onRowChange = onRowChange,
+                        onRemove = { onRemove(row) },
+                        state = state,
+                        tab = tab,
+                    )
+                }
             }
+            PlatformLazyVerticalScrollbar(
+                listState = formListState,
+                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+                testTag = "body-form-scrollbar",
+            )
         }
     }
 }
@@ -440,17 +459,28 @@ private fun UrlencodedTableEditor(
             showTypeColumn = false,
             modifier = Modifier.testTag("body-urlencoded-table-header"),
         )
-        LazyColumn(modifier = Modifier.weight(1f).testTag("body-urlencoded-table-list")) {
-            items(rows, key = { it.uid }) { row ->
-                FormDataRowItem(
-                    row = row,
-                    showTypeColumn = false,
-                    onRowChange = onRowChange,
-                    onRemove = { onRemove(row) },
-                    state = state,
-                    tab = tab,
-                )
+        val urlencodedListState = rememberLazyListState()
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            LazyColumn(
+                state = urlencodedListState,
+                modifier = Modifier.fillMaxSize().padding(end = 12.dp).testTag("body-urlencoded-table-list"),
+            ) {
+                items(rows, key = { it.uid }) { row ->
+                    FormDataRowItem(
+                        row = row,
+                        showTypeColumn = false,
+                        onRowChange = onRowChange,
+                        onRemove = { onRemove(row) },
+                        state = state,
+                        tab = tab,
+                    )
+                }
             }
+            PlatformLazyVerticalScrollbar(
+                listState = urlencodedListState,
+                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+                testTag = "body-urlencoded-scrollbar",
+            )
         }
     }
 }
@@ -594,6 +624,7 @@ private fun FormDataRowItem(
                 tint = ClapiColors.OnSurfaceDim,
                 modifier = Modifier
                     .size(14.dp)
+                    .handPointerHover()
                     .clickable { onRemove() },
             )
         }
@@ -661,6 +692,7 @@ private fun TypeDropdown(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(3.dp))
                 .background(ClapiColors.SurfaceVariant)
+                .handPointerHover()
                 .clickable { expanded = true }
                 .padding(horizontal = 6.dp, vertical = 4.dp),
         )
@@ -695,6 +727,7 @@ private fun FilePickerCell(
         modifier = modifier
             .clip(RoundedCornerShape(3.dp))
             .background(ClapiColors.SurfaceVariant)
+            .handPointerHover()
             .clickable {
                 pickBinaryFileForRequest { file ->
                     onFilePicked(file.name, file.base64Content)
@@ -726,6 +759,7 @@ private fun AddRowButton(onAdd: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier
             .clip(RoundedCornerShape(4.dp))
             .background(ClapiColors.Surface)
+            .handPointerHover()
             .clickable { onAdd() }
             .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,

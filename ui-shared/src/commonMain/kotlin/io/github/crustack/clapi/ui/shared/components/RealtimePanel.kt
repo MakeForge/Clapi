@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -50,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.crustack.clapi.core.model.MessageDirection
 import io.github.crustack.clapi.ui.shared.i18n.Strings
+import io.github.crustack.clapi.ui.shared.platform.PlatformLazyVerticalScrollbar
 import io.github.crustack.clapi.core.model.RealtimeMessage
 import io.github.crustack.clapi.core.model.RealtimeProtocol
 import io.github.crustack.clapi.core.network.ConnectionState
@@ -74,7 +76,7 @@ private enum class RealtimeTab(val label: String) {
  * Supports WebSocket, SSE, Socket.IO, and MQTT protocols.
  */
 @Composable
-fun RealtimePanel() {
+fun RealtimePanel(modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
     val client = remember { RealtimeClient(scope) }
 
@@ -100,7 +102,7 @@ fun RealtimePanel() {
     }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(ClapiColors.Background)
             .testTag("realtime-panel"),
@@ -267,10 +269,10 @@ private fun RealtimeUrlBar(
                 .clip(CircleShape)
                 .background(
                     when (connectionState) {
-                        ConnectionState.CONNECTED -> Color(0xFF4EC9B0)
-                        ConnectionState.CONNECTING -> Color(0xFFE5C07B)
-                        ConnectionState.ERROR -> Color(0xFFE06C75)
-                        ConnectionState.DISCONNECTED -> Color(0xFF6C6C85)
+                        ConnectionState.CONNECTED -> ClapiColors.StatusSuccess
+                        ConnectionState.CONNECTING -> ClapiColors.StatusWarning
+                        ConnectionState.ERROR -> ClapiColors.Error
+                        ConnectionState.DISCONNECTED -> ClapiColors.OnSurfaceDim
                     }
                 )
                 .testTag("connection-indicator"),
@@ -434,15 +436,22 @@ private fun CommunicationView(
             }
         } else {
             val listState = rememberLazyListState()
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag("messages-list"),
-            ) {
-                items(messages, key = { it.id }) { message ->
-                    MessageRow(message)
+            Box(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(end = 12.dp)
+                        .testTag("messages-list"),
+                ) {
+                    items(messages, key = { it.id }) { message ->
+                        MessageRow(message)
+                    }
                 }
+                PlatformLazyVerticalScrollbar(
+                    listState = listState,
+                    modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+                )
             }
         }
     }
@@ -451,7 +460,7 @@ private fun CommunicationView(
 @Composable
 private fun MessageRow(message: RealtimeMessage) {
     val isSent = message.direction == MessageDirection.SENT
-    val directionColor = if (isSent) Color(0xFF4EC9B0) else Color(0xFF7B8DEF)
+    val directionColor = if (isSent) ClapiColors.StatusSuccess else ClapiColors.Primary
     val directionLabel = if (isSent) "↑ SENT" else "↓ RECEIVED"
 
     Column(

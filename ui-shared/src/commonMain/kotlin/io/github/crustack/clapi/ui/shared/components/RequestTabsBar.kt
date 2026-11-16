@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -66,6 +67,7 @@ import io.github.crustack.clapi.ui.shared.generated.resources.ic_article
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_close
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_folder
 import io.github.crustack.clapi.ui.shared.i18n.Strings
+import io.github.crustack.clapi.ui.shared.platform.PlatformHorizontalScrollbar
 import io.github.crustack.clapi.ui.shared.platform.horizontalResizeCursor
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
@@ -89,6 +91,7 @@ fun RequestTabsBar(
     onCloseToLeft: (Int) -> Unit,
     onCloseToRight: (Int) -> Unit,
     onCloseAll: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val tabScrollState = rememberScrollState()
     // Natural (layout-coordinate) x-position of each tab chip inside the
@@ -102,7 +105,7 @@ fun RequestTabsBar(
         tabScrollState.animateScrollTo(x)
     }
 
-    Column(modifier = Modifier.fillMaxWidth().testTag("request-tabs-bar")) {
+    Column(modifier = modifier.fillMaxWidth().testTag("request-tabs-bar")) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -111,38 +114,45 @@ fun RequestTabsBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // Horizontally scrollable chips row
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .horizontalScroll(tabScrollState)
-                    .padding(start = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(0.dp),
-            ) {
-                state.openTabs.forEachIndexed { index, tab ->
-                    // Box captures the chip's natural x-offset in the Row's
-                    // layout coordinate space for auto-scroll targeting.
-                    Box(
-                        modifier = Modifier.onGloballyPositioned { coords ->
-                            tabPositions[index] = coords.positionInParent().x.toInt()
-                        },
-                    ) {
-                        RequestTabChip(
-                            tab = tab,
-                            isActive = index == state.activeTabIndex,
-                            onClick = {
-                                state.activeTabIndex = index
+            Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .horizontalScroll(tabScrollState)
+                        .padding(start = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(0.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    state.openTabs.forEachIndexed { index, tab ->
+                        // Box captures the chip's natural x-offset in the Row's
+                        // layout coordinate space for auto-scroll targeting.
+                        Box(
+                            modifier = Modifier.onGloballyPositioned { coords ->
+                                tabPositions[index] = coords.positionInParent().x.toInt()
                             },
-                            onClose = { onRequestClose(index) },
-                            onRename = { newName -> onRenameTab(tab.id, newName) },
-                            onShowInSidebar = { onShowInSidebar(tab.id) },
-                            onCloseOthers = { onCloseOthers(index) },
-                            onCloseToLeft = { onCloseToLeft(index) },
-                            onCloseToRight = { onCloseToRight(index) },
-                            onCloseAll = onCloseAll,
-                            showClose = true,
-                        )
+                        ) {
+                            RequestTabChip(
+                                tab = tab,
+                                isActive = index == state.activeTabIndex,
+                                onClick = {
+                                    state.activeTabIndex = index
+                                },
+                                onClose = { onRequestClose(index) },
+                                onRename = { newName -> onRenameTab(tab.id, newName) },
+                                onShowInSidebar = { onShowInSidebar(tab.id) },
+                                onCloseOthers = { onCloseOthers(index) },
+                                onCloseToLeft = { onCloseToLeft(index) },
+                                onCloseToRight = { onCloseToRight(index) },
+                                onCloseAll = onCloseAll,
+                                showClose = true,
+                            )
+                        }
                     }
                 }
+                PlatformHorizontalScrollbar(
+                    scrollState = tabScrollState,
+                    modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
+                )
             }
 
             // New-tab button

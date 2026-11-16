@@ -57,7 +57,10 @@ import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
-fun TopToolbar(state: AppState) {
+fun TopToolbar(
+    state: AppState,
+    modifier: Modifier = Modifier,
+) {
     LaunchedEffect(state.workspaceMode) {
         if (state.workspaceMode != WorkspaceMode.HTTP) {
             state.workspaceMode = WorkspaceMode.HTTP
@@ -65,7 +68,7 @@ fun TopToolbar(state: AppState) {
     }
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(48.dp)
             .background(ClapiColors.Surface)
@@ -74,9 +77,10 @@ fun TopToolbar(state: AppState) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Sidebar toggle
-        ToolbarIconButtonWithTooltip(
+        IconButtonWithTooltip(
             tooltip = Strings.t("toggle_sidebar"),
             tooltipTag = "toolbar-tooltip-toggle-sidebar",
+            offset = IntOffset(0, 40),
             onClick = { state.sidebarExpanded = !state.sidebarExpanded },
             modifier = Modifier.testTag("toolbar-toggle-sidebar-button"),
         ) {
@@ -134,9 +138,10 @@ fun TopToolbar(state: AppState) {
 
         Spacer(Modifier.width(8.dp))
 
-        ToolbarIconButtonWithTooltip(
+        IconButtonWithTooltip(
             tooltip = Strings.t("toggle_response_layout"),
             tooltipTag = "toolbar-tooltip-response-layout",
+            offset = IntOffset(0, 40),
             onClick = {
                 state.settings.responseLayout =
                     if (state.settings.responseLayout == ResponseLayout.RIGHT) ResponseLayout.BOTTOM
@@ -158,9 +163,10 @@ fun TopToolbar(state: AppState) {
         Spacer(Modifier.width(4.dp))
 
         // Global variables
-        ToolbarIconButtonWithTooltip(
+        IconButtonWithTooltip(
             tooltip = Strings.globalVariables,
             tooltipTag = "toolbar-tooltip-global-variables",
+            offset = IntOffset(0, 40),
             onClick = { state.showGlobalVariablesDialog = true },
             modifier = Modifier.testTag("global-variables-button"),
         ) {
@@ -170,9 +176,10 @@ fun TopToolbar(state: AppState) {
             )
         }
 
-        ToolbarIconButtonWithTooltip(
+        IconButtonWithTooltip(
             tooltip = "Help and About",
             tooltipTag = "toolbar-tooltip-help-about",
+            offset = IntOffset(0, 40),
             onClick = { state.showHelpDialog = true },
         ) {
             Icon(painter = painterResource(Res.drawable.ic_help_outline),
@@ -183,9 +190,10 @@ fun TopToolbar(state: AppState) {
         }
 
         // Settings
-        ToolbarIconButtonWithTooltip(
+        IconButtonWithTooltip(
             tooltip = Strings.settings,
             tooltipTag = "toolbar-tooltip-settings",
+            offset = IntOffset(0, 40),
             onClick = { state.showSettingsDialog = true },
         ) {
             Icon(painter = painterResource(Res.drawable.ic_settings),
@@ -203,63 +211,6 @@ fun TopToolbar(state: AppState) {
             .height(1.dp)
             .background(ClapiColors.Border)
     )
-}
-
-@Composable
-private fun ToolbarIconButtonWithTooltip(
-    tooltip: String,
-    tooltipTag: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isHovered by interactionSource.collectIsHoveredAsState()
-    var tooltipVisible by remember { mutableStateOf(false) }
-
-    // Debounce: wait 200 ms before showing so edge-of-icon flicker is eliminated.
-    // Hide immediately when hover leaves so it doesn't linger.
-    LaunchedEffect(isHovered) {
-        if (isHovered) {
-            delay(200L)
-            tooltipVisible = true
-        } else {
-            tooltipVisible = false
-        }
-    }
-
-    Box {
-        IconButton(
-            onClick = onClick,
-            modifier = modifier.hoverable(interactionSource),
-        ) {
-            content()
-        }
-
-        if (tooltipVisible) {
-            Popup(
-                alignment = Alignment.BottomCenter,
-                offset = IntOffset(0, 40),
-                properties = PopupProperties(focusable = false),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(5.dp))
-                        .background(ClapiColors.SurfaceHigh)
-                        .border(1.dp, ClapiColors.Border, RoundedCornerShape(5.dp))
-                        .padding(horizontal = 8.dp, vertical = 5.dp)
-                        .testTag(tooltipTag),
-                ) {
-                    Text(
-                        text = tooltip,
-                        color = ClapiColors.OnSurface,
-                        fontSize = 11.sp,
-                        maxLines = 1,
-                    )
-                }
-            }
-        }
-    }
 }
 
 @Composable
@@ -281,6 +232,7 @@ private fun EnvironmentChip(state: AppState) {
                 .clip(RoundedCornerShape(6.dp))
                 .background(if (isHovered) ClapiColors.HoverOverlay else ClapiColors.SurfaceContainer)
                 .hoverable(interactionSource)
+                .handPointerHover()
                 .clickable { menuExpanded = true }
                 .padding(horizontal = 10.dp, vertical = 6.dp)
                 .testTag("env-chip"),

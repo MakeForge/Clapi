@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import io.github.crustack.clapi.core.model.opencollection.ClientCertificate
 import io.github.crustack.clapi.core.model.opencollection.Description
 import io.github.crustack.clapi.core.storage.git.ProtoPathResolver
+import io.github.crustack.clapi.ui.shared.platform.generateUuid
 
 // ── Environment model ───────────────────────────────────────────
 
@@ -19,6 +20,7 @@ class MutableExternalSecret(
     url: String = "",
     targetField: String = "password",
     customFilters: Map<String, String> = emptyMap(),
+    val uid: String = generateUuid(),
 ) {
     var name by mutableStateOf(name)
     var path by mutableStateOf(path)

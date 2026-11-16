@@ -51,6 +51,8 @@ data class AppColorPalette(
     val statusRedirect: Color,
     val statusClientError: Color,
     val statusServerError: Color,
+    val statusWarning: Color = Color(0xFFEAB308),
+    val statusInfo: Color = Color(0xFF3B82F6),
 
     val hoverOverlay: Color,
     val selectedItem: Color,

@@ -30,10 +30,12 @@ fun OperationProgressDialog(
     title: String,
     message: String,
     onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Dialog(onDismissRequest = { }) {
         Column(
-            modifier = Modifier
+            modifier = modifier
+                .dialogEscape(onDismiss = onCancel)
                 .widthIn(min = 360.dp, max = 520.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(ClapiColors.Surface)

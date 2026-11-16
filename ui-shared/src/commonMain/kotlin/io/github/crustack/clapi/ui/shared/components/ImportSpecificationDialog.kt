@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Button
@@ -71,6 +73,7 @@ import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.persistence.WorkspaceRepository
 import io.github.crustack.clapi.ui.shared.persistence.toCollectionNode
 import io.github.crustack.clapi.ui.shared.persistence.toMutableKeyValue
+import io.github.crustack.clapi.ui.shared.platform.PlatformLazyVerticalScrollbar
 import io.github.crustack.clapi.ui.shared.platform.pickFileForImport
 import io.github.crustack.clapi.ui.shared.platform.readFromClipboard
 import io.github.crustack.clapi.ui.shared.state.AppState
@@ -112,6 +115,7 @@ internal class CandidateEnvironmentItemState(
 fun ImportSpecificationDialog(
     state: AppState,
     onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var currentStep by remember { mutableStateOf(ImportDialogStep.SOURCE_SELECTION) }
     var sourceType by remember { mutableStateOf(ImportSourceType.FILE) }
@@ -138,7 +142,8 @@ fun ImportSpecificationDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            modifier = Modifier
+            modifier = modifier
+                .dialogEscape(onDismiss = onDismiss)
                 .widthIn(min = 550.dp, max = 650.dp)
                 .heightIn(min = 450.dp, max = 600.dp)
                 .clip(RoundedCornerShape(8.dp))
@@ -477,11 +482,15 @@ fun ImportSpecificationDialog(
                     }
                 } else {
                     // Step 2: ITEM_SELECTION
-                    LazyColumn(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(16.dp)
-                    ) {
+                    val listState = rememberLazyListState()
+                    Box(modifier = Modifier.weight(1f)) {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp)
+                                .padding(end = 12.dp)
+                        ) {
                         if (candidateFolders.isNotEmpty()) {
                             item {
                                 Text(
@@ -632,6 +641,11 @@ fun ImportSpecificationDialog(
                             }
                         }
                     }
+                    PlatformLazyVerticalScrollbar(
+                        listState = listState,
+                        modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+                    )
+                }
 
                     // Footer for Step 2
                     val hasSelectedItem = candidateFolders.any { it.selected } || candidateEnvironments.any { it.selected }

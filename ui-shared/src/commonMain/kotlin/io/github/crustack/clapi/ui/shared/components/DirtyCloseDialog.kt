@@ -42,11 +42,12 @@ import kotlin.math.roundToInt
 
 @Composable
 fun DirtyCloseDialog(
-    title: String = "Unsaved Changes",
-    message: String = Strings.t("request_unsaved_changes_message"),
     onSave: () -> Unit,
     onDiscard: () -> Unit,
     onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
+    title: String = "Unsaved Changes",
+    message: String = Strings.t("request_unsaved_changes_message"),
 ) {
     // M-2: Make the dialog draggable.
     var offsetX by remember { mutableStateOf(0f) }
@@ -58,12 +59,13 @@ fun DirtyCloseDialog(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .dialogEscape(onDismiss = onCancel)
                 .onSizeChanged { viewportSize = it }
                 .pointerInput(Unit) { detectTapGestures { onCancel() } },
             contentAlignment = Alignment.Center,
         ) {
         Box(
-            modifier = Modifier
+            modifier = modifier
                 .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                 .widthIn(min = 380.dp, max = 520.dp)
                 .onSizeChanged { cardSize = it }

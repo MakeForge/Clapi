@@ -8,6 +8,7 @@ import io.github.crustack.clapi.core.model.opencollection.OAuth2CredentialsPlace
 import io.github.crustack.clapi.core.model.opencollection.OAuth2Flow
 import io.github.crustack.clapi.core.network.oauth2.OAuth2Exception
 import io.github.crustack.clapi.core.network.oauth2.OAuth2TokenClient
+import io.github.crustack.clapi.core.network.oauth2.OAuth2TokenManager
 import io.github.crustack.clapi.core.network.oauth2.OAuth2TokenResponse
 import io.github.crustack.clapi.ui.shared.platform.currentTimeMillis
 import io.github.crustack.clapi.ui.shared.state.AppState
@@ -78,12 +79,14 @@ class OAuth2ExecutionPipelineTest {
         tab.authOAuth2AccessTokenUrl = "https://auth.example.com/token"
 
         val fakeClient = FakeOAuth2TokenClient()
+        val tokenManager = OAuth2TokenManager()
 
         val valid = ensureValidOAuth2Token(
             state = state,
             tab = tab,
             variableLayers = emptyList(),
             tokenClient = fakeClient,
+            tokenManager = tokenManager,
         )
 
         assertTrue(valid)
@@ -106,6 +109,7 @@ class OAuth2ExecutionPipelineTest {
         tab.authOAuth2AccessTokenUrl = "https://auth.example.com/token"
 
         val fakeClient = FakeOAuth2TokenClient()
+        val tokenManager = OAuth2TokenManager()
         fakeClient.nextRefreshResult = Result.success(
             OAuth2TokenResponse(
                 accessToken = "newly-refreshed-access-token",
@@ -119,6 +123,7 @@ class OAuth2ExecutionPipelineTest {
             tab = tab,
             variableLayers = emptyList(),
             tokenClient = fakeClient,
+            tokenManager = tokenManager,
         )
 
         assertTrue(valid)
@@ -146,6 +151,7 @@ class OAuth2ExecutionPipelineTest {
         tab.authOAuth2ClientSecret = "client-secret"
 
         val fakeClient = FakeOAuth2TokenClient()
+        val tokenManager = OAuth2TokenManager()
         fakeClient.nextRefreshResult = Result.failure(OAuth2Exception("invalid_grant", "refresh token expired", 400))
         fakeClient.nextClientCredentialsResult = Result.success(
             OAuth2TokenResponse(
@@ -159,6 +165,7 @@ class OAuth2ExecutionPipelineTest {
             tab = tab,
             variableLayers = emptyList(),
             tokenClient = fakeClient,
+            tokenManager = tokenManager,
         )
 
         assertTrue(valid)
@@ -179,6 +186,7 @@ class OAuth2ExecutionPipelineTest {
         tab.authOAuth2ClientSecret = "my-secret"
 
         val fakeClient = FakeOAuth2TokenClient()
+        val tokenManager = OAuth2TokenManager()
         fakeClient.nextClientCredentialsResult = Result.success(
             OAuth2TokenResponse(
                 accessToken = "acquired-cc-token",
@@ -191,6 +199,7 @@ class OAuth2ExecutionPipelineTest {
             tab = tab,
             variableLayers = emptyList(),
             tokenClient = fakeClient,
+            tokenManager = tokenManager,
         )
 
         assertTrue(valid)
@@ -212,6 +221,7 @@ class OAuth2ExecutionPipelineTest {
         tab.authOAuth2Password = "pass"
 
         val fakeClient = FakeOAuth2TokenClient()
+        val tokenManager = OAuth2TokenManager()
         fakeClient.nextPasswordResult = Result.success(
             OAuth2TokenResponse(
                 accessToken = "acquired-pwd-token",
@@ -225,6 +235,7 @@ class OAuth2ExecutionPipelineTest {
             tab = tab,
             variableLayers = emptyList(),
             tokenClient = fakeClient,
+            tokenManager = tokenManager,
         )
 
         assertTrue(valid)
@@ -244,6 +255,7 @@ class OAuth2ExecutionPipelineTest {
         tab.authOAuth2ClientId = "bad-client"
 
         val fakeClient = FakeOAuth2TokenClient()
+        val tokenManager = OAuth2TokenManager()
         fakeClient.nextClientCredentialsResult = Result.failure(OAuth2Exception("invalid_client", "Unauthorized", 401))
 
         val valid = ensureValidOAuth2Token(
@@ -251,6 +263,7 @@ class OAuth2ExecutionPipelineTest {
             tab = tab,
             variableLayers = emptyList(),
             tokenClient = fakeClient,
+            tokenManager = tokenManager,
         )
 
         assertFalse(valid)
@@ -292,6 +305,7 @@ class OAuth2ExecutionPipelineTest {
         tab.authType = AuthType.INHERIT
 
         val fakeClient = FakeOAuth2TokenClient()
+        val tokenManager = OAuth2TokenManager()
         fakeClient.nextClientCredentialsResult = Result.success(
             OAuth2TokenResponse(accessToken = "inherited-acquired-token", expiresIn = 3600)
         )
@@ -301,6 +315,7 @@ class OAuth2ExecutionPipelineTest {
             tab = tab,
             variableLayers = emptyList(),
             tokenClient = fakeClient,
+            tokenManager = tokenManager,
         )
 
         assertTrue(valid)

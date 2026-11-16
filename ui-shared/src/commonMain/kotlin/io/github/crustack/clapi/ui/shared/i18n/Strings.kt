@@ -62,6 +62,7 @@ object Strings {
     val gitAuthFailed: String @Composable @ReadOnlyComposable get() = t("git_auth_failed")
     val gitNetworkError: String @Composable @ReadOnlyComposable get() = t("git_network_error")
     val syncToGit: String @Composable @ReadOnlyComposable get() = t("sync_to_git")
+    val export: String @Composable @ReadOnlyComposable get() = t("export")
     val exportCollections: String @Composable @ReadOnlyComposable get() = t("export_collections")
     val collection: String @Composable @ReadOnlyComposable get() = t("collection")
     val addProtoFiles: String @Composable @ReadOnlyComposable get() = t("add_proto_files")
@@ -209,6 +210,16 @@ object Strings {
     val importSelectItems: String @Composable @ReadOnlyComposable get() = t("import_select_items")
     val importOverwriteWarning: String @Composable @ReadOnlyComposable get() = t("import_overwrite_warning")
     val importAction: String @Composable @ReadOnlyComposable get() = t("import_action")
+
+    val rename: String @Composable @ReadOnlyComposable get() = t("rename")
+    val clear: String @Composable @ReadOnlyComposable get() = t("clear")
+    val connecting: String @Composable @ReadOnlyComposable get() = t("connecting")
+    val filter: String @Composable @ReadOnlyComposable get() = t("filter")
+    val addSecret: String @Composable @ReadOnlyComposable get() = t("add_secret")
+    val addFilter: String @Composable @ReadOnlyComposable get() = t("add_filter")
+    val name: String @Composable @ReadOnlyComposable get() = t("name")
+    val summary: String @Composable @ReadOnlyComposable get() = t("summary")
+    val version: String @Composable @ReadOnlyComposable get() = t("version")
 
     @Composable
     @ReadOnlyComposable

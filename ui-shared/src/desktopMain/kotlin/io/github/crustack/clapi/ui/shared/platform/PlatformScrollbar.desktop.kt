@@ -1,5 +1,6 @@
 package io.github.crustack.clapi.ui.shared.platform
 
+import androidx.compose.foundation.HorizontalScrollbar
 import androidx.compose.foundation.ScrollbarStyle
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.VerticalScrollbar
@@ -32,6 +33,19 @@ actual fun PlatformColumnVerticalScrollbar(
     testTag: String,
 ) {
     VerticalScrollbar(
+        adapter = rememberScrollbarAdapter(scrollState),
+        style = clapiScrollbarStyle(),
+        modifier = modifier.then(if (testTag.isNotEmpty()) Modifier.testTag(testTag) else Modifier),
+    )
+}
+
+@Composable
+actual fun PlatformHorizontalScrollbar(
+    scrollState: ScrollState,
+    modifier: Modifier,
+    testTag: String,
+) {
+    HorizontalScrollbar(
         adapter = rememberScrollbarAdapter(scrollState),
         style = clapiScrollbarStyle(),
         modifier = modifier.then(if (testTag.isNotEmpty()) Modifier.testTag(testTag) else Modifier),

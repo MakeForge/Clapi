@@ -1,6 +1,7 @@
 package io.github.crustack.clapi.ui.shared.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -17,11 +18,15 @@ import io.github.crustack.clapi.ui.shared.theme.httpMethodColor
 @Composable
 fun MethodBadge(
     method: HttpMethodType,
+    modifier: Modifier = Modifier,
     compact: Boolean = false,
     sse: Boolean = false,
-    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
 ) {
     val color = httpMethodColor(method)
+    val clickModifier = if (onClick != null) {
+        Modifier.handPointerHover().clickable(onClick = onClick)
+    } else Modifier
     Text(
         text = if (sse) "SSE" else if (compact) method.name.take(3) else method.name,
         color = color,
@@ -30,12 +35,20 @@ fun MethodBadge(
         modifier = modifier
             .clip(RoundedCornerShape(4.dp))
             .background(color.copy(alpha = 0.12f))
+            .then(clickModifier)
             .padding(horizontal = if (compact) 4.dp else 6.dp, vertical = 2.dp),
     )
 }
 
 @Composable
-fun McpMethodBadge(compact: Boolean = false, modifier: Modifier = Modifier) {
+fun McpMethodBadge(
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+    onClick: (() -> Unit)? = null,
+) {
+    val clickModifier = if (onClick != null) {
+        Modifier.handPointerHover().clickable(onClick = onClick)
+    } else Modifier
     Text(
         text = "MCP",
         color = ClapiColors.Primary,
@@ -44,12 +57,13 @@ fun McpMethodBadge(compact: Boolean = false, modifier: Modifier = Modifier) {
         modifier = modifier
             .clip(RoundedCornerShape(4.dp))
             .background(ClapiColors.Primary.copy(alpha = 0.12f))
+            .then(clickModifier)
             .padding(horizontal = if (compact) 4.dp else 6.dp, vertical = 2.dp),
     )
 }
 
 @Composable
-fun GrpcBadge(compact: Boolean = false, modifier: Modifier = Modifier) {
+fun GrpcBadge(modifier: Modifier = Modifier, compact: Boolean = false) {
     Text(
         text = "gRPC",
         color = ClapiColors.MethodPatch,
@@ -63,7 +77,7 @@ fun GrpcBadge(compact: Boolean = false, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun WebSocketBadge(compact: Boolean = false, modifier: Modifier = Modifier) {
+fun WebSocketBadge(modifier: Modifier = Modifier, compact: Boolean = false) {
     Text(
         text = "WS",
         color = ClapiColors.MethodWebSocket,
@@ -77,7 +91,7 @@ fun WebSocketBadge(compact: Boolean = false, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun GraphQLBadge(compact: Boolean = false, modifier: Modifier = Modifier) {
+fun GraphQLBadge(modifier: Modifier = Modifier, compact: Boolean = false) {
     Text(
         text = "GQL",
         color = ClapiColors.MethodGraphQl,

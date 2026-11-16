@@ -108,31 +108,7 @@ fun Sidebar(
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val collectionsRevision = state.collectionsRevision
-    // Plain HashMap — never read inside composition, no state notifications needed.
-    val hitAreas = remember { HashMap<String, TreeNodeHitArea>() }
-
-    var draggedRequestId by remember { mutableStateOf<String?>(null) }
-    var dropTargetCollectionId by remember { mutableStateOf<String?>(null) }
-    var dropTargetRequestId by remember { mutableStateOf<String?>(null) }
-    // true = insert after the target row; false = insert before
-    var dropInsertAfter by remember { mutableStateOf(false) }
-    // Cumulative Y-offset from drag start to compute current cursor Y
-    var dragOffsetY by remember { mutableStateOf(0f) }
-    // Absolute cursor Y in window coords — set on drag start, accumulated on every delta.
-    // Used by the auto-scroll loop so it never drifts when the list scrolls under the cursor.
-    var dragCursorAbsY by remember { mutableStateOf(0f) }
-
-    // ── Collection-level drag-to-reorder state ─────────────────────────────
-    var draggedCollectionId by remember { mutableStateOf<String?>(null) }
-    var dragCollectionOffsetY by remember { mutableStateOf(0f) }
-    var dropCollectionTargetId by remember { mutableStateOf<String?>(null) }
-    var dropCollectionInsertAfter by remember { mutableStateOf(false) }
-    // Hit areas for ALL folder nodes (roots + subfolders). parentCollectionId on each
-    // entry records the direct parent so we can filter to same-level siblings only.
-    val collectionHitAreas = remember { HashMap<String, TreeNodeHitArea>() }
-    // parentCollectionId of the folder currently being dragged (null = root level).
-    var draggedFolderParentId by remember { mutableStateOf<String?>(null) }
-    var draggedFolderParentIdSet by remember { mutableStateOf(false) }
+    val dragState = remember { SidebarDragState() }
 
     // ── Sidebar LazyColumn state + bounds for edge-scroll ─────────────────
     val lazyListState = rememberLazyListState()
@@ -145,10 +121,10 @@ fun Sidebar(
     // accumulated on every pointer delta). After each scroll tick we shift stored hit-area
     // positions by the same amount so the insertion indicator re-evaluates immediately
     // rather than waiting for the next Compose layout pass.
-    LaunchedEffect(draggedRequestId, draggedCollectionId) {
-        if (draggedRequestId == null && draggedCollectionId == null) return@LaunchedEffect
+    LaunchedEffect(dragState.draggedRequestId, dragState.draggedCollectionId) {
+        if (dragState.draggedRequestId == null && dragState.draggedCollectionId == null) return@LaunchedEffect
         while (true) {
-            val relY = dragCursorAbsY - sidebarTopPx
+            val relY = dragState.dragCursorAbsY - sidebarTopPx
             val scrollPx = when {
                 relY >= 0f && relY < edgeZonePx ->
                     -((edgeZonePx - relY) / edgeZonePx * 18f)
@@ -162,12 +138,12 @@ fun Sidebar(
                 // the drop-target lookup below uses up-to-date positions (the real
                 // onGloballyPositioned update will arrive on the next layout pass).
                 val shift = -scrollPx
-                val activeRequestId   = draggedRequestId
-                val activeCollectionId = draggedCollectionId
-                val cursorY = dragCursorAbsY
+                val activeRequestId   = dragState.draggedRequestId
+                val activeCollectionId = dragState.draggedCollectionId
+                val cursorY = dragState.dragCursorAbsY
                 if (activeRequestId != null) {
-                    hitAreas.keys.toList().forEach { id ->
-                        hitAreas[id]?.let { hitAreas[id] = it.copy(top = it.top + shift, bottom = it.bottom + shift) }
+                    dragState.hitAreas.keys.toList().forEach { id ->
+                        dragState.hitAreas[id]?.let { dragState.hitAreas[id] = it.copy(top = it.top + shift, bottom = it.bottom + shift) }
                     }
                     val movingRequestIds = if (activeRequestId in state.selectedRequestIds) {
                         state.selectedRequestIds.toList()
@@ -175,24 +151,24 @@ fun Sidebar(
                         listOf(activeRequestId)
                     }
                     val target = resolveClosestHitArea(
-                        areas = hitAreas.values.filter { it.id !in movingRequestIds },
+                        areas = dragState.hitAreas.values.filter { it.id !in movingRequestIds },
                         cursorY = cursorY,
                     )
                     if (target != null) {
                         if (target.isFolder) {
-                            dropTargetCollectionId = target.id
-                            dropTargetRequestId    = null
-                            dropInsertAfter        = false
+                            dragState.dropTargetCollectionId = target.id
+                            dragState.dropTargetRequestId    = null
+                            dragState.dropInsertAfter        = false
                         } else {
                             val midY = (target.top + target.bottom) / 2f
-                            dropInsertAfter        = cursorY >= midY
-                            dropTargetRequestId    = target.id
-                            dropTargetCollectionId = target.parentCollectionId
+                            dragState.dropInsertAfter        = cursorY >= midY
+                            dragState.dropTargetRequestId    = target.id
+                            dragState.dropTargetCollectionId = target.parentCollectionId
                         }
                     }
                 } else if (activeCollectionId != null) {
-                    collectionHitAreas.keys.toList().forEach { id ->
-                        collectionHitAreas[id]?.let { collectionHitAreas[id] = it.copy(top = it.top + shift, bottom = it.bottom + shift) }
+                    dragState.collectionHitAreas.keys.toList().forEach { id ->
+                        dragState.collectionHitAreas[id]?.let { dragState.collectionHitAreas[id] = it.copy(top = it.top + shift, bottom = it.bottom + shift) }
                     }
                     val movingFolderIds = if (activeCollectionId in state.selectedFolderIds) {
                         state.selectedFolderIds.toList()
@@ -200,17 +176,17 @@ fun Sidebar(
                         listOf(activeCollectionId)
                     }
                     val target = resolveClosestHitArea(
-                        areas = collectionHitAreas.values.filter {
+                        areas = dragState.collectionHitAreas.values.filter {
                             it.id !in movingFolderIds &&
-                                it.parentCollectionId == collectionHitAreas[activeCollectionId]?.parentCollectionId &&
+                                it.parentCollectionId == dragState.collectionHitAreas[activeCollectionId]?.parentCollectionId &&
                                 isValidFolderGroupDropTarget(state.collections, movingFolderIds, it.id)
                         },
                         cursorY = cursorY,
                     )
                     if (target != null) {
                         val midY = (target.top + target.bottom) / 2f
-                        dropCollectionInsertAfter = cursorY >= midY
-                        dropCollectionTargetId    = target.id
+                        dragState.dropCollectionInsertAfter = cursorY >= midY
+                        dragState.dropCollectionTargetId    = target.id
                     }
                 }
             }
@@ -235,8 +211,7 @@ fun Sidebar(
     // Remove stale rows from previous composition states (collapsed/filter changes)
     // so drag target resolution only considers currently rendered hit areas.
     LaunchedEffect(state.collectionsRevision, state.sidebarSearchQuery, state.collectionsExpanded) {
-        hitAreas.clear()
-        collectionHitAreas.clear()
+        dragState.clearHitAreas()
     }
 
     fun launchTracked(
@@ -490,607 +465,37 @@ fun Sidebar(
                         .fillMaxSize()
                         .padding(start = 4.dp, end = 8.dp),
                 ) {
-            item {
-                SectionHeader(
-                    icon = painterResource(Res.drawable.ic_history),
-                    title = Strings.history,
-                    expanded = state.historyExpanded,
-                    onToggle = { state.historyExpanded = !state.historyExpanded },
-                )
-            }
-            if (state.historyExpanded) {
-                // M-4: Filter history items by the sidebar search query so the search
-                // bar works consistently across both Collections and History sections.
-                val historyQuery = normalizeSidebarSearchQuery(state.sidebarSearchQuery)
-                val visibleHistory = if (historyQuery.isBlank()) {
-                    state.historyItems
-                } else {
-                    state.historyItems.filter { item ->
-                        item.name.contains(historyQuery, ignoreCase = true) ||
-                            item.url.contains(historyQuery, ignoreCase = true)
-                    }
-                }
-                items(visibleHistory, key = { "hist-${it.requestId}-${it.timestamp}" }) { item ->
-                    HistoryRow(state = state, item = item, onClick = {
-                        state.openHistoryItem(item)
-                    })
-                }
-                item { SectionSpacer() }
-            }
 
-            item {
-                SectionHeader(
-                    icon = painterResource(Res.drawable.ic_article),
-                    title = Strings.collectionsHeader,
-                    expanded = state.collectionsExpanded,
-                    modifier = Modifier.testTag("sidebar-collections-header"),
-                    onToggle = {
-                        state.collectionsExpanded = !state.collectionsExpanded
-                        state.settings.collectionsExpanded = state.collectionsExpanded
+            sidebarHistorySection(state = state)
+
+            sidebarCollectionsSection(
+                state = state,
+                scope = scope,
+                dragState = dragState,
+                persistWorkspaceAsync = ::persistWorkspaceAsync,
+                launchTracked = ::launchTracked,
+                inlineRenamingId = inlineRenamingId,
+                onInlineRenamingIdChange = { inlineRenamingId = it },
+                onCommitInlineRename = onCommitInlineRename,
+                onAddFolder = { target ->
+                    addFolderTarget = target
+                    addFolderValue = "New Folder"
+                },
+            )
+
+                sidebarEnvironmentsSection(
+                    state = state,
+                    scope = scope,
+                    launchTracked = ::launchTracked,
+                    onCreateEnvironment = {
+                        createEnvironmentValue = ""
+                        showCreateEnvironmentDialog = true
                     },
-                    trailing = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            var showHeaderMenu by remember { mutableStateOf(false) }
-                            IconButtonWithTooltip(
-                                onClick = {
-                                    val created = state.createNewCollection()
-                                    inlineRenamingId = created.id
-                                    if (!state.collectionsExpanded) {
-                                        state.collectionsExpanded = true
-                                        state.settings.collectionsExpanded = true
-                                    }
-                                    persistWorkspaceAsync()
-                                },
-                                tooltip = Strings.addCollection,
-                                modifier = Modifier.size(24.dp).testTag("sidebar-add-collection-button"),
-                            ) {
-                                Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = Strings.addCollection, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
-                            }
-                            Box {
-                                IconButtonWithTooltip(
-                                    onClick = { showHeaderMenu = true },
-                                    tooltip = Strings.folderActions,
-                                    modifier = Modifier.size(24.dp).testTag("sidebar-collections-menu-button"),
-                                ) {
-                                    Icon(painter = painterResource(Res.drawable.ic_more_vert), contentDescription = Strings.folderActions, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
-                                }
-                                DropdownMenu(
-                                    expanded = showHeaderMenu,
-                                    onDismissRequest = { showHeaderMenu = false },
-                                ) {
-                                    DropdownMenuItem(
-                                        text = { Text(Strings.exportCollections, fontSize = 12.sp) },
-                                        leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_download), contentDescription = null, modifier = Modifier.size(14.dp)) },
-                                        onClick = {
-                                            showHeaderMenu = false
-                                            state.showExportCollectionsDialog = true
-                                        },
-                                        modifier = Modifier.testTag("menu-export-collections"),
-                                    )
-                                }
-                            }
-                        }
+                    onRenameEnvironment = { index, name ->
+                        renameEnvironmentIndex = index
+                        renameEnvironmentValue = name
                     },
                 )
-            }
-            if (state.collectionsExpanded) {
-                val query = normalizeSidebarSearchQuery(state.sidebarSearchQuery)
-                val visibleCollections = if (query.isBlank()) {
-                    state.collections
-                } else {
-                    state.collections.mapNotNull { filterCollectionNode(it, query) }
-                }
-
-                val onDuplicateSelectedFolders: () -> Unit = {
-                    val toDuplicate = state.selectedFolderIds.toList()
-                    for (id in toDuplicate) {
-                        duplicateFolderInCollections(state.collections, id)
-                    }
-                    state.notifyCollectionsChanged()
-                    persistWorkspaceAsync()
-                    state.log("Folder(s) duplicated: ${toDuplicate.size}", LogLevel.SUCCESS)
-                }
-
-                val onDeleteSelectedFolders: () -> Unit = {
-                    val toDelete = state.selectedFolderIds.toList()
-                    val action = {
-                        val allRequestIdsToClose = mutableListOf<String>()
-                        for (id in toDelete) {
-                            val deleted = deleteFolderFromCollections(state.collections, id)
-                            if (deleted != null) {
-                                allRequestIdsToClose.addAll(collectAllRequestIds(deleted))
-                            }
-                        }
-                        state.closeTabsByIds(allRequestIdsToClose)
-                        state.selectedFolderIds.clear()
-                        state.notifyCollectionsChanged()
-                        persistWorkspaceAsync()
-                        state.log("Folder(s) deleted: ${toDelete.size}", LogLevel.INFO)
-                    }
-                    if (state.settings.confirmBeforeDelete) {
-                        state.showConfirm(
-                            title = "Delete folders?",
-                            message = "Delete ${toDelete.size} folder(s)? This cannot be undone.",
-                            action = action,
-                        )
-                    } else {
-                        action()
-                    }
-                }
-
-                val onDuplicateSelectedRequests: () -> Unit = {
-                    val toDuplicate = state.selectedRequestIds.toList()
-                    for (id in toDuplicate) {
-                        duplicateRequestInCollections(state.collections, id)
-                    }
-                    state.notifyCollectionsChanged()
-                    persistWorkspaceAsync()
-                    state.log("Request(s) duplicated: ${toDuplicate.size}", LogLevel.SUCCESS)
-                }
-
-                val onDeleteSelectedRequests: () -> Unit = {
-                    val toDelete = state.selectedRequestIds.toList()
-                    val action = {
-                        for (id in toDelete) {
-                            deleteRequestFromCollections(state.collections, id)
-                        }
-                        state.closeTabsByIds(toDelete)
-                        state.selectedRequestIds.clear()
-                        state.notifyCollectionsChanged()
-                        persistWorkspaceAsync()
-                        state.log("Request(s) deleted: ${toDelete.size}", LogLevel.INFO)
-                    }
-                    if (state.settings.confirmBeforeDelete) {
-                        state.showConfirm(
-                            title = "Delete requests?",
-                            message = "Delete ${toDelete.size} request(s)? This cannot be undone.",
-                            action = action,
-                        )
-                    } else {
-                        action()
-                    }
-                }
-
-                visibleCollections.forEach { node ->
-                    item(key = node.id) {
-                        CollectionTreeNode(
-                            node = node,
-                            depth = 0,
-                            parentCollectionId = null,
-                            state = state,
-                            onExportCollection = { target ->
-                                launchTracked("Exporting collection", "Exporting ${target.name}...") {
-                                    val jsonStr = ImportExportRepository.exportCollectionToString(target)
-                                    saveFileForExport(jsonStr, "${target.name}.json")
-                                    withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                        state.log("Collection exported: ${target.name}.json", LogLevel.SUCCESS)
-                                    }
-                                }
-                            },
-                            onDuplicateCollection = { target ->
-                                if (target.isCollection) {
-                                    val newName = state.disambiguateCollectionName(target.name)
-                                    val duplicated = duplicateNode(target, rootNameOverride = newName)
-                                    state.collections.add(duplicated)
-                                    state.notifyCollectionsChanged()
-                                    persistWorkspaceAsync()
-                                    state.log("Collection duplicated: $newName", LogLevel.SUCCESS)
-                                } else {
-                                    val existingNames = state.collections.map { it.name }.toSet()
-                                    val newName = ImportExportNaming.generateUniqueCollectionName(target.name, existingNames)
-                                    val duplicated = duplicateNode(target, rootNameOverride = newName)
-                                    state.collections.add(duplicated)
-                                    state.notifyCollectionsChanged()
-                                    persistWorkspaceAsync()
-                                    state.log("Folder duplicated: $newName", LogLevel.SUCCESS)
-                                }
-                            },
-                            onRenameCollection = { target ->
-                                inlineRenamingId = target.id
-                            },
-                            onDuplicateRequest = { target ->
-                                val duplicatedName = duplicateRequestInCollections(state.collections, target.id)
-                                if (duplicatedName != null) {
-                                    state.notifyCollectionsChanged()
-                                    persistWorkspaceAsync()
-                                    state.log("Request duplicated: $duplicatedName", LogLevel.SUCCESS)
-                                }
-                            },
-                            onDeleteCollection = { target ->
-                                if (target.isCollection) {
-                                    val action = {
-                                        state.deleteCollection(target.id)
-                                        state.selectedFolderIds.remove(target.id)
-                                        persistWorkspaceAsync()
-                                        state.log("Collection deleted: ${target.name}", LogLevel.INFO)
-                                    }
-                                    if (state.settings.confirmBeforeDelete) {
-                                        state.showConfirm(
-                                            title = "Delete collection?",
-                                            message = "Delete \"${target.name}\"? This cannot be undone.",
-                                            action = action,
-                                        )
-                                    } else {
-                                        action()
-                                    }
-                                } else {
-                                    val requestCount = countRequestsInFolder(target)
-                                    val action = {
-                                        val deleted = deleteFolderFromCollections(state.collections, target.id)
-                                        if (deleted != null) {
-                                            // Close all tabs belonging to requests in the deleted folder
-                                            val deletedIds = collectAllRequestIds(deleted)
-                                            state.closeTabsByIds(deletedIds)
-                                            state.selectedFolderIds.remove(target.id)
-                                            state.notifyCollectionsChanged()
-                                            persistWorkspaceAsync()
-                                            state.log("Folder deleted: ${target.name}", LogLevel.INFO)
-                                        }
-                                    }
-                                    if (state.settings.confirmBeforeDelete) {
-                                        val message = if (requestCount > 0) {
-                                            "Delete \"${target.name}\" and $requestCount request(s)? This cannot be undone."
-                                        } else {
-                                            "Delete \"${target.name}\"? This cannot be undone."
-                                        }
-                                        state.showConfirm(
-                                            title = "Delete folder?",
-                                            message = message,
-                                            action = action,
-                                        )
-                                    } else {
-                                        action()
-                                    }
-                                }
-                            },
-                            onAddFolder = { target ->
-                                addFolderTarget = target
-                                addFolderValue = "New Folder"
-                            },
-                            onAddRequest = { target ->
-                                state.addRequestToCollection(target.id)
-                                persistWorkspaceAsync()
-                            },
-                            onAddGrpcRequest = { target ->
-                                state.addGrpcRequestToCollection(target.id)
-                                persistWorkspaceAsync()
-                            },
-                            onAddWebSocketRequest = { target ->
-                                state.addWebSocketRequestToCollection(target.id)
-                                persistWorkspaceAsync()
-                            },
-                            onAddGraphQLRequest = { target ->
-                                state.addGraphQLRequestToCollection(target.id)
-                                persistWorkspaceAsync()
-                            },
-                            onAddMcpConnection = { target ->
-                                state.addMcpConnectionToCollection(target.id)
-                                persistWorkspaceAsync()
-                            },
-                            onAddSseRequest = { target ->
-                                state.addSseRequestToCollection(target.id)
-                                persistWorkspaceAsync()
-                            },
-                            onRenameRequest = { target ->
-                                inlineRenamingId = target.id
-                            },
-                            onDeleteRequest = { target ->
-                                val action = {
-                                    deleteRequestFromCollections(state.collections, target.id)
-                                    state.closeTabsByIds(listOf(target.id))
-                                    state.selectedRequestIds.remove(target.id)
-                                    state.notifyCollectionsChanged()
-                                    persistWorkspaceAsync()
-                                    state.log("Request deleted: ${target.name}", LogLevel.INFO)
-                                }
-                                if (state.settings.confirmBeforeDelete) {
-                                    state.showConfirm(
-                                        title = "Delete request?",
-                                        message = "Delete \"${target.name}\"? This cannot be undone.",
-                                        action = action,
-                                    )
-                                } else {
-                                    action()
-                                }
-                            },
-                            onMoveRequest = { requestId, direction ->
-                                if (moveRequestInCollections(state.collections, requestId, direction)) {
-                                    state.notifyCollectionsChanged()
-                                    persistWorkspaceAsync()
-                                }
-                            },
-                            onDuplicateSelectedFolders = onDuplicateSelectedFolders,
-                            onDeleteSelectedFolders = onDeleteSelectedFolders,
-                            onDuplicateSelectedRequests = onDuplicateSelectedRequests,
-                            onDeleteSelectedRequests = onDeleteSelectedRequests,
-                            draggedRequestId = draggedRequestId,
-                            dropTargetCollectionId = dropTargetCollectionId,
-                            dropTargetRequestId = dropTargetRequestId,
-                            dropInsertAfter = dropInsertAfter,
-                            onDragStart = { requestId ->
-                                draggedRequestId = requestId
-                                dragOffsetY = 0f
-                                dragCursorAbsY = hitAreas[requestId]?.let { (it.top + it.bottom) / 2f } ?: 0f
-                                dropTargetCollectionId = null
-                                dropTargetRequestId = null
-                                dropInsertAfter = false
-                            },
-                            onDragDelta = { requestId, deltaY ->
-                                if (draggedRequestId == requestId) {
-                                    dragOffsetY    += deltaY
-                                    dragCursorAbsY += deltaY
-                                    // Use absolute cursor position — avoids drift when the list
-                                    // has scrolled (baseCenter + offsetY is wrong after a scroll).
-                                    val currentY = dragCursorAbsY
-                                    val movingRequestIds = if (requestId in state.selectedRequestIds) {
-                                        state.selectedRequestIds.toList()
-                                    } else {
-                                        listOf(requestId)
-                                    }
-                                    val target = resolveClosestHitArea(
-                                        areas = hitAreas.values.filter { it.id !in movingRequestIds },
-                                        cursorY = currentY,
-                                    )
-                                    if (target != null) {
-                                        if (target.isFolder) {
-                                            dropTargetCollectionId = target.id
-                                            dropTargetRequestId    = null
-                                            dropInsertAfter        = false
-                                        } else {
-                                            val midY = (target.top + target.bottom) / 2f
-                                            dropInsertAfter        = currentY >= midY
-                                            dropTargetRequestId    = target.id
-                                            dropTargetCollectionId = target.parentCollectionId
-                                        }
-                                    }
-                                }
-                            },
-                            onNodePositioned = { area -> hitAreas[area.id] = area },
-                            onDragEnd = {
-                                dragCursorAbsY = 0f
-                                val sourceId = draggedRequestId
-                                val movingRequestIds = if (sourceId != null && sourceId in state.selectedRequestIds) {
-                                    state.selectedRequestIds.toList()
-                                } else if (sourceId != null) {
-                                    listOf(sourceId)
-                                } else {
-                                    emptyList()
-                                }
-                                val targetRequestId = dropTargetRequestId
-                                val targetCollectionId = dropTargetCollectionId
-                                if (movingRequestIds.isNotEmpty()) {
-                                    val moved = when {
-                                        targetRequestId != null && targetRequestId !in movingRequestIds ->
-                                            if (dropInsertAfter) {
-                                                moveRequestsAfterRequest(state.collections, movingRequestIds, targetRequestId)
-                                            } else {
-                                                moveRequestsBeforeRequest(state.collections, movingRequestIds, targetRequestId)
-                                            }
-                                        targetCollectionId != null ->
-                                            moveRequestsToCollection(state.collections, movingRequestIds, targetCollectionId)
-                                        else -> false
-                                    }
-                                    if (moved) {
-                                        state.notifyCollectionsChanged()
-                                        persistWorkspaceAsync()
-                                    }
-                                }
-                                draggedRequestId = null
-                                dragOffsetY = 0f
-                                dropTargetCollectionId = null
-                                dropTargetRequestId = null
-                                dropInsertAfter = false
-                            },
-                            // ── Collection-level drag callbacks ────────────────
-                            draggedCollectionId = draggedCollectionId,
-                            dropCollectionTargetId = dropCollectionTargetId,
-                            dropCollectionInsertAfter = dropCollectionInsertAfter,
-                            onCollectionDragStart = { collectionId ->
-                                draggedCollectionId = collectionId
-                                dragCollectionOffsetY = 0f
-                                dragCursorAbsY = collectionHitAreas[collectionId]?.let { (it.top + it.bottom) / 2f } ?: 0f
-                                draggedFolderParentId = collectionHitAreas[collectionId]?.parentCollectionId
-                                draggedFolderParentIdSet = true
-                                dropCollectionTargetId = null
-                                dropCollectionInsertAfter = false
-                            },
-                            onCollectionDragDelta = { collectionId, deltaY ->
-                                if (draggedCollectionId == collectionId) {
-                                    dragCollectionOffsetY += deltaY
-                                    dragCursorAbsY        += deltaY
-                                    val currentY = dragCursorAbsY
-                                    val parentId = draggedFolderParentId
-                                    val movingFolderIds = if (collectionId in state.selectedFolderIds) {
-                                        state.selectedFolderIds.toList()
-                                    } else {
-                                        listOf(collectionId)
-                                    }
-                                    val target = resolveClosestHitArea(
-                                        areas = collectionHitAreas.values.filter {
-                                            it.id !in movingFolderIds &&
-                                                it.parentCollectionId == parentId &&
-                                                isValidFolderGroupDropTarget(state.collections, movingFolderIds, it.id)
-                                        },
-                                        cursorY = currentY,
-                                    )
-                                    if (target != null) {
-                                        val midY = (target.top + target.bottom) / 2f
-                                        dropCollectionInsertAfter = currentY >= midY
-                                        dropCollectionTargetId    = target.id
-                                    }
-                                }
-                            },
-                            onCollectionHitAreaPositioned = { area -> collectionHitAreas[area.id] = area },
-                            onCollectionDragEnd = {
-                                dragCursorAbsY = 0f
-                                val sourceId = draggedCollectionId
-                                val targetId = dropCollectionTargetId
-                                val movingFolderIds = if (sourceId != null && sourceId in state.selectedFolderIds) {
-                                    state.selectedFolderIds.toList()
-                                } else if (sourceId != null) {
-                                    listOf(sourceId)
-                                } else {
-                                    emptyList()
-                                }
-                                if (movingFolderIds.isNotEmpty() && targetId != null && targetId !in movingFolderIds) {
-                                    val moved = if (dropCollectionInsertAfter) {
-                                        moveFoldersAfterFolder(state.collections, movingFolderIds, targetId)
-                                    } else {
-                                        moveFoldersBeforeFolder(state.collections, movingFolderIds, targetId)
-                                    }
-                                    if (moved) {
-                                        state.notifyCollectionsChanged()
-                                        persistWorkspaceAsync()
-                                    }
-                                }
-                                draggedCollectionId = null
-                                dragCollectionOffsetY = 0f
-                                draggedFolderParentId = null
-                                draggedFolderParentIdSet = false
-                                dropCollectionTargetId = null
-                                dropCollectionInsertAfter = false
-                            },
-                            inlineRenamingId = inlineRenamingId,
-                            onStartInlineRename = { inlineRenamingId = it },
-                            onCommitInlineRename = onCommitInlineRename,
-                            onCancelInlineRename = { inlineRenamingId = null },
-                        )
-                    }
-                }
-                item { SectionSpacer() }
-            }
-
-            item {
-                SectionHeader(
-                    icon = painterResource(Res.drawable.ic_settings),
-                    title = Strings.environments,
-                    expanded = state.environmentsExpanded,
-                    onToggle = {
-                        state.environmentsExpanded = !state.environmentsExpanded
-                        state.settings.environmentsExpanded = state.environmentsExpanded
-                    },
-                    trailing = {
-                        Row {
-                            IconButtonWithTooltip(
-                                onClick = {
-                                    pickFileForImport { content ->
-                                        scope.launch {
-                                            launchTracked("Importing environment", "Importing environment...") {
-                                                val importedName = ImportExportRepository.importEnvironmentFromString(state, content)
-                                                withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                                    WorkspaceRepository.save(state)
-                                                    state.log("Environment imported: $importedName", LogLevel.SUCCESS)
-                                                }
-                                            }
-                                        }
-                                    }
-                                },
-                                tooltip = Strings.t("import_environment"),
-                                modifier = Modifier.size(24.dp).testTag("environment-import-button"),
-                            ) {
-                                Icon(painter = painterResource(Res.drawable.ic_input),
-                                    contentDescription = Strings.t("import_environment"),
-                                    tint = ClapiColors.OnSurfaceDim,
-                                    modifier = Modifier.size(14.dp).testTag("environment-import-icon"),
-                                )
-                            }
-                            IconButtonWithTooltip(
-                                onClick = {
-                                    createEnvironmentValue = ""
-                                    showCreateEnvironmentDialog = true
-                                },
-                                tooltip = Strings.t("new_environment"),
-                                modifier = Modifier.size(24.dp).testTag("sidebar-new-environment-button"),
-                            ) {
-                                Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = Strings.t("new_environment"), tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
-                            }
-                        }
-                    },
-                )
-            }
-            if (state.environmentsExpanded) {
-                if (state.environments.isEmpty()) {
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 28.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Text(
-                                text = Strings.noEnvironmentsConfigured,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = ClapiColors.OnSurfaceDim,
-                                modifier = Modifier.weight(1f),
-                            )
-                            Text(
-                                text = Strings.createEnvironment,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = ClapiColors.Primary,
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(ClapiColors.Primary.copy(alpha = 0.10f))
-                                    .pointerHoverIcon(PointerIcon.Hand)
-                                    .clickable {
-                                        createEnvironmentValue = ""
-                                        showCreateEnvironmentDialog = true
-                                    }
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                            )
-                        }
-                    }
-                }
-                state.environments.forEachIndexed { index, env ->
-                    item(key = "env_$index") {
-                        EnvironmentRow(
-                            envName = env.name,
-                            active = index == state.selectedEnvIndex,
-                            onClick = { state.selectedEnvIndex = index },
-                            onDoubleClick = {
-                                state.selectedEnvIndex = index
-                                state.openEnvEdit(index)
-                            },
-                            onEdit = { state.openEnvEdit(index) },
-                            onDuplicate = {
-                                val names = state.environments.map { it.name }.toSet()
-                                val uniqueName = ImportExportNaming.generateUniqueEnvironmentName(env.name, names)
-                                val duplicated = EnvState(
-                                    name = uniqueName,
-                                    variables = env.variables.map { v ->
-                                        io.github.crustack.clapi.ui.shared.state.MutableKeyValue(v.key, v.value, v.enabled, v.secret)
-                                    }
-                                )
-                                state.environments.add(duplicated)
-                                state.log("Environment duplicated: $uniqueName", LogLevel.SUCCESS)
-                            },
-                            onRename = {
-                                renameEnvironmentIndex = index
-                                renameEnvironmentValue = env.name
-                            },
-                            onDelete = {
-                                val action = {
-                                    if (state.environments.isNotEmpty()) {
-                                        val deletedName = state.environments[index].name
-                                        state.environments.removeAt(index)
-                                        state.selectedEnvIndex = if (state.environments.isEmpty()) 0 else state.selectedEnvIndex.coerceIn(0, state.environments.lastIndex)
-                                        state.log("Environment deleted: $deletedName", LogLevel.INFO)
-                                    }
-                                }
-                                if (state.settings.confirmBeforeDelete) {
-                                    state.showConfirm(
-                                        title = "Delete environment?",
-                                        message = "Delete \"${env.name}\"? This cannot be undone.",
-                                        action = action,
-                                    )
-                                } else {
-                                    action()
-                                }
-                            },
-                        )
-                    }
-                }
-            }
             }
 
             VerticalScrollbar(
@@ -1102,7 +507,7 @@ fun Sidebar(
             )
         }
 
-            SidebarGitStatusIndicator(state = state)
+            SidebarFooter(state = state)
         }
         // Single tooltip overlay — not a Popup, so no hover-exit flicker.
         SidebarTooltipOverlay()
@@ -1245,105 +650,3 @@ fun Sidebar(
     }
 }
 
-@Composable
-private fun SearchBar(query: String, onQueryChanged: (String) -> Unit, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(ClapiColors.SurfaceContainer)
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(painter = painterResource(Res.drawable.ic_search), contentDescription = null, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
-        Spacer(Modifier.width(8.dp))
-        BasicTextField(
-            value = query,
-            onValueChange = onQueryChanged,
-            singleLine = true,
-            textStyle = TextStyle(color = ClapiColors.OnSurface, fontSize = 13.sp),
-            cursorBrush = SolidColor(ClapiColors.Primary),
-            modifier = Modifier.weight(1f).testTag("sidebar-search-input"),
-            decorationBox = { inner ->
-                if (query.isEmpty()) Text("${Strings.search}…", color = ClapiColors.OnSurfaceDim, fontSize = 13.sp)
-                inner()
-            },
-        )
-        if (query.isNotEmpty()) {
-            Spacer(Modifier.width(4.dp))
-            HoverTooltip(
-                tooltip = Strings.t("clear_search"),
-            ) {
-                Icon(painter = painterResource(Res.drawable.ic_close),
-                    contentDescription = Strings.t("clear_search"),
-                    tint = ClapiColors.OnSurfaceDim,
-                    modifier = Modifier
-                        .size(14.dp)
-                        .pointerHoverIcon(PointerIcon.Hand)
-                        .clickable(onClick = { onQueryChanged("") })
-                        .testTag("sidebar-search-clear"),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SectionHeader(
-    icon: Painter,
-    title: String,
-    expanded: Boolean,
-    onToggle: () -> Unit,
-    onClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
-    trailing: @Composable (() -> Unit)? = null,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isHovered by interactionSource.collectIsHoveredAsState()
-
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
-            .background(if (isHovered) ClapiColors.HoverOverlay else Color.Transparent)
-            .hoverable(interactionSource)
-            .pointerHoverIcon(PointerIcon.Hand)
-            .clickable(onClick = { onClick?.invoke() ?: onToggle() })
-            .padding(horizontal = 8.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            if (expanded) painterResource(Res.drawable.ic_keyboard_arrow_down) else painterResource(Res.drawable.ic_keyboard_arrow_right),
-            contentDescription = null,
-            tint = ClapiColors.OnSurfaceDim,
-            modifier = Modifier
-                .size(16.dp)
-                .pointerHoverIcon(PointerIcon.Hand)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onToggle,
-                ),
-        )
-        Spacer(Modifier.width(4.dp))
-        Icon(icon, contentDescription = null, tint = ClapiColors.OnSurfaceVariant, modifier = Modifier.size(16.dp))
-        Spacer(Modifier.width(8.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            color = ClapiColors.OnSurface,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            softWrap = false,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Spacer(Modifier.weight(1f))
-        trailing?.invoke()
-    }
-}
-
-
-@Composable
-private fun SectionSpacer(modifier: Modifier = Modifier) {
-    Spacer(modifier.height(8.dp))
-}

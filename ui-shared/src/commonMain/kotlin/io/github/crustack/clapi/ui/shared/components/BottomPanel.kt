@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -25,6 +26,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -38,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerHoverIcon
+import io.github.crustack.clapi.ui.shared.platform.PlatformLazyVerticalScrollbar
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -64,7 +68,10 @@ private const val MIN_BOTTOM_PANEL_HEIGHT = 120f
 private const val MAX_BOTTOM_PANEL_HEIGHT = 560f
 
 @Composable
-fun BottomPanel(state: AppState) {
+fun BottomPanel(
+    state: AppState,
+    modifier: Modifier = Modifier,
+) {
     val noConsoleOutput = Strings.t("no_console_output")
     val noTestResults = Strings.t("no_test_results")
     val copyOutputLabel = Strings.t("copy_output")
@@ -72,13 +79,14 @@ fun BottomPanel(state: AppState) {
     val testResultsLabel = Strings.testResults
     val logsLabel = Strings.logs
 
-    Column(modifier = Modifier.fillMaxWidth().testTag("bottom-panel")) {
+    Column(modifier = modifier.fillMaxWidth().testTag("bottom-panel")) {
         // ── Toggle bar ──────────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(32.dp)
                 .background(ClapiColors.Surface)
+                .handPointerHover()
                 .clickable { state.bottomPanelExpanded = !state.bottomPanelExpanded }
                 .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -109,7 +117,7 @@ fun BottomPanel(state: AppState) {
                             state.selectedBottomTab = tab
                             if (!state.bottomPanelExpanded) state.bottomPanelExpanded = true
                         },
-                        modifier = Modifier.height(30.dp),
+                        modifier = Modifier.height(30.dp).handPointerHover(),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
@@ -269,15 +277,24 @@ private fun ConsoleView(logs: List<ConsoleEntry>) {
             Text(Strings.t("no_console_output"), color = ClapiColors.OnSurfaceDim, fontSize = 12.sp)
         }
     } else {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp)
-                .testTag("console-output"),
-        ) {
-            items(logs) { entry ->
-                ConsoleRow(entry)
+        val listState = rememberLazyListState()
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(end = 12.dp, start = 8.dp, top = 8.dp, bottom = 8.dp)
+                    .testTag("console-output"),
+            ) {
+                itemsIndexed(logs, key = { index, it -> "${it.timestamp}_${it.message.hashCode()}_$index" }) { _, entry ->
+                    ConsoleRow(entry)
+                }
             }
+            PlatformLazyVerticalScrollbar(
+                listState = listState,
+                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+                testTag = "console-scrollbar",
+            )
         }
     }
 }
@@ -328,42 +345,51 @@ private fun TestResultsView(results: List<TestResultEntry>) {
             Text(Strings.t("no_test_results"), color = ClapiColors.OnSurfaceDim, fontSize = 12.sp)
         }
     } else {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp)
-                .testTag("test-results"),
-        ) {
-            items(results) { result ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 2.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(
-                            if (result.passed) ClapiColors.Secondary.copy(alpha = 0.08f)
-                            else ClapiColors.Error.copy(alpha = 0.08f)
+        val listState = rememberLazyListState()
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(end = 12.dp, start = 8.dp, top = 8.dp, bottom = 8.dp)
+                    .testTag("test-results"),
+            ) {
+                itemsIndexed(results, key = { index, it -> "${it.name}_${it.passed}_$index" }) { _, result ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 2.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(
+                                if (result.passed) ClapiColors.Secondary.copy(alpha = 0.08f)
+                                else ClapiColors.Error.copy(alpha = 0.08f)
+                            )
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(painter = painterResource(Res.drawable.ic_check_circle),
+                            contentDescription = null,
+                            tint = if (result.passed) ClapiColors.Secondary else ClapiColors.Error,
+                            modifier = Modifier.size(14.dp),
                         )
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Icon(painter = painterResource(Res.drawable.ic_check_circle),
-                        contentDescription = null,
-                        tint = if (result.passed) ClapiColors.Secondary else ClapiColors.Error,
-                        modifier = Modifier.size(14.dp),
-                    )
-                    Text(
-                        result.name,
-                        color = ClapiColors.OnSurface,
-                        fontSize = 12.sp,
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (result.message.isNotEmpty()) {
-                        Text(result.message, color = ClapiColors.OnSurfaceDim, fontSize = 11.sp)
+                        Text(
+                            result.name,
+                            color = ClapiColors.OnSurface,
+                            fontSize = 12.sp,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (result.message.isNotEmpty()) {
+                            Text(result.message, color = ClapiColors.OnSurfaceDim, fontSize = 11.sp)
+                        }
                     }
                 }
             }
+            PlatformLazyVerticalScrollbar(
+                listState = listState,
+                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+                testTag = "test-results-scrollbar",
+            )
         }
     }
 }

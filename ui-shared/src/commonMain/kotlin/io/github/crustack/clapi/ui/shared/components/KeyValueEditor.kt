@@ -176,7 +176,7 @@ private fun KeyValueRow(
             checked = kv.enabled,
             onCheckedChange = { if (!isInherited) { kv.enabled = it; onDirty() } },
             enabled = !isInherited,
-            modifier = Modifier.size(24.dp),
+            modifier = Modifier.size(24.dp).handPointerHover(!isInherited),
             colors = CheckboxDefaults.colors(
                 checkedColor = ClapiColors.Primary,
                 uncheckedColor = ClapiColors.OnSurfaceDim,
@@ -234,7 +234,7 @@ private fun KeyValueRow(
         IconButtonWithTooltip(
             onClick = onDelete,
             tooltip = Strings.t("remove"),
-            modifier = Modifier.size(24.dp).testTag("$testTag-remove"),
+            modifier = Modifier.size(24.dp).handPointerHover(!isSystemHeader && !isInherited).testTag("$testTag-remove"),
             enabled = !isSystemHeader && !isInherited,
         ) {
             Icon(painter = painterResource(Res.drawable.ic_delete), contentDescription = Strings.t("remove"), tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))

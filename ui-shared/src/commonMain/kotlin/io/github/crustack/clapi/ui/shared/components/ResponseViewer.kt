@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -14,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -37,6 +40,8 @@ import io.github.crustack.clapi.core.model.ResponseDefinition
 import io.github.crustack.clapi.ui.shared.generated.resources.Res
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_error_outline
 import io.github.crustack.clapi.ui.shared.i18n.Strings
+import io.github.crustack.clapi.ui.shared.platform.PlatformColumnVerticalScrollbar
+import io.github.crustack.clapi.ui.shared.platform.PlatformLazyVerticalScrollbar
 import io.github.crustack.clapi.ui.shared.platform.saveFileForExport
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
 import io.github.crustack.clapi.ui.shared.state.ResponseTab
@@ -50,10 +55,11 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun ResponseViewer(
     tab: RequestTabState,
+    modifier: Modifier = Modifier,
     showCursorPosition: Boolean = true,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(ClapiColors.Background)
             .testTag("response-viewer"),
@@ -266,6 +272,7 @@ private fun ResponseTabBar(
                     onClick = { onTabSelected(tab) },
                     modifier = Modifier
                         .height(34.dp)
+                        .handPointerHover()
                         .testTag("response-tab-${tab.name.lowercase()}"),
                 ) {
                     Text(
@@ -329,30 +336,41 @@ private fun ResponseBodyView(response: ResponseDefinition, showCursorPosition: B
 
 @Composable
 private fun ResponseHeadersView(response: ResponseDefinition) {
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(8.dp)) {
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-            ) {
-                Text(Strings.t("key_upper"), style = MaterialTheme.typography.labelSmall, color = ClapiColors.OnSurfaceDim, modifier = Modifier.weight(0.4f))
-                Text(Strings.t("value_upper"), style = MaterialTheme.typography.labelSmall, color = ClapiColors.OnSurfaceDim, modifier = Modifier.weight(0.6f))
-            }
-        }
-        items(response.headers) { header ->
-            SelectionContainer {
+    val listState = rememberLazyListState()
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize().padding(end = 12.dp, start = 8.dp, top = 8.dp, bottom = 8.dp),
+        ) {
+            item {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 3.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(ClapiColors.SurfaceContainer)
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
                 ) {
-                    Text(header.key, color = ClapiColors.Primary, fontSize = 12.sp, fontFamily = CodeFontFamily, modifier = Modifier.weight(0.4f))
-                    Text(header.value, color = ClapiColors.OnSurface, fontSize = 12.sp, fontFamily = CodeFontFamily, modifier = Modifier.weight(0.6f))
+                    Text(Strings.t("key_upper"), style = MaterialTheme.typography.labelSmall, color = ClapiColors.OnSurfaceDim, modifier = Modifier.weight(0.4f))
+                    Text(Strings.t("value_upper"), style = MaterialTheme.typography.labelSmall, color = ClapiColors.OnSurfaceDim, modifier = Modifier.weight(0.6f))
+                }
+            }
+            itemsIndexed(response.headers, key = { index, header -> "${header.key}_${header.value}_$index" }) { _, header ->
+                SelectionContainer {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 3.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(ClapiColors.SurfaceContainer)
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                    ) {
+                        Text(header.key, color = ClapiColors.Primary, fontSize = 12.sp, fontFamily = CodeFontFamily, modifier = Modifier.weight(0.4f))
+                        Text(header.value, color = ClapiColors.OnSurface, fontSize = 12.sp, fontFamily = CodeFontFamily, modifier = Modifier.weight(0.6f))
+                    }
                 }
             }
         }
+        PlatformLazyVerticalScrollbar(
+            listState = listState,
+            modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+            testTag = "response-headers-scrollbar",
+        )
     }
 }
 
@@ -365,22 +383,33 @@ private fun ResponseCookiesView(response: ResponseDefinition) {
             Text(Strings.noCookies, color = ClapiColors.OnSurfaceDim, fontSize = 13.sp)
         }
     } else {
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(8.dp)) {
-            items(response.cookies) { cookie ->
-                SelectionContainer {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 3.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(ClapiColors.SurfaceContainer)
-                            .padding(horizontal = 8.dp, vertical = 6.dp),
-                    ) {
-                        Text(cookie.key, color = ClapiColors.Tertiary, fontSize = 12.sp, fontFamily = CodeFontFamily, modifier = Modifier.weight(0.4f))
-                        Text(cookie.value, color = ClapiColors.OnSurface, fontSize = 12.sp, fontFamily = CodeFontFamily, modifier = Modifier.weight(0.6f))
+        val listState = rememberLazyListState()
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize().padding(end = 12.dp, start = 8.dp, top = 8.dp, bottom = 8.dp),
+            ) {
+                itemsIndexed(response.cookies, key = { index, cookie -> "${cookie.key}_${cookie.value}_$index" }) { _, cookie ->
+                    SelectionContainer {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 3.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(ClapiColors.SurfaceContainer)
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                        ) {
+                            Text(cookie.key, color = ClapiColors.Tertiary, fontSize = 12.sp, fontFamily = CodeFontFamily, modifier = Modifier.weight(0.4f))
+                            Text(cookie.value, color = ClapiColors.OnSurface, fontSize = 12.sp, fontFamily = CodeFontFamily, modifier = Modifier.weight(0.6f))
+                        }
                     }
                 }
             }
+            PlatformLazyVerticalScrollbar(
+                listState = listState,
+                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+                testTag = "response-cookies-scrollbar",
+            )
         }
     }
 }
@@ -389,21 +418,30 @@ private fun ResponseCookiesView(response: ResponseDefinition) {
 
 @Composable
 private fun ResponseRawView(response: ResponseDefinition) {
-    SelectionContainer {
-        Text(
-            text = if (response.streamEvents.isNotEmpty()) {
-                response.streamEvents.joinToString("\n")
-            } else {
-                response.bodyText
-            },
-            color = ClapiColors.OnSurface,
-            fontSize = 13.sp,
-            fontFamily = CodeFontFamily,
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .horizontalScroll(rememberScrollState())
-                .padding(12.dp),
+    val verticalScrollState = rememberScrollState()
+    val horizontalScrollState = rememberScrollState()
+    Box(modifier = Modifier.fillMaxSize()) {
+        SelectionContainer {
+            Text(
+                text = if (response.streamEvents.isNotEmpty()) {
+                    response.streamEvents.joinToString("\n")
+                } else {
+                    response.bodyText
+                },
+                color = ClapiColors.OnSurface,
+                fontSize = 13.sp,
+                fontFamily = CodeFontFamily,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(verticalScrollState)
+                    .horizontalScroll(horizontalScrollState)
+                    .padding(end = 12.dp, start = 12.dp, top = 12.dp, bottom = 12.dp),
+            )
+        }
+        PlatformColumnVerticalScrollbar(
+            scrollState = verticalScrollState,
+            modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+            testTag = "response-raw-scrollbar",
         )
     }
 }
@@ -416,26 +454,28 @@ private fun ResponseTimingView(response: ResponseDefinition) {
     data class Phase(val label: String, val ms: Long, val color: Color)
 
     val phases = buildList {
-        if (m.dnsMs >= 0) add(Phase("DNS Lookup", m.dnsMs, Color(0xFF42A5F5)))
-        if (m.connectMs >= 0) add(Phase("TCP Connect", m.connectMs, Color(0xFFFFA726)))
-        if (m.tlsMs >= 0) add(Phase("TLS Handshake", m.tlsMs, Color(0xFFAB47BC)))
-        if (m.serverMs >= 0) add(Phase("Server Processing", m.serverMs, Color(0xFF66BB6A)))
-        if (m.downloadMs >= 0) add(Phase("Content Download", m.downloadMs, Color(0xFFEF5350)))
-        if (m.ttfbMs >= 0) add(Phase("TTFB", m.ttfbMs, Color(0xFF26A69A)))
-        if (m.timeToFirstTokenMs >= 0) add(Phase("Time to First Token", m.timeToFirstTokenMs, Color(0xFF5C6BC0)))
-        if (m.timeToLastTokenMs >= 0) add(Phase("Time to Last Token", m.timeToLastTokenMs, Color(0xFF8D6E63)))
+        if (m.dnsMs >= 0) add(Phase("DNS Lookup", m.dnsMs, ClapiColors.StatusInfo))
+        if (m.connectMs >= 0) add(Phase("TCP Connect", m.connectMs, ClapiColors.StatusWarning))
+        if (m.tlsMs >= 0) add(Phase("TLS Handshake", m.tlsMs, ClapiColors.Tertiary))
+        if (m.serverMs >= 0) add(Phase("Server Processing", m.serverMs, ClapiColors.StatusSuccess))
+        if (m.downloadMs >= 0) add(Phase("Content Download", m.downloadMs, ClapiColors.Error))
+        if (m.ttfbMs >= 0) add(Phase("TTFB", m.ttfbMs, ClapiColors.Secondary))
+        if (m.timeToFirstTokenMs >= 0) add(Phase("Time to First Token", m.timeToFirstTokenMs, ClapiColors.Primary))
+        if (m.timeToLastTokenMs >= 0) add(Phase("Time to Last Token", m.timeToLastTokenMs, ClapiColors.OnSurfaceDim))
     }
 
     val totalMs = m.responseTimeMs.coerceAtLeast(1)
+    val scrollState = rememberScrollState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-            .testTag("response-timing-view"),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(end = 16.dp, start = 16.dp, top = 16.dp, bottom = 16.dp)
+                .testTag("response-timing-view"),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
         Text(
             "Request Timing Breakdown",
             color = ClapiColors.OnSurface,
@@ -494,6 +534,12 @@ private fun ResponseTimingView(response: ResponseDefinition) {
                 }
             }
         }
+        }
+        PlatformColumnVerticalScrollbar(
+            scrollState = scrollState,
+            modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+            testTag = "response-timing-scrollbar",
+        )
     }
 }
 
