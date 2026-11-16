@@ -5,15 +5,6 @@ plugins {
 kotlin {
     jvm("desktop")
 
-    js(IR) {
-        browser()
-    }
-
-    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
-    wasmJs {
-        browser()
-    }
-
     sourceSets {
         commonMain.dependencies {
             implementation(project(":core-model"))

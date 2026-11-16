@@ -27,6 +27,5 @@ include(
     ":feature-requests",
     ":ui-shared",
     ":ui-desktop",
-    ":ui-web",
     ":sample-server"
 )
