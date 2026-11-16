@@ -294,6 +294,10 @@ class DummyApiServer(
 
     fun baseUrl(): String = "http://127.0.0.1:${resolvedPort()}"
 
+    fun wsUrl(): String = "ws://127.0.0.1:${resolvedPort()}/ws"
+
+    fun wsPort(): Int = resolvedPort()
+
     fun grpcPort(): Int = requireNotNull(grpcServer) { "gRPC server not started" }.port
 
     fun grpcEndpoint(): String = "127.0.0.1:${grpcPort()}"
@@ -660,7 +664,13 @@ fun main() {
     val server = DummyApiServer()
     val httpPort = server.start()
     println("HTTP Port: $httpPort")
+    println("HTTP Base URL: ${server.baseUrl()}")
+    println("WebSocket Port: ${server.wsPort()}")
+    println("WebSocket URL: ${server.wsUrl()}")
     println("gRPC Port: ${server.grpcPort()}")
+    println("gRPC Endpoint: ${server.grpcEndpoint()}")
+    println("gRPC Proto Path: ${server.protoFilePath()}")
+    println("gRPC Common Metadata Proto Path: ${server.metadataProtoFilePath()}")
     while (true) {
         Thread.sleep(100)
     }

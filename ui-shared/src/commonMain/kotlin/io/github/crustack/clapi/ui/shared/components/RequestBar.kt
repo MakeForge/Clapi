@@ -249,7 +249,7 @@ private fun SendButton(isLoading: Boolean, onClick: () -> Unit, onCancel: () -> 
 }
 
 @Composable
-private fun SaveButton(isLoading: Boolean, onClick: () -> Unit) {
+internal fun SaveButton(isLoading: Boolean, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
 

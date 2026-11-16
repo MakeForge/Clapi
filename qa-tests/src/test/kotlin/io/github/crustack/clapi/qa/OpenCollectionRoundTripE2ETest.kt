@@ -3,6 +3,8 @@ package io.github.crustack.clapi.qa
 import io.github.crustack.clapi.core.model.opencollection.ClapiExtensionData
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestItem
+import io.github.crustack.clapi.core.model.opencollection.WebSocketRequestItem
+import io.github.crustack.clapi.core.model.opencollection.WebSocketMessagePayload
 import io.github.crustack.clapi.core.model.opencollection.OpenCollectionDocument
 import io.github.crustack.clapi.core.model.opencollection.getClapiExtensionData
 import io.github.crustack.clapi.core.model.opencollection.withClapiExtensionData
@@ -55,6 +57,26 @@ class OpenCollectionRoundTripE2ETest {
             {
               "info": {"name": "Health", "type": "http"},
               "http": {"method": "GET", "url": "{{baseUrl}}/health"}
+            },
+            {
+              "info": {"name": "WebSocket Echo", "type": "websocket"},
+              "websocket": {
+                "url": "{{baseUrl}}/ws",
+                "headers": [{"name": "X-Custom", "value": "custom-val"}],
+                "message": [
+                  {
+                    "title": "Ping",
+                    "selected": true,
+                    "message": {"type": "json", "data": "{\"ping\":true}"}
+                  }
+                ],
+                "auth": {"type": "bearer", "token": "ws-token"}
+              },
+              "settings": {
+                "timeout": 5000,
+                "keepAliveInterval": 2000
+              },
+              "docs": "WS Docs"
             }
           ],
           "extensions": {"clapi": {"authType": "bearer"}},
@@ -75,8 +97,14 @@ class OpenCollectionRoundTripE2ETest {
     }
 
     private fun assertPreservedStructure(doc: OpenCollectionDocument) {
-        assertEquals(listOf("Users", "Health"), doc.items.map { it.info.name })
+        assertEquals(listOf("Users", "Health", "WebSocket Echo"), doc.items.map { it.info.name })
         assertEquals("Round Trip", doc.info.name)
+        val wsItem = assertIs<WebSocketRequestItem>(doc.items[2])
+        assertEquals("{{baseUrl}}/ws", wsItem.websocket.url)
+        assertEquals("WS Docs", wsItem.docs)
+        val variants = assertIs<WebSocketMessagePayload.Variants>(wsItem.websocket.message)
+        assertEquals(1, variants.variants.size)
+        assertEquals("Ping", variants.variants[0].title)
         assertEquals(
             Json.parseToJsonElement("""{"tag":"keep-me"}"""),
             doc.extensions["x-vendor"],
@@ -94,7 +122,7 @@ class OpenCollectionRoundTripE2ETest {
         val reloaded = DefaultCanonicalCollectionRepository(baseDirectory = dir)
             .getCollection("Round Trip")
         assertNotNull(reloaded, "Collection must be readable from disk by a fresh repository")
-        assertEquals(listOf("Users", "Health"), reloaded.items.map { it.info.name })
+        assertEquals(listOf("Users", "Health", "WebSocket Echo"), reloaded.items.map { it.info.name })
         assertEquals("Round Trip", reloaded.info.name)
         assertEquals("{{baseUrl}}/users", listUsersUrl(reloaded))
 
@@ -107,7 +135,7 @@ class OpenCollectionRoundTripE2ETest {
         val afterEdit = DefaultCanonicalCollectionRepository(baseDirectory = dir)
             .getCollection("Round Trip")
         assertNotNull(afterEdit)
-        assertEquals(listOf("Users", "Health"), afterEdit.items.map { it.info.name })
+        assertEquals(listOf("Users", "Health", "WebSocket Echo"), afterEdit.items.map { it.info.name })
         assertEquals("{{baseUrl}}/v2/users", listUsersUrl(afterEdit))
     }
 

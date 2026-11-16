@@ -84,6 +84,7 @@ class OpenCollectionImporter(
             when (item) {
                 is HttpRequestItem -> count++
                 is io.github.crustack.clapi.core.model.opencollection.GrpcRequestItem -> count++
+                is io.github.crustack.clapi.core.model.opencollection.WebSocketRequestItem -> count++
                 is FolderItem -> count += countRequests(item.items)
             }
         }
