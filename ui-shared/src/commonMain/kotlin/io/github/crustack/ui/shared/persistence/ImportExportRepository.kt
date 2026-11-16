@@ -1,42 +1,25 @@
 package io.github.crustack.ui.shared.persistence
 
-import io.github.crustack.core.model.AuthConfig
-import io.github.crustack.core.model.AuthType
-import io.github.crustack.core.model.BodyType
-import io.github.crustack.core.model.FormEntryType
-import io.github.crustack.core.model.HttpMethodType
-import io.github.crustack.core.model.KeyValueEntry
-import io.github.crustack.ui.shared.state.FormDataEntryState
-import io.github.crustack.ui.shared.state.AppState
-import io.github.crustack.ui.shared.state.CollectionNode
-import androidx.compose.runtime.mutableStateListOf
-import io.github.crustack.ui.shared.state.EnvState
-import io.github.crustack.ui.shared.state.HistoryItem
-import io.github.crustack.ui.shared.state.MutableKeyValue
-import io.github.crustack.ui.shared.state.normalizeApiKeyPlacement
-import io.github.crustack.ui.shared.state.SystemHeaderRules
-import io.github.crustack.ui.shared.components.encodeOrderedQuery
-import io.github.crustack.ui.shared.components.splitRequestUrl
-import io.github.crustack.ui.shared.components.joinRequestUrl
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.booleanOrNull
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
+import io.github.crustack.core.model.opencollection.Environment
+import io.github.crustack.core.model.opencollection.OpenCollectionDocument
 import io.github.crustack.core.storage.opencollection.CollectionStorageException
 import io.github.crustack.core.storage.opencollection.CollectionValidationException
 import io.github.crustack.core.storage.opencollection.ExportFormat
-import io.github.crustack.core.storage.opencollection.OpenCollectionSerializer
 import io.github.crustack.core.storage.opencollection.OpenCollectionSchemaValidator
-import io.github.crustack.ui.shared.platform.generateUuid
+import io.github.crustack.core.storage.opencollection.OpenCollectionSerializer
+import io.github.crustack.core.storage.opencollection.generateUniqueName
+import io.github.crustack.ui.shared.state.AppState
+import io.github.crustack.ui.shared.state.CollectionNode
+import io.github.crustack.ui.shared.state.EnvState
+import io.github.crustack.ui.shared.state.MutableKeyValue
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 
 class ImportExportException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
@@ -51,105 +34,23 @@ private inline fun <T> mapOpenCollectionErrors(block: () -> T): T =
     }
 
 object ImportExportNaming {
-    fun generateUniqueCollectionName(name: String, existingNames: Set<String>): String = generateUniqueName(name, existingNames)
-    fun generateUniqueEnvironmentName(name: String, existingNames: Set<String>): String = generateUniqueName(name, existingNames)
+    fun generateUniqueCollectionName(name: String, existingNames: Set<String>): String =
+        generateUniqueName(name.trim().ifBlank { "Untitled" }, existingNames)
 
-    private fun generateUniqueName(name: String, existingNames: Set<String>): String {
-        val base = name.trim().ifBlank { "Untitled" }
-        if (base !in existingNames) return base
-
-        var i = 1
-        while (true) {
-            val candidate = "$base ($i)"
-            if (candidate !in existingNames) return candidate
-            i++
-        }
-    }
+    fun generateUniqueEnvironmentName(name: String, existingNames: Set<String>): String =
+        generateUniqueName(name.trim().ifBlank { "Untitled" }, existingNames)
 }
-
-data class ClapiCollectionDto(
-    val name: String,
-    val folders: List<FolderDto>,
-    val requests: List<RequestDto>,
-    val id: String? = null,
-)
-
-data class FolderDto(
-    val name: String,
-    val folders: List<FolderDto>,
-    val requests: List<RequestDto>,
-    val id: String? = null,
-)
-
-data class RequestDto(
-    val requestRef: String? = null,
-    val name: String,
-    val method: String,
-    val url: String,
-    val preRequestScript: String? = null,
-    val testScript: String? = null,
-    val userHeaders: List<Pair<String, String>> = emptyList(),
-    /** Null indicates a legacy document where URL/header pairs remain authoritative. */
-    val queryEntries: List<KeyValueEntry>? = null,
-    val headerEntries: List<KeyValueEntry>? = null,
-    val bodyType: String? = null,
-    val bodyContent: String? = null,
-    /** Per-type raw body contents, keyed by BodyType.name (e.g. "JSON", "XML"). */
-    val rawContents: Map<String, String>? = null,
-    val formDataEntries: List<FormDataEntryState> = emptyList(),
-    val urlencodedEntries: List<FormDataEntryState> = emptyList(),
-    val authType: String? = null,
-    val authUsername: String? = null,
-    val authPassword: String? = null,
-    val authToken: String? = null,
-    val authApiKey: String? = null,
-    val authApiValue: String? = null,
-    val authApiPlacement: String? = null,
-    val kind: String? = null,
-    val mcpTransport: String? = null,
-    val mcpHttpMode: String? = null,
-    val mcpCommand: String? = null,
-    val mcpArgs: List<String> = emptyList(),
-    val mcpEnv: Map<String, String> = emptyMap(),
-    val mcpSamplingMode: String? = null,
-    val mcpSamplingForwardUrl: String? = null,
-    val mcpSamplingForwardToken: String? = null,
-    val mcpSamplingMaxTokens: Int? = null,
-    val mcpAutoRespondElicitation: Boolean? = null,
-    val mcpRoots: List<Pair<String, String?>> = emptyList(),
-)
 
 data class ClapiEnvironmentDto(
     val name: String,
     val variables: Map<String, String>,
 )
 
-data class ClapiWorkspaceDto(
-    val collections: List<ClapiCollectionDto>,
-    val environments: List<ClapiEnvironmentDto>,
-    val globalVariables: List<ClapiEnvironmentDto> = emptyList(),
-    val history: List<HistoryItemDto> = emptyList(),
-    /** Persisted per-folder expanded/collapsed state. Absent key → expanded (default). */
-    val collectionExpandedState: Map<String, Boolean> = emptyMap(),
-)
-
-data class HistoryItemDto(
-    val requestId: String,
-    val method: String,
-    val name: String,
-    val url: String,
-    val timestamp: Long,
-    val collectionId: String? = null,
-    val folderPath: List<String> = emptyList(),
-)
-
-data class WorkspaceImportResult(
-    val importedCollections: Int,
-    val importedEnvironments: Int,
-)
-
 object ImportExportRepository {
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true; isLenient = true }
+
+    private const val UNRECOGNIZED_COLLECTION_MESSAGE =
+        "Unrecognized collection format. Expected an OpenCollection or Postman v2/v2.1 collection."
 
     fun exportCollectionToString(
         collectionRoot: CollectionNode,
@@ -164,53 +65,67 @@ object ImportExportRepository {
 
     fun importCollectionFromString(state: AppState, rawContent: String): String {
         val trimmed = rawContent.trim()
-        if (trimmed.startsWith("{")) {
+        val doc: OpenCollectionDocument = if (trimmed.startsWith("{")) {
             val root = parseJsonString(trimmed)
-            if (root["opencollection"] != null) {
-                val doc = mapOpenCollectionErrors {
+            val rootType = root["type"]?.jsonPrimitive?.contentOrNull
+            if (rootType == "clapiCollection" || rootType == "clapiWorkspace") {
+                throw ImportExportException(
+                    "Legacy format '$rootType' is no longer supported. Please import an OpenCollection or Postman collection."
+                )
+            }
+            when {
+                root["opencollection"] != null -> mapOpenCollectionErrors {
                     OpenCollectionSchemaValidator().validateOrThrow(trimmed)
                     OpenCollectionSerializer.deserializeJson(trimmed)
                 }
-                val existingNames = state.collections.map { it.name }.toMutableSet()
-                val uniqueName = ImportExportNaming.generateUniqueCollectionName(doc.info.name, existingNames)
-                val node = doc.toCollectionNode(nameOverride = uniqueName, preserveIds = false)
-                state.collections.add(node)
-                return uniqueName
+                PostmanImporter.isPostmanCollection(root) ->
+                    PostmanImporter.importCollection(root).toOpenCollectionDocument()
+                else -> throw ImportExportException(UNRECOGNIZED_COLLECTION_MESSAGE)
             }
-            val dto = when {
-                root["type"]?.jsonPrimitive?.contentOrNull == "clapiCollection" -> {
-                    validateVersion(root)
-                    collectionDtoFromJson(root)
-                }
-                PostmanImporter.isPostmanCollection(root) -> PostmanImporter.importCollection(root)
-                else -> throw ImportExportException(
-                    "Unrecognized collection format. Expected an OpenCollection, Clapi, or Postman v2/v2.1 collection."
-                )
-            }
-            val existingNames = state.collections.map { it.name }.toMutableSet()
-            val uniqueName = ImportExportNaming.generateUniqueCollectionName(dto.name, existingNames)
-            state.collections.add(collectionDtoToNode(dto, uniqueName, preserveIds = false))
-            return uniqueName
         } else if (trimmed.contains("opencollection:")) {
-            val doc = mapOpenCollectionErrors {
+            mapOpenCollectionErrors {
                 OpenCollectionSchemaValidator().validateYamlOrThrow(trimmed)
                 OpenCollectionSerializer.deserializeYaml(trimmed)
             }
-            val existingNames = state.collections.map { it.name }.toMutableSet()
-            val uniqueName = ImportExportNaming.generateUniqueCollectionName(doc.info.name, existingNames)
-            val node = doc.toCollectionNode(nameOverride = uniqueName, preserveIds = false)
-            state.collections.add(node)
-            return uniqueName
         } else {
-            throw ImportExportException(
-                "Unrecognized collection format. Expected an OpenCollection, Clapi, or Postman v2/v2.1 collection."
-            )
+            throw ImportExportException(UNRECOGNIZED_COLLECTION_MESSAGE)
+        }
+
+        // Merge any environments carried in the imported OpenCollection document by name (FR-016).
+        mergeEnvironmentsIntoState(state, doc.config?.environments.orEmpty())
+
+        // Add the imported collection as a top-level OpenCollection Folder with a unique name,
+        // keeping its folder id (extensions["id"], FR-019).
+        val existingNames = state.collections.map { it.name }.toSet()
+        val baseName = doc.info.name.trim().ifBlank { "Untitled" }
+        val uniqueName = generateUniqueName(baseName, existingNames)
+        val existingIds = collectAllNodeIds(state.collections)
+        val clapiRequests = (doc.extensions["clapi"] as? JsonObject)?.get("requests")?.jsonObject
+        val topLevelFolder = doc.toCollectionFolder(nameOverride = uniqueName)
+        val node = topLevelFolder.toCollectionNode(
+            preserveIds = true,
+            clapiRequests = clapiRequests,
+            path = "",
+            existingIds = existingIds,
+        )
+        state.collections.add(node)
+        return uniqueName
+    }
+
+    fun mergeEnvironmentsIntoState(state: AppState, imported: List<Environment>) {
+        for (incoming in imported) {
+            val existing = state.environments.firstOrNull { it.name == incoming.name }
+            if (existing == null) {
+                state.environments.add(incoming.toEnvState())
+            } else {
+                existing.mergeFrom(incoming)
+            }
         }
     }
 
     fun exportEnvironmentToString(environment: EnvState): String {
         val root = environmentToJson(environment)
-        return json.encodeToString(kotlinx.serialization.json.JsonElement.serializer(), root)
+        return json.encodeToString(JsonElement.serializer(), root)
     }
 
     fun importEnvironmentFromString(state: AppState, rawJson: String): String {
@@ -228,296 +143,9 @@ object ImportExportRepository {
         return uniqueName
     }
 
-    fun exportWorkspaceToString(state: AppState): String {
-        val root = buildJsonObject {
-            put("type", "clapiWorkspace")
-            put("version", "1.0")
-            put("collections", buildJsonArray {
-                state.collections.forEach { add(collectionNodeToCollectionJson(it)) }
-            })
-            put("environments", buildJsonArray {
-                state.environments.forEach { add(environmentToJson(it)) }
-            })
-            put("globalVariables", buildJsonArray {
-                state.globalVariables.forEach { v ->
-                    val key = v.key.trim()
-                    if (key.isNotEmpty()) {
-                        add(buildJsonObject {
-                            put("type", "clapiEnvironment")
-                            put("name", key)
-                            put("variables", buildJsonObject { put("value", v.value) })
-                        })
-                    }
-                }
-            })
-            put("history", buildJsonArray {
-                state.historyItems.forEach { item ->
-                    add(buildJsonObject {
-                        put("requestId", item.requestId)
-                        put("method", item.method.name)
-                        put("name", item.name)
-                        put("url", item.url)
-                        put("timestamp", item.timestamp)
-                        item.collectionId?.let { put("collectionId", it) }
-                        put("folderPath", buildJsonArray {
-                            item.folderPath.forEach { segment -> add(JsonPrimitive(segment)) }
-                        })
-                    })
-                }
-            })
-            if (state.collectionExpandedState.isNotEmpty()) {
-                put("collectionExpandedState", buildJsonObject {
-                    state.collectionExpandedState.forEach { (id, expanded) -> put(id, expanded) }
-                })
-            }
-        }
-        return json.encodeToString(kotlinx.serialization.json.JsonElement.serializer(), root)
-    }
-
-    fun importWorkspaceFromString(state: AppState, rawJson: String): WorkspaceImportResult {
-        val root = parseJsonString(rawJson)
-        validateType(root, "clapiWorkspace")
-        validateVersion(root)
-        val dto = workspaceDtoFromJson(root)
-        return mergeWorkspaceIntoState(state, dto)
-    }
-
-    fun decodeWorkspace(rawJson: String): ClapiWorkspaceDto {
-        val root = runCatching { json.parseToJsonElement(rawJson).jsonObject }
-            .getOrElse { throw ImportExportException("Invalid workspace JSON", it) }
-        validateType(root, "clapiWorkspace")
-        validateVersion(root)
-        return workspaceDtoFromJson(root)
-    }
-
-    fun encodeWorkspace(workspace: ClapiWorkspaceDto): String {
-        val root = workspaceToJson(workspace)
-        return json.encodeToString(kotlinx.serialization.json.JsonElement.serializer(), root)
-    }
-
-    fun mergeWorkspaceIntoState(state: AppState, workspace: ClapiWorkspaceDto): WorkspaceImportResult {
-        val existingCollections = state.collections.map { it.name }.toMutableSet()
-        var importedCollections = 0
-        workspace.collections.forEach { collection ->
-            val uniqueName = ImportExportNaming.generateUniqueCollectionName(collection.name, existingCollections)
-            state.collections.add(collectionDtoToNode(collection, uniqueName, preserveIds = true))
-            existingCollections.add(uniqueName)
-            importedCollections++
-        }
-
-        val existingEnvironments = state.environments.map { it.name }.toMutableSet()
-        var importedEnvironments = 0
-        workspace.environments.forEach { env ->
-            val uniqueName = ImportExportNaming.generateUniqueEnvironmentName(env.name, existingEnvironments)
-            state.environments.add(environmentDtoToState(env, uniqueName))
-            existingEnvironments.add(uniqueName)
-            importedEnvironments++
-        }
-
-        return WorkspaceImportResult(importedCollections, importedEnvironments)
-    }
-
-    fun replaceWorkspaceState(state: AppState, workspace: ClapiWorkspaceDto) {
-        state.collections.clear()
-        state.collections.addAll(workspace.collections.map { collectionDtoToNode(it, it.name, preserveIds = true) })
-
-        state.environments.clear()
-        state.environments.addAll(workspace.environments.map { environmentDtoToState(it, it.name) })
-        val savedName = state.settings.selectedEnvName
-        state.selectedEnvIndex = when {
-            state.environments.isEmpty() -> 0
-            savedName.isNotEmpty() -> {
-                val idx = state.environments.indexOfFirst { it.name == savedName }
-                if (idx >= 0) idx else 0
-            }
-            else -> state.selectedEnvIndex.coerceIn(0, state.environments.lastIndex)
-        }
-
-        state.globalVariables.clear()
-        state.globalVariables.addAll(
-            workspace.globalVariables.map { env ->
-                MutableKeyValue(
-                    key = env.name,
-                    value = env.variables["value"] ?: "",
-                )
-            }
-        )
-
-        state.replaceHistoryItems(
-            workspace.history.map {
-                HistoryItem(
-                    requestId = it.requestId,
-                    method = runCatching { HttpMethodType.valueOf(it.method.uppercase()) }.getOrDefault(HttpMethodType.GET),
-                    name = it.name,
-                    url = it.url,
-                    timestamp = it.timestamp,
-                    collectionId = it.collectionId,
-                    folderPath = it.folderPath,
-                )
-            },
-        )
-
-        // Restore per-folder expanded state (Bug 1 fix)
-        state.collectionExpandedState.clear()
-        state.collectionExpandedState.putAll(workspace.collectionExpandedState)
-    }
-
     private fun parseJsonString(rawJson: String): JsonObject =
         runCatching { json.parseToJsonElement(rawJson).jsonObject }
             .getOrElse { throw ImportExportException("Invalid JSON", it) }
-
-    private fun validateType(root: JsonObject, expected: String) {
-        val type = root["type"]?.jsonPrimitive?.contentOrNull
-        if (type != expected) {
-            throw ImportExportException("Malformed schema: expected type=$expected")
-        }
-    }
-
-    private fun validateVersion(root: JsonObject) {
-        val version = root["version"]?.jsonPrimitive?.contentOrNull
-        if (version != "1.0") {
-            throw ImportExportException("Unsupported version: ${version ?: "<missing>"}")
-        }
-    }
-
-    private fun collectionNodeToCollectionJson(root: CollectionNode): JsonObject {
-        val (folders, requests) = splitChildren(root)
-        return buildJsonObject {
-            put("type", "clapiCollection")
-            put("version", "1.0")
-            put("id", root.id)
-            put("name", root.name)
-            put("folders", folders)
-            put("requests", requests)
-        }
-    }
-
-    private fun splitChildren(node: CollectionNode): Pair<JsonArray, JsonArray> {
-        val folderArray = buildJsonArray {
-            if (node.isFolder) {
-                node.children.filter { it.isFolder }.forEach { add(folderNodeToJson(it)) }
-            }
-        }
-        val requestArray = buildJsonArray {
-            if (node.isFolder) {
-                node.children.filter { !it.isFolder }.forEach { requestNodeToJson(it)?.let { add(it) } }
-            } else {
-                requestNodeToJson(node)?.let { add(it) }
-            }
-        }
-        return folderArray to requestArray
-    }
-
-    private fun folderNodeToJson(folder: CollectionNode): JsonObject {
-        val (folders, requests) = splitChildren(folder)
-        return buildJsonObject {
-            put("id", folder.id)
-            put("name", folder.name)
-            put("folders", folders)
-            put("requests", requests)
-        }
-    }
-
-    private fun requestNodeToJson(node: CollectionNode): JsonObject? {
-        val method = node.method ?: return null
-        val url = compatibleUrl(node.url.orEmpty(), node.queryEntries)
-        return buildJsonObject {
-            node.requestRef?.let { put("requestRef", it) }
-            put("name", node.name)
-            put("method", method.name)
-            put("url", url)
-            node.preRequestScript?.takeIf { it.isNotBlank() }?.let { put("preRequestScript", it) }
-            node.testScript?.takeIf { it.isNotBlank() }?.let { put("testScript", it) }
-            val legacyHeaders = legacyHeaderPairs(node.userHeaders, node.headerEntries)
-            if (legacyHeaders.isNotEmpty()) {
-                put("headers", buildJsonArray {
-                    legacyHeaders.forEach { (key, value) ->
-                        add(buildJsonObject { put("key", key); put("value", value) })
-                    }
-                })
-            }
-            node.headerEntries?.let { entries ->
-                put("headerEntries", buildJsonArray { entries.forEach { add(keyValueEntryToJson(it)) } })
-            }
-            node.queryEntries?.let { entries ->
-                put("queryEntries", buildJsonArray { entries.forEach { add(keyValueEntryToJson(it)) } })
-            }
-            node.bodyType?.let { bt ->
-                put("body", buildJsonObject {
-                    put("type", bt.name)
-                    node.bodyContent?.takeIf { it.isNotBlank() }?.let { put("content", it) }
-                    if (node.bodyContents.isNotEmpty()) {
-                        put("rawContents", buildJsonObject {
-                            node.bodyContents.forEach { (k, v) -> put(k, v) }
-                        })
-                    }
-                    if (node.formDataEntries.isNotEmpty()) {
-                        put("formDataEntries", buildJsonArray {
-                            node.formDataEntries.forEach { e ->
-                                add(buildJsonObject {
-                                    put("key", e.key)
-                                    put("type", e.type.name)
-                                    put("value", e.value)
-                                    put("description", e.description)
-                                    put("enabled", e.enabled)
-                                    if (e.bytesBase64.isNotEmpty()) put("bytesBase64", e.bytesBase64)
-                                })
-                            }
-                        })
-                    }
-                    if (node.urlencodedEntries.isNotEmpty()) {
-                        put("urlencodedEntries", buildJsonArray {
-                            node.urlencodedEntries.forEach { e ->
-                                add(buildJsonObject {
-                                    put("key", e.key)
-                                    put("value", e.value)
-                                    put("description", e.description)
-                                    put("enabled", e.enabled)
-                                })
-                            }
-                        })
-                    }
-                })
-            }
-            node.authType?.let { at ->
-                put("auth", buildJsonObject {
-                    put("type", at.name)
-                    node.authUsername?.takeIf { it.isNotBlank() }?.let { put("username", it) }
-                    node.authPassword?.takeIf { it.isNotBlank() }?.let { put("password", it) }
-                    node.authToken?.takeIf { it.isNotBlank() }?.let { put("token", it) }
-                    node.authApiKey?.takeIf { it.isNotBlank() }?.let { put("apiKey", it) }
-                    node.authApiValue?.takeIf { it.isNotBlank() }?.let { put("apiValue", it) }
-                    put("apiPlacement", normalizeApiKeyPlacement(node.authApiPlacement))
-                })
-            }
-            if (node.kind == io.github.crustack.core.model.RequestKind.MCP) {
-                put("kind", "MCP")
-                val mcp = node.mcpConfig
-                if (mcp != null) {
-                    put("mcpTransport", mcp.transport.name)
-                    put("mcpHttpMode", mcp.httpMode.name)
-                    if (mcp.command.isNotBlank()) put("mcpCommand", mcp.command)
-                    if (mcp.args.isNotEmpty()) put("mcpArgs", buildJsonArray { mcp.args.forEach { add(JsonPrimitive(it)) } })
-                    if (mcp.env.isNotEmpty()) put("mcpEnv", buildJsonObject { mcp.env.forEach { (k, v) -> put(k, v) } })
-                    put("mcpSamplingMode", mcp.samplingMode.name)
-                    mcp.samplingForwardUrl?.takeIf { it.isNotBlank() }?.let { put("mcpSamplingForwardUrl", it) }
-                    mcp.samplingForwardToken?.takeIf { it.isNotBlank() }?.let { put("mcpSamplingForwardToken", it) }
-                    mcp.samplingMaxTokens?.let { put("mcpSamplingMaxTokens", it) }
-                    put("mcpAutoRespondElicitation", mcp.autoRespondElicitation)
-                    if (mcp.roots.isNotEmpty()) {
-                        put("mcpRoots", buildJsonArray {
-                            mcp.roots.forEach { root ->
-                                add(buildJsonObject {
-                                    put("uri", root.uri)
-                                    root.name?.let { put("name", it) }
-                                })
-                            }
-                        })
-                    }
-                }
-            }
-        }
-    }
 
     private fun environmentToJson(environment: EnvState): JsonObject {
         val vars = buildJsonObject {
@@ -533,378 +161,6 @@ object ImportExportRepository {
         }
     }
 
-    private fun workspaceToJson(workspace: ClapiWorkspaceDto): JsonObject {
-        return buildJsonObject {
-            put("type", "clapiWorkspace")
-            put("version", "1.0")
-            put("collections", buildJsonArray {
-                workspace.collections.forEach { add(collectionDtoToJson(it)) }
-            })
-            put("environments", buildJsonArray {
-                workspace.environments.forEach { add(environmentDtoToJson(it)) }
-            })
-            put("globalVariables", buildJsonArray {
-                workspace.globalVariables.forEach { add(environmentDtoToJson(it)) }
-            })
-            put("history", buildJsonArray {
-                workspace.history.forEach { item ->
-                    add(buildJsonObject {
-                        put("requestId", item.requestId)
-                        put("method", item.method)
-                        put("name", item.name)
-                        put("url", item.url)
-                        put("timestamp", item.timestamp)
-                        item.collectionId?.let { put("collectionId", it) }
-                        put("folderPath", buildJsonArray { item.folderPath.forEach { segment -> add(JsonPrimitive(segment)) } })
-                    })
-                }
-            })
-        }
-    }
-
-    private fun collectionDtoToJson(dto: ClapiCollectionDto): JsonObject =
-        buildJsonObject {
-            put("type", "clapiCollection")
-            put("version", "1.0")
-            put("name", dto.name)
-            put("folders", buildJsonArray { dto.folders.forEach { add(folderDtoToJson(it)) } })
-            put("requests", buildJsonArray { dto.requests.forEach { add(requestDtoToJson(it)) } })
-        }
-
-    private fun folderDtoToJson(dto: FolderDto): JsonObject =
-        buildJsonObject {
-            put("name", dto.name)
-            put("folders", buildJsonArray { dto.folders.forEach { add(folderDtoToJson(it)) } })
-            put("requests", buildJsonArray { dto.requests.forEach { add(requestDtoToJson(it)) } })
-        }
-
-    private fun requestDtoToJson(dto: RequestDto): JsonObject =
-        buildJsonObject {
-            dto.requestRef?.let { put("requestRef", it) }
-            put("name", dto.name)
-            put("method", dto.method)
-            put("url", compatibleUrl(dto.url, dto.queryEntries))
-            dto.preRequestScript?.takeIf { it.isNotBlank() }?.let { put("preRequestScript", it) }
-            dto.testScript?.takeIf { it.isNotBlank() }?.let { put("testScript", it) }
-            val legacyHeaders = legacyHeaderPairs(dto.userHeaders, dto.headerEntries)
-            if (legacyHeaders.isNotEmpty()) {
-                put("headers", buildJsonArray {
-                    legacyHeaders.forEach { (key, value) ->
-                        add(buildJsonObject { put("key", key); put("value", value) })
-                    }
-                })
-            }
-            dto.headerEntries?.let { entries ->
-                put("headerEntries", buildJsonArray { entries.forEach { add(keyValueEntryToJson(it)) } })
-            }
-            dto.queryEntries?.let { entries ->
-                put("queryEntries", buildJsonArray { entries.forEach { add(keyValueEntryToJson(it)) } })
-            }
-            dto.bodyType?.let { bt ->
-                put("body", buildJsonObject {
-                    put("type", bt)
-                    dto.bodyContent?.takeIf { it.isNotBlank() }?.let { put("content", it) }
-                    if (!dto.rawContents.isNullOrEmpty()) {
-                        put("rawContents", buildJsonObject {
-                            dto.rawContents.forEach { (k, v) -> put(k, v) }
-                        })
-                    }
-                    if (dto.formDataEntries.isNotEmpty()) {
-                        put("formDataEntries", buildJsonArray {
-                            dto.formDataEntries.forEach { e ->
-                                add(buildJsonObject {
-                                    put("key", e.key)
-                                    put("type", e.type.name)
-                                    put("value", e.value)
-                                    put("description", e.description)
-                                    put("enabled", e.enabled)
-                                })
-                            }
-                        })
-                    }
-                    if (dto.urlencodedEntries.isNotEmpty()) {
-                        put("urlencodedEntries", buildJsonArray {
-                            dto.urlencodedEntries.forEach { e ->
-                                add(buildJsonObject {
-                                    put("key", e.key)
-                                    put("value", e.value)
-                                    put("description", e.description)
-                                    put("enabled", e.enabled)
-                                })
-                            }
-                        })
-                    }
-                })
-            }
-            dto.authType?.let { at ->
-                put("auth", buildJsonObject {
-                    put("type", at)
-                    dto.authUsername?.takeIf { it.isNotBlank() }?.let { put("username", it) }
-                    dto.authPassword?.takeIf { it.isNotBlank() }?.let { put("password", it) }
-                    dto.authToken?.takeIf { it.isNotBlank() }?.let { put("token", it) }
-                    dto.authApiKey?.takeIf { it.isNotBlank() }?.let { put("apiKey", it) }
-                    dto.authApiValue?.takeIf { it.isNotBlank() }?.let { put("apiValue", it) }
-                    put("apiPlacement", normalizeApiKeyPlacement(dto.authApiPlacement))
-                })
-            }
-            dto.kind?.takeIf { it.equals("MCP", ignoreCase = true) }?.let { put("kind", it) }
-            dto.mcpTransport?.let { put("mcpTransport", it) }
-            dto.mcpHttpMode?.let { put("mcpHttpMode", it) }
-            dto.mcpCommand?.takeIf { it.isNotBlank() }?.let { put("mcpCommand", it) }
-            if (dto.mcpArgs.isNotEmpty()) put("mcpArgs", buildJsonArray { dto.mcpArgs.forEach { add(JsonPrimitive(it)) } })
-            if (dto.mcpEnv.isNotEmpty()) put("mcpEnv", buildJsonObject { dto.mcpEnv.forEach { (k, v) -> put(k, v) } })
-            dto.mcpSamplingMode?.let { put("mcpSamplingMode", it) }
-            dto.mcpSamplingForwardUrl?.takeIf { it.isNotBlank() }?.let { put("mcpSamplingForwardUrl", it) }
-            dto.mcpSamplingForwardToken?.takeIf { it.isNotBlank() }?.let { put("mcpSamplingForwardToken", it) }
-            dto.mcpSamplingMaxTokens?.let { put("mcpSamplingMaxTokens", it) }
-            dto.mcpAutoRespondElicitation?.let { put("mcpAutoRespondElicitation", it) }
-            if (dto.mcpRoots.isNotEmpty()) {
-                put("mcpRoots", buildJsonArray {
-                    dto.mcpRoots.forEach { (uri, name) ->
-                        add(buildJsonObject {
-                            put("uri", uri)
-                            name?.let { put("name", it) }
-                        })
-                    }
-                })
-            }
-        }
-
-    private fun environmentDtoToJson(dto: ClapiEnvironmentDto): JsonObject =
-        buildJsonObject {
-            put("type", "clapiEnvironment")
-            put("name", dto.name)
-            put("variables", buildJsonObject { dto.variables.forEach { (k, v) -> put(k, v) } })
-        }
-
-    private fun workspaceDtoFromJson(root: JsonObject): ClapiWorkspaceDto {
-        val collections = root["collections"]?.jsonArray?.map { collectionDtoFromJson(it.jsonObject) } ?: emptyList()
-        val environments = root["environments"]?.jsonArray?.map { environmentDtoFromJson(it.jsonObject) } ?: emptyList()
-        val globalVariables = root["globalVariables"]?.jsonArray?.map { environmentDtoFromJson(it.jsonObject) } ?: emptyList()
-        val history = root["history"]?.jsonArray?.map { historyItemDtoFromJson(it.jsonObject) } ?: emptyList()
-        val collectionExpandedState = root["collectionExpandedState"]?.jsonObject?.entries
-            ?.associate { (k, v) -> k to (v.jsonPrimitive.booleanOrNull ?: true) }
-            ?: emptyMap()
-        return ClapiWorkspaceDto(
-            collections = collections,
-            environments = environments,
-            globalVariables = globalVariables,
-            history = history,
-            collectionExpandedState = collectionExpandedState,
-        )
-    }
-
-    private fun historyItemDtoFromJson(root: JsonObject): HistoryItemDto = HistoryItemDto(
-        requestId = root["requestId"]?.jsonPrimitive?.contentOrNull
-            ?: root["id"]?.jsonPrimitive?.contentOrNull
-            ?: generateUuid(),
-        method = root["method"]?.jsonPrimitive?.contentOrNull ?: HttpMethodType.GET.name,
-        name = root["name"]?.jsonPrimitive?.contentOrNull ?: "Untitled",
-        url = root["url"]?.jsonPrimitive?.contentOrNull ?: "",
-        timestamp = root["timestamp"]?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: 0L,
-        collectionId = root["collectionId"]?.jsonPrimitive?.contentOrNull,
-        folderPath = root["folderPath"]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull } ?: emptyList(),
-    )
-
-    private fun collectionDtoFromJson(root: JsonObject): ClapiCollectionDto {
-        val name = root["name"]?.jsonPrimitive?.contentOrNull
-            ?: throw ImportExportException("Collection name is missing")
-        val id = root["id"]?.jsonPrimitive?.contentOrNull
-        val folders = root["folders"]?.jsonArray?.map { folderDtoFromJson(it.jsonObject) } ?: emptyList()
-        val requests = root["requests"]?.jsonArray?.map { requestDtoFromJson(it.jsonObject) } ?: emptyList()
-        return ClapiCollectionDto(name = name, folders = folders, requests = requests, id = id)
-    }
-
-    private fun folderDtoFromJson(root: JsonObject): FolderDto {
-        val name = root["name"]?.jsonPrimitive?.contentOrNull
-            ?: throw ImportExportException("Folder name is missing")
-        val id = root["id"]?.jsonPrimitive?.contentOrNull
-        val folders = root["folders"]?.jsonArray?.map { folderDtoFromJson(it.jsonObject) } ?: emptyList()
-        val requests = root["requests"]?.jsonArray?.map { requestDtoFromJson(it.jsonObject) } ?: emptyList()
-        return FolderDto(name = name, folders = folders, requests = requests, id = id)
-    }
-
-    private fun requestDtoFromJson(root: JsonObject): RequestDto {
-        val requestRef = root["requestRef"]?.jsonPrimitive?.contentOrNull
-        val name = root["name"]?.jsonPrimitive?.contentOrNull
-            ?: throw ImportExportException("Request name is missing")
-        val method = root["method"]?.jsonPrimitive?.contentOrNull ?: "GET"
-        val url = root["url"]?.jsonPrimitive?.contentOrNull ?: ""
-        val preRequestScript = normalizeImportedScript(root["preRequestScript"]?.jsonPrimitive?.contentOrNull)
-        val testScript = normalizeImportedScript(root["testScript"]?.jsonPrimitive?.contentOrNull)
-        val headerRows = root["headers"]?.jsonArray
-        val parsedHeaders = headerRows?.mapNotNull { el ->
-            val obj = el.jsonObject
-            val k = obj["key"]?.jsonPrimitive?.contentOrNull
-            val v = obj["value"]?.jsonPrimitive?.contentOrNull
-            if (k != null && v != null) KeyValueEntry(
-                k, v,
-                enabled = obj["enabled"]?.jsonPrimitive?.booleanOrNull ?: true,
-                secret = obj["secret"]?.jsonPrimitive?.booleanOrNull ?: false,
-            ) else null
-        }
-        val userHeaders = parsedHeaders?.map { it.key to it.value } ?: emptyList()
-        val headerEntries = root["headerEntries"]?.jsonArray?.mapNotNull { el ->
-            val obj = el.jsonObject
-            val key = obj["key"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
-            KeyValueEntry(key, obj["value"]?.jsonPrimitive?.contentOrNull ?: "",
-                enabled = obj["enabled"]?.jsonPrimitive?.booleanOrNull ?: true,
-                secret = obj["secret"]?.jsonPrimitive?.booleanOrNull ?: false)
-        }
-        val queryEntries = root["queryEntries"]?.jsonArray?.mapNotNull { el ->
-            val obj = el.jsonObject
-            val k = obj["key"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
-            val v = obj["value"]?.jsonPrimitive?.contentOrNull ?: ""
-            KeyValueEntry(k, v,
-                enabled = obj["enabled"]?.jsonPrimitive?.booleanOrNull ?: true,
-                secret = obj["secret"]?.jsonPrimitive?.booleanOrNull ?: false)
-        }
-        val bodyObj = root["body"]?.jsonObject
-        val bodyType = bodyObj?.get("type")?.jsonPrimitive?.contentOrNull
-        val bodyContent = bodyObj?.get("content")?.jsonPrimitive?.contentOrNull
-        val rawContents = bodyObj?.get("rawContents")?.jsonObject
-            ?.mapValues { it.value.jsonPrimitive.content }
-            ?.takeIf { it.isNotEmpty() }
-        val explicitFormDataEntries = bodyObj?.get("formDataEntries")?.jsonArray?.map { formEntryFromJson(it.jsonObject) } ?: emptyList()
-        val explicitUrlencodedEntries = bodyObj?.get("urlencodedEntries")?.jsonArray?.map { formEntryFromJson(it.jsonObject) } ?: emptyList()
-        // Backward compatibility: older clapi exports (and hand-edited fixtures)
-        // may store form/urlencoded bodies only in body.content.
-        val formDataEntries = if (explicitFormDataEntries.isNotEmpty()) {
-            explicitFormDataEntries
-        } else if (bodyType.equals("FORM_DATA", ignoreCase = true)) {
-            parseLegacyFormDataContent(bodyContent)
-        } else emptyList()
-        val urlencodedEntries = if (explicitUrlencodedEntries.isNotEmpty()) {
-            explicitUrlencodedEntries
-        } else if (bodyType.equals("X_WWW_FORM_URLENCODED", ignoreCase = true)) {
-            parseLegacyUrlencodedContent(bodyContent)
-        } else emptyList()
-        val authObj = root["auth"]?.jsonObject
-        val authType = authObj?.get("type")?.jsonPrimitive?.contentOrNull
-        val authUsername = authObj?.get("username")?.jsonPrimitive?.contentOrNull
-        val authPassword = authObj?.get("password")?.jsonPrimitive?.contentOrNull
-        val authToken = authObj?.get("token")?.jsonPrimitive?.contentOrNull
-        val authApiKey = authObj?.get("apiKey")?.jsonPrimitive?.contentOrNull
-        val authApiValue = authObj?.get("apiValue")?.jsonPrimitive?.contentOrNull
-        val authApiPlacement = normalizeApiKeyPlacement(authObj?.get("apiPlacement")?.jsonPrimitive?.contentOrNull)
-        return RequestDto(
-            requestRef = requestRef,
-            name = name, method = method, url = url,
-            preRequestScript = preRequestScript, testScript = testScript,
-            userHeaders = userHeaders,
-            queryEntries = queryEntries,
-            headerEntries = headerEntries,
-            bodyType = bodyType, bodyContent = bodyContent, rawContents = rawContents,
-            formDataEntries = formDataEntries,
-            urlencodedEntries = urlencodedEntries,
-            authType = authType,
-            authUsername = authUsername, authPassword = authPassword,
-            authToken = authToken, authApiKey = authApiKey, authApiValue = authApiValue,
-            authApiPlacement = authApiPlacement,
-            kind = root["kind"]?.jsonPrimitive?.contentOrNull,
-            mcpTransport = root["mcpTransport"]?.jsonPrimitive?.contentOrNull,
-            mcpHttpMode = root["mcpHttpMode"]?.jsonPrimitive?.contentOrNull,
-            mcpCommand = root["mcpCommand"]?.jsonPrimitive?.contentOrNull,
-            mcpArgs = root["mcpArgs"]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull } ?: emptyList(),
-            mcpEnv = root["mcpEnv"]?.jsonObject?.mapValues { it.value.jsonPrimitive.content } ?: emptyMap(),
-            mcpSamplingMode = root["mcpSamplingMode"]?.jsonPrimitive?.contentOrNull,
-            mcpSamplingForwardUrl = root["mcpSamplingForwardUrl"]?.jsonPrimitive?.contentOrNull,
-            mcpSamplingForwardToken = root["mcpSamplingForwardToken"]?.jsonPrimitive?.contentOrNull,
-            mcpSamplingMaxTokens = root["mcpSamplingMaxTokens"]?.jsonPrimitive?.intOrNull,
-            mcpAutoRespondElicitation = root["mcpAutoRespondElicitation"]?.jsonPrimitive?.booleanOrNull,
-            mcpRoots = root["mcpRoots"]?.jsonArray?.mapNotNull { el ->
-                val obj = el.jsonObject
-                val uri = obj["uri"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
-                uri to obj["name"]?.jsonPrimitive?.contentOrNull
-            } ?: emptyList(),
-        )
-    }
-
-    /**
-     * Clapi collections can contain older Postman-style execution aliases.
-     * Normalize those on import so scripts are consistent with the active
-     * runtime namespace (`clapi.execution.*`).
-     */
-    private fun normalizeImportedScript(script: String?): String? {
-        if (script.isNullOrBlank()) return script
-        return script
-            .replace(
-                Regex("""\bpm\.execution\.setNextRequest\s*\("""),
-                "clapi.execution.setNextRequest(",
-            )
-            .replace(
-                Regex("""\bpostman\.setNextRequest\s*\("""),
-                "clapi.execution.setNextRequest(",
-            )
-            .replace(
-                Regex("""\bpm\.execution\.skipRequest\s*\("""),
-                "clapi.execution.skipRequest(",
-            )
-    }
-
-    private fun formEntryFromJson(obj: JsonObject): FormDataEntryState {
-        val key = obj["key"]?.jsonPrimitive?.contentOrNull ?: ""
-        val type = obj["type"]?.jsonPrimitive?.contentOrNull
-            ?.let { runCatching { FormEntryType.valueOf(it.uppercase()) }.getOrNull() }
-            ?: FormEntryType.TEXT
-        val value = obj["value"]?.jsonPrimitive?.contentOrNull ?: ""
-        val description = obj["description"]?.jsonPrimitive?.contentOrNull ?: ""
-        val enabled = obj["enabled"]?.jsonPrimitive?.booleanOrNull ?: true
-        val bytesBase64 = obj["bytesBase64"]?.jsonPrimitive?.contentOrNull ?: ""
-        return FormDataEntryState(key = key, type = type, value = value, description = description, enabled = enabled, bytesBase64 = bytesBase64)
-    }
-
-    private fun parseLegacyFormDataContent(content: String?): List<FormDataEntryState> {
-        if (content.isNullOrBlank()) return emptyList()
-        val normalized = content.replace("\r\n", "\n")
-        val parts = normalized
-            .split('\n', '&')
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-        return parts.map { token ->
-            val eq = token.indexOf('=')
-            if (eq >= 0) {
-                FormDataEntryState(
-                    key = token.substring(0, eq).trim(),
-                    type = FormEntryType.TEXT,
-                    value = token.substring(eq + 1),
-                    enabled = true,
-                )
-            } else {
-                FormDataEntryState(
-                    key = token,
-                    type = FormEntryType.TEXT,
-                    value = "",
-                    enabled = true,
-                )
-            }
-        }.filter { it.key.isNotBlank() }
-    }
-
-    private fun parseLegacyUrlencodedContent(content: String?): List<FormDataEntryState> {
-        if (content.isNullOrBlank()) return emptyList()
-        val parts = content
-            .split('&')
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-        return parts.map { token ->
-            val eq = token.indexOf('=')
-            if (eq >= 0) {
-                FormDataEntryState(
-                    key = token.substring(0, eq).trim(),
-                    value = token.substring(eq + 1),
-                    enabled = true,
-                )
-            } else {
-                FormDataEntryState(
-                    key = token,
-                    value = "",
-                    enabled = true,
-                )
-            }
-        }.filter { it.key.isNotBlank() }
-    }
-
     private fun environmentDtoFromJson(root: JsonObject): ClapiEnvironmentDto {
         val name = root["name"]?.jsonPrimitive?.contentOrNull
             ?: throw ImportExportException("Environment name is missing")
@@ -914,137 +170,20 @@ object ImportExportRepository {
         return ClapiEnvironmentDto(name = name, variables = variables)
     }
 
-    private fun collectionDtoToNode(
-        dto: ClapiCollectionDto,
-        nameOverride: String,
-        preserveIds: Boolean,
-    ): CollectionNode {
-        val children = mutableStateListOf<CollectionNode>()
-        dto.folders.forEach { children.add(folderDtoToNode(it, preserveIds)) }
-        dto.requests.forEach { children.add(requestDtoToNode(it)) }
-        return CollectionNode(
-            id = if (preserveIds) dto.id ?: generateUuid() else generateUuid(),
-            name = nameOverride,
-            isFolder = true,
-            children = children,
-        )
-    }
-
-    private fun folderDtoToNode(dto: FolderDto, preserveIds: Boolean): CollectionNode {
-        val children = mutableStateListOf<CollectionNode>()
-        dto.folders.forEach { children.add(folderDtoToNode(it, preserveIds)) }
-        dto.requests.forEach { children.add(requestDtoToNode(it)) }
-        return CollectionNode(
-            id = if (preserveIds) dto.id ?: generateUuid() else generateUuid(),
-            name = dto.name,
-            isFolder = true,
-            children = children,
-        )
-    }
-
-    private fun requestDtoToNode(dto: RequestDto): CollectionNode {
-        val method = runCatching { HttpMethodType.valueOf(dto.method.uppercase()) }.getOrDefault(HttpMethodType.GET)
-        val bodyType = dto.bodyType?.let { runCatching { BodyType.valueOf(it.uppercase()) }.getOrNull() }
-        val authType = dto.authType?.let { runCatching { AuthType.valueOf(it.uppercase()) }.getOrNull() }
-        val kind = dto.kind?.let { runCatching { io.github.crustack.core.model.RequestKind.valueOf(it.uppercase()) }.getOrNull() }
-            ?: io.github.crustack.core.model.RequestKind.HTTP
-        val mcp = if (kind == io.github.crustack.core.model.RequestKind.MCP) {
-            val authParams = when (authType) {
-                AuthType.BASIC -> mapOf("username" to dto.authUsername.orEmpty(), "password" to dto.authPassword.orEmpty())
-                AuthType.BEARER, AuthType.JWT -> mapOf("token" to dto.authToken.orEmpty())
-                AuthType.API_KEY -> mapOf(
-                    "key" to dto.authApiKey.orEmpty(),
-                    "value" to dto.authApiValue.orEmpty(),
-                )
-                else -> emptyMap()
-            }
-            io.github.crustack.core.model.McpConnectionConfig(
-                transport = runCatching {
-                    io.github.crustack.core.model.McpTransportType.valueOf(dto.mcpTransport ?: "STREAMABLE_HTTP")
-                }.getOrDefault(io.github.crustack.core.model.McpTransportType.STREAMABLE_HTTP),
-                httpMode = runCatching {
-                    io.github.crustack.core.model.McpHttpMode.valueOf(dto.mcpHttpMode ?: "AUTO")
-                }.getOrDefault(io.github.crustack.core.model.McpHttpMode.AUTO),
-                url = dto.url,
-                headers = dto.headerEntries ?: dto.userHeaders.map { KeyValueEntry(it.first, it.second) },
-                auth = AuthConfig(
-                    type = authType ?: AuthType.NONE,
-                    params = authParams,
-                    placement = if (authType == AuthType.API_KEY) {
-                        normalizeApiKeyPlacement(dto.authApiPlacement)
-                    } else null,
-                ),
-                command = dto.mcpCommand.orEmpty(),
-                args = dto.mcpArgs,
-                env = dto.mcpEnv,
-                samplingMode = runCatching {
-                    io.github.crustack.core.model.McpSamplingMode.valueOf(dto.mcpSamplingMode ?: "MOCK")
-                }.getOrDefault(io.github.crustack.core.model.McpSamplingMode.MOCK),
-                samplingForwardUrl = dto.mcpSamplingForwardUrl,
-                samplingForwardToken = dto.mcpSamplingForwardToken,
-                samplingMaxTokens = dto.mcpSamplingMaxTokens,
-                autoRespondElicitation = dto.mcpAutoRespondElicitation ?: true,
-                roots = dto.mcpRoots.map { (uri, name) ->
-                    io.github.crustack.core.model.McpRoot(uri = uri, name = name)
-                },
-            )
-        } else null
-        return CollectionNode(
-            id = generateUuid(),
-            requestRef = dto.requestRef ?: generateUuid(),
-            name = dto.name,
-            isFolder = false,
-            method = method,
-            url = compatibleUrl(dto.url, dto.queryEntries),
-            preRequestScript = dto.preRequestScript,
-            testScript = dto.testScript,
-            userHeaders = dto.userHeaders,
-            queryEntries = dto.queryEntries,
-            headerEntries = dto.headerEntries,
-            bodyType = bodyType,
-            bodyContent = dto.bodyContent,
-            bodyContents = dto.rawContents ?: emptyMap(),
-            formDataEntries = dto.formDataEntries,
-            urlencodedEntries = dto.urlencodedEntries,
-            authType = authType,
-            authUsername = dto.authUsername,
-            authPassword = dto.authPassword,
-            authToken = dto.authToken,
-            authApiKey = dto.authApiKey,
-            authApiValue = dto.authApiValue,
-            authApiPlacement = normalizeApiKeyPlacement(dto.authApiPlacement),
-            kind = kind,
-            mcpConfig = mcp,
-        )
-    }
-
     private fun environmentDtoToState(dto: ClapiEnvironmentDto, nameOverride: String): EnvState {
         val variables = dto.variables.map { (k, v) -> MutableKeyValue(k, v, enabled = true, secret = false) }
         return EnvState(name = nameOverride, variables = variables)
     }
 
-    private fun keyValueEntryToJson(entry: KeyValueEntry): JsonObject = buildJsonObject {
-        put("key", entry.key)
-        put("value", entry.value)
-        put("enabled", entry.enabled)
-        put("secret", entry.secret)
-    }
-
-    private fun legacyHeaderPairs(
-        pairs: List<Pair<String, String>>,
-        entries: List<KeyValueEntry>?,
-    ): List<Pair<String, String>> = pairs.ifEmpty {
-        entries.orEmpty().filter { it.enabled && !SystemHeaderRules.isSystemHeader(it.key) }
-            .map { it.key to it.value }
-    }
-
-    private fun compatibleUrl(url: String, entries: List<KeyValueEntry>?): String {
-        if (entries == null) return url
-        val parts = splitRequestUrl(url)
-        val query = encodeOrderedQuery(
-            entries.filter { it.enabled && it.key.isNotBlank() }.map { it.key to it.value },
-            preserveTemplates = true,
-        )
-        return joinRequestUrl(parts.base, query, parts.fragment)
+    private fun collectAllNodeIds(nodes: List<CollectionNode>): Set<String> {
+        val ids = mutableSetOf<String>()
+        fun visit(list: List<CollectionNode>) {
+            for (node in list) {
+                ids.add(node.id)
+                if (node.isFolder) visit(node.children)
+            }
+        }
+        visit(nodes)
+        return ids
     }
 }

@@ -229,22 +229,31 @@ class RequestReliabilityTest {
     }
 
     @Test
-    fun legacy_one_point_zero_collection_uses_url_and_pair_headers_with_header_api_key() {
-        val legacy = """
-            {"type":"clapiCollection","version":"1.0","name":"Legacy","folders":[],
-             "requests":[{"name":"Old","method":"GET","url":"https://example.test/?x=1&x=2",
-               "headers":[{"key":"X-Old","value":"yes"}],
-               "auth":{"type":"API_KEY","apiKey":"key","apiValue":"value"}}]}
+    fun opencollection_import_parses_query_params_headers_and_api_key_auth() {
+        val doc = """
+            {
+              "opencollection": "1.0.0",
+              "info": { "name": "Collection" },
+              "items": [
+                {
+                  "info": { "name": "Old", "type": "http" },
+                  "http": {
+                    "method": "GET",
+                    "url": "https://example.test/?x=1&x=2",
+                    "headers": [{ "name": "X-Old", "value": "yes" }],
+                    "auth": { "type": "apikey", "key": "key", "value": "value", "placement": "header" }
+                  }
+                }
+              ]
+            }
         """.trimIndent()
         val state = AppState(openDefaultTab = false)
-        ImportExportRepository.importCollectionFromString(state, legacy)
+        ImportExportRepository.importCollectionFromString(state, doc)
         val node = state.collections.single().children.single()
-        assertEquals(null, node.queryEntries)
-        assertEquals(null, node.headerEntries)
+        assertEquals(emptyList(), node.queryEntries)
+        assertEquals(listOf(KeyValueEntry("X-Old", "yes", enabled = true)), node.headerEntries)
         state.openRequest(node.id, node.name, HttpMethodType.GET, node.url.orEmpty())
-        assertEquals(listOf("1", "2"), state.activeTab!!.params.map { it.value })
-        assertTrue(state.activeTab!!.headers.any { it.key == "Content-Type" })
-        assertTrue(state.activeTab!!.headers.any { it.key == "X-Old" })
+        assertEquals(listOf("X-Old"), state.activeTab!!.headers.map { it.key })
         assertEquals("header", state.activeTab!!.authApiPlacement)
     }
 }

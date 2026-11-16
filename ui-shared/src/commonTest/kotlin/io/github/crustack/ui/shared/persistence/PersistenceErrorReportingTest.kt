@@ -18,10 +18,13 @@ import kotlin.test.assertTrue
 class PersistenceErrorReportingTest {
 
     private class RejectingStorageDriver : CollectionStorageDriver {
+        var lastWrittenLocation: StorageLocation? = null
+
         override suspend fun read(location: StorageLocation): OpenCollectionDocument =
             error("not used")
 
         override suspend fun write(location: StorageLocation, document: OpenCollectionDocument) {
+            lastWrittenLocation = location
             throw CollectionValidationException(
                 "OpenCollection schema validation failed: \$.items[0].type: not allowed",
                 listOf(ValidationIssue("\$.items[0].type", "not allowed")),
@@ -37,14 +40,16 @@ class PersistenceErrorReportingTest {
         state.collections.add(
             CollectionNode(id = "col-1", name = "Broken", isFolder = true, children = mutableStateListOf())
         )
+        val driver = RejectingStorageDriver()
         val previous = WorkspaceRepository.canonicalRepository
         WorkspaceRepository.canonicalRepository = DefaultCanonicalCollectionRepository(
-            storageDriver = RejectingStorageDriver()
+            storageDriver = driver
         )
         try {
             val saved = WorkspaceRepository.save(state)
 
             assertFalse(saved)
+            assertEquals(StorageLocation.MemoryKey("workspace.json"), driver.lastWrittenLocation)
             assertTrue(state.showErrorDialog)
             assertEquals("Save error", state.errorDialogTitle)
             assertTrue(state.errorDialogMessage.contains("failed validation"))

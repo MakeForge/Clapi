@@ -4,6 +4,7 @@ import io.github.crustack.core.model.AuthType
 import io.github.crustack.core.model.BodyType
 import io.github.crustack.core.model.FormEntryType
 import io.github.crustack.core.model.HttpMethodType
+import io.github.crustack.core.storage.opencollection.DefaultCanonicalCollectionRepository
 import io.github.crustack.ui.shared.platform.PlatformStorage
 import io.github.crustack.ui.shared.state.AppState
 import io.github.crustack.ui.shared.state.CollectionNode
@@ -31,14 +32,16 @@ class TabsRepositoryTest {
     fun before() {
         if (storeFile.exists()) storeFile.delete()
         PlatformStorage.remove("clapi.tabs")
-        PlatformStorage.remove("clapi.workspace")
+        WorkspaceRepository.canonicalRepository = DefaultCanonicalCollectionRepository()
+        WorkspaceRepository.privateStateRepository = PrivateStateRepository()
     }
 
     @After
     fun after() {
         if (storeFile.exists()) storeFile.delete()
         PlatformStorage.remove("clapi.tabs")
-        PlatformStorage.remove("clapi.workspace")
+        WorkspaceRepository.canonicalRepository = DefaultCanonicalCollectionRepository()
+        WorkspaceRepository.privateStateRepository = PrivateStateRepository()
     }
 
     @Test

@@ -1,11 +1,16 @@
 package io.github.crustack.core.storage.opencollection
 
+import io.github.crustack.core.model.opencollection.CollectionInfo
+import io.github.crustack.core.model.opencollection.FolderInfo
+import io.github.crustack.core.model.opencollection.FolderItem
 import io.github.crustack.core.model.opencollection.OpenCollectionDocument
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonPrimitive
 
 enum class ExportFormat { JSON, YAML }
@@ -14,7 +19,10 @@ val OpenCollectionDocument.collectionId: String
     get() = (extensions["id"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() } ?: info.name
 
 interface CanonicalCollectionRepository {
-    fun observeCollections(): Flow<List<OpenCollectionDocument>>
+    /** Top-level folders of the single global OpenCollection document. */
+    fun observeCollections(): Flow<List<FolderItem>>
+    suspend fun loadGlobalCollection(): OpenCollectionDocument?
+    suspend fun saveGlobalCollection(document: OpenCollectionDocument)
     suspend fun getCollection(id: String): OpenCollectionDocument?
     suspend fun saveCollection(document: OpenCollectionDocument)
     suspend fun deleteCollection(id: String)
@@ -22,63 +30,100 @@ interface CanonicalCollectionRepository {
     suspend fun exportCollection(document: OpenCollectionDocument, format: ExportFormat = ExportFormat.JSON): String
 }
 
+/** One global OpenCollection file in [baseDirectory]. Not a user-facing or `clapi*` name. */
+const val GLOBAL_COLLECTION_FILENAME = "workspace.json"
+
+fun generateUniqueName(name: String, existingNames: Set<String>): String {
+    if (name !in existingNames) return name
+    var counter = 1
+    while ("$name ($counter)" in existingNames) {
+        counter++
+    }
+    return "$name ($counter)"
+}
+
 class DefaultCanonicalCollectionRepository(
     private val storageDriver: CollectionStorageDriver = BundledCollectionStorageDriver(),
     private val validator: OpenCollectionSchemaValidator = OpenCollectionSchemaValidator(),
-    private val baseDirectory: String? = null,
+    val baseDirectory: String? = null,
 ) : CanonicalCollectionRepository {
 
-    private val collectionsState = MutableStateFlow<Map<String, OpenCollectionDocument>>(emptyMap())
-    private val idToLocation = mutableMapOf<String, StorageLocation>()
+    private val globalState = MutableStateFlow<OpenCollectionDocument?>(null)
+    private val loadMutex = Mutex()
+    private var loaded = false
 
-    private fun resolveLocation(id: String): StorageLocation {
-        return idToLocation.getOrPut(id) {
-            if (baseDirectory != null) {
-                val safeName = id.replace(Regex("[^a-zA-Z0-9._-]"), "_")
-                StorageLocation.FilePath("$baseDirectory/$safeName.json")
-            } else {
-                StorageLocation.MemoryKey(id)
+    private fun globalLocation(): StorageLocation {
+        return if (baseDirectory != null) {
+            StorageLocation.FilePath("$baseDirectory/$GLOBAL_COLLECTION_FILENAME")
+        } else {
+            StorageLocation.MemoryKey(GLOBAL_COLLECTION_FILENAME)
+        }
+    }
+
+    private suspend fun ensureLoaded() {
+        loadMutex.withLock {
+            if (loaded) return
+            loaded = true
+            globalState.value = try {
+                storageDriver.read(globalLocation())
+            } catch (_: StorageReadException) {
+                null
             }
         }
     }
 
-    override fun observeCollections(): Flow<List<OpenCollectionDocument>> =
-        collectionsState.asStateFlow().map { it.values.toList() }
+    override fun observeCollections(): Flow<List<FolderItem>> = flow {
+        ensureLoaded()
+        emitAll(globalState.map { document -> document?.topLevelFolders().orEmpty() })
+    }
+
+    override suspend fun loadGlobalCollection(): OpenCollectionDocument? {
+        ensureLoaded()
+        return globalState.value
+    }
+
+    override suspend fun saveGlobalCollection(document: OpenCollectionDocument) {
+        storageDriver.write(globalLocation(), document)
+        globalState.value = document
+        loaded = true
+    }
 
     override suspend fun getCollection(id: String): OpenCollectionDocument? {
-        val cached = collectionsState.value[id]
-        if (cached != null) return cached
-
-        val byName = collectionsState.value.values.firstOrNull { it.info.name == id }
-        if (byName != null) return byName
-
-        return try {
-            val location = resolveLocation(id)
-            val doc = storageDriver.read(location)
-            collectionsState.update { it + (id to doc) }
-            doc
-        } catch (_: StorageReadException) {
-            null
-        }
+        ensureLoaded()
+        val folder = globalState.value?.topLevelFolders()?.firstOrNull { it.matchesId(id) } ?: return null
+        return folder.toStandaloneDocument()
     }
 
     override suspend fun saveCollection(document: OpenCollectionDocument) {
-        val id = document.collectionId
-        val location = resolveLocation(id)
-
-        // Storage driver validates schema before write and throws CollectionValidationException if invalid
-        storageDriver.write(location, document)
-
-        collectionsState.update { current ->
-            current + (id to document)
+        ensureLoaded()
+        val current = globalState.value ?: emptyGlobalDocument()
+        val folder = document.toCollectionFolder()
+        val items = current.items.toMutableList()
+        val index = items.indexOfFirst { item ->
+            item is FolderItem && item.matchesId(document.collectionId)
         }
+        if (index >= 0) {
+            items[index] = folder
+        } else {
+            items.add(folder)
+        }
+        saveGlobalCollection(current.copy(items = items))
     }
 
     override suspend fun deleteCollection(id: String) {
-        val location = resolveLocation(id)
-        storageDriver.delete(location)
-        idToLocation.remove(id)
-        collectionsState.update { it - id }
+        ensureLoaded()
+        val current = globalState.value ?: return
+        val remaining = current.items.filterNot { item ->
+            item is FolderItem && item.matchesId(id)
+        }
+        if (remaining.size == current.items.size) return
+        val updated = current.copy(items = remaining)
+        if (updated.items.isEmpty() && updated.config?.environments.isNullOrEmpty()) {
+            storageDriver.delete(globalLocation())
+            globalState.value = null
+        } else {
+            saveGlobalCollection(updated)
+        }
     }
 
     override suspend fun importCollection(rawContent: String): OpenCollectionDocument {
@@ -93,7 +138,8 @@ class DefaultCanonicalCollectionRepository(
             OpenCollectionSerializer.deserializeYaml(trimmed)
         }
 
-        val existingNames = collectionsState.value.values.map { it.info.name }.toSet()
+        ensureLoaded()
+        val existingNames = globalState.value?.topLevelFolders()?.map { it.info.name }?.toSet() ?: emptySet()
         val uniqueName = generateUniqueName(doc.info.name, existingNames)
         val finalDoc = if (uniqueName != doc.info.name) {
             doc.copy(info = doc.info.copy(name = uniqueName))
@@ -120,12 +166,38 @@ class DefaultCanonicalCollectionRepository(
         }
     }
 
-    private fun generateUniqueName(name: String, existingNames: Set<String>): String {
-        if (name !in existingNames) return name
-        var counter = 1
-        while ("$name ($counter)" in existingNames) {
-            counter++
-        }
-        return "$name ($counter)"
-    }
 }
+
+private fun emptyGlobalDocument(): OpenCollectionDocument =
+    OpenCollectionDocument(
+        opencollection = "1.0.0",
+        info = CollectionInfo(name = "Workspace"),
+        bundled = true,
+    )
+
+private fun OpenCollectionDocument.topLevelFolders(): List<FolderItem> =
+    items.filterIsInstance<FolderItem>()
+
+private fun FolderItem.matchesId(id: String): Boolean =
+    folderIdentity() == id || info.name == id
+
+private fun FolderItem.folderIdentity(): String {
+    val raw = (extensions["id"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
+    return raw ?: info.name
+}
+
+private fun OpenCollectionDocument.toCollectionFolder(): FolderItem =
+    FolderItem(
+        info = FolderInfo(name = info.name, type = "folder"),
+        items = items,
+        extensions = extensions + ("id" to JsonPrimitive(collectionId)),
+    )
+
+private fun FolderItem.toStandaloneDocument(): OpenCollectionDocument =
+    OpenCollectionDocument(
+        opencollection = "1.0.0",
+        info = CollectionInfo(name = info.name),
+        bundled = true,
+        items = items,
+        extensions = extensions,
+    )

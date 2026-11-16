@@ -1,6 +1,18 @@
 package io.github.crustack.ui.shared.persistence
 
+import androidx.compose.runtime.mutableStateListOf
+import io.github.crustack.core.model.AuthType
+import io.github.crustack.core.model.BodyType
+import io.github.crustack.core.model.FormEntryType
+import io.github.crustack.core.model.HttpMethodType
 import io.github.crustack.core.model.KeyValueEntry
+import io.github.crustack.core.model.opencollection.OpenCollectionDocument
+import io.github.crustack.ui.shared.components.encodeOrderedQuery
+import io.github.crustack.ui.shared.components.joinRequestUrl
+import io.github.crustack.ui.shared.components.splitRequestUrl
+import io.github.crustack.ui.shared.platform.generateUuid
+import io.github.crustack.ui.shared.state.CollectionNode
+import io.github.crustack.ui.shared.state.FormDataEntryState
 import io.github.crustack.ui.shared.state.normalizeApiKeyPlacement
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -13,8 +25,169 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
+data class PostmanCollectionDto(
+    val name: String,
+    val folders: List<PostmanFolderDto>,
+    val requests: List<PostmanRequestDto>,
+) {
+    fun toOpenCollectionDocument(): OpenCollectionDocument =
+        toCollectionNode().toOpenCollectionDocument()
+
+    internal fun toCollectionNode(): CollectionNode {
+        val children = mutableStateListOf<CollectionNode>()
+        folders.forEach { children.add(it.toCollectionNode()) }
+        requests.forEach { children.add(it.toCollectionNode()) }
+        return CollectionNode(
+            id = generateUuid(),
+            name = name,
+            isFolder = true,
+            children = children,
+        )
+    }
+}
+
+data class PostmanFolderDto(
+    val name: String,
+    val folders: List<PostmanFolderDto>,
+    val requests: List<PostmanRequestDto>,
+) {
+    internal fun toCollectionNode(): CollectionNode {
+        val children = mutableStateListOf<CollectionNode>()
+        folders.forEach { children.add(it.toCollectionNode()) }
+        requests.forEach { children.add(it.toCollectionNode()) }
+        return CollectionNode(
+            id = generateUuid(),
+            name = name,
+            isFolder = true,
+            children = children,
+        )
+    }
+}
+
+data class PostmanRequestDto(
+    val name: String,
+    val method: String,
+    val url: String,
+    val preRequestScript: String? = null,
+    val testScript: String? = null,
+    val userHeaders: List<Pair<String, String>> = emptyList(),
+    val queryEntries: List<KeyValueEntry>? = null,
+    val headerEntries: List<KeyValueEntry>? = null,
+    val bodyType: String? = null,
+    val bodyContent: String? = null,
+    val authType: String? = null,
+    val authUsername: String? = null,
+    val authPassword: String? = null,
+    val authToken: String? = null,
+    val authApiKey: String? = null,
+    val authApiValue: String? = null,
+    val authApiPlacement: String? = null,
+) {
+    internal fun toCollectionNode(): CollectionNode {
+        val resolvedMethod = runCatching { HttpMethodType.valueOf(method.uppercase()) }.getOrDefault(HttpMethodType.GET)
+        val resolvedBodyType = bodyType?.let { runCatching { BodyType.valueOf(it.uppercase()) }.getOrNull() }
+        val resolvedAuthType = authType?.let { runCatching { AuthType.valueOf(it.uppercase()) }.getOrNull() }
+        val formDataEntries = if (resolvedBodyType == BodyType.FORM_DATA) {
+            parseFormDataContent(bodyContent)
+        } else {
+            emptyList()
+        }
+        val urlencodedEntries = if (resolvedBodyType == BodyType.X_WWW_FORM_URLENCODED) {
+            parseUrlencodedContent(bodyContent)
+        } else {
+            emptyList()
+        }
+        return CollectionNode(
+            id = generateUuid(),
+            requestRef = generateUuid(),
+            name = name,
+            isFolder = false,
+            method = resolvedMethod,
+            url = compatibleUrl(url, queryEntries),
+            preRequestScript = preRequestScript,
+            testScript = testScript,
+            userHeaders = userHeaders,
+            queryEntries = queryEntries,
+            headerEntries = headerEntries,
+            bodyType = resolvedBodyType,
+            bodyContent = bodyContent,
+            formDataEntries = formDataEntries,
+            urlencodedEntries = urlencodedEntries,
+            authType = resolvedAuthType,
+            authUsername = authUsername,
+            authPassword = authPassword,
+            authToken = authToken,
+            authApiKey = authApiKey,
+            authApiValue = authApiValue,
+            authApiPlacement = normalizeApiKeyPlacement(authApiPlacement),
+        )
+    }
+}
+
+private fun parseFormDataContent(content: String?): List<FormDataEntryState> {
+    if (content.isNullOrBlank()) return emptyList()
+    return content.replace("\r\n", "\n")
+        .split('\n', '&')
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .map { token ->
+            val eq = token.indexOf('=')
+            if (eq >= 0) {
+                FormDataEntryState(
+                    key = token.substring(0, eq).trim(),
+                    type = FormEntryType.TEXT,
+                    value = token.substring(eq + 1),
+                    enabled = true,
+                )
+            } else {
+                FormDataEntryState(
+                    key = token,
+                    type = FormEntryType.TEXT,
+                    value = "",
+                    enabled = true,
+                )
+            }
+        }
+        .filter { it.key.isNotBlank() }
+}
+
+private fun parseUrlencodedContent(content: String?): List<FormDataEntryState> {
+    if (content.isNullOrBlank()) return emptyList()
+    return content
+        .split('&')
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .map { token ->
+            val eq = token.indexOf('=')
+            if (eq >= 0) {
+                FormDataEntryState(
+                    key = token.substring(0, eq).trim(),
+                    value = token.substring(eq + 1),
+                    enabled = true,
+                )
+            } else {
+                FormDataEntryState(
+                    key = token,
+                    value = "",
+                    enabled = true,
+                )
+            }
+        }
+        .filter { it.key.isNotBlank() }
+}
+
+private fun compatibleUrl(url: String, entries: List<KeyValueEntry>?): String {
+    if (entries == null) return url
+    val parts = splitRequestUrl(url)
+    val query = encodeOrderedQuery(
+        entries.filter { it.enabled && it.key.isNotBlank() }.map { it.key to it.value },
+        preserveTemplates = true,
+    )
+    return joinRequestUrl(parts.base, query, parts.fragment)
+}
+
 /**
- * Imports Postman Collection v2 / v2.1 and Postman Environment JSON files into Clapi format.
+ * Imports Postman Collection v2 / v2.1 and Postman Environment JSON files into OpenCollection / Clapi format.
  *
  * Detection:
  *  - Collection: `info.schema` field contains "schema.getpostman.com"
@@ -52,11 +225,11 @@ object PostmanImporter {
     // ── Collection import ──────────────────────────────────────────────────────
 
     /**
-     * Converts a Postman collection JSON object to [ClapiCollectionDto].
+     * Converts a Postman collection JSON object to [PostmanCollectionDto].
      *
      * @throws ImportExportException if required fields are absent.
      */
-    fun importCollection(root: JsonObject): ClapiCollectionDto {
+    fun importCollection(root: JsonObject): PostmanCollectionDto {
         val collectionRoot = root["collection"]?.jsonObject ?: root
         val info = collectionRoot["info"]?.jsonObject
             ?: throw ImportExportException("Missing 'info' in Postman collection")
@@ -64,12 +237,12 @@ object PostmanImporter {
             ?: throw ImportExportException("Missing collection name in Postman JSON")
         val items = collectionRoot["item"]?.jsonArray ?: JsonArray(emptyList())
         val (folders, requests) = parseItems(items)
-        return ClapiCollectionDto(name = name, folders = folders, requests = requests)
+        return PostmanCollectionDto(name = name, folders = folders, requests = requests)
     }
 
-    private fun parseItems(items: JsonArray): Pair<List<FolderDto>, List<RequestDto>> {
-        val folders = mutableListOf<FolderDto>()
-        val requests = mutableListOf<RequestDto>()
+    private fun parseItems(items: JsonArray): Pair<List<PostmanFolderDto>, List<PostmanRequestDto>> {
+        val folders = mutableListOf<PostmanFolderDto>()
+        val requests = mutableListOf<PostmanRequestDto>()
         for (element in items) {
             val obj = runCatching { element.jsonObject }.getOrNull() ?: continue
             when {
@@ -81,14 +254,14 @@ object PostmanImporter {
         return folders to requests
     }
 
-    private fun parseFolder(obj: JsonObject): FolderDto {
+    private fun parseFolder(obj: JsonObject): PostmanFolderDto {
         val name = obj["name"]?.jsonPrimitive?.contentOrNull?.trim() ?: "Unnamed Folder"
         val childItems = obj["item"]?.jsonArray ?: JsonArray(emptyList())
         val (subFolders, requests) = parseItems(childItems)
-        return FolderDto(name = name, folders = subFolders, requests = requests)
+        return PostmanFolderDto(name = name, folders = subFolders, requests = requests)
     }
 
-    private fun parseRequest(obj: JsonObject): RequestDto? {
+    private fun parseRequest(obj: JsonObject): PostmanRequestDto? {
         val name = obj["name"]?.jsonPrimitive?.contentOrNull?.trim() ?: "Unnamed Request"
         val requestObj = obj["request"]?.jsonObject ?: return null
         val method = normalizeMethod(requestObj["method"]?.jsonPrimitive?.contentOrNull)
@@ -98,7 +271,7 @@ object PostmanImporter {
         val (bodyType, bodyContent) = parseBody(requestObj["body"], headers)
         val auth = parseAuth(requestObj["auth"])
         val (preRequestScript, testScript) = parseEvents(obj["event"])
-        return RequestDto(
+        return PostmanRequestDto(
             name = name,
             method = method,
             url = url,
@@ -190,8 +363,6 @@ object PostmanImporter {
         }
     }
 
-    private data class ParsedBody(val type: String?, val content: String?)
-
     private fun parseBody(bodyElement: JsonElement?, headers: List<Pair<String, String>>): Pair<String?, String?> {
         if (bodyElement == null || bodyElement is JsonNull) return null to null
         val bodyObj = runCatching { bodyElement.jsonObject }.getOrNull() ?: return null to null
@@ -281,7 +452,6 @@ object PostmanImporter {
                 ParsedAuth("BASIC", username, password, null, null, null, null)
             }
             "apikey" -> {
-                // Postman apikey: key = header name, value = header value
                 val apiKey = authObj["apikey"]?.jsonArray?.kvValue("key")
                 val apiValue = authObj["apikey"]?.jsonArray?.kvValue("value")
                 val placement = normalizeApiKeyPlacement(authObj["apikey"]?.jsonArray?.kvValue("in"))
@@ -292,7 +462,6 @@ object PostmanImporter {
         }
     }
 
-    /** Finds the `value` of the entry whose `key` field equals [keyName] in a Postman [{key,value}] array. */
     private fun JsonArray.kvValue(keyName: String): String? =
         mapNotNull { el ->
             val obj = runCatching { el.jsonObject }.getOrNull() ?: return@mapNotNull null

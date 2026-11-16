@@ -7,9 +7,11 @@ import io.github.crustack.core.network.NetworkEvent
 import io.github.crustack.core.network.NoOpNetworkLogger
 import io.github.crustack.core.network.RetryPolicy
 import io.github.crustack.server.module
+import io.github.crustack.core.storage.opencollection.DefaultCanonicalCollectionRepository
 import io.github.crustack.ui.shared.components.buildAuthConfig
 import io.github.crustack.ui.shared.components.buildRequestBody
 import io.github.crustack.ui.shared.network.NetworkClientFactory
+import io.github.crustack.ui.shared.persistence.PrivateStateRepository
 import io.github.crustack.ui.shared.persistence.SettingsRepository
 import io.github.crustack.ui.shared.persistence.TabsRepository
 import io.github.crustack.ui.shared.persistence.WorkspaceRepository
@@ -25,6 +27,7 @@ import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class RequestSettingsPersistenceWorkflowIntegrationTest {
@@ -81,6 +84,8 @@ class RequestSettingsPersistenceWorkflowIntegrationTest {
         WorkspaceRepository.save(source)
         TabsRepository.save(source)
 
+        assertNotNull(WorkspaceRepository.canonicalRepository.loadGlobalCollection())
+
         val restored = AppState(openDefaultTab = false, withDemoData = false)
         SettingsRepository.load(restored.settings)
         WorkspaceRepository.load(restored)
@@ -130,8 +135,9 @@ class RequestSettingsPersistenceWorkflowIntegrationTest {
     }
 
     private fun clearStorage() {
+        WorkspaceRepository.canonicalRepository = DefaultCanonicalCollectionRepository()
+        WorkspaceRepository.privateStateRepository = PrivateStateRepository()
         val keys = listOf(
-            "clapi.workspace",
             "clapi.tabs",
             "settings.autoSaveRequests",
             "settings.confirmBeforeDelete",

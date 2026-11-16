@@ -132,8 +132,9 @@ Pre-request scripts can mutate outgoing request values:
 
 ### Collections and Test Automation
 
-- Collection import/export using `qa-tests/fixtures/clapi-test-collection.json` (includes a **JSON5** folder under Body Types)
-- **Postman Collection v2 / v2.1 import** — auto-detected and converted to Clapi format
+- Global OpenCollection document persistence (`workspace.json`) storing Clapi Collections as top-level OpenCollection Folders and environments in `config.environments`
+- Single-collection OpenCollection import/export (JSON/YAML) using `qa-tests/fixtures/clapi-test-collection.json` (includes a **JSON5** folder under Body Types; workspace bundle export/import removed)
+- **Postman Collection v2 / v2.1 import** — auto-detected and converted to OpenCollection format
   - Folders, requests, headers, auth (bearer / basic / API key), body (raw JSON, form-data, urlencoded, GraphQL, binary), and scripts
   - Postman `pm.*` script namespace automatically rewritten to `clapi.*`
    - `pm.sendRequest` rewritten to `clapi.sendRequest` (supported)

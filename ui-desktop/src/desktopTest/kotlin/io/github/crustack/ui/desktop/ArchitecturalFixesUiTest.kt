@@ -3,8 +3,10 @@ package io.github.crustack.ui.desktop
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
+import io.github.crustack.core.storage.opencollection.DefaultCanonicalCollectionRepository
 import io.github.crustack.ui.shared.MainScreen
 import io.github.crustack.ui.shared.components.sharedSidebarTooltipState
+import io.github.crustack.ui.shared.persistence.PrivateStateRepository
 import io.github.crustack.ui.shared.persistence.TabsRepository
 import io.github.crustack.ui.shared.persistence.WorkspaceRepository
 import io.github.crustack.ui.shared.platform.PlatformStorage
@@ -34,14 +36,16 @@ class ArchitecturalFixesUiTest {
 
     @Before
     fun clearPersistedStateBeforeEach() {
-        PlatformStorage.remove("clapi.workspace")
         PlatformStorage.remove("clapi.tabs")
+        WorkspaceRepository.canonicalRepository = DefaultCanonicalCollectionRepository()
+        WorkspaceRepository.privateStateRepository = PrivateStateRepository()
     }
 
     @After
     fun clearPersistedStateAfterEach() {
-        PlatformStorage.remove("clapi.workspace")
         PlatformStorage.remove("clapi.tabs")
+        WorkspaceRepository.canonicalRepository = DefaultCanonicalCollectionRepository()
+        WorkspaceRepository.privateStateRepository = PrivateStateRepository()
     }
 
     // ── Issue 1: Tooltip no longer uses per-item Popup ──────────────────────

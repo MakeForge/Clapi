@@ -247,33 +247,33 @@ class PerTypeBodyImportExportTest {
     }
 
     @Test
-    fun missing_rawContents_backward_compat_produces_empty_map() {
-        // A legacy collection JSON without a rawContents field must import cleanly
-        val legacyJson = """
+    fun missing_bodyContents_extension_produces_empty_map() {
+        // An OpenCollection JSON without a bodyContents extension must import cleanly
+        val openCollectionJson = """
         {
-            "type": "clapiCollection",
-            "version": "1.0",
-            "name": "Legacy Collection",
-            "folders": [],
-            "requests": [
+            "opencollection": "1.0.0",
+            "info": { "name": "Standard Collection" },
+            "items": [
                 {
-                    "name": "Legacy Request",
-                    "method": "POST",
-                    "url": "https://legacy.example.com",
-                    "body": { "type": "JSON", "content": "{\"legacy\": true}" }
+                    "info": { "name": "Standard Request", "type": "http" },
+                    "http": {
+                        "method": "POST",
+                        "url": "https://example.com",
+                        "body": { "type": "json", "data": "{\"ok\": true}" }
+                    }
                 }
             ]
         }
         """.trimIndent()
 
         val state = AppState(openDefaultTab = false)
-        ImportExportRepository.importCollectionFromString(state, legacyJson)
+        ImportExportRepository.importCollectionFromString(state, openCollectionJson)
 
         val request = state.collections.first().children.first()
         assertTrue(request.bodyContents.isEmpty(),
-            "Legacy import without rawContents must produce an empty bodyContents map")
-        assertEquals("{\"legacy\": true}", request.bodyContent,
-            "Legacy single bodyContent field must still be populated")
+            "Import without bodyContents extension must produce an empty bodyContents map")
+        assertEquals("{\"ok\": true}", request.bodyContent,
+            "Single bodyContent field must still be populated")
     }
     
     @Test
@@ -583,11 +583,9 @@ class UniqueNamingTest {
     fun importing_same_collection_twice_creates_unique_names() {
         val collectionJson = """
         {
-            "type": "clapiCollection",
-            "version": "1.0",
-            "name": "Duplicate Collection",
-            "folders": [],
-            "requests": []
+            "opencollection": "1.0.0",
+            "info": { "name": "Duplicate Collection" },
+            "items": []
         }
         """.trimIndent()
 
@@ -646,85 +644,5 @@ class ValidationErrorMessageTest {
     fun xml_valid_blank_returns_no_error() {
         assertNull(validateXml(""))
         assertNull(validateXml("   "))
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// 10. Workspace round-trip with per-type body content
-// ═══════════════════════════════════════════════════════════════════════
-
-class WorkspaceRoundTripTest {
-
-    @Test
-    fun workspace_export_import_preserves_per_type_body_contents() {
-        val jsonBody = """{"workspace": "test"}"""
-        val xmlBody  = "<workspace>test</workspace>"
-
-        val requestId = "req-ws-1"
-        val requestNode = CollectionNode(
-            id = requestId,
-            name = "WS Request",
-            isFolder = false,
-            method = HttpMethodType.POST,
-            url = "https://ws.example.com",
-            bodyType = BodyType.JSON,
-            bodyContent = jsonBody,
-            bodyContents = mapOf(
-                BodyType.JSON.name to jsonBody,
-                BodyType.XML.name  to xmlBody,
-            ),
-        )
-        val collRoot = CollectionNode(
-            id = "col-ws-1",
-            name = "WS Collection",
-            isFolder = true,
-            children = androidx.compose.runtime.mutableStateListOf(requestNode),
-        )
-
-        val exportState = AppState(openDefaultTab = false)
-        exportState.collections.add(collRoot)
-
-        // Export workspace
-        val workspaceJson = ImportExportRepository.exportWorkspaceToString(exportState)
-        assertTrue(workspaceJson.contains("rawContents"),
-            "Exported workspace JSON must contain a rawContents section")
-        // body content strings are JSON-escaped in the output; correctness is validated via the
-        // import assertions below rather than raw string searching
-
-        // Import workspace into fresh state
-        val importState = AppState(openDefaultTab = false)
-        val result = ImportExportRepository.importWorkspaceFromString(importState, workspaceJson)
-        assertEquals(1, result.importedCollections, "One collection must be imported")
-
-        val importedRequest = importState.collections.first().children.first()
-        assertEquals(jsonBody, importedRequest.bodyContents[BodyType.JSON.name],
-            "JSON body content must survive workspace export/import")
-        assertEquals(xmlBody, importedRequest.bodyContents[BodyType.XML.name],
-            "XML body content must survive workspace export/import")
-    }
-
-    @Test
-    fun workspace_with_multiple_collections_all_preserved() {
-        val state = AppState(openDefaultTab = false)
-
-        listOf("Alpha", "Beta", "Gamma").forEach { name ->
-            state.collections.add(CollectionNode(
-                id = "col-$name",
-                name = name,
-                isFolder = true,
-                children = androidx.compose.runtime.mutableStateListOf(),
-            ))
-        }
-
-        val workspaceJson = ImportExportRepository.exportWorkspaceToString(state)
-        val importState = AppState(openDefaultTab = false)
-        val result = ImportExportRepository.importWorkspaceFromString(importState, workspaceJson)
-
-        assertEquals(3, result.importedCollections,
-            "All three collections must be imported from the workspace")
-        val names = importState.collections.map { it.name }.toSet()
-        assertTrue("Alpha" in names)
-        assertTrue("Beta" in names)
-        assertTrue("Gamma" in names)
     }
 }

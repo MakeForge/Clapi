@@ -213,6 +213,11 @@ fun CollectionNode.hasSseAccept(): Boolean =
 class EnvState(
     name: String,
     variables: List<MutableKeyValue> = emptyList(),
+    var color: String? = null,
+    var description: io.github.crustack.core.model.opencollection.Description? = null,
+    var clientCertificates: List<io.github.crustack.core.model.opencollection.ClientCertificate> = emptyList(),
+    var extends: String? = null,
+    var dotEnvFilePath: String? = null,
 ) {
     var name by mutableStateOf(name)
     val variables = mutableStateListOf<MutableKeyValue>().also { it.addAll(variables) }

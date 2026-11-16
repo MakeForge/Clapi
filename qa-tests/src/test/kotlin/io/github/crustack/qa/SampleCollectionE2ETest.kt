@@ -4,6 +4,7 @@ import io.github.crustack.core.model.BodyType
 import io.github.crustack.core.model.HttpMethodType
 import io.github.crustack.core.model.RequestBody
 import io.github.crustack.core.model.RequestDefinition
+import io.github.crustack.core.model.opencollection.getClapiExtensionData
 import io.github.crustack.core.network.KtorApiClient
 import io.github.crustack.core.network.NetworkEvent
 import io.github.crustack.core.network.RetryPolicy
@@ -890,5 +891,32 @@ class SampleCollectionE2ETest {
             assertTrue("ping-0" in body)
             assertTrue("hello-sse" in body)
         }
+    }
+
+    // =========================================================================
+    // OpenCollection Fixture Validation
+    // =========================================================================
+
+    @Test
+    fun sample_collection_fixture_is_valid_opencollection_document() {
+        val candidates = listOf(
+            java.io.File("qa-tests/fixtures/clapi-test-collection.json"),
+            java.io.File("fixtures/clapi-test-collection.json"),
+            java.io.File("../qa-tests/fixtures/clapi-test-collection.json"),
+        )
+        val file = candidates.firstOrNull { it.exists() }
+            ?: error("clapi-test-collection.json fixture not found")
+        val raw = file.readText()
+        val validator = io.github.crustack.core.storage.opencollection.OpenCollectionSchemaValidator()
+        val issues = validator.validate(raw)
+        assertTrue(issues.isEmpty(), "Expected 0 schema validation issues on fixture, got: $issues")
+
+        val doc = io.github.crustack.core.storage.opencollection.OpenCollectionSerializer.deserializeJson(raw)
+        assertEquals("1.0.0", doc.opencollection)
+        assertEquals("Clapi Test Suite", doc.info.name)
+        assertTrue(doc.items.isNotEmpty())
+        val clapiData = doc.extensions.getClapiExtensionData()
+        assertNotNull(clapiData, "Fixture must preserve Clapi MCP extension data")
+        assertTrue(clapiData.mcp.isNotEmpty(), "Fixture must contain MCP configurations in clapi extension")
     }
 }
