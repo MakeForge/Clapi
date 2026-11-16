@@ -1,8 +1,8 @@
-package io.github.crustack.clapi.ui.shared.components
+package io.github.crustack.clapi.ui.shared.components.sidebar
 
+import androidx.compose.runtime.mutableStateListOf
 import io.github.crustack.clapi.core.model.HttpMethodType
 import io.github.crustack.clapi.ui.shared.state.CollectionNode
-import androidx.compose.runtime.mutableStateListOf
 import org.junit.Test
 import kotlin.system.measureTimeMillis
 import kotlin.test.assertTrue

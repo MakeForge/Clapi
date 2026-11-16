@@ -1,18 +1,21 @@
 package io.github.crustack.clapi.ui.desktop
 
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.test.*
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performMouseInput
+import androidx.compose.ui.test.rightClick
 import io.github.crustack.clapi.core.model.HttpMethodType
-import io.github.crustack.clapi.ui.shared.components.Sidebar
+import io.github.crustack.clapi.ui.shared.components.sidebar.Sidebar
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.CollectionNode
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SidebarMultiSelectionUiTest {
