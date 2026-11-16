@@ -5,6 +5,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -216,6 +217,73 @@ class ImportSpecificationUiTest {
         composeRule.onNodeWithTag("import-scan-error").assertIsDisplayed()
         // Stays on Step 1
         composeRule.onNodeWithTag("import-tab-clipboard").assertIsDisplayed()
+    }
+
+    @Test
+    fun importDialog_rendersSupportedFormatBadgesInStep1() {
+        val state = AppState().apply { showImportSpecificationDialog = true }
+        composeRule.setContent {
+            ImportSpecificationDialog(
+                state = state,
+                onDismiss = { state.showImportSpecificationDialog = false }
+            )
+        }
+
+        composeRule.onNodeWithTag("import-supported-formats-badges").assertIsDisplayed()
+        composeRule.onNodeWithTag("import-format-badge-openapi").assertIsDisplayed()
+        composeRule.onNodeWithTag("import-format-badge-opencollection").assertIsDisplayed()
+        composeRule.onNodeWithTag("import-format-badge-postman").assertIsDisplayed()
+        composeRule.onNodeWithTag("import-format-badge-insomnia").assertIsDisplayed()
+    }
+
+    @Test
+    fun importDialog_scansInsomniaV5AndShowsInsomniaFormatBadgeInStep2() {
+        val sampleInsomnia = """
+            type: collection.insomnia.rest/5.0
+            schema_version: "5.1"
+            name: Insomnia UI Test Collection
+            meta:
+              id: wrk_ui_test
+            environments:
+              name: Base Environment
+              meta:
+                id: env_ui_base
+              data:
+                host: https://ui.example.com
+            collection:
+              - name: Health Check
+                url: "{{host}}/health"
+                method: GET
+                meta:
+                  id: req_health
+        """.trimIndent()
+        copyToClipboard(sampleInsomnia)
+
+        val state = AppState().apply { showImportSpecificationDialog = true }
+        composeRule.setContent {
+            ImportSpecificationDialog(
+                state = state,
+                onDismiss = { state.showImportSpecificationDialog = false }
+            )
+        }
+
+        composeRule.onNodeWithTag("import-tab-clipboard", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("import-scan-button", useUnmergedTree = true).performClick()
+
+        composeRule.waitUntil(5000) {
+            composeRule.onAllNodesWithTag("import-format-badge").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        composeRule.onNodeWithTag("import-format-badge", useUnmergedTree = true).assertIsDisplayed()
+
+        composeRule.onNodeWithTag("import-confirm-button", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        assertFalse(state.showImportSpecificationDialog)
+        assertTrue(state.collections.any { it.name == "Insomnia UI Test Collection" })
+        assertTrue(state.environments.any { it.name == "Base Environment" })
     }
 
     private fun hasTestTagStartingWith(prefix: String) =

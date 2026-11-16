@@ -21,8 +21,8 @@ description: "Task list for Insomnia v5 Collection & Environment Import"
 
 **Purpose**: Core model extensions and test fixture preparation.
 
-- [ ] T001 Add `INSOMNIA` and `POSTMAN` values to `SpecFormat` enum in `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/importers/ImportModels.kt`
-- [ ] T002 [P] Create test fixtures for Insomnia v5 export files (collection YAML, spec YAML, and environment JSON) in `core-storage/src/commonTest/resources/fixtures/insomnia/`
+- [X] T001 Add `INSOMNIA` and `POSTMAN` values to `SpecFormat` enum in `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/importers/ImportModels.kt`
+- [X] T002 [P] Create test fixtures for Insomnia v5 export files (collection YAML, spec YAML, and environment JSON) in `core-storage/src/commonTest/resources/fixtures/insomnia/`
 
 ---
 
@@ -30,9 +30,9 @@ description: "Task list for Insomnia v5 Collection & Environment Import"
 
 **Purpose**: Core Insomnia deserialization models and script translation engine.
 
-- [ ] T003 Define Insomnia v5 data transfer models (`InsomniaV5Document`, `InsomniaItem`, `InsomniaFolder`, `InsomniaHttpRequest`, `InsomniaGrpcRequest`, `InsomniaWebSocketRequest`, `InsomniaEnvironments`, `InsomniaAuth`, `InsomniaBody`) in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/importers/InsomniaModels.kt`
-- [ ] T004 Implement `InsomniaScriptTranslator` with regex and token replacement converting `insomnia.*` to `clapi.*` namespaces in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/importers/InsomniaScriptTranslator.kt`
-- [ ] T005 [P] Unit tests for `InsomniaScriptTranslatorTest` validating variable, assertion, and request script translation in `core-storage/src/commonTest/kotlin/io/github/makeforge/clapi/core/storage/importers/InsomniaScriptTranslatorTest.kt`
+- [X] T003 Define Insomnia v5 data transfer models (`InsomniaV5Document`, `InsomniaItem`, `InsomniaFolder`, `InsomniaHttpRequest`, `InsomniaGrpcRequest`, `InsomniaWebSocketRequest`, `InsomniaEnvironments`, `InsomniaAuth`, `InsomniaBody`) in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/importers/InsomniaModels.kt`
+- [X] T004 Implement `InsomniaScriptTranslator` with regex and token replacement converting `insomnia.*` to `clapi.*` namespaces in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/importers/InsomniaScriptTranslator.kt`
+- [X] T005 [P] Unit tests for `InsomniaScriptTranslatorTest` validating variable, assertion, and request script translation in `core-storage/src/commonTest/kotlin/io/github/makeforge/clapi/core/storage/importers/InsomniaScriptTranslatorTest.kt`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin.
 
@@ -46,14 +46,14 @@ description: "Task list for Insomnia v5 Collection & Environment Import"
 
 ### Tests for User Story 1
 
-- [ ] T006 [P] [US1] Unit tests for Insomnia v5 document detection and parsing in `core-storage/src/commonTest/kotlin/io/github/makeforge/clapi/core/storage/importers/InsomniaImporterTest.kt`
+- [X] T006 [P] [US1] Unit tests for Insomnia v5 document detection and parsing in `core-storage/src/commonTest/kotlin/io/github/makeforge/clapi/core/storage/importers/InsomniaImporterTest.kt`
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Implement `InsomniaImporter` engine parsing YAML via `kaml` and JSON via `kotlinx.serialization`, mapping folder hierarchies, HTTP/gRPC/WebSocket requests, auth (Basic, Bearer, API Key, AWS IAM, OAuth2, Digest), and environments in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/importers/InsomniaImporter.kt`
-- [ ] T008 [US1] Integrate `InsomniaImporter` into `CompositeSpecificationImporter` in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/importers/SpecificationImporter.kt` to support scanning and preview generation
-- [ ] T009 [US1] Integrate `InsomniaImporter` into `ImportExportRepository.importCollectionFromString` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/ImportExportRepository.kt` to support direct collection imports
-- [ ] T010 [P] [US1] Integration tests for `ImportExportRepositoryTest` verifying Insomnia v5 collection and environment import into `AppState` in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/persistence/ImportExportRepositoryTest.kt`
+- [X] T007 [US1] Implement `InsomniaImporter` engine parsing YAML via `kaml` and JSON via `kotlinx.serialization`, mapping folder hierarchies, HTTP/gRPC/WebSocket requests, auth (Basic, Bearer, API Key, AWS IAM, OAuth2, Digest), and environments in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/importers/InsomniaImporter.kt`
+- [X] T008 [US1] Integrate `InsomniaImporter` into `CompositeSpecificationImporter` in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/importers/SpecificationImporter.kt` to support scanning and preview generation
+- [X] T009 [US1] Integrate `InsomniaImporter` into `ImportExportRepository.importCollectionFromString` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/ImportExportRepository.kt` to support direct collection imports
+- [X] T010 [P] [US1] Integration tests for `ImportExportRepositoryTest` verifying Insomnia v5 collection and environment import into `AppState` in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/persistence/ImportExportRepositoryTest.kt`
 
 **Checkpoint**: User Story 1 is fully functional and testable as an MVP.
 
@@ -67,12 +67,12 @@ description: "Task list for Insomnia v5 Collection & Environment Import"
 
 ### Tests for User Story 2
 
-- [ ] T011 [P] [US2] UI component tests for Import Dialog format badges and step 2 header badge in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/ImportSpecificationUiTest.kt`
+- [X] T011 [P] [US2] UI component tests for Import Dialog format badges and step 2 header badge in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/ImportSpecificationUiTest.kt`
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Render `SupportedFormatBadges` row (`OpenAPI 3.0+`, `OpenCollection`, `Postman`, `Insomnia`) with test tags beneath the file selection area and update Step 2 header format badge for `INSOMNIA` and `POSTMAN` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/ImportSpecificationDialog.kt`
-- [ ] T013 [US2] Add localized strings and format labels in `ui-shared/src/commonMain/resources/i18n/en.json` and `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/i18n/Strings.kt`
+- [X] T012 [US2] Render `SupportedFormatBadges` row (`OpenAPI 3.0+`, `OpenCollection`, `Postman`, `Insomnia`) with test tags beneath the file selection area and update Step 2 header format badge for `INSOMNIA` and `POSTMAN` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/ImportSpecificationDialog.kt`
+- [X] T013 [US2] Add localized strings and format labels in `ui-shared/src/commonMain/resources/i18n/en.json` and `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/i18n/Strings.kt`
 
 **Checkpoint**: User Stories 1 and 2 work seamlessly together with visual format discovery.
 
@@ -86,11 +86,11 @@ description: "Task list for Insomnia v5 Collection & Environment Import"
 
 ### Tests for User Story 3
 
-- [ ] T014 [P] [US3] Unit tests verifying end-to-end request script attachment and translation in `core-storage/src/commonTest/kotlin/io/github/makeforge/clapi/core/storage/importers/InsomniaScriptImporterTest.kt`
+- [X] T014 [P] [US3] Unit tests verifying end-to-end request script attachment and translation in `core-storage/src/commonTest/kotlin/io/github/makeforge/clapi/core/storage/importers/InsomniaScriptImporterTest.kt`
 
 ### Implementation for User Story 3
 
-- [ ] T015 [US3] Wire `InsomniaScriptTranslator` into `InsomniaImporter.kt` so pre-request scripts (`ScriptType.BEFORE_REQUEST`) and after-response scripts (`ScriptType.AFTER_RESPONSE`) are mapped to request runtimes in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/importers/InsomniaImporter.kt`
+- [X] T015 [US3] Wire `InsomniaScriptTranslator` into `InsomniaImporter.kt` so pre-request scripts (`ScriptType.BEFORE_REQUEST`) and after-response scripts (`ScriptType.AFTER_RESPONSE`) are mapped to request runtimes in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/importers/InsomniaImporter.kt`
 
 **Checkpoint**: User Story 3 complete; Insomnia automated test suites and pre-request scripts translate automatically.
 
@@ -104,11 +104,11 @@ description: "Task list for Insomnia v5 Collection & Environment Import"
 
 ### Tests for User Story 4
 
-- [ ] T016 [P] [US4] Implement end-to-end automated QA tests verifying Insomnia v5 collection, environment, and script migration in `qa-tests/src/test/kotlin/io/github/makeforge/clapi/qa/InsomniaImportE2ETest.kt`
+- [X] T016 [P] [US4] Implement end-to-end automated QA tests verifying Insomnia v5 collection, environment, and script migration in `qa-tests/src/test/kotlin/io/github/makeforge/clapi/qa/InsomniaImportE2ETest.kt`
 
 ### Implementation for User Story 4
 
-- [ ] T017 [P] [US4] Add Postman and Insomnia migration guides with step-by-step export and import instructions in `docs/guide/import-export.md` and `docs/guide/index.md`
+- [X] T017 [P] [US4] Add Postman and Insomnia migration guides with step-by-step export and import instructions in `docs/guide/import-export.md` and `docs/guide/index.md`
 
 **Checkpoint**: All user stories complete with end-to-end QA verification and user-facing documentation.
 
@@ -118,8 +118,8 @@ description: "Task list for Insomnia v5 Collection & Environment Import"
 
 **Purpose**: Verification against unsupported field specifications and full test suite execution.
 
-- [ ] T018 [P] Review and verify unsupported fields logging and graceful degradation against `scratch/insomnia-import-unsupported.md` in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/importers/InsomniaImporter.kt`
-- [ ] T019 Run full test suite validation (`:core-storage:test`, `:ui-desktop:test`, `:qa-tests:test`) per `specs/025-import-insomnia-collection/quickstart.md`
+- [X] T018 [P] Review and verify unsupported fields logging and graceful degradation against `scratch/insomnia-import-unsupported.md` in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/importers/InsomniaImporter.kt`
+- [X] T019 Run full test suite validation (`:core-storage:test`, `:ui-desktop:test`, `:qa-tests:test`) per `specs/025-import-insomnia-collection/quickstart.md`
 
 ---
 

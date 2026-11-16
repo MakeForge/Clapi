@@ -78,4 +78,20 @@ Clapi supports multiple first-class protocol types. You can create:
 3. Click **Send** again.
 4. Click the **Tests** sub-tab in the response viewer to see your test assertions pass with green checkmarks (`2 / 2 Passed`).
 
+---
+
+## Migrating from Postman or Insomnia?
+
+Already have API collections in **Postman** or **Insomnia**? You can migrate them into Clapi in seconds:
+
+1. **Export from your existing tool**:
+   - **Insomnia**: Open your Collection, Design Document, or Environment menu (**...** &rarr; **Export**) and save as **Insomnia v5 (YAML or JSON)**.
+   - **Postman**: Right-click your Collection (**Export** &rarr; **Collection v2.1** or **v2.0 JSON**).
+2. **Import into Clapi**:
+   - Click the **Import** button in the **Collections** sidebar header.
+   - Select your exported `.yaml`, `.yml`, or `.json` file (supported formats `OpenAPI 3.0+`, `OpenCollection`, `Postman`, and `Insomnia` are badged right below the file picker).
+   - Clapi imports your folder hierarchy, requests, environments, authentication configs, and automatically translates `insomnia.*` and `pm.*` scripts to `clapi.*`.
+
+See the full [Importing & Migrating Guide](./import-export.md) for detailed feature mappings and script translation reference.
+
 🎉 **Congratulations!** You've completed your first API flow in Clapi.

@@ -1,0 +1,43 @@
+{
+  "type": "environment.insomnia.rest/5.0",
+  "schema_version": "5.1",
+  "name": "Global Cloud Environments",
+  "meta": {
+    "id": "wrk_env_export",
+    "description": "Exported Insomnia v5 environments"
+  },
+  "environments": {
+    "name": "Base Global Env",
+    "meta": {
+      "id": "env_global_base"
+    },
+    "data": {
+      "region": "eu-central-1",
+      "timeout": "5000"
+    },
+    "subEnvironments": [
+      {
+        "name": "Development",
+        "meta": {
+          "id": "env_dev_sub"
+        },
+        "color": "#10b981",
+        "data": {
+          "apiUrl": "https://dev.example.com",
+          "debug": "true"
+        }
+      },
+      {
+        "name": "Production",
+        "meta": {
+          "id": "env_prod_sub"
+        },
+        "color": "#ef4444",
+        "data": {
+          "apiUrl": "https://api.example.com",
+          "debug": "false"
+        }
+      }
+    ]
+  }
+}

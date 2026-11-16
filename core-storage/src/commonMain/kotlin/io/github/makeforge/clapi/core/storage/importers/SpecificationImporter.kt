@@ -17,12 +17,17 @@ interface SpecificationImporter {
 class CompositeSpecificationImporter(
     private val openApiImporter: OpenApiImporter = OpenApiImporter(),
     private val openCollectionImporter: OpenCollectionImporter = OpenCollectionImporter(),
+    private val insomniaImporter: InsomniaImporter = InsomniaImporter.default(),
 ) : SpecificationImporter {
 
     override suspend fun scanContent(rawContent: String): ImportScanResult {
         val trimmed = rawContent.trim()
         if (trimmed.isEmpty()) {
             return ImportScanResult.Failure("Input content is empty.")
+        }
+
+        if (insomniaImporter.canHandle(trimmed)) {
+            return insomniaImporter.scanContent(rawContent)
         }
 
         if (trimmed.contains("swagger:") || trimmed.contains("\"swagger\":") || trimmed.contains("'swagger':")) {

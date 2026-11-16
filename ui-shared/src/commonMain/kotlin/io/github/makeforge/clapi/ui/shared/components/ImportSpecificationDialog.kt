@@ -184,8 +184,15 @@ fun ImportSpecificationDialog(
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                                 .testTag("import-format-badge")
                         ) {
+                            val badgeText = when (scanResult?.format) {
+                                SpecFormat.OPENAPI_V3 -> "OpenAPI 3.0"
+                                SpecFormat.OPENCOLLECTION -> "OpenCollection"
+                                SpecFormat.POSTMAN -> "Postman"
+                                SpecFormat.INSOMNIA -> "Insomnia v5"
+                                null -> "OpenCollection"
+                            }
                             Text(
-                                if (scanResult?.format == SpecFormat.OPENAPI_V3) "OpenAPI 3.0" else "OpenCollection",
+                                badgeText,
                                 color = ClapiColors.Primary,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium,
@@ -315,6 +322,8 @@ fun ImportSpecificationDialog(
                                         color = ClapiColors.OnSurfaceDim.copy(alpha = 0.8f),
                                         fontSize = 11.sp,
                                     )
+                                    Spacer(Modifier.height(8.dp))
+                                    SupportedFormatBadges()
                                 }
                             }
                         } else {
@@ -757,6 +766,55 @@ fun ImportTypeButton(
             color = textColor,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             fontSize = 13.sp,
+        )
+    }
+}
+
+@Composable
+fun SupportedFormatBadges(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.testTag("import-supported-formats-badges"),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        FormatBadgePill(
+            label = Strings.importBadgeOpenApi,
+            testTag = "import-format-badge-openapi",
+        )
+        FormatBadgePill(
+            label = Strings.importBadgeOpenCollection,
+            testTag = "import-format-badge-opencollection",
+        )
+        FormatBadgePill(
+            label = Strings.importBadgePostman,
+            testTag = "import-format-badge-postman",
+        )
+        FormatBadgePill(
+            label = Strings.importBadgeInsomnia,
+            testTag = "import-format-badge-insomnia",
+        )
+    }
+}
+
+@Composable
+private fun FormatBadgePill(
+    label: String,
+    testTag: String,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(ClapiColors.SurfaceContainer)
+            .border(1.dp, ClapiColors.Border.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .testTag(testTag),
+    ) {
+        Text(
+            text = label,
+            color = ClapiColors.OnSurfaceDim,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
         )
     }
 }

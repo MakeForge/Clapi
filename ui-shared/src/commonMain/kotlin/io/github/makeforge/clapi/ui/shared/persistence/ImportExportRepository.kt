@@ -3,6 +3,7 @@ package io.github.makeforge.clapi.ui.shared.persistence
 import io.github.makeforge.clapi.core.model.opencollection.Environment
 import io.github.makeforge.clapi.core.model.opencollection.OpenCollectionDocument
 import io.github.makeforge.clapi.core.storage.exporters.OpenApiExporter
+import io.github.makeforge.clapi.core.storage.importers.InsomniaImporter
 import io.github.makeforge.clapi.core.storage.opencollection.CollectionStorageException
 import io.github.makeforge.clapi.core.storage.opencollection.CollectionValidationException
 import io.github.makeforge.clapi.core.storage.opencollection.ExportFormat
@@ -59,7 +60,7 @@ object ImportExportRepository {
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true; isLenient = true }
 
     private const val UNRECOGNIZED_COLLECTION_MESSAGE =
-        "Unrecognized collection format. Expected an OpenCollection or Postman v2/v2.1 collection."
+        "Unrecognized collection format. Expected an OpenCollection, Postman v2/v2.1, or Insomnia v5 collection."
 
     fun sanitizeFileName(name: String): String {
         val sanitized = name.replace(Regex("[\\\\/:*?\"<>|]"), "_").trim()
@@ -125,12 +126,16 @@ object ImportExportRepository {
 
     fun importCollectionFromString(state: AppState, rawContent: String): String {
         val trimmed = rawContent.trim()
-        val doc: OpenCollectionDocument = if (trimmed.startsWith("{")) {
+        val insomniaImporter = InsomniaImporter.default()
+        val doc: OpenCollectionDocument = if (insomniaImporter.canHandle(trimmed)) {
+            runCatching { insomniaImporter.importToOpenCollection(trimmed) }
+                .getOrElse { throw ImportExportException("Invalid Insomnia v5 document: ${it.message}", it) }
+        } else if (trimmed.startsWith("{")) {
             val root = parseJsonString(trimmed)
             val rootType = root["type"]?.jsonPrimitive?.contentOrNull
             if (rootType == "clapiCollection" || rootType == "clapiWorkspace") {
                 throw ImportExportException(
-                    "Legacy format '$rootType' is no longer supported. Please import an OpenCollection or Postman collection."
+                    "Legacy format '$rootType' is no longer supported. Please import an OpenCollection, Postman, or Insomnia collection."
                 )
             }
             when {
@@ -187,12 +192,30 @@ object ImportExportRepository {
     }
 
     fun importEnvironmentFromString(state: AppState, rawJson: String): String {
+        val trimmed = rawJson.trim()
+        val insomniaImporter = InsomniaImporter.default()
+        if (insomniaImporter.canHandle(trimmed)) {
+            val doc = runCatching { insomniaImporter.importToOpenCollection(trimmed) }
+                .getOrElse { throw ImportExportException("Invalid Insomnia v5 environment: ${it.message}", it) }
+            val envs = doc.config?.environments.orEmpty()
+            if (envs.isEmpty()) {
+                throw ImportExportException("No environments found in Insomnia export.")
+            }
+            var firstImportedName = ""
+            for (env in envs) {
+                val existing = state.environments.map { it.name }.toSet()
+                val uniqueName = ImportExportNaming.generateUniqueEnvironmentName(env.name, existing)
+                state.environments.add(env.copy(name = uniqueName).toEnvState())
+                if (firstImportedName.isEmpty()) firstImportedName = uniqueName
+            }
+            return firstImportedName
+        }
         val root = parseJsonString(rawJson)
         val dto = when {
             root["type"]?.jsonPrimitive?.contentOrNull == "clapiEnvironment" -> environmentDtoFromJson(root)
             PostmanImporter.isPostmanEnvironment(root) -> PostmanImporter.importEnvironment(root)
             else -> throw ImportExportException(
-                "Unrecognized environment format. Expected a Clapi or Postman environment."
+                "Unrecognized environment format. Expected a Clapi, Postman, or Insomnia environment."
             )
         }
         val existing = state.environments.map { it.name }.toSet()

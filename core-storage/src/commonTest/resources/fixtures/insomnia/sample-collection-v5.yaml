@@ -1,0 +1,194 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: Sample Insomnia Collection
+meta:
+  id: wrk_sample_collection
+  description: Sample Insomnia v5 collection for testing
+environments:
+  name: Base Environment
+  meta:
+    id: env_base_sample
+  data:
+    baseUrl: https://api.example.com
+    apiVersion: v1
+  subEnvironments:
+    - name: Staging
+      meta:
+        id: env_staging
+      data:
+        baseUrl: https://staging.api.example.com
+        stageToken: stg-secret-token
+    - name: Production
+      meta:
+        id: env_prod
+      environmentType: kv
+      kvPairData:
+        - id: kv_1
+          name: baseUrl
+          value: https://prod.api.example.com
+          type: str
+          enabled: true
+        - id: kv_2
+          name: apiKey
+          value: prod-secret-key
+          type: secret
+          enabled: true
+collection:
+  - name: Users Folder
+    meta:
+      id: fld_users
+      description: Operations for managing users
+    headers:
+      - name: X-Folder-Header
+        value: folder-val
+    authentication:
+      type: bearer
+      token: "{{stageToken}}"
+    scripts:
+      preRequest: |
+        insomnia.environment.set("folderRun", "true");
+      afterResponse: |
+        insomnia.test("Folder test", () => {
+          insomnia.expect(insomnia.response.status).to.eql(200);
+        });
+    children:
+      - name: List Users
+        url: "{{baseUrl}}/{{apiVersion}}/users"
+        method: GET
+        meta:
+          id: req_list_users
+          description: Fetch paginated user list
+        parameters:
+          - name: page
+            value: "1"
+            description: Page number
+          - name: limit
+            value: "20"
+          - name: debug
+            value: "true"
+            disabled: true
+        headers:
+          - name: Accept
+            value: application/json
+        scripts:
+          preRequest: |
+            insomnia.environment.set("requestTimestamp", "123456");
+            insomnia.variables.set("tempId", "abc");
+          afterResponse: |
+            insomnia.test("Status code is 200", () => {
+              insomnia.expect(insomnia.response.code).to.eql(200);
+            });
+            const body = insomnia.response.json();
+            insomnia.collectionVariables.set("lastUserCount", body.length);
+      - name: Create User
+        url: "{{baseUrl}}/{{apiVersion}}/users"
+        method: POST
+        meta:
+          id: req_create_user
+        headers:
+          - name: Content-Type
+            value: application/json
+        body:
+          mimeType: application/json
+          text: '{"username": "alice", "email": "alice@example.com"}'
+        authentication:
+          type: basic
+          username: admin
+          password: secret
+      - name: Nested Auth Folder
+        meta:
+          id: fld_nested_auth
+        children:
+          - name: API Key Request
+            url: "{{baseUrl}}/{{apiVersion}}/protected"
+            method: GET
+            meta:
+              id: req_apikey
+            authentication:
+              type: apikey
+              key: X-API-Key
+              value: "{{apiKey}}"
+              addTo: header
+          - name: OAuth2 Request
+            url: "{{baseUrl}}/{{apiVersion}}/oauth-resource"
+            method: GET
+            meta:
+              id: req_oauth2
+            authentication:
+              type: oauth2
+              grantType: client_credentials
+              accessTokenUrl: https://auth.example.com/oauth/token
+              clientId: my-client-id
+              clientSecret: my-client-secret
+              scope: read:users
+          - name: AWS IAM Request
+            url: "{{baseUrl}}/{{apiVersion}}/aws-resource"
+            method: POST
+            meta:
+              id: req_iam
+            authentication:
+              type: iam
+              accessKeyId: AKIAIOSFODNN7EXAMPLE
+              secretAccessKey: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+              region: us-east-1
+              service: execute-api
+            body:
+              mimeType: application/x-www-form-urlencoded
+              params:
+                - name: action
+                  value: invoke
+                - name: dryRun
+                  value: "false"
+                  disabled: true
+  - name: Form Multipart Upload
+    url: "{{baseUrl}}/upload"
+    method: POST
+    meta:
+      id: req_multipart
+    body:
+      mimeType: multipart/form-data
+      params:
+        - name: title
+          value: Profile Photo
+          type: text
+        - name: avatar
+          fileName: /tmp/avatar.png
+          type: file
+  - name: User Service gRPC
+    url: localhost:50051
+    protoMethodName: /user.UserService/GetUser
+    protoFileId: pf_user_proto
+    meta:
+      id: greq_get_user
+      description: gRPC Unary call
+    reflectionApi:
+      enabled: true
+      url: https://reflection.example.com
+    metadata:
+      - name: x-request-id
+        value: grpc-123
+    body:
+      text: '{"userId": "42"}'
+  - name: Live Events WebSocket
+    url: wss://echo.example.com/ws
+    meta:
+      id: ws-req_live_events
+      description: WebSocket stream
+    headers:
+      - name: X-Client-Mode
+        value: realtime
+    parameters:
+      - name: channel
+        value: updates
+    body:
+      mode: application/json
+      value: '{"type": "subscribe"}'
+certificates:
+  - path: /path/to/cert.pem
+    disabled: false
+    meta:
+      id: cert_1
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_1
