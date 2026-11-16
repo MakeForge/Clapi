@@ -69,6 +69,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.ui.shared.generated.resources.Res
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_close
 import io.github.crustack.clapi.ui.shared.i18n.Strings
@@ -265,6 +266,18 @@ fun VariableAwareTextField(
         val vars = state.activeVariableLayers(currentTab).flatMap { it.keys }.toMutableSet()
         state.selectedEnvironment?.externalSecrets?.filter { it.enabled && it.name.isNotBlank() }?.forEach {
             vars.add("_secret.${it.name.trim()}")
+        }
+        val effectiveAuthType = if (currentTab != null) {
+            if (currentTab.authType == AuthType.INHERIT) {
+                state.resolveInheritedAuth(currentTab)?.authType ?: AuthType.NONE
+            } else {
+                currentTab.authType
+            }
+        } else {
+            AuthType.NONE
+        }
+        if (effectiveAuthType == AuthType.OAUTH2) {
+            vars.add("_auth.oauth2.accessToken")
         }
         vars
     } else {
@@ -544,7 +557,21 @@ fun getAvailableVariables(state: AppState?, tab: RequestTabState?): List<Pair<St
     }
     val secretVars = secretMap.entries.map { it.key to it.value }.sortedBy { it.first }
 
-    return regularVars + secretVars
+    val authVars = mutableListOf<Pair<String, String>>()
+    val effectiveAuthType = if (tab != null) {
+        if (tab.authType == AuthType.INHERIT) {
+            state.resolveInheritedAuth(tab)?.authType ?: AuthType.NONE
+        } else {
+            tab.authType
+        }
+    } else {
+        AuthType.NONE
+    }
+    if (effectiveAuthType == AuthType.OAUTH2) {
+        authVars.add("_auth.oauth2.accessToken" to "OAuth2 Access Token")
+    }
+
+    return regularVars + secretVars + authVars
 }
 
 @Composable
@@ -578,6 +605,7 @@ fun VariableDropdownList(
             itemsIndexed(variables) { index, (name, value) ->
                 val isSelected = index == selectedIndex
                 val isSecret = name.startsWith("_secret.")
+                val isAuth = name.startsWith("_auth.")
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -609,11 +637,25 @@ fun VariableDropdownList(
                                 fontWeight = FontWeight.Bold,
                             )
                         }
+                    } else if (isAuth) {
+                        Box(
+                            modifier = Modifier
+                                .background(ClapiColors.Secondary.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                                .border(1.dp, ClapiColors.Secondary.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 4.dp, vertical = 1.dp),
+                        ) {
+                            Text(
+                                text = "AUTH",
+                                color = ClapiColors.Secondary,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.weight(1f))
                     if (value.isNotEmpty()) {
                         Text(
-                            text = if (isSecret) "Path: $value" else "${Strings.value}: $value",
+                            text = if (isSecret) "Path: $value" else if (isAuth) value else "${Strings.value}: $value",
                             color = ClapiColors.OnSurfaceDim,
                             fontSize = 11.sp,
                             maxLines = 1,
