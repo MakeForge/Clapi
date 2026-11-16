@@ -21,7 +21,7 @@ editor-core/         Pure-Kotlin editor engine: document model, lexer tokens,
                      fold regions, display-line map, inline diagnostics
 editor-ui/           Compose renderer (EditorRenderer, EditorViewModel, LineView,
                      IdleLexer, syntax highlighting)
-ui-shared/           Shared Compose UI (jvm + wasmJs) — all composables,
+ui-shared/           Shared Compose UI (jvm) — all composables,
                      app state, persistence adapters, platform expect/actual
 ui-desktop/          Thin Compose Desktop launcher (~74 lines)
 sample-server/       Standalone Ktor server for integration tests
@@ -130,7 +130,7 @@ NONE, BASIC, BEARER, API_KEY, OAUTH2, JWT
 
 ### Presentation Layer — `ui-shared`
 
-All shared Compose code — compiled for both `jvm("desktop")` and `wasmJs{browser()}`.
+All shared Compose code — compiled for both `jvm("desktop")`.
 
 ```
 ui-shared/src/commonMain/kotlin/io/github/makeforge/ui/shared/
@@ -173,7 +173,7 @@ ui-shared/src/commonMain/kotlin/io/github/makeforge/ui/shared/
     └── PlatformApi.kt              expect/actual: UUID, clipboard, storage, file I/O, cursors
 ```
 
-Platform-specific actuals live in `desktopMain/` (JVM) and `wasmJsMain/` (browser).
+Platform-specific actuals live in `desktopMain/` (JVM).
 
 ### Platform Launchers
 

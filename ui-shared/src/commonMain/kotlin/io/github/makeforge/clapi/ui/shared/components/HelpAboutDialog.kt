@@ -135,7 +135,7 @@ fun HelpAboutDialog(
                     HelpSection("Version & Build Info") {
                         HelpText("Version: ${GeneratedBuildInfo.APP_VERSION}")
                         HelpText("Build: Kotlin Multiplatform + Compose Multiplatform")
-                        HelpText("Supported platforms: macOS, Windows, Linux, and Web (Wasm)")
+                        HelpText("Supported platforms: macOS, Windows, Linux")
                     }
                 }
                 PlatformColumnVerticalScrollbar(

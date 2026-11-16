@@ -2,7 +2,7 @@
 
 ## Overview
 
-The code editor is a **Compose Multiplatform–native** implementation targeting both `jvm("desktop")` and `wasmJs{browser()}`. It is split into two modules:
+The code editor is a **Compose Multiplatform–native** implementation targeting both `jvm("desktop")`. It is split into two modules:
 
 | Layer | Module | Purpose |
 |---|---|---|
@@ -21,8 +21,6 @@ The public composable entry point is `CodeEditor.kt` in `ui-shared`, which wraps
 ## Why Not WebView + CodeMirror / Monaco?
 
 **No built-in WebView in Compose Desktop.** Embedding an HTML editor engine requires JCEF (Java Chromium Embedded Framework), which adds ~150 MB to the distribution, requires per-platform native binaries, and complicates the Gradle build.
-
-**KMP wasmJs target is incompatible.** The `ui-web` target runs as a WebAssembly application inside a browser canvas. Nesting a second browser sandbox inside Wasm creates complex sandboxing constraints and no net benefit.
 
 **Compose is the single UI toolkit.** Introducing HTML/CSS/JS would fragment the styling system and double the maintenance cost for theme and font changes.
 

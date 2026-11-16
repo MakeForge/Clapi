@@ -3,8 +3,7 @@ package io.github.makeforge.clapi.core.network.mcp
 import io.github.makeforge.clapi.core.model.McpConnectionConfig
 
 /**
- * SHA-256 digest used for PKCE S256. Implemented in common code so wasm/js/ios
- * don't need a platform crypto actual for hashing.
+ * SHA-256 digest used for PKCE S256.
  */
 internal fun sha256(input: ByteArray): ByteArray {
     val k = intArrayOf(

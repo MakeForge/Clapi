@@ -273,7 +273,6 @@ Quality-gate tests used by release packaging:
 - `:editor-ui:allTests`
 - `:ui-shared:desktopTest`
 - `:ui-desktop:desktopTest`
-- `:ui-web:wasmJsTest`
 - `:qa-tests:jvmTest`
 
 The release gate passes `--no-parallel` because desktop UI, browser, and QA

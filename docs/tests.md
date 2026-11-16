@@ -22,7 +22,6 @@ This document summarizes how to run Clapi tests locally.
 ./gradlew :ui-shared:desktopTest
 ./gradlew :qa-tests:jvmTest
 ./gradlew :ui-desktop:desktopTest
-./gradlew :ui-web:wasmJsTest
 ```
 
 Run a focused validation bundle:
@@ -95,6 +94,5 @@ Release-quality gate also validates:
 
 - `:editor-ui:allTests`
 - `:ui-shared:desktopTest`
-- `:ui-web:wasmJsTest`
 
 For broader strategy and endpoint matrix, see [docs/testing.md](docs/testing.md).

@@ -21,7 +21,6 @@ What you expected to happen.
  - Java: version
  - App version / commit SHA:
  - Module/area: `ui-desktop`, `ui-shared`, `core-network`, `qa-tests`, etc.
- - Run mode: desktop / web (`:ui-web:wasmJsBrowserDevelopmentRun`)
 
 **Logs / Error output**
 Paste relevant logs or stack traces.
