@@ -19,7 +19,7 @@ kotlin {
                 implementation(libs.sqldelight.coroutines)
                 implementation(libs.networknt.json.schema)
                 implementation(libs.swagger.parser)
-                implementation("io.swagger.core.v3:swagger-models:2.2.28")
+                implementation("io.swagger.core.v3:swagger-models:3.0.0")
             }
         }
         commonTest.dependencies {
