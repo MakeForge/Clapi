@@ -1,5 +1,6 @@
 package io.github.crustack.clapi.ui.shared.persistence
 
+import io.github.crustack.clapi.core.model.opencollection.ExternalSecretType
 import io.github.crustack.clapi.ui.shared.platform.PlatformStorage
 import io.github.crustack.clapi.ui.shared.i18n.AppLanguage
 import io.github.crustack.clapi.ui.shared.state.AppSettings
@@ -59,7 +60,9 @@ object SettingsRepository {
         )
 
         // Secrets Manager
-        settings.vaultProviderType = PlatformStorage.getString(PREFIX + "vaultProviderType") ?: settings.vaultProviderType
+        settings.vaultProviderType = PlatformStorage.getString(PREFIX + "vaultProviderType")
+            ?.let { ExternalSecretType.fromValue(it) ?: safeEnumOf(it, settings.vaultProviderType) }
+            ?: settings.vaultProviderType
         settings.vaultServerUrl    = PlatformStorage.getString(PREFIX + "vaultServerUrl") ?: settings.vaultServerUrl
         settings.vaultMountPath    = PlatformStorage.getString(PREFIX + "vaultMountPath") ?: settings.vaultMountPath
         settings.vaultNamespace    = PlatformStorage.getString(PREFIX + "vaultNamespace") ?: settings.vaultNamespace
@@ -108,7 +111,7 @@ object SettingsRepository {
         putFloat("environmentDialogHeightDp", settings.environmentDialogHeightDp)
 
         // Secrets Manager
-        PlatformStorage.putString(PREFIX + "vaultProviderType", settings.vaultProviderType)
+        PlatformStorage.putString(PREFIX + "vaultProviderType", settings.vaultProviderType.value)
         PlatformStorage.putString(PREFIX + "vaultServerUrl", settings.vaultServerUrl)
         PlatformStorage.putString(PREFIX + "vaultMountPath", settings.vaultMountPath)
         PlatformStorage.putString(PREFIX + "vaultNamespace", settings.vaultNamespace)
