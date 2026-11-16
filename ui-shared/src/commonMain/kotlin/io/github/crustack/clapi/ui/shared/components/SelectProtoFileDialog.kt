@@ -54,6 +54,8 @@ import io.github.crustack.clapi.ui.shared.generated.resources.ic_help_outline
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_open_in_new
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.platform.pickProtoFile
+import io.github.crustack.clapi.ui.shared.shortcuts.AppHotkeys
+import io.github.crustack.clapi.ui.shared.shortcuts.hotkeys
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
 import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 import org.jetbrains.compose.resources.painterResource
@@ -70,8 +72,9 @@ fun SelectProtoFileDialog(
     collectionProtoFiles: List<String> = emptyList(),
     isGitSyncEnabled: Boolean = false,
     initialSyncToGit: Boolean = false,
-    onSave: (protoFilePath: String) -> Unit,
+    onSave: (protoFilePath: String) -> Unit = {},
     onSaveWithSync: ((protoFilePath: String, syncToGit: Boolean) -> Unit)? = null,
+    onSaveWithClose: ((protoFilePath: String, syncToGit: Boolean, closeDialog: Boolean) -> Unit)? = null,
     onDismiss: () -> Unit,
     onPickFile: ((onSelected: (String) -> Unit) -> Unit)? = null,
 ) {
@@ -81,17 +84,53 @@ fun SelectProtoFileDialog(
     var syncToGit by remember(initialSyncToGit) {
         mutableStateOf(initialSyncToGit)
     }
+    var baselinePath by remember(currentProtoFilePath) {
+        mutableStateOf(currentProtoFilePath.orEmpty())
+    }
+    var baselineSync by remember(initialSyncToGit) {
+        mutableStateOf(initialSyncToGit)
+    }
+    var showUnsavedConfirm by remember { mutableStateOf(false) }
+
+    fun isDirty(): Boolean =
+        selectedPath.trim() != baselinePath.trim() || (isGitSyncEnabled && syncToGit != baselineSync)
+
+    fun handleSave(closeDialog: Boolean = false) {
+        val trimmed = selectedPath.trim()
+        if (trimmed.isNotBlank() && !isLoading) {
+            baselinePath = trimmed
+            baselineSync = syncToGit
+            if (onSaveWithClose != null) {
+                onSaveWithClose(trimmed, syncToGit, closeDialog)
+            } else if (onSaveWithSync != null) {
+                onSaveWithSync(trimmed, syncToGit)
+                if (closeDialog) onDismiss()
+            } else {
+                onSave(trimmed)
+                if (closeDialog) onDismiss()
+            }
+        }
+    }
+
+    fun requestDismiss() {
+        if (isDirty()) {
+            showUnsavedConfirm = true
+        } else {
+            onDismiss()
+        }
+    }
+
     var offsetX by remember { mutableStateOf(0f) }
     var offsetY by remember { mutableStateOf(0f) }
     var viewportSize by remember { mutableStateOf(IntSize.Zero) }
     var cardSize by remember { mutableStateOf(IntSize.Zero) }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(onDismissRequest = { requestDismiss() }) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .onSizeChanged { viewportSize = it }
-                .pointerInput(Unit) { detectTapGestures { onDismiss() } },
+                .pointerInput(Unit) { detectTapGestures { requestDismiss() } },
             contentAlignment = Alignment.Center,
         ) {
             Box(
@@ -113,6 +152,14 @@ fun SelectProtoFileDialog(
                         offsetY = cy
                     }
                     .pointerInput(Unit) { detectTapGestures { } }
+                    .hotkeys {
+                        on(AppHotkeys.Save) {
+                            handleSave(closeDialog = false)
+                        }
+                        on(AppHotkeys.Escape) {
+                            requestDismiss()
+                        }
+                    }
                     .padding(24.dp)
                     .testTag("select-proto-file-dialog"),
             ) {
@@ -387,7 +434,7 @@ fun SelectProtoFileDialog(
                                 .clip(RoundedCornerShape(6.dp))
                                 .background(ClapiColors.SurfaceContainer)
                                 .border(1.dp, ClapiColors.Border, RoundedCornerShape(6.dp))
-                                .clickable(enabled = !isLoading, onClick = onDismiss)
+                                .clickable(enabled = !isLoading, onClick = { requestDismiss() })
                                 .padding(horizontal = 16.dp, vertical = 8.dp)
                                 .testTag("proto-dialog-cancel"),
                         ) {
@@ -406,12 +453,7 @@ fun SelectProtoFileDialog(
                                     else ClapiColors.Primary.copy(alpha = 0.5f)
                                 )
                                 .clickable(enabled = selectedPath.isNotBlank() && !isLoading) {
-                                    val trimmed = selectedPath.trim()
-                                    if (onSaveWithSync != null) {
-                                        onSaveWithSync(trimmed, syncToGit)
-                                    } else {
-                                        onSave(trimmed)
-                                    }
+                                    handleSave(closeDialog = true)
                                 }
                                 .padding(horizontal = 20.dp, vertical = 8.dp)
                                 .testTag("proto-dialog-save"),
@@ -427,5 +469,23 @@ fun SelectProtoFileDialog(
                 }
             }
         }
+    }
+
+    if (showUnsavedConfirm) {
+        DirtyCloseDialog(
+            title = "Unsaved Changes",
+            message = Strings.t("request_unsaved_changes_message"),
+            onSave = {
+                handleSave(closeDialog = true)
+                showUnsavedConfirm = false
+            },
+            onDiscard = {
+                showUnsavedConfirm = false
+                onDismiss()
+            },
+            onCancel = {
+                showUnsavedConfirm = false
+            },
+        )
     }
 }

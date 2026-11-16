@@ -35,11 +35,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import io.github.crustack.clapi.ui.shared.i18n.Strings
+import io.github.crustack.clapi.ui.shared.shortcuts.AppHotkeys
+import io.github.crustack.clapi.ui.shared.shortcuts.hotkeys
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
 import kotlin.math.roundToInt
 
 @Composable
 fun DirtyCloseDialog(
+    title: String = "Unsaved Changes",
+    message: String = Strings.t("request_unsaved_changes_message"),
     onSave: () -> Unit,
     onDiscard: () -> Unit,
     onCancel: () -> Unit,
@@ -77,18 +81,22 @@ fun DirtyCloseDialog(
                     offsetY = cy
                 }
                 .pointerInput(Unit) { detectTapGestures { } }
+                .hotkeys {
+                    on(AppHotkeys.Escape) { onCancel() }
+                    on(AppHotkeys.Save) { onSave() }
+                }
                 .padding(24.dp)
                 .testTag("dirty-close-dialog"),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "Unsaved Changes",
+                    text = title,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = ClapiColors.OnSurface,
                 )
                 Text(
-                    text = Strings.t("request_unsaved_changes_message"),
+                    text = message,
                     fontSize = 13.sp,
                     color = ClapiColors.OnSurfaceVariant,
                 )

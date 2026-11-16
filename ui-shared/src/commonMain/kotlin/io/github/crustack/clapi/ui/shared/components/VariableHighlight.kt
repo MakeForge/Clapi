@@ -73,6 +73,8 @@ import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.ui.shared.generated.resources.Res
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_close
 import io.github.crustack.clapi.ui.shared.i18n.Strings
+import io.github.crustack.clapi.ui.shared.shortcuts.AppHotkeys
+import io.github.crustack.clapi.ui.shared.shortcuts.hotkeys
 import io.github.crustack.clapi.ui.shared.platform.handleCtrlSpaceKeyEvent
 import io.github.crustack.clapi.ui.shared.platform.isRecentCtrlSpaceTriggered
 import io.github.crustack.clapi.ui.shared.platform.resetCtrlSpaceTrigger
@@ -827,6 +829,41 @@ fun VariableEditorPopup(
     var editValue by remember(cleanName) {
         mutableStateOf(TextFieldValue(info.environmentValue ?: info.folderValue ?: ""))
     }
+    var baselineValue by remember(cleanName) {
+        mutableStateOf(editValue.text)
+    }
+    var showUnsavedConfirm by remember { mutableStateOf(false) }
+
+    fun isDirty(): Boolean = editValue.text != baselineValue
+
+    fun handleSave(closeDialog: Boolean = false) {
+        val targetEnv = env ?: run {
+            val newEnv = EnvState("Default")
+            state.environments.add(newEnv)
+            state.selectedEnvIndex = state.environments.size - 1
+            newEnv
+        }
+        val existing = targetEnv.variables.firstOrNull { it.key == cleanName }
+        if (existing != null) {
+            existing.value = editValue.text
+            existing.enabled = true
+        } else {
+            targetEnv.variables.add(MutableKeyValue(key = cleanName, value = editValue.text, enabled = true))
+        }
+        baselineValue = editValue.text
+        if (closeDialog) {
+            onDismiss()
+        }
+    }
+
+    fun requestDismiss() {
+        if (isDirty()) {
+            showUnsavedConfirm = true
+        } else {
+            onDismiss()
+        }
+    }
+
     var viewportSize by remember { mutableStateOf(IntSize.Zero) }
     var popupSize by remember { mutableStateOf(IntSize.Zero) }
     var popupOffsetX by remember(cleanName) { mutableStateOf(initialOffset.x.toFloat()) }
@@ -846,7 +883,7 @@ fun VariableEditorPopup(
         onPositionChanged(IntOffset(cx.roundToInt(), cy.roundToInt()))
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(onDismissRequest = { requestDismiss() }) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -860,7 +897,7 @@ fun VariableEditorPopup(
                     popupOffsetX = cx
                     popupOffsetY = cy
                 }
-                .pointerInput(Unit) { detectTapGestures { onDismiss() } }
+                .pointerInput(Unit) { detectTapGestures { requestDismiss() } }
                 .testTag("variable-popup-backdrop"),
         ) {
             Box(
@@ -882,6 +919,14 @@ fun VariableEditorPopup(
                     }
                     .draggableNoSlop(key = cleanName) { dx, dy -> movePopupBy(dx, dy) }
                     .pointerInput(Unit) { detectTapGestures { } }
+                    .hotkeys {
+                        on(AppHotkeys.Save) {
+                            handleSave(closeDialog = false)
+                        }
+                        on(AppHotkeys.Escape) {
+                            requestDismiss()
+                        }
+                    }
                     .padding(16.dp)
                     .testTag("variable-editor-popup"),
             ) {
@@ -916,7 +961,7 @@ fun VariableEditorPopup(
                             )
                         }
                         IconButton(
-                            onClick = onDismiss,
+                            onClick = { requestDismiss() },
                             modifier = Modifier.size(24.dp).testTag("variable-popup-close"),
                         ) {
                             Icon(
@@ -1111,22 +1156,7 @@ fun VariableEditorPopup(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(ClapiColors.Primary)
-                                .clickable {
-                                    val targetEnv = env ?: run {
-                                        val newEnv = EnvState("Default")
-                                        state.environments.add(newEnv)
-                                        state.selectedEnvIndex = state.environments.size - 1
-                                        newEnv
-                                    }
-                                    val existing = targetEnv.variables.firstOrNull { it.key == cleanName }
-                                    if (existing != null) {
-                                        existing.value = editValue.text
-                                        existing.enabled = true
-                                    } else {
-                                        targetEnv.variables.add(MutableKeyValue(key = cleanName, value = editValue.text, enabled = true))
-                                    }
-                                    onDismiss()
-                                }
+                                .clickable { handleSave(closeDialog = true) }
                                 .padding(horizontal = 14.dp, vertical = 8.dp)
                                 .testTag("variable-popup-save"),
                             contentAlignment = Alignment.Center,
@@ -1143,5 +1173,23 @@ fun VariableEditorPopup(
                 }
             }
         }
+    }
+
+    if (showUnsavedConfirm) {
+        DirtyCloseDialog(
+            title = "Unsaved Changes",
+            message = Strings.t("request_unsaved_changes_message"),
+            onSave = {
+                handleSave(closeDialog = true)
+                showUnsavedConfirm = false
+            },
+            onDiscard = {
+                showUnsavedConfirm = false
+                onDismiss()
+            },
+            onCancel = {
+                showUnsavedConfirm = false
+            },
+        )
     }
 }
