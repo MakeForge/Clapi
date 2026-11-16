@@ -1,6 +1,9 @@
 {
   "add": "Ajouter",
   "add_variable": "Ajouter une variable",
+  "environment": "Environnement",
+  "folder": "Dossier",
+  "no_folder": "Aucun dossier",
   "app_name": "Clapi",
   "auth": "Authentification",
   "auto_save": "Sauvegarde automatique",

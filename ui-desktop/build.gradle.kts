@@ -216,6 +216,7 @@ tasks.register<Exec>("runClapiJar") {
 
 tasks.withType<Test>().configureEach {
     useJUnit()
+    systemProperty("java.util.prefs.userRoot", layout.buildDirectory.dir("tmp/prefs").get().asFile.absolutePath)
 }
 
 tasks.withType<JavaExec>().configureEach {

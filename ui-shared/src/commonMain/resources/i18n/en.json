@@ -1,6 +1,9 @@
 {
   "add": "Add",
   "add_variable": "Add Variable",
+  "environment": "Environment",
+  "folder": "Folder",
+  "no_folder": "No folder",
   "app_name": "Clapi",
   "auth": "Auth",
   "auto_save": "Auto-save requests",

@@ -137,3 +137,8 @@ tasks.matching {
     dependsOn(generateI18nBundles)
     dependsOn(generateBuildInfo)
 }
+
+tasks.withType<Test>().configureEach {
+    useJUnit()
+    systemProperty("java.util.prefs.userRoot", layout.buildDirectory.dir("tmp/prefs").get().asFile.absolutePath)
+}

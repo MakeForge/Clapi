@@ -270,7 +270,7 @@ fun BodyEditor(tab: RequestTabState, state: AppState, onDirty: () -> Unit) {
                 // Compute the set of all defined variable names from all active layers
                 // (env → collection → globals). Used to colour tokens orange (resolved)
                 // vs red (unresolved) inside the code editor.
-                val definedVarNames: Set<String> = state?.activeVariableLayers()
+                val definedVarNames: Set<String> = state?.activeVariableLayers(tab)
                     ?.flatMap { it.keys }?.toSet() ?: emptySet()
 
                 val allowJson5 = state.settings.allowJson5InJsonBodies
@@ -330,6 +330,7 @@ fun BodyEditor(tab: RequestTabState, state: AppState, onDirty: () -> Unit) {
                             VariableEditorPopup(
                                 variableName = variableName,
                                 state = state,
+                                tab = tab,
                                 onDismiss = { bodyPopupVariable = null },
                             )
                         }

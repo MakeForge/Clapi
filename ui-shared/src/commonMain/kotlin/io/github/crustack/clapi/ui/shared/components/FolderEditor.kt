@@ -34,7 +34,7 @@ import io.github.crustack.clapi.ui.shared.state.RequestTabState
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
 
 /**
- * Dedicated editor for configuring folder request defaults (parameters, headers,
+ * Dedicated editor for configuring folder request defaults (variables, headers,
  * authentication, and scripts) which cascade down to descendant requests.
  */
 @Composable
@@ -98,7 +98,7 @@ fun FolderEditor(
         }
 
         val availableTabs = listOf(
-            RequestEditorTab.PARAMS,
+            RequestEditorTab.VARIABLES,
             RequestEditorTab.HEADERS,
             RequestEditorTab.AUTH,
             RequestEditorTab.PRE_REQUEST,
@@ -106,20 +106,21 @@ fun FolderEditor(
         )
 
         if (tab.selectedEditorTab !in availableTabs) {
-            tab.selectedEditorTab = RequestEditorTab.HEADERS
+            tab.selectedEditorTab = RequestEditorTab.VARIABLES
         }
 
         EditorTabBar(
             selectedTab = tab.selectedEditorTab,
             onTabSelected = { tab.selectedEditorTab = it },
-            paramCount = tab.params.size,
+            paramCount = 0,
+            variableCount = tab.variables.size,
             headerCount = tab.headers.size,
             availableTabs = availableTabs,
         )
 
         Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(1.dp)) {
             when (tab.selectedEditorTab) {
-                RequestEditorTab.PARAMS -> KeyValueEditor(tab.params, "param", state = state) {
+                RequestEditorTab.VARIABLES -> KeyValueEditor(tab.variables, "variable", state = state) {
                     markDirty()
                 }
                 RequestEditorTab.HEADERS -> KeyValueEditor(tab.headers, "header", state = state) {
