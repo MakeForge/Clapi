@@ -23,7 +23,13 @@ Clapi supports end-to-end API testing with:
 - Header editing and request body editing
 - Request body support for JSON, GraphQL, form-style payloads, and raw text
 - JSON bodies accept JSON5 by default (comments, trailing commas, unquoted keys). Send converts to strict JSON; turn off in Settings to restore strict JSON.
-- Authentication modes: None, Basic, Bearer, API Key, JWT (OAuth2 planned)
+- Authentication modes: None, Basic, Bearer, API Key, JWT, and OAuth 2.0 (Client Credentials, Resource Owner Password Credentials, Authorization Code, Implicit)
+- **OAuth 2.0 Support**:
+  - OpenCollection specification compliant OAuth2 configuration for requests, folders, and collections.
+  - Interactive "Fetch Tokens" action in the Auth Editor with one-click clipboard copying for Access Token, Refresh Token, and Identity Token.
+  - Full support for dynamic variables (`{{var}}`) and external secrets (`@secret{...}`) across all credential and URL fields.
+  - Client credentials placement options: Basic Auth header (`Authorization: Basic ...`) or request body (`client_id` / `client_secret`).
+  - Automatic pre-flight token expiration check (including clock-skew safety buffer and JWT `exp` parsing) and seamless in-flight auto-refresh prior to request execution.
 - Retry controls and timeout behavior
 - HTTP streaming for SSE (`text/event-stream`) and NDJSON (OpenAI-style `"stream": true`). Items with `Accept: text/event-stream` show an **SSE** badge in the HTTP method color; folder ⋮ → **New SSE Request**.
 - **MCP client** for Streamable HTTP (2025-06-18), legacy HTTP+SSE, and desktop stdio. Tools (Form/JSON arguments), resources (read + subscribe), prompts, Activity JSON-RPC inspector, sampling/roots/elicitation, and auth (None, Basic, Bearer, API Key, JWT) match the REST workspace. See [docs/mcp.md](docs/mcp.md).

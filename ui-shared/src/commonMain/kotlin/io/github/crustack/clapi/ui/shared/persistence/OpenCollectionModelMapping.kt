@@ -18,6 +18,12 @@ import io.github.crustack.clapi.core.model.opencollection.AuthApiKey
 import io.github.crustack.clapi.core.model.opencollection.AuthBasic
 import io.github.crustack.clapi.core.model.opencollection.AuthBearer
 import io.github.crustack.clapi.core.model.opencollection.AuthConfig
+import io.github.crustack.clapi.core.model.opencollection.AuthInherit
+import io.github.crustack.clapi.core.model.opencollection.AuthOAuth2
+import io.github.crustack.clapi.core.model.opencollection.OAuth2ClientCredentials
+import io.github.crustack.clapi.core.model.opencollection.OAuth2CredentialsPlacement
+import io.github.crustack.clapi.core.model.opencollection.OAuth2Flow
+import io.github.crustack.clapi.core.model.opencollection.OAuth2ResourceOwner
 import io.github.crustack.clapi.core.model.opencollection.CollectionConfig
 import io.github.crustack.clapi.core.model.opencollection.CollectionInfo
 import io.github.crustack.clapi.core.model.opencollection.CollectionProtobufConfig
@@ -461,6 +467,27 @@ fun EnvState.mergeFrom(incoming: Environment) {
     }
 }
 
+internal fun CollectionNode.buildOAuth2AuthConfig(): AuthOAuth2 =
+    AuthOAuth2(
+        flow = authOAuth2Flow,
+        accessTokenUrl = authOAuth2AccessTokenUrl?.ifBlank { null },
+        refreshTokenUrl = authOAuth2RefreshTokenUrl?.ifBlank { null },
+        authorizationUrl = authOAuth2AuthorizationUrl?.ifBlank { null },
+        redirectUri = authOAuth2RedirectUri?.ifBlank { null },
+        credentials = OAuth2ClientCredentials(
+            clientId = authOAuth2ClientId?.ifBlank { null },
+            clientSecret = authOAuth2ClientSecret?.ifBlank { null },
+            placement = authOAuth2CredentialsPlacement,
+        ),
+        resourceOwner = if (authOAuth2Flow == OAuth2Flow.RESOURCE_OWNER_PASSWORD_CREDENTIALS) {
+            OAuth2ResourceOwner(
+                username = authOAuth2Username?.ifBlank { null },
+                password = authOAuth2Password?.ifBlank { null },
+            )
+        } else null,
+        scope = authOAuth2Scope?.ifBlank { null },
+    )
+
 internal fun CollectionNode.toRequestDefaults(): RequestDefaults? {
     val effectiveHeaders = (headerEntries ?: userHeaders.map { KeyValueEntry(it.first, it.second) }).map {
         HttpRequestHeader(
@@ -477,6 +504,8 @@ internal fun CollectionNode.toRequestDefaults(): RequestDefaults? {
             value = authApiValue ?: "",
             placement = authApiPlacement ?: "header"
         )
+        AuthType.OAUTH2 -> buildOAuth2AuthConfig()
+        AuthType.INHERIT -> AuthInherit
         else -> null
     }
     val scripts = mutableListOf<Script>()
@@ -593,6 +622,8 @@ fun CollectionNode.toOpenCollectionItem(collectionDir: String? = null): OpenColl
                 value = authApiValue ?: "",
                 placement = authApiPlacement ?: "header"
             )
+            AuthType.OAUTH2 -> buildOAuth2AuthConfig()
+            AuthType.INHERIT -> AuthInherit
             else -> null
         }
 
@@ -714,6 +745,17 @@ fun OpenCollectionItem.toCollectionNode(
             var authApiKey: String? = null
             var authApiValue: String? = null
             var authApiPlacement: String? = null
+            var authOAuth2Flow: OAuth2Flow = OAuth2Flow.CLIENT_CREDENTIALS
+            var authOAuth2AccessTokenUrl: String? = null
+            var authOAuth2RefreshTokenUrl: String? = null
+            var authOAuth2AuthorizationUrl: String? = null
+            var authOAuth2RedirectUri: String? = null
+            var authOAuth2Scope: String? = null
+            var authOAuth2ClientId: String? = null
+            var authOAuth2ClientSecret: String? = null
+            var authOAuth2CredentialsPlacement: OAuth2CredentialsPlacement = OAuth2CredentialsPlacement.BASIC_AUTH_HEADER
+            var authOAuth2Username: String? = null
+            var authOAuth2Password: String? = null
 
             val clapiExt = extensions["clapi"] as? JsonObject
             val isJwt = (clapiExt?.get("authType") as? JsonPrimitive)?.content == "jwt"
@@ -733,6 +775,23 @@ fun OpenCollectionItem.toCollectionNode(
                     authApiKey = a.key
                     authApiValue = a.value
                     authApiPlacement = a.placement.value
+                }
+                is AuthOAuth2 -> {
+                    authType = AuthType.OAUTH2
+                    authOAuth2Flow = a.flow
+                    authOAuth2AccessTokenUrl = a.accessTokenUrl
+                    authOAuth2RefreshTokenUrl = a.refreshTokenUrl
+                    authOAuth2AuthorizationUrl = a.authorizationUrl
+                    authOAuth2RedirectUri = a.redirectUri
+                    authOAuth2Scope = a.scope
+                    authOAuth2ClientId = a.credentials?.clientId
+                    authOAuth2ClientSecret = a.credentials?.clientSecret
+                    authOAuth2CredentialsPlacement = a.credentials?.placement ?: OAuth2CredentialsPlacement.BASIC_AUTH_HEADER
+                    authOAuth2Username = a.resourceOwner?.username
+                    authOAuth2Password = a.resourceOwner?.password
+                }
+                is AuthInherit -> {
+                    authType = AuthType.INHERIT
                 }
                 else -> {
                     authType = null
@@ -814,6 +873,17 @@ fun OpenCollectionItem.toCollectionNode(
                 authApiKey = authApiKey,
                 authApiValue = authApiValue,
                 authApiPlacement = authApiPlacement,
+                authOAuth2Flow = authOAuth2Flow,
+                authOAuth2AccessTokenUrl = authOAuth2AccessTokenUrl,
+                authOAuth2RefreshTokenUrl = authOAuth2RefreshTokenUrl,
+                authOAuth2AuthorizationUrl = authOAuth2AuthorizationUrl,
+                authOAuth2RedirectUri = authOAuth2RedirectUri,
+                authOAuth2Scope = authOAuth2Scope,
+                authOAuth2ClientId = authOAuth2ClientId,
+                authOAuth2ClientSecret = authOAuth2ClientSecret,
+                authOAuth2CredentialsPlacement = authOAuth2CredentialsPlacement,
+                authOAuth2Username = authOAuth2Username,
+                authOAuth2Password = authOAuth2Password,
                 preRequestScript = preScript,
                 testScript = postScript,
                 children = items.mapIndexed { index, child ->
@@ -891,6 +961,17 @@ fun OpenCollectionItem.toCollectionNode(
             var authApiKey: String? = null
             var authApiValue: String? = null
             var authApiPlacement: String? = null
+            var authOAuth2Flow: OAuth2Flow = OAuth2Flow.CLIENT_CREDENTIALS
+            var authOAuth2AccessTokenUrl: String? = null
+            var authOAuth2RefreshTokenUrl: String? = null
+            var authOAuth2AuthorizationUrl: String? = null
+            var authOAuth2RedirectUri: String? = null
+            var authOAuth2Scope: String? = null
+            var authOAuth2ClientId: String? = null
+            var authOAuth2ClientSecret: String? = null
+            var authOAuth2CredentialsPlacement: OAuth2CredentialsPlacement = OAuth2CredentialsPlacement.BASIC_AUTH_HEADER
+            var authOAuth2Username: String? = null
+            var authOAuth2Password: String? = null
             var requestKind: RequestKind = RequestKind.HTTP
 
             val clapiExt = extensions["clapi"] as? JsonObject
@@ -911,6 +992,23 @@ fun OpenCollectionItem.toCollectionNode(
                     authApiKey = a.key
                     authApiValue = a.value
                     authApiPlacement = a.placement.value
+                }
+                is AuthOAuth2 -> {
+                    authType = AuthType.OAUTH2
+                    authOAuth2Flow = a.flow
+                    authOAuth2AccessTokenUrl = a.accessTokenUrl
+                    authOAuth2RefreshTokenUrl = a.refreshTokenUrl
+                    authOAuth2AuthorizationUrl = a.authorizationUrl
+                    authOAuth2RedirectUri = a.redirectUri
+                    authOAuth2Scope = a.scope
+                    authOAuth2ClientId = a.credentials?.clientId
+                    authOAuth2ClientSecret = a.credentials?.clientSecret
+                    authOAuth2CredentialsPlacement = a.credentials?.placement ?: OAuth2CredentialsPlacement.BASIC_AUTH_HEADER
+                    authOAuth2Username = a.resourceOwner?.username
+                    authOAuth2Password = a.resourceOwner?.password
+                }
+                is AuthInherit -> {
+                    authType = AuthType.INHERIT
                 }
                 else -> {
                     authType = AuthType.NONE
@@ -992,6 +1090,17 @@ fun OpenCollectionItem.toCollectionNode(
                 authApiKey = authApiKey,
                 authApiValue = authApiValue,
                 authApiPlacement = authApiPlacement,
+                authOAuth2Flow = authOAuth2Flow,
+                authOAuth2AccessTokenUrl = authOAuth2AccessTokenUrl,
+                authOAuth2RefreshTokenUrl = authOAuth2RefreshTokenUrl,
+                authOAuth2AuthorizationUrl = authOAuth2AuthorizationUrl,
+                authOAuth2RedirectUri = authOAuth2RedirectUri,
+                authOAuth2Scope = authOAuth2Scope,
+                authOAuth2ClientId = authOAuth2ClientId,
+                authOAuth2ClientSecret = authOAuth2ClientSecret,
+                authOAuth2CredentialsPlacement = authOAuth2CredentialsPlacement,
+                authOAuth2Username = authOAuth2Username,
+                authOAuth2Password = authOAuth2Password,
                 preRequestScript = preScript,
                 testScript = postScript,
                 requestRef = reqRef ?: generateUuid(),
@@ -1020,6 +1129,17 @@ fun OpenCollectionItem.toCollectionNode(
             var authApiKey: String? = null
             var authApiValue: String? = null
             var authApiPlacement: String? = null
+            var authOAuth2Flow: OAuth2Flow = OAuth2Flow.CLIENT_CREDENTIALS
+            var authOAuth2AccessTokenUrl: String? = null
+            var authOAuth2RefreshTokenUrl: String? = null
+            var authOAuth2AuthorizationUrl: String? = null
+            var authOAuth2RedirectUri: String? = null
+            var authOAuth2Scope: String? = null
+            var authOAuth2ClientId: String? = null
+            var authOAuth2ClientSecret: String? = null
+            var authOAuth2CredentialsPlacement: OAuth2CredentialsPlacement = OAuth2CredentialsPlacement.BASIC_AUTH_HEADER
+            var authOAuth2Username: String? = null
+            var authOAuth2Password: String? = null
 
             val clapiExt = extensions["clapi"] as? JsonObject
             val isJwt = (clapiExt?.get("authType") as? JsonPrimitive)?.content == "jwt"
@@ -1039,6 +1159,23 @@ fun OpenCollectionItem.toCollectionNode(
                     authApiKey = a.key
                     authApiValue = a.value
                     authApiPlacement = a.placement.value
+                }
+                is AuthOAuth2 -> {
+                    authType = AuthType.OAUTH2
+                    authOAuth2Flow = a.flow
+                    authOAuth2AccessTokenUrl = a.accessTokenUrl
+                    authOAuth2RefreshTokenUrl = a.refreshTokenUrl
+                    authOAuth2AuthorizationUrl = a.authorizationUrl
+                    authOAuth2RedirectUri = a.redirectUri
+                    authOAuth2Scope = a.scope
+                    authOAuth2ClientId = a.credentials?.clientId
+                    authOAuth2ClientSecret = a.credentials?.clientSecret
+                    authOAuth2CredentialsPlacement = a.credentials?.placement ?: OAuth2CredentialsPlacement.BASIC_AUTH_HEADER
+                    authOAuth2Username = a.resourceOwner?.username
+                    authOAuth2Password = a.resourceOwner?.password
+                }
+                is AuthInherit -> {
+                    authType = AuthType.INHERIT
                 }
                 else -> {
                     authType = AuthType.NONE
@@ -1107,6 +1244,17 @@ fun OpenCollectionItem.toCollectionNode(
                 authApiKey = authApiKey,
                 authApiValue = authApiValue,
                 authApiPlacement = authApiPlacement,
+                authOAuth2Flow = authOAuth2Flow,
+                authOAuth2AccessTokenUrl = authOAuth2AccessTokenUrl,
+                authOAuth2RefreshTokenUrl = authOAuth2RefreshTokenUrl,
+                authOAuth2AuthorizationUrl = authOAuth2AuthorizationUrl,
+                authOAuth2RedirectUri = authOAuth2RedirectUri,
+                authOAuth2Scope = authOAuth2Scope,
+                authOAuth2ClientId = authOAuth2ClientId,
+                authOAuth2ClientSecret = authOAuth2ClientSecret,
+                authOAuth2CredentialsPlacement = authOAuth2CredentialsPlacement,
+                authOAuth2Username = authOAuth2Username,
+                authOAuth2Password = authOAuth2Password,
                 preRequestScript = preScript,
                 testScript = postScript,
                 requestRef = reqRef ?: generateUuid(),
