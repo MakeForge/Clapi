@@ -6,7 +6,7 @@
 
 ## Summary
 
-Refactor Clapi's underlying data storage model so that **OpenCollection v1.0.0** becomes the canonical format for collections, folders, HTTP requests, environments, variables, and authentication settings. Encapsulate file persistence behind an extensible `CollectionStorageDriver` (supporting bundled documents for the initial delivery per FR-034), preserve non-HTTP MCP data in OpenCollection's official `extensions.clapi` block, strictly separate persisted documents from transient UI/runtime state, and provide an automated, idempotent migration engine that upgrades legacy ReqLab collections without data loss.
+Refactor Clapi's underlying data storage model so that **OpenCollection v1.0.0** becomes the canonical format for collections, folders, HTTP requests, environments, variables, and authentication settings. Encapsulate file persistence behind an extensible `CollectionStorageDriver` (supporting bundled documents for the initial delivery per FR-034), preserve non-HTTP MCP data in OpenCollection's official `extensions.clapi` block, strictly separate persisted documents from transient UI/runtime state, and provide an automated, idempotent migration engine that upgrades legacy Clapi collections without data loss.
 
 ## Technical Context
 

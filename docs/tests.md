@@ -47,8 +47,8 @@ MCP Streamable HTTP, legacy HTTP+SSE, stdio, sampling/roots/elicitation, LLM gen
 
 ```bash
 ./gradlew :qa-tests:jvmTest --tests io.github.crustack.qa.McpHttpE2ETest
-./gradlew :ui-desktop:desktopTest --tests io.github.crustack.ui.desktop.McpSessionCallbackE2ETest
-./gradlew :ui-desktop:desktopTest --tests io.github.crustack.ui.desktop.McpCallbackPaneUiTest
+./gradlew :ui-desktop:desktopTest --tests io.github.crustack.clapi.ui.desktop.McpSessionCallbackE2ETest
+./gradlew :ui-desktop:desktopTest --tests io.github.crustack.clapi.ui.desktop.McpCallbackPaneUiTest
 ```
 
 ### MCP fixtures

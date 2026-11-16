@@ -1,0 +1,1087 @@
+package io.github.crustack.clapi.editor.ui
+
+import io.github.crustack.clapi.editor.core.DisplayLineMap
+import io.github.crustack.clapi.editor.core.DocumentModel
+import io.github.crustack.clapi.editor.core.EditorDocument
+import io.github.crustack.clapi.editor.core.FoldRegion
+import io.github.crustack.clapi.editor.core.FoldingStyle
+import io.github.crustack.clapi.editor.core.InlineEditorError
+import io.github.crustack.clapi.editor.core.LanguageMode
+import io.github.crustack.clapi.editor.core.LanguageModeProvider
+import io.github.crustack.clapi.editor.core.LanguageRegistry
+import io.github.crustack.clapi.editor.core.StyleBuffer
+import io.github.crustack.clapi.editor.core.TokenType
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+// ── Display state ────────────────────────────────────────────────
+
+data class EditorDisplayState(
+    val version: Int       = 0,
+    val styleClock: Long   = 0L,
+    val foldVersion: Int   = 0,
+    val cursorOffset: Int      = 0,
+    val selectionStart: Int    = -1,
+    val selectionEnd: Int      = -1,
+    val diagnostics: List<InlineEditorError> = emptyList(),
+    val totalDisplayLines: Int = 1,
+)
+
+private data class EditCommand(
+    val start: Int,
+    val beforeText: String,
+    val afterText: String,
+    val cursorBefore: Int,
+    val cursorAfter: Int,
+)
+
+// ── EditorViewModel ────────────────────────────────────────────
+
+class EditorViewModel(
+    initialText: String,
+    val languageMode: LanguageMode,
+    languageProvider: LanguageModeProvider? = null,
+) {
+    val document      = DocumentModel(initialText)
+    val styleBuffer   = StyleBuffer(maxOf(initialText.length, 64))
+    val displayLineMap = DisplayLineMap(document.lineCount)
+
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private val mutex = Mutex()
+
+    private val provider = languageProvider ?: LanguageRegistry.getProvider(languageMode)
+
+    private val idleLexer = IdleLexer(
+        styleBuffer = styleBuffer,
+        provider    = provider,
+        onStyled    = {
+            _state.update { it.copy(styleClock = styleBuffer.styleClock) }
+        },
+    )
+
+    private val _state = MutableStateFlow(
+        EditorDisplayState(
+            version            = document.version,
+            totalDisplayLines  = displayLineMap.totalDisplayLines,
+        )
+    )
+    val state: StateFlow<EditorDisplayState> = _state.asStateFlow()
+
+    // textChangedFlow — emitted immediately on every local edit.
+    // The renderer collectLatest invokes onTextChange with getFullText() on the same
+    // path as a keystroke (no 150 ms debounce).
+    private val _textChangedFlow = MutableSharedFlow<Unit>(extraBufferCapacity = 64)
+    val textChangedFlow: SharedFlow<Unit> = _textChangedFlow.asSharedFlow()
+
+    private var lastExternalText: String = initialText
+    private var diagnosticsJob: Job? = null
+    private var foldRegionsJob: Job? = null
+    private var editSequence: Long = 0L
+    private val undoStack = ArrayDeque<EditCommand>()
+    private val redoStack = ArrayDeque<EditCommand>()
+    private var undoBytes: Long = 0L
+
+    @kotlin.concurrent.Volatile
+    var foldRegions: List<FoldRegion> = emptyList()
+        private set
+
+    init {
+        styleFirstPaint()
+        _state.update { it.copy(styleClock = styleBuffer.styleClock) }
+        idleLexer.scheduleFrom(styleBuffer.endStyled, lastExternalText, scope)
+        // Run initial fold detection synchronously to avoid startup race/flakiness
+        // in tests and release CI. This is lightweight for initial payload sizes.
+        computeAndApplyFolds()
+        emitFoldUpdate()
+    }
+
+    fun onExternalTextChanged(text: String) {
+        if (text == lastExternalText) return
+        editSequence++
+        lastExternalText = text
+        clearHistory()
+        // Document and lastExternalText stay in lockstep so typing cannot apply
+        // offsets from the new string against a stale buffer.
+        document.replaceAll(text)
+        styleBuffer.invalidateFrom(0)
+        displayLineMap.reset(document.lineCount)
+        styleFirstPaint()
+        val capturedSeq = editSequence
+        val newVersion = document.version
+        val docLen = document.length
+        _state.update {
+            it.copy(
+                version = newVersion,
+                styleClock = styleBuffer.styleClock,
+                cursorOffset = it.cursorOffset.coerceIn(0, docLen),
+                selectionStart = -1,
+                selectionEnd = -1,
+                diagnostics = emptyList(),
+                totalDisplayLines = displayLineMap.totalDisplayLines,
+            )
+        }
+        notifyTextChanged()
+        idleLexer.scheduleFrom(styleBuffer.endStyled, lastExternalText, scope)
+        scheduleDiagnostics()
+        scope.launch(Dispatchers.Default) {
+            mutex.withLock {
+                if (editSequence != capturedSeq) return@withLock
+                scheduleInitialFoldsInternal()
+            }
+            if (editSequence != capturedSeq) return@launch
+            emitFoldUpdate()
+        }
+    }
+
+    /**
+     * Replace the whole document as a single user edit (e.g. Format).
+     * Records undo; does **not** clear history. No-op when [newText] matches current text.
+     */
+    fun replaceDocument(newText: String) {
+        if (newText == lastExternalText) return
+        editSequence++
+        val st = _state.value
+        val old = lastExternalText
+        val oldLen = old.length
+        val oldCursor = st.cursorOffset.coerceIn(0, oldLen)
+        applyReplace(
+            from = 0,
+            to = oldLen,
+            insertText = newText,
+            cursorBefore = oldCursor,
+            cursorAfter = mapCursorByLineCol(old, oldCursor, newText),
+            recordHistory = true,
+            clearRedo = true,
+        )
+    }
+
+    fun insertAtCursor(text: String) {
+        if (text.isEmpty()) return
+        editSequence++
+        val st = _state.value
+        val oldLen = lastExternalText.length
+        val hasSelection = st.selectionStart >= 0 && st.selectionEnd > st.selectionStart
+        val from = if (hasSelection) st.selectionStart else st.cursorOffset
+        val to   = if (hasSelection) st.selectionEnd else st.cursorOffset
+        val f = from.coerceIn(0, oldLen)
+        val t = to.coerceIn(f, oldLen)
+
+        applyReplace(
+            from = f,
+            to = t,
+            insertText = text,
+            cursorBefore = st.cursorOffset.coerceIn(0, oldLen),
+            cursorAfter = f + text.length,
+            recordHistory = true,
+            clearRedo = true,
+        )
+    }
+
+    fun deleteBeforeCursor() {
+        editSequence++
+        val st = _state.value
+        val oldLen = lastExternalText.length
+        if (st.selectionStart >= 0 && st.selectionEnd > st.selectionStart) {
+            val f = st.selectionStart.coerceIn(0, oldLen)
+            val t = st.selectionEnd.coerceIn(f, oldLen)
+            applyReplace(
+                from = f,
+                to = t,
+                insertText = "",
+                // Use the selection end as cursorBefore so undo restores the cursor
+                // to the end of the deleted range (e.g. after select-all + delete + undo).
+                cursorBefore = t,
+                cursorAfter = f,
+                recordHistory = true,
+                clearRedo = true,
+            )
+            return
+        }
+
+        // Clamp cursor to current document length so optimistic cursor updates cannot
+        // cause out-of-range backspace behavior.
+        val cursor = st.cursorOffset.coerceIn(0, oldLen)
+        if (cursor <= 0) return
+        applyReplace(
+            from = cursor - 1,
+            to = cursor,
+            insertText = "",
+            cursorBefore = cursor,
+            cursorAfter = cursor - 1,
+            recordHistory = true,
+            clearRedo = true,
+        )
+    }
+
+    fun deleteForwardAtCursor() {
+        editSequence++
+        val st = _state.value
+        val oldLen = lastExternalText.length
+        if (st.selectionStart >= 0 && st.selectionEnd > st.selectionStart) {
+            val f = st.selectionStart.coerceIn(0, oldLen)
+            val t = st.selectionEnd.coerceIn(f, oldLen)
+            applyReplace(
+                from = f,
+                to = t,
+                insertText = "",
+                cursorBefore = st.cursorOffset.coerceIn(0, oldLen),
+                cursorAfter = f,
+                recordHistory = true,
+                clearRedo = true,
+            )
+            return
+        }
+
+        val cursor = st.cursorOffset.coerceIn(0, oldLen)
+        if (cursor >= oldLen) return
+        applyReplace(
+            from = cursor,
+            to = cursor + 1,
+            insertText = "",
+            cursorBefore = cursor,
+            cursorAfter = cursor,
+            recordHistory = true,
+            clearRedo = true,
+        )
+    }
+
+    fun undo() {
+        if (undoStack.isEmpty()) return
+        editSequence++
+        val cmd = undoStack.removeLast()
+        undoBytes -= commandBytes(cmd)
+        applyReplace(
+            from = cmd.start,
+            to = cmd.start + cmd.afterText.length,
+            insertText = cmd.beforeText,
+            cursorBefore = cmd.cursorAfter,
+            cursorAfter = cmd.cursorBefore,
+            recordHistory = false,
+            clearRedo = false,
+        )
+        redoStack.addLast(cmd)
+    }
+
+    fun redo() {
+        if (redoStack.isEmpty()) return
+        editSequence++
+        val cmd = redoStack.removeLast()
+        applyReplace(
+            from = cmd.start,
+            to = cmd.start + cmd.beforeText.length,
+            insertText = cmd.afterText,
+            cursorBefore = cmd.cursorBefore,
+            cursorAfter = cmd.cursorAfter,
+            recordHistory = false,
+            clearRedo = false,
+        )
+        pushUndo(cmd)
+    }
+
+    private fun applyReplace(
+        from: Int,
+        to: Int,
+        insertText: String,
+        cursorBefore: Int,
+        cursorAfter: Int,
+        recordHistory: Boolean,
+        clearRedo: Boolean,
+    ) {
+        val old = lastExternalText
+        val f = from.coerceIn(0, old.length)
+        val t = to.coerceIn(f, old.length)
+        val beforeText = old.substring(f, t)
+
+        if (beforeText.isEmpty() && insertText.isEmpty()) {
+            _state.update {
+                it.copy(
+                    cursorOffset = cursorAfter.coerceIn(0, old.length),
+                    selectionStart = -1,
+                    selectionEnd = -1,
+                )
+            }
+            return
+        }
+
+        if (recordHistory) {
+            pushUndo(
+                EditCommand(
+                    start = f,
+                    beforeText = beforeText,
+                    afterText = insertText,
+                    cursorBefore = cursorBefore.coerceIn(0, old.length),
+                    cursorAfter = cursorAfter.coerceIn(0, old.length - (t - f) + insertText.length),
+                ),
+            )
+        }
+        if (clearRedo) {
+            redoStack.clear()
+        }
+
+        lastExternalText = old.substring(0, f) + insertText + old.substring(t)
+
+        // ── Fold-state preservation (C-2 fix) ────────────────────────────────
+        // Capture the current fold shape BEFORE touching the document so we can
+        // restore it – adjusted for any line-count delta – after the reset.
+        val savedFolds  = displayLineMap.getFoldedRegions()
+        val editDocLine = old.substring(0, f).count { it == '\n' }
+        val deletedNL   = beforeText.count { it == '\n' }
+        val insertedNL  = insertText.count { it == '\n' }
+        val lineDelta   = insertedNL - deletedNL
+        // ─────────────────────────────────────────────────────────────────────
+
+        document.delete(f, t)
+        if (insertText.isNotEmpty()) {
+            document.insert(f, insertText)
+        }
+
+        val editLine = document.lineAt(f.coerceIn(0, document.length))
+        val editLineStart = document.lineStart(editLine)
+        styleBuffer.invalidateFrom(editLineStart)
+        styleEditedLine(editLine, editLineStart)
+        // grow() is background-only (IdleLexer calls it before any write); calling it here
+        // from the main thread races with IdleLexer's own grow() on the styles array reference.
+        displayLineMap.reset(document.lineCount)
+
+        // ── Restore folds after reset ─────────────────────────────────────────
+        if (savedFolds.isNotEmpty()) {
+            val newLineCount = document.lineCount
+            if (lineDelta == 0) {
+                displayLineMap.applyFolds(savedFolds)
+            } else {
+                val adjusted = savedFolds.mapNotNull { (start, end) ->
+                    val newStart = if (start >= editDocLine) (start + lineDelta).coerceAtLeast(0) else start
+                    val newEnd   = if (end   >= editDocLine) (end   + lineDelta).coerceAtLeast(0) else end
+                    if (newStart >= 0 && newEnd > newStart && newEnd < newLineCount) Pair(newStart, newEnd)
+                    else null
+                }
+                if (adjusted.isNotEmpty()) displayLineMap.applyFolds(adjusted)
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
+        // ── Immediately adjust foldRegions line numbers for the edit ──────────
+        // This keeps fold-arrow positions correct after any insert/delete that
+        // changes the line count.  A debounced background recompute
+        // (scheduleFoldRegionsUpdate) will re-detect structural changes later.
+        val foldRegionsChanged = if (lineDelta != 0 && foldRegions.isNotEmpty()) {
+            val isAtLineStart = f == 0 || (f > 0 && old[f - 1] == '\n')
+            val newLineCount = document.lineCount
+            val updated = foldRegions.mapNotNull { region ->
+                val sl0 = region.startLine - 1   // 0-based line of the region header
+                val el0 = region.endLine - 1     // 0-based line of the region footer
+                // Shift a boundary if the insert/delete is on an earlier line, OR at
+                // the very start of the same line (the content moves down by lineDelta).
+                val shiftStart = editDocLine < sl0 || (editDocLine == sl0 && isAtLineStart)
+                val shiftEnd   = editDocLine < el0 || (editDocLine == el0 && isAtLineStart)
+                val newStart = if (shiftStart) region.startLine + lineDelta else region.startLine
+                val newEnd   = if (shiftEnd)   region.endLine   + lineDelta else region.endLine
+                if (newStart >= 1 && newEnd > newStart && newEnd <= newLineCount)
+                    region.copy(startLine = newStart, endLine = newEnd)
+                else null
+            }
+            foldRegions = updated
+            true
+        } else false
+        // ─────────────────────────────────────────────────────────────────────
+
+        _state.update {
+            it.copy(
+                version = document.version,
+                cursorOffset = cursorAfter.coerceIn(0, lastExternalText.length),
+                selectionStart = -1,
+                selectionEnd = -1,
+                totalDisplayLines = displayLineMap.totalDisplayLines,
+                // Clear stale diagnostics immediately so undo/redo/edits don't
+                // leave red underlines on text that is now syntactically valid.
+                // They are re-populated after the 500 ms background validation pass.
+                diagnostics = emptyList(),
+                // Bump foldVersion only when arrow positions actually changed so the
+                // renderer re-reads foldRegions.
+                foldVersion = if (foldRegionsChanged) it.foldVersion + 1 else it.foldVersion,
+                styleClock = styleBuffer.styleClock,
+            )
+        }
+
+        notifyTextChanged()
+        // Snap to the start of the edited line so the tokenizer always sees complete
+        // tokens. Without this, tokenization starting mid-word (e.g. at the 'e' of
+        // "false") would only re-style the tail of the token, leaving stale colours
+        // on the preceding characters.
+        idleLexer.scheduleFrom(editLineStart, lastExternalText, scope)
+        scheduleDiagnostics()
+        scheduleFoldRegionsUpdate()
+    }
+
+    private fun pushUndo(cmd: EditCommand) {
+        undoStack.addLast(cmd)
+        undoBytes += commandBytes(cmd)
+        while (undoStack.size > MAX_UNDO_COMMANDS || undoBytes > MAX_UNDO_BYTES) {
+            val dropped = undoStack.removeFirst()
+            undoBytes -= commandBytes(dropped)
+        }
+    }
+
+    private fun clearHistory() {
+        undoStack.clear()
+        redoStack.clear()
+        undoBytes = 0L
+    }
+
+    private fun commandBytes(cmd: EditCommand): Long =
+        (cmd.beforeText.length + cmd.afterText.length).toLong()
+
+    fun moveCursorTo(offset: Int, extendSelection: Boolean = false) {
+        val clamped = offset.coerceIn(0, document.length)
+        _state.update { st ->
+            if (extendSelection) {
+                // The anchor is the FIXED end of the selection — the opposite end from
+                // where the cursor currently sits. This ensures the anchor stays pinned
+                // while the user drags left or right, and flips correctly when direction
+                // reverses (e.g. drag left then back right past the start point).
+                val anchor = when {
+                    st.selectionStart < 0 ->
+                        st.cursorOffset               // no selection yet: anchor at current cursor
+                    st.cursorOffset >= st.selectionEnd ->
+                        st.selectionStart             // cursor is at the END → anchor is the START
+                    else ->
+                        st.selectionEnd               // cursor is at the START → anchor is the END
+                }
+                val selStart = minOf(anchor, clamped)
+                val selEnd   = maxOf(anchor, clamped)
+                st.copy(cursorOffset = clamped, selectionStart = selStart, selectionEnd = selEnd)
+            } else {
+                st.copy(cursorOffset = clamped, selectionStart = -1, selectionEnd = -1)
+            }
+        }
+    }
+
+    fun moveCursorLeft(extendSelection: Boolean = false) {
+        moveCursorTo((_state.value.cursorOffset - 1).coerceAtLeast(0), extendSelection)
+    }
+
+    fun moveCursorRight(extendSelection: Boolean = false) {
+        moveCursorTo((_state.value.cursorOffset + 1).coerceAtMost(document.length), extendSelection)
+    }
+
+    fun moveCursorUp(extendSelection: Boolean = false) {
+        val offset = _state.value.cursorOffset
+        val line   = document.lineAt(offset)
+        if (line <= 0) { moveCursorTo(0, extendSelection); return }
+        val col    = offset - document.lineStart(line)
+        val prevStart = document.lineStart(line - 1)
+        val prevLen   = document.lineText(line - 1).length
+        moveCursorTo(prevStart + minOf(col, prevLen), extendSelection)
+    }
+
+    fun moveCursorDown(extendSelection: Boolean = false) {
+        val offset = _state.value.cursorOffset
+        val line   = document.lineAt(offset)
+        if (line >= document.lineCount - 1) { moveCursorTo(document.length, extendSelection); return }
+        val col    = offset - document.lineStart(line)
+        val nextStart = document.lineStart(line + 1)
+        val nextLen   = document.lineText(line + 1).length
+        moveCursorTo(nextStart + minOf(col, nextLen), extendSelection)
+    }
+
+    fun moveCursorToLineStart(extendSelection: Boolean = false) {
+        val offset = _state.value.cursorOffset
+        val line   = document.lineAt(offset)
+        moveCursorTo(document.lineStart(line), extendSelection)
+    }
+
+    fun moveCursorToLineEnd(extendSelection: Boolean = false) {
+        val offset = _state.value.cursorOffset
+        val line   = document.lineAt(offset)
+        moveCursorTo(document.lineStart(line) + document.lineText(line).length, extendSelection)
+    }
+
+    fun selectWordAt(offset: Int) {
+        val text = lastExternalText
+        val len = text.length
+        if (len == 0) return
+        val pos = offset.coerceIn(0, len - 1)
+        var start = pos
+        var end = pos
+        while (start > 0 && isWordChar(text[start - 1])) start--
+        while (end < len && isWordChar(text[end])) end++
+        if (start == end) end = (end + 1).coerceAtMost(len) // single non-word char
+        _state.update {
+            it.copy(
+                selectionStart = start,
+                selectionEnd = end,
+                cursorOffset = end,
+            )
+        }
+    }
+
+    fun deleteSelection() {
+        val st = _state.value
+        if (st.selectionStart < 0 || st.selectionEnd <= st.selectionStart) return
+        editSequence++
+        val oldLen = lastExternalText.length
+        val f = st.selectionStart.coerceIn(0, oldLen)
+        val t = st.selectionEnd.coerceIn(f, oldLen)
+        applyReplace(
+            from = f,
+            to = t,
+            insertText = "",
+            cursorBefore = st.cursorOffset.coerceIn(0, oldLen),
+            cursorAfter = f,
+            recordHistory = true,
+            clearRedo = true,
+        )
+    }
+
+    fun moveCursorWordLeft(extendSelection: Boolean = false) {
+        val text = lastExternalText
+        var pos = _state.value.cursorOffset.coerceIn(0, text.length)
+        if (pos > 0) pos--
+        while (pos > 0 && !isWordChar(text[pos - 1])) pos--
+        while (pos > 0 && isWordChar(text[pos - 1])) pos--
+        moveCursorTo(pos, extendSelection)
+    }
+
+    fun moveCursorWordRight(extendSelection: Boolean = false) {
+        val text = lastExternalText
+        var pos = _state.value.cursorOffset.coerceIn(0, text.length)
+        while (pos < text.length && !isWordChar(text[pos])) pos++
+        while (pos < text.length && isWordChar(text[pos])) pos++
+        moveCursorTo(pos, extendSelection)
+    }
+
+    fun moveCursorToDocStart(extendSelection: Boolean = false) =
+        moveCursorTo(0, extendSelection)
+
+    fun moveCursorToDocEnd(extendSelection: Boolean = false) =
+        moveCursorTo(document.length, extendSelection)
+
+    // ── M-1: Page movement ────────────────────────────────────────────────
+
+    fun moveCursorPageDown(pageSize: Int = 20, extendSelection: Boolean = false) {
+        val offset = _state.value.cursorOffset
+        val line   = document.lineAt(offset)
+        // Clamp: if paging down would go past the last line, go to end of document.
+        if (line + pageSize >= document.lineCount) {
+            moveCursorTo(document.length, extendSelection)
+            return
+        }
+        val col         = offset - document.lineStart(line)
+        val targetLine  = line + pageSize
+        val targetStart = document.lineStart(targetLine)
+        val targetLen   = document.lineText(targetLine).length
+        moveCursorTo(targetStart + minOf(col, targetLen), extendSelection)
+    }
+
+    fun moveCursorPageUp(pageSize: Int = 20, extendSelection: Boolean = false) {
+        val offset = _state.value.cursorOffset
+        val line   = document.lineAt(offset)
+        // Clamp: if paging up would go past line 0, go to start of document.
+        if (line - pageSize < 0) {
+            moveCursorTo(0, extendSelection)
+            return
+        }
+        val col         = offset - document.lineStart(line)
+        val targetLine  = line - pageSize
+        val targetStart = document.lineStart(targetLine)
+        val targetLen   = document.lineText(targetLine).length
+        moveCursorTo(targetStart + minOf(col, targetLen), extendSelection)
+    }
+
+    // ── M-2: Dedent (Shift+Tab) ───────────────────────────────────────────
+
+    fun dedentAtCursor() {
+        editSequence++
+        val st     = _state.value
+        val oldLen = lastExternalText.length
+        val cursor = st.cursorOffset.coerceIn(0, oldLen)
+        val line   = document.lineAt(cursor)
+        val lineStart = document.lineStart(line)
+        val lineText  = document.lineText(line)
+        val (removeCount, removeStart) = when {
+            lineText.startsWith("  ") -> Pair(2, lineStart)
+            lineText.startsWith("\t") -> Pair(1, lineStart)
+            else -> return   // nothing to dedent
+        }
+        applyReplace(
+            from = removeStart,
+            to   = removeStart + removeCount,
+            insertText = "",
+            cursorBefore = cursor,
+            cursorAfter  = (cursor - removeCount).coerceAtLeast(lineStart),
+            recordHistory = true,
+            clearRedo = true,
+        )
+    }
+
+    // ── M-3: Delete word before cursor (Alt/Cmd+Backspace) ───────────────
+
+    fun deleteWordBeforeCursor() {
+        val st = _state.value
+        if (st.selectionStart >= 0 && st.selectionEnd > st.selectionStart) {
+            deleteSelection()
+            return
+        }
+        editSequence++
+        val text   = lastExternalText
+        var cursor = st.cursorOffset.coerceIn(0, text.length)
+        if (cursor <= 0) return
+        val end = cursor
+        cursor--
+        // Skip trailing non-word chars, then skip the word
+        while (cursor > 0 && !isWordChar(text[cursor - 1])) cursor--
+        while (cursor > 0 && isWordChar(text[cursor - 1])) cursor--
+        applyReplace(
+            from = cursor,
+            to   = end,
+            insertText = "",
+            cursorBefore = end,
+            cursorAfter  = cursor,
+            recordHistory = true,
+            clearRedo = true,
+        )
+    }
+
+    // ── M-4: Newline with auto-indent (Enter) ────────────────────────────
+
+    fun insertNewlineWithAutoIndent() {
+        val cursorOffset = _state.value.cursorOffset.coerceIn(0, lastExternalText.length)
+        val line   = document.lineAt(cursorOffset)
+        val lineText = document.lineText(line)
+        val indent = lineText.takeWhile { it == ' ' || it == '\t' }
+        insertAtCursor("\n$indent")
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+
+    private fun isWordChar(c: Char) = c.isLetterOrDigit() || c == '_'
+
+    fun selectAll() {
+        _state.update {
+            it.copy(
+                selectionStart = 0,
+                selectionEnd = document.length,
+                // Keep viewport stable: select all should not force-jump to doc end.
+                cursorOffset = it.cursorOffset.coerceIn(0, document.length),
+            )
+        }
+    }
+
+    fun canUndo(): Boolean = undoStack.isNotEmpty()
+    fun canRedo(): Boolean = redoStack.isNotEmpty()
+
+    fun goToLine(oneBased: Int) {
+        if (document.lineCount <= 0) return
+        val line = (oneBased - 1).coerceIn(0, document.lineCount - 1)
+        moveCursorTo(document.lineStart(line))
+    }
+
+    fun replaceRange(from: Int, to: Int, replacement: String) {
+        val oldLen = lastExternalText.length
+        val f = from.coerceIn(0, oldLen)
+        val t = to.coerceIn(f, oldLen)
+        if (f == t && replacement.isEmpty()) return
+        editSequence++
+        applyReplace(
+            from = f,
+            to = t,
+            insertText = replacement,
+            cursorBefore = _state.value.cursorOffset.coerceIn(0, oldLen),
+            cursorAfter = f + replacement.length,
+            recordHistory = true,
+            clearRedo = true,
+        )
+    }
+
+    fun replaceAllMatches(query: String, replacement: String, ignoreCase: Boolean = true) {
+        if (query.isEmpty()) return
+        val next = replaceAllOccurrences(lastExternalText, query, replacement, ignoreCase)
+        if (next == lastExternalText) return
+        replaceDocument(next)
+    }
+
+    fun duplicateLine() {
+        val st = _state.value
+        val oldLen = lastExternalText.length
+        val cursor = st.cursorOffset.coerceIn(0, oldLen)
+        val line = document.lineAt(cursor)
+        val start = document.lineStart(line)
+        val text = document.lineText(line)
+        val col = cursor - start
+        val lineEnd = start + text.length
+        editSequence++
+        if (lineEnd < oldLen) {
+            applyReplace(
+                from = lineEnd + 1,
+                to = lineEnd + 1,
+                insertText = "$text\n",
+                cursorBefore = cursor,
+                cursorAfter = lineEnd + 1 + col.coerceAtMost(text.length),
+                recordHistory = true,
+                clearRedo = true,
+            )
+        } else {
+            applyReplace(
+                from = lineEnd,
+                to = lineEnd,
+                insertText = "\n$text",
+                cursorBefore = cursor,
+                cursorAfter = lineEnd + 1 + col.coerceAtMost(text.length),
+                recordHistory = true,
+                clearRedo = true,
+            )
+        }
+    }
+
+    fun moveLine(down: Boolean) {
+        val st = _state.value
+        val oldLen = lastExternalText.length
+        val cursor = st.cursorOffset.coerceIn(0, oldLen)
+        val line = document.lineAt(cursor)
+        val other = if (down) line + 1 else line - 1
+        if (other < 0 || other >= document.lineCount) return
+        val col = cursor - document.lineStart(line)
+        val a = minOf(line, other)
+        val b = maxOf(line, other)
+        val aStart = document.lineStart(a)
+        val aText = document.lineText(a)
+        val bText = document.lineText(b)
+        val bEnd = document.lineStart(b) + bText.length
+        val newBlock = "$bText\n$aText"
+        val cursorAfter = if (down) {
+            aStart + bText.length + 1 + col.coerceAtMost(aText.length)
+        } else {
+            aStart + col.coerceAtMost(bText.length)
+        }
+        editSequence++
+        applyReplace(
+            from = aStart,
+            to = bEnd,
+            insertText = newBlock,
+            cursorBefore = cursor,
+            cursorAfter = cursorAfter,
+            recordHistory = true,
+            clearRedo = true,
+        )
+    }
+
+    fun selectLine() {
+        val st = _state.value
+        val oldLen = lastExternalText.length
+        val cursor = st.cursorOffset.coerceIn(0, oldLen)
+        val line = document.lineAt(cursor)
+        val start = document.lineStart(line)
+        val end = start + document.lineText(line).length
+        val selEnd = if (end < oldLen) end + 1 else end
+        _state.update {
+            it.copy(selectionStart = start, selectionEnd = selEnd, cursorOffset = selEnd)
+        }
+    }
+
+    fun toggleComment() {
+        val st = _state.value
+        val oldLen = lastExternalText.length
+        val cursor = st.cursorOffset.coerceIn(0, oldLen)
+        val (fromLine, toLine) = selectedLineRange()
+        val start = document.lineStart(fromLine)
+        val end = document.lineStart(toLine) + document.lineText(toLine).length
+        val lines = (fromLine..toLine).map { document.lineText(it) }
+        val xml = languageMode == LanguageMode.XML || languageMode == LanguageMode.HTML
+        val commented = if (xml) lines.all { isXmlCommented(it) } else lines.all { isSlashCommented(it) }
+        val next = lines.map { line ->
+            if (xml) {
+                if (commented) uncommentXml(line) else commentXml(line)
+            } else {
+                if (commented) uncommentSlash(line) else commentSlash(line)
+            }
+        }
+        val newBlock = next.joinToString("\n")
+        val rel = (document.lineAt(cursor) - fromLine).coerceIn(0, next.lastIndex)
+        val col = cursor - document.lineStart(document.lineAt(cursor))
+        var offsetInBlock = 0
+        for (i in 0 until rel) offsetInBlock += next[i].length + 1
+        val cursorAfter = start + offsetInBlock + col.coerceAtMost(next[rel].length)
+        editSequence++
+        applyReplace(
+            from = start,
+            to = end,
+            insertText = newBlock,
+            cursorBefore = cursor,
+            cursorAfter = cursorAfter,
+            recordHistory = true,
+            clearRedo = true,
+        )
+    }
+
+    private fun selectedLineRange(): Pair<Int, Int> {
+        val st = _state.value
+        val oldLen = lastExternalText.length
+        if (st.selectionStart >= 0 && st.selectionEnd > st.selectionStart) {
+            val a = document.lineAt(st.selectionStart.coerceIn(0, oldLen))
+            val b = document.lineAt((st.selectionEnd - 1).coerceIn(0, oldLen))
+            return minOf(a, b) to maxOf(a, b)
+        }
+        val line = document.lineAt(st.cursorOffset.coerceIn(0, oldLen))
+        return line to line
+    }
+
+    private fun isSlashCommented(line: String): Boolean =
+        line.trimStart().startsWith("//")
+
+    private fun commentSlash(line: String): String {
+        val indent = line.takeWhile { it == ' ' || it == '\t' }
+        return "$indent// ${line.drop(indent.length)}"
+    }
+
+    private fun uncommentSlash(line: String): String {
+        val indent = line.takeWhile { it == ' ' || it == '\t' }
+        val rest = line.drop(indent.length)
+        return indent + when {
+            rest.startsWith("// ") -> rest.drop(3)
+            rest.startsWith("//") -> rest.drop(2)
+            else -> rest
+        }
+    }
+
+    private fun isXmlCommented(line: String): Boolean {
+        val t = line.trim()
+        return t.startsWith("<!--") && t.endsWith("-->")
+    }
+
+    private fun commentXml(line: String): String {
+        val indent = line.takeWhile { it == ' ' || it == '\t' }
+        return "$indent<!-- ${line.drop(indent.length)} -->"
+    }
+
+    private fun uncommentXml(line: String): String {
+        val indent = line.takeWhile { it == ' ' || it == '\t' }
+        var body = line.trim()
+        if (body.startsWith("<!--")) body = body.removePrefix("<!--").trimStart()
+        if (body.endsWith("-->")) body = body.removeSuffix("-->").trimEnd()
+        return indent + body
+    }
+
+    fun onVisibleRangeChanged(firstDisplayLine: Int, lastDisplayLine: Int) {
+        val firstDocLine = displayLineMap.docFromDisplay(firstDisplayLine)
+        val firstCharInViewport = document.lineStart(firstDocLine).coerceAtLeast(0)
+        if (firstCharInViewport < styleBuffer.endStyled) return
+        idleLexer.scheduleFrom(firstCharInViewport, lastExternalText, scope)
+    }
+
+    private suspend fun scheduleInitialFoldsInternal() {
+        computeAndApplyFolds()
+    }
+
+    private fun computeAndApplyFolds() {
+        val regions = detectFoldRegionsForText(document.toFullString())
+        foldRegions = regions
+        displayLineMap.reset(document.lineCount)
+    }
+
+    private fun detectFoldRegionsForText(text: String): List<FoldRegion> {
+        val editorDoc = EditorDocument.create(text)
+        val providerRegions = provider.foldingRegions(editorDoc)
+        if (providerRegions.isNotEmpty()) return providerRegions
+
+        val lines = text.split('\n')
+        val fallbackRegions = when (provider.foldingStyle) {
+            FoldingStyle.BRACE -> detectBraceFoldRegions(lines) + detectCommentFoldRegions(lines)
+            FoldingStyle.XML -> detectXmlFoldRegions(lines) + detectCommentFoldRegions(lines)
+            FoldingStyle.PLAIN -> emptyList()
+        }
+        return fallbackRegions
+            .map { FoldRegion(startLine = it.startLine + 1, endLine = it.endLine + 1) }
+            .filter { it.endLine > it.startLine }
+            .distinctBy { it.startLine to it.endLine }
+            .sortedBy { it.startLine }
+    }
+
+    private fun emitFoldUpdate() {
+        _state.update {
+            it.copy(
+                foldVersion = it.foldVersion + 1,
+                totalDisplayLines = displayLineMap.totalDisplayLines,
+            )
+        }
+    }
+
+    fun toggleFold(docLine: Int) {
+        val region = foldRegions.firstOrNull { it.startLine - 1 == docLine } ?: return
+        val startDoc = region.startLine - 1
+        val endDoc   = region.endLine - 1
+        if (displayLineMap.isVisible(startDoc + 1)) {
+            displayLineMap.setFolded(startDoc, endDoc)
+        } else {
+            displayLineMap.setVisible(startDoc, endDoc)
+        }
+        _state.update { it.copy(totalDisplayLines = displayLineMap.totalDisplayLines, foldVersion = it.foldVersion + 1) }
+    }
+
+    fun foldAll() {
+        displayLineMap.applyFolds(foldRegions.map { Pair(it.startLine - 1, it.endLine - 1) })
+        _state.update { it.copy(totalDisplayLines = displayLineMap.totalDisplayLines, foldVersion = it.foldVersion + 1) }
+    }
+
+    fun unfoldAll() {
+        displayLineMap.reset(document.lineCount)
+        _state.update { it.copy(totalDisplayLines = displayLineMap.totalDisplayLines, foldVersion = it.foldVersion + 1) }
+    }
+
+    fun getFullText(): String = lastExternalText
+
+    fun getSelectedText(): String {
+        val st = _state.value
+        if (st.selectionStart < 0 || st.selectionEnd <= st.selectionStart) return ""
+        val s = st.selectionStart.coerceIn(0, document.length)
+        val e = st.selectionEnd.coerceIn(s, document.length)
+        return document.buffer.subSequence(s, e)
+    }
+
+    private fun notifyTextChanged() {
+        _textChangedFlow.tryEmit(Unit)
+    }
+
+    private fun scheduleDiagnostics() {
+        diagnosticsJob?.cancel()
+        val seq = editSequence   // capture before the delay
+        diagnosticsJob = scope.launch(Dispatchers.Default) {
+            delay(500L)
+            // Discard if a newer edit arrived during the delay
+            if (editSequence != seq) return@launch
+            val text = lastExternalText
+            if (editSequence != seq) return@launch
+            val errors = provider.validate(text)
+            // Json.parseToJsonElement is not coroutine-cancellable; guard against the
+            // stale-result race by checking the sequence AFTER the potentially-long parse.
+            if (editSequence == seq) {
+                _state.update { it.copy(diagnostics = errors) }
+            }
+        }
+    }
+
+    /** Re-detect fold regions in the background and update [foldRegions] without
+     *  touching [displayLineMap] (collapsed state is preserved).  Debounced at 300 ms. */
+    private fun scheduleFoldRegionsUpdate() {
+        foldRegionsJob?.cancel()
+        val seq = editSequence
+        foldRegionsJob = scope.launch(Dispatchers.Default) {
+            delay(300L)
+            if (editSequence != seq) return@launch
+            val text = lastExternalText
+            if (editSequence != seq) return@launch
+            val newRegions = detectFoldRegionsForText(text)
+            if (editSequence == seq) {
+                foldRegions = newRegions
+                _state.update { it.copy(foldVersion = it.foldVersion + 1) }
+            }
+        }
+    }
+
+    /**
+     * Color the first [FIRST_PAINT_STYLE_CHARS] on the caller thread so the first
+     * frame is not unstyled PLAIN text. IdleLexer continues from [StyleBuffer.endStyled].
+     * Long lines are tokenized only up to the budget so a minified 10 MB body
+     * cannot freeze the UI thread.
+     */
+    private fun styleFirstPaint() {
+        val budget = minOf(FIRST_PAINT_STYLE_CHARS, document.length)
+        if (budget <= styleBuffer.endStyled) return
+        var lexState: Any? = null
+        val lastLine = document.lineAt((budget - 1).coerceAtLeast(0))
+        for (line in 0..lastLine) {
+            val lineStart = document.lineStart(line)
+            if (lineStart >= budget) break
+            val slice = document.lineText(line).take(budget - lineStart)
+            val (tokens, next) = provider.tokenizeLine(slice, line + 1, lexState)
+            lexState = next
+            for (token in tokens) {
+                val from = lineStart + token.startOffset
+                if (from >= budget) break
+                styleBuffer.applyStyle(from, minOf(lineStart + token.endOffset, budget), token.type)
+            }
+        }
+    }
+
+    /**
+     * Re-style a normal edited line before the next frame so an invalidated string does not
+     * briefly render with stale token bytes. Oversized lines stay on the revision-safe idle
+     * lexer path to keep typing latency bounded.
+     */
+    private fun styleEditedLine(line: Int, lineStart: Int) {
+        val text = document.lineText(line)
+        if (text.isEmpty() || text.length > SYNC_EDIT_STYLE_CHARS) return
+        styleBuffer.applyStyle(lineStart, lineStart + text.length, TokenType.PLAIN)
+        val (tokens, _) = provider.tokenizeLine(text, line + 1, null)
+        for (token in tokens) {
+            styleBuffer.applyStyle(
+                lineStart + token.startOffset,
+                lineStart + token.endOffset,
+                token.type,
+            )
+        }
+    }
+
+    companion object {
+        /** Bytes styled synchronously so a large JSON load is not a white flash then color. */
+        const val FIRST_PAINT_STYLE_CHARS = 128_000
+        private const val SYNC_EDIT_STYLE_CHARS = 16_384
+        // Keep undo memory bounded for multi-MB documents while still allowing
+        // long Cmd+Z/Cmd+Shift+Z chains.
+        private const val MAX_UNDO_COMMANDS = 2_000
+        private const val MAX_UNDO_BYTES = 32L * 1024L * 1024L
+    }
+
+    fun dispose() {
+        idleLexer.cancel()
+        scope.cancel()
+    }
+}
+
+/**
+ * Map [oldOffset] into [newText] by line/column. Caret at EOF of [oldText] stays at
+ * EOF of [newText]. Otherwise the same line index is used (clamped) and the column
+ * is coerced to that line's length.
+ */
+internal fun mapCursorByLineCol(oldText: String, oldOffset: Int, newText: String): Int {
+    val off = oldOffset.coerceIn(0, oldText.length)
+    if (off >= oldText.length) return newText.length
+    var line = 0
+    var lineStart = 0
+    var i = 0
+    while (i < off) {
+        if (oldText[i] == '\n') {
+            line++
+            lineStart = i + 1
+        }
+        i++
+    }
+    val col = off - lineStart
+    var newLine = 0
+    var newStart = 0
+    i = 0
+    while (i < newText.length && newLine < line) {
+        if (newText[i] == '\n') {
+            newLine++
+            newStart = i + 1
+        }
+        i++
+    }
+    if (newLine < line) return newText.length
+    val newLineEnd = newText.indexOf('\n', newStart).let { if (it < 0) newText.length else it }
+    val newCol = col.coerceAtMost((newLineEnd - newStart).coerceAtLeast(0))
+    return newStart + newCol
+}
