@@ -437,7 +437,7 @@ import io.github.makeforge.clapi.ui.shared.theme.ClapiTheme
 @Composable
 fun MainScreenSophisticatedPreview() {
     ClapiTheme(appTheme = AppTheme.DARK) {
-        MainScreen(state = AppState(withDemoData = true))
+        MainScreen(state = AppStateExamples.default())
     }
 }
 ```

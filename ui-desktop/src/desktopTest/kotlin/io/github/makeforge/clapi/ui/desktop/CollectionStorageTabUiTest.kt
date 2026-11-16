@@ -21,6 +21,7 @@ import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import io.github.makeforge.clapi.ui.shared.state.AppStateExamples
 
 class CollectionStorageTabUiTest {
 
@@ -29,7 +30,7 @@ class CollectionStorageTabUiTest {
 
     @Test
     fun storage_tab_displays_local_and_git_options_and_fields() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         composeRule.setContent { MainScreen(state) }
         composeRule.waitForIdle()
 
@@ -89,7 +90,7 @@ class CollectionStorageTabUiTest {
                 executor.execute(remoteRepoDir.absolutePath, listOf("init", "--bare", "-b", "main"))
             }
 
-            val state = AppState(withDemoData = true)
+            val state = AppStateExamples.demo()
             state.gitRepositoryManager = GitRepositoryManager(
                 executor = executor,
                 baseStorageDir = storageBaseDir.absolutePath,
@@ -141,7 +142,7 @@ class CollectionStorageTabUiTest {
             mkdirs()
         }
         try {
-            val state = AppState(withDemoData = true)
+            val state = AppStateExamples.demo()
             state.gitRepositoryManager = GitRepositoryManager(
                 executor = DesktopGitCliExecutor(),
                 baseStorageDir = tempDir.absolutePath,

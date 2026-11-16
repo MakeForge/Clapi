@@ -22,6 +22,7 @@ import org.junit.Test
 import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import io.github.makeforge.clapi.ui.shared.state.AppStateExamples
 
 class SidebarGrpcBadgeTest {
 
@@ -40,7 +41,7 @@ class SidebarGrpcBadgeTest {
 
     @Test
     fun folderAddButton_showsHttpAndGrpcOptionsInContextMenu() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val firstCollectionId = state.collections.first().id
         composeRule.setContent {
             ClapiTheme {
@@ -57,7 +58,7 @@ class SidebarGrpcBadgeTest {
 
     @Test
     fun selectingNewGrpcRequest_createsGrpcNodeAndDisplaysBadgesInSidebarAndTab() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val rootFolder = state.collections.first()
         val beforeCount = rootFolder.children.size
 
@@ -115,7 +116,7 @@ class SidebarGrpcBadgeTest {
                 """.trimIndent()
             )
 
-            val state = AppState(openDefaultTab = false, withDemoData = true)
+            val state = AppStateExamples.demo(openDefaultTab = false)
             val rootFolder = state.collections.first()
             state.addGrpcRequestToCollection(rootFolder.id)
 
@@ -149,7 +150,7 @@ class SidebarGrpcBadgeTest {
 
     @Test
     fun resolveGrpcCallRequest_substitutesVariablesInUrlMetadataAndMessage() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         state.environments.add(
             EnvState(
                 name = "TestEnv",

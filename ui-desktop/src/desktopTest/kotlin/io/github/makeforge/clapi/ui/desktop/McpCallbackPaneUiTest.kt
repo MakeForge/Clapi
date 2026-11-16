@@ -69,7 +69,7 @@ class McpCallbackPaneUiTest {
                 put("name", buildJsonObject { put("type", "string") })
             })
         }
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         composeRule.setContent {
             ClapiTheme {
                 Box(Modifier.size(800.dp, 600.dp)) {

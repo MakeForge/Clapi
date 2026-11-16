@@ -21,6 +21,7 @@ import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import io.github.makeforge.clapi.ui.shared.state.AppStateExamples
 
 /**
  * Validation tests for History functionality.
@@ -48,7 +49,7 @@ class HistoryValidationUiTest {
 
     @Test
     fun history_collapsed_even_with_demo_data() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         assertFalse(state.historyExpanded, "History should be collapsed even with demo data")
     }
 
@@ -64,7 +65,7 @@ class HistoryValidationUiTest {
 
     @Test
     fun demo_data_has_history_items() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         assertEquals(3, state.historyItems.size)
         assertEquals("r1", state.historyItems[0].requestId)
         assertEquals("Get all users", state.historyItems[0].name)
@@ -85,7 +86,7 @@ class HistoryValidationUiTest {
 
     @Test
     fun history_items_hidden_when_collapsed() {
-        val state = AppState(withDemoData = true) // historyExpanded is false by default
+        val state = AppStateExamples.demo() // historyExpanded is false by default
         composeRule.setContent { MainScreen(state) }
 
         // History items should NOT be visible when collapsed
@@ -94,7 +95,7 @@ class HistoryValidationUiTest {
 
     @Test
     fun history_items_visible_when_expanded() {
-        val state = AppState(withDemoData = true).apply { historyExpanded = true }
+        val state = AppStateExamples.demo().apply { historyExpanded = true }
         composeRule.setContent { MainScreen(state) }
 
         composeRule.onNodeWithTag("history-row-r1", useUnmergedTree = true).assertIsDisplayed()
@@ -102,7 +103,7 @@ class HistoryValidationUiTest {
 
     @Test
     fun clicking_history_header_toggles_expansion() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         assertFalse(state.historyExpanded)
 
         composeRule.setContent { MainScreen(state) }
@@ -122,7 +123,7 @@ class HistoryValidationUiTest {
 
     @Test
     fun clicking_history_item_opens_request_tab() {
-        val state = AppState(withDemoData = true).apply { historyExpanded = true }
+        val state = AppStateExamples.demo().apply { historyExpanded = true }
         composeRule.setContent { MainScreen(state) }
 
         val tabCountBefore = state.openTabs.size
@@ -185,7 +186,7 @@ class HistoryValidationUiTest {
 
     @Test
     fun record_history_moves_existing_entry_to_top() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         state.clearHistory()
         state.recordHistory("r1", HttpMethodType.GET, "Get all users", "{{baseUrl}}/users")
         state.recordHistory("r2", HttpMethodType.POST, "Create user", "{{baseUrl}}/users")
@@ -198,7 +199,7 @@ class HistoryValidationUiTest {
 
     @Test
     fun reveal_request_in_sidebar_expands_collapsed_sidebar_and_selects_collection_request() {
-        val state = AppState(withDemoData = true).apply {
+        val state = AppStateExamples.demo().apply {
             sidebarExpanded = false
             sidebarSearchQuery = "does-not-match"
         }
@@ -213,7 +214,7 @@ class HistoryValidationUiTest {
 
     @Test
     fun reveal_request_in_sidebar_for_missing_request_shows_error() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val ok = state.revealRequestInSidebar("missing-404")
 
         assertFalse(ok)
@@ -223,7 +224,7 @@ class HistoryValidationUiTest {
 
     @Test
     fun open_history_item_links_to_collection_request_by_request_id() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val item = state.historyItems.first { it.requestId == "r1" }
 
         state.openHistoryItem(item)
@@ -234,7 +235,7 @@ class HistoryValidationUiTest {
 
     @Test
     fun history_row_can_be_removed_via_menu() {
-        val state = AppState(withDemoData = true).apply {
+        val state = AppStateExamples.demo().apply {
             historyExpanded = true
         }
 
@@ -250,7 +251,7 @@ class HistoryValidationUiTest {
 
     @Test
     fun show_in_sidebar_from_filtered_state_targets_collection_request() {
-        val state = AppState(withDemoData = true).apply {
+        val state = AppStateExamples.demo().apply {
             historyExpanded = true
             sidebarSearchQuery = "zzzz"
         }
@@ -265,7 +266,7 @@ class HistoryValidationUiTest {
 
     @Test
     fun opening_history_item_links_to_collection_request_when_signature_matches() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val historyClone = HistoryItem(
             requestId = "history-alias-id",
             method = HttpMethodType.GET,
@@ -283,7 +284,7 @@ class HistoryValidationUiTest {
 
     @Test
     fun deleting_request_removes_corresponding_history_entries() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         assertTrue(state.historyItems.any { it.requestId == "r2" })
 
         deleteRequestFromCollections(state.collections, "r2")
@@ -294,7 +295,7 @@ class HistoryValidationUiTest {
 
     @Test
     fun renaming_request_updates_history_entry_name() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
 
         renameRequestInCollections(state.collections, "r1", "Users - All")
         state.notifyCollectionsChanged()
@@ -305,7 +306,7 @@ class HistoryValidationUiTest {
 
     @Test
     fun moving_request_still_resolves_from_history() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val item = state.historyItems.first { it.requestId == "r1" }
 
         assertTrue(moveRequestToCollection(state.collections, "r1", "c2"))
@@ -318,7 +319,7 @@ class HistoryValidationUiTest {
 
     @Test
     fun go_to_collection_for_broken_reference_shows_error() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val broken = HistoryItem(
             requestId = "missing-1",
             method = HttpMethodType.GET,

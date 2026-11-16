@@ -17,6 +17,7 @@ import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import io.github.makeforge.clapi.ui.shared.state.AppStateExamples
 
 class CollectionEditorTabsUiTest {
 
@@ -25,7 +26,7 @@ class CollectionEditorTabsUiTest {
 
     @Test
     fun collection_editor_tabs_are_ordered_with_info_first() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         composeRule.setContent { MainScreen(state) }
         composeRule.waitForIdle()
 
@@ -53,7 +54,7 @@ class CollectionEditorTabsUiTest {
 
     @Test
     fun info_tab_metadata_editing_and_save_syncs_to_collection_node() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         composeRule.setContent { MainScreen(state) }
         composeRule.waitForIdle()
 
@@ -85,7 +86,7 @@ class CollectionEditorTabsUiTest {
 
     @Test
     fun switching_between_request_defaults_tabs_in_collection_editor() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         composeRule.setContent { MainScreen(state) }
         composeRule.waitForIdle()
 

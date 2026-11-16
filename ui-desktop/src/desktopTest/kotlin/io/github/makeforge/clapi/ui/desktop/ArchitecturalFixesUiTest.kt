@@ -20,6 +20,7 @@ import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import io.github.makeforge.clapi.ui.shared.state.AppStateExamples
 
 /**
  * Regression tests for the two fixes:
@@ -111,7 +112,7 @@ class ArchitecturalFixesUiTest {
     @Test
     fun workspaceRestore_correctLoadOrder_resolvesTabIdToCollectionNode() {
         // Simulate the startup sequence: workspace first, THEN tabs.
-        val origin = AppState(withDemoData = true)
+        val origin = AppStateExamples.demo()
         escapeFromDemoFingerprint(origin)
         // Ensure there is at least one request in a collection.
         val req = origin.collections.firstOrNull()?.children?.firstOrNull { !it.isFolder }
@@ -147,7 +148,7 @@ class ArchitecturalFixesUiTest {
     fun workspaceRestore_wrongLoadOrder_failsToResolveId() {
         // This test documents the OLD broken behaviour: if tabs load first,
         // the ID cannot be resolved because collections are still empty.
-        val origin = AppState(withDemoData = true)
+        val origin = AppStateExamples.demo()
         escapeFromDemoFingerprint(origin)
         val req = origin.collections.firstOrNull()?.children?.firstOrNull { !it.isFolder }
         assertNotNull(req)
@@ -177,7 +178,7 @@ class ArchitecturalFixesUiTest {
 
     @Test
     fun syncSidebarToActiveTab_setsScrollTarget_afterCorrectRestore() {
-        val origin = AppState(withDemoData = true)
+        val origin = AppStateExamples.demo()
         escapeFromDemoFingerprint(origin)
         val req = origin.collections.firstOrNull()?.children?.firstOrNull { !it.isFolder }
         assertNotNull(req)

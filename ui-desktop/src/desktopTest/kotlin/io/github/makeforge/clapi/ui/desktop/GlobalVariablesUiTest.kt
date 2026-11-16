@@ -19,6 +19,7 @@ import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import io.github.makeforge.clapi.ui.shared.state.AppStateExamples
 
 /**
  * Validation tests for Global Variables functionality.
@@ -83,7 +84,7 @@ class GlobalVariablesUiTest {
 
     @Test
     fun demo_data_has_pre_populated_global_variables() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         assertEquals(2, state.globalVariables.size)
         assertEquals("appName", state.globalVariables[0].key)
         assertEquals("Clapi", state.globalVariables[0].value)

@@ -17,12 +17,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import io.github.makeforge.clapi.ui.shared.state.AppStateExamples
 
 class RequestFlowsIntegrationTest {
 
     @Test
     fun duplicate_request_flow_updates_collection_state() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val usersCollection = state.collections.first()
         val before = usersCollection.children.size
 
@@ -35,7 +36,7 @@ class RequestFlowsIntegrationTest {
 
     @Test
     fun delete_request_flow_updates_collection_state() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val usersCollection = state.collections.first()
         val before = usersCollection.children.size
 
@@ -48,7 +49,7 @@ class RequestFlowsIntegrationTest {
 
     @Test
     fun drag_reorder_before_updates_collection_order() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val usersCollection = state.collections.first()
 
         val moved = moveRequestBeforeRequest(state.collections, "r3", "r1")
@@ -59,7 +60,7 @@ class RequestFlowsIntegrationTest {
 
     @Test
     fun drag_reorder_after_updates_collection_order() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val usersCollection = state.collections.first()
 
         // Move r1 to after r2 → order should be r2, r1, r3
@@ -74,7 +75,7 @@ class RequestFlowsIntegrationTest {
 
     @Test
     fun drag_reorder_subfolder_before_updates_parent_folder_order() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         val folderA = io.github.makeforge.clapi.ui.shared.state.CollectionNode("fa", "Folder A", isFolder = true)
         val folderB = io.github.makeforge.clapi.ui.shared.state.CollectionNode("fb", "Folder B", isFolder = true)
         val root = io.github.makeforge.clapi.ui.shared.state.CollectionNode(
@@ -94,7 +95,7 @@ class RequestFlowsIntegrationTest {
 
     @Test
     fun drag_reorder_subfolder_after_updates_parent_folder_order() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         val folderA = io.github.makeforge.clapi.ui.shared.state.CollectionNode("fa", "Folder A", isFolder = true)
         val folderB = io.github.makeforge.clapi.ui.shared.state.CollectionNode("fb", "Folder B", isFolder = true)
         val root = io.github.makeforge.clapi.ui.shared.state.CollectionNode(
@@ -114,7 +115,7 @@ class RequestFlowsIntegrationTest {
 
     @Test
     fun drag_reorder_nested_subfolder_before_updates_nested_parent_order() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         val childA = io.github.makeforge.clapi.ui.shared.state.CollectionNode("cfa", "Child A", isFolder = true)
         val childB = io.github.makeforge.clapi.ui.shared.state.CollectionNode("cfb", "Child B", isFolder = true)
         val parent = io.github.makeforge.clapi.ui.shared.state.CollectionNode(
@@ -140,7 +141,7 @@ class RequestFlowsIntegrationTest {
 
     @Test
     fun drag_reorder_folder_prevents_drop_into_own_descendant() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         val child = io.github.makeforge.clapi.ui.shared.state.CollectionNode("child", "Child", isFolder = true)
         val parent = io.github.makeforge.clapi.ui.shared.state.CollectionNode(
             "parent",
@@ -159,7 +160,7 @@ class RequestFlowsIntegrationTest {
 
     @Test
     fun folder_drop_target_validation_rejects_descendant_target() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         val child = io.github.makeforge.clapi.ui.shared.state.CollectionNode("child", "Child", isFolder = true)
         val parent = io.github.makeforge.clapi.ui.shared.state.CollectionNode(
             "parent",
@@ -176,7 +177,7 @@ class RequestFlowsIntegrationTest {
 
     @Test
     fun folder_drop_target_validation_accepts_sibling_target() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         val a = io.github.makeforge.clapi.ui.shared.state.CollectionNode("a", "A", isFolder = true)
         val b = io.github.makeforge.clapi.ui.shared.state.CollectionNode("b", "B", isFolder = true)
         state.collections.addAll(listOf(a, b))
@@ -208,7 +209,7 @@ class RequestFlowsIntegrationTest {
      */
     @Test
     fun add_request_mutation_completes_within_30ms() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val collectionId = state.collections.first().id
 
         val start = System.currentTimeMillis()
@@ -224,7 +225,7 @@ class RequestFlowsIntegrationTest {
      */
     @Test
     fun delete_request_mutation_completes_within_30ms() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
 
         val start = System.currentTimeMillis()
         deleteRequestFromCollections(state.collections, "r1")
@@ -303,7 +304,7 @@ class RequestFlowsIntegrationTest {
 
     @Test
     fun revealRequestInSidebar_selects_request_and_sets_scroll_target() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
 
         state.revealRequestInSidebar("r3")
 
@@ -313,7 +314,7 @@ class RequestFlowsIntegrationTest {
 
     @Test
     fun renameRequestEverywhere_updates_collections_and_open_tabs() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         state.openRequest(requestId = "r2", name = "Create user", method = HttpMethodType.POST, url = "{{baseUrl}}/users")
 
         state.renameRequestEverywhere("r2", "Create user renamed")
@@ -324,7 +325,7 @@ class RequestFlowsIntegrationTest {
 
     @Test
     fun clear_history_via_confirm_action_empties_history_items() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         assertTrue(state.historyItems.isNotEmpty())
 
         state.showConfirm("Clear history?", "Are you sure you want to clear request history?") {

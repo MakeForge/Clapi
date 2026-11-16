@@ -30,7 +30,7 @@ class WebSocketRequestEditorTest {
 
     @Test
     fun webSocketEditor_rendersTopBarAndTabs() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val tab = RequestTabState(
             name = "Test WS",
             url = "ws://localhost:8080/ws",
@@ -53,7 +53,7 @@ class WebSocketRequestEditorTest {
 
     @Test
     fun webSocketEditor_switchTabs() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val tab = RequestTabState(
             name = "Test WS",
             url = "ws://localhost:8080/ws",
@@ -77,7 +77,7 @@ class WebSocketRequestEditorTest {
 
     @Test
     fun webSocketEditor_addVariant_updatesVariantsList() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val tab = RequestTabState(
             name = "Test WS",
             url = "ws://localhost:8080/ws",
@@ -109,7 +109,7 @@ class WebSocketRequestEditorTest {
 
     @Test
     fun webSocketEditor_timeline_displaysMessagesAndClears() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val tab = RequestTabState(
             name = "Test WS",
             url = "ws://localhost:8080/ws",

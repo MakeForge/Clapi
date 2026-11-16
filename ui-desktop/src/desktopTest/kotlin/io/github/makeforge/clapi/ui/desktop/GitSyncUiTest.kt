@@ -23,6 +23,7 @@ import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import io.github.makeforge.clapi.ui.shared.state.AppStateExamples
 
 class GitSyncUiTest {
 
@@ -50,7 +51,7 @@ class GitSyncUiTest {
                 executor.execute(clone.workingDirectory, listOf("config", "commit.gpgsign", "false"))
             }
 
-            val state = AppState(withDemoData = true)
+            val state = AppStateExamples.demo()
             state.gitRepositoryManager = manager
 
             // Configure collection c1 as Git-synced
@@ -166,7 +167,7 @@ class GitSyncUiTest {
                 manager.commit(clone.workingDirectory, "Local conflicting edit")
             }
 
-            val state = AppState(withDemoData = true)
+            val state = AppStateExamples.demo()
             state.gitRepositoryManager = manager
 
             val idx = state.collections.indexOfFirst { it.id == "c1" }

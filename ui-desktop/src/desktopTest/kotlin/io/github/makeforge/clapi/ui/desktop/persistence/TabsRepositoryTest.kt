@@ -133,7 +133,7 @@ class TabsRepositoryTest {
 
     @Test
     fun save_and_load_roundtrip_persists_folder_settings_tab() {
-        val source = AppState(openDefaultTab = false, withDemoData = false)
+        val source = AppState(openDefaultTab = false)
         val folderNode = CollectionNode(
             id = "f-123",
             name = "Auth Service",
@@ -158,7 +158,7 @@ class TabsRepositoryTest {
 
         assertTrue(TabsRepository.save(source), "Folder tab should be saved")
 
-        val restoredState = AppState(openDefaultTab = false, withDemoData = false)
+        val restoredState = AppState(openDefaultTab = false)
         val restoredFolder = CollectionNode(
             id = "f-123",
             name = "Auth Service",
@@ -375,7 +375,7 @@ class TabsRepositoryTest {
 
     @Test
     fun load_restores_tabs_with_same_request_name_in_different_collections_using_collection_id() {
-        val source = AppState(openDefaultTab = false, withDemoData = false)
+        val source = AppState(openDefaultTab = false)
 
         val sourceReqA = CollectionNode(id = "r-a", name = "Health", isFolder = false, method = HttpMethodType.GET, url = "https://a.example.com/health")
         val sourceReqB = CollectionNode(id = "r-b", name = "Health", isFolder = false, method = HttpMethodType.GET, url = "https://b.example.com/health")
@@ -410,7 +410,7 @@ class TabsRepositoryTest {
         source.activeTabIndex = 1
         assertTrue(TabsRepository.save(source), "tab save should succeed")
 
-        val restored = AppState(openDefaultTab = false, withDemoData = false)
+        val restored = AppState(openDefaultTab = false)
         val restoredReqA = CollectionNode(id = "r-a-new", name = "Health", isFolder = false, method = HttpMethodType.GET, url = "https://a.example.com/health")
         val restoredReqB = CollectionNode(id = "r-b-new", name = "Health", isFolder = false, method = HttpMethodType.GET, url = "https://b.example.com/health")
         restored.collections.add(
@@ -431,7 +431,7 @@ class TabsRepositoryTest {
 
     @Test
     fun load_restores_tabs_with_duplicate_collection_names_without_collection_id_using_signature() {
-        val source = AppState(openDefaultTab = false, withDemoData = false)
+        val source = AppState(openDefaultTab = false)
         val reqA = CollectionNode(id = "r-a", name = "Users", isFolder = false, method = HttpMethodType.GET, url = "https://a.example.com/users")
         val reqB = CollectionNode(id = "r-b", name = "Users", isFolder = false, method = HttpMethodType.GET, url = "https://b.example.com/users")
         source.collections.add(CollectionNode(id = "c-a", name = "API", isFolder = true, children = mutableListOf(reqA)))
@@ -450,7 +450,7 @@ class TabsRepositoryTest {
         )
         assertTrue(TabsRepository.save(source), "tab save should succeed")
 
-        val restored = AppState(openDefaultTab = false, withDemoData = false)
+        val restored = AppState(openDefaultTab = false)
         val restoredReqA = CollectionNode(id = "r-a-new", name = "Users", isFolder = false, method = HttpMethodType.GET, url = "https://a.example.com/users")
         val restoredReqB = CollectionNode(id = "r-b-new", name = "Users", isFolder = false, method = HttpMethodType.GET, url = "https://b.example.com/users")
         restored.collections.add(CollectionNode(id = "c-a", name = "API", isFolder = true, children = mutableListOf(restoredReqA)))

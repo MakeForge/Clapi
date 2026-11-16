@@ -14,7 +14,7 @@ class CollectionInheritanceTest {
 
     @Test
     fun getAncestorFolders_resolves_collection_and_folder_chain() {
-        val state = AppState(withDemoData = false, openDefaultTab = false)
+        val state = AppState(openDefaultTab = false)
         val col = state.createNewCollection("Commerce API")
 
         val req1 = CollectionNode(
@@ -68,7 +68,7 @@ class CollectionInheritanceTest {
 
     @Test
     fun collection_headers_and_variables_cascade_to_requests_and_folders() {
-        val state = AppState(withDemoData = false, openDefaultTab = false)
+        val state = AppState(openDefaultTab = false)
         val col = state.createNewCollection("API Root").copy(
             headerEntries = listOf(
                 KeyValueEntry(key = "X-Api-Key", value = "col-secret-key", enabled = true),
@@ -128,7 +128,7 @@ class CollectionInheritanceTest {
 
     @Test
     fun local_headers_and_variables_override_inherited_ancestors() {
-        val state = AppState(withDemoData = false, openDefaultTab = false)
+        val state = AppState(openDefaultTab = false)
         val col = state.createNewCollection("API Root").copy(
             headerEntries = listOf(
                 KeyValueEntry(key = "X-Environment", value = "global-prod", enabled = true),
@@ -167,7 +167,7 @@ class CollectionInheritanceTest {
 
     @Test
     fun auth_inheritance_resolves_from_folder_to_collection() {
-        val state = AppState(withDemoData = false, openDefaultTab = false)
+        val state = AppState(openDefaultTab = false)
         val col = state.createNewCollection("Secured API").copy(
             authType = AuthType.BEARER,
             authToken = "super-secret-col-token",

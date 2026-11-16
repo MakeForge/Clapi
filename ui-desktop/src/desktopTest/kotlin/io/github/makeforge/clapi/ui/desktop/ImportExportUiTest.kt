@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import org.junit.Rule
 import org.junit.Test
+import io.github.makeforge.clapi.ui.shared.state.AppStateExamples
 
 class ImportExportUiTest {
 
@@ -30,7 +31,7 @@ class ImportExportUiTest {
 
     @Test
     fun collection_actions_menu_shows_folder_actions_and_collection_actions() {
-        composeRule.setContent { MainScreen(AppState(withDemoData = true)) }
+        composeRule.setContent { MainScreen(AppStateExamples.demo()) }
 
         composeRule.onNodeWithTag("collection-actions-c1", useUnmergedTree = true).performClick()
         composeRule.waitForIdle()
@@ -45,7 +46,7 @@ class ImportExportUiTest {
 
     @Test
     fun environment_actions_menu_shows_duplicate_delete_and_not_export() {
-        composeRule.setContent { MainScreen(AppState(withDemoData = true)) }
+        composeRule.setContent { MainScreen(AppStateExamples.demo()) }
 
         composeRule.onNodeWithTag("env-actions-Development", useUnmergedTree = true).performClick()
         composeRule.waitForIdle()

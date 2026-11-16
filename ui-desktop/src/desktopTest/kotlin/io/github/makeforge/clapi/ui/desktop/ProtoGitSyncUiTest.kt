@@ -23,6 +23,7 @@ import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import io.github.makeforge.clapi.ui.shared.state.AppStateExamples
 
 class ProtoGitSyncUiTest {
 
@@ -31,7 +32,7 @@ class ProtoGitSyncUiTest {
 
     @Test
     fun proto_sync_toggle_is_hidden_when_local_and_visible_when_git_storage_is_enabled() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val protoPath = "/tmp/example_service.proto"
         val idx = state.collections.indexOfFirst { it.id == "c1" }
         state.collections[idx] = state.collections[idx].copy(
@@ -108,7 +109,7 @@ class ProtoGitSyncUiTest {
                 manager.ensureClonedOrCheckedOut(remoteUrl, "main")
             }
 
-            val state = AppState(withDemoData = true)
+            val state = AppStateExamples.demo()
             state.gitRepositoryManager = manager
 
             val idx = state.collections.indexOfFirst { it.id == "c1" }

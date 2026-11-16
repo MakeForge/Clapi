@@ -29,7 +29,7 @@ class PostmanLegacyApiImportFixtureTest {
     }
 
     private fun buildState(): AppState {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state, fixture.readText())
         return state
     }

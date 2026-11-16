@@ -135,7 +135,7 @@ class RequestTabStateTest {
 
     @Test
     fun closeTab_disposes_cached_viewModels_before_removal() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         val tab = RequestTabState()
         state.openTabs.add(tab)
 
@@ -161,7 +161,7 @@ class RequestTabStateTest {
 
     @Test
     fun inherited_headers_display_with_HeaderKind_INHERITED_and_keyLocked() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         val folder = CollectionNode(
             id = "f-api",
             name = "API Folder",
@@ -237,7 +237,7 @@ class RequestTabStateTest {
 
     @Test
     fun auth_inheritance_resolves_closest_ancestor() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         val childFolder = CollectionNode(
             id = "f-sub",
             name = "Subfolder",
@@ -282,7 +282,7 @@ class RequestTabStateTest {
 
     @Test
     fun auth_inheritance_cascades_to_root_when_intermediate_has_no_auth() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         val childFolder = CollectionNode(
             id = "f-sub-no-auth",
             name = "Subfolder No Auth",

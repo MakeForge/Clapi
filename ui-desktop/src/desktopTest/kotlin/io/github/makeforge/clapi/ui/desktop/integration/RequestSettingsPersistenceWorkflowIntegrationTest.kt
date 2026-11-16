@@ -63,7 +63,7 @@ class RequestSettingsPersistenceWorkflowIntegrationTest {
 
     @Test
     fun workflow_request_execution_works_after_settings_workspace_and_tabs_restore() = runTest {
-        val source = AppState(openDefaultTab = false, withDemoData = false)
+        val source = AppState(openDefaultTab = false)
         source.addTabInSelectedCollection()
 
         val tab = source.activeTab!!
@@ -86,7 +86,7 @@ class RequestSettingsPersistenceWorkflowIntegrationTest {
 
         assertNotNull(WorkspaceRepository.canonicalRepository.loadGlobalCollection())
 
-        val restored = AppState(openDefaultTab = false, withDemoData = false)
+        val restored = AppState(openDefaultTab = false)
         SettingsRepository.load(restored.settings)
         WorkspaceRepository.load(restored)
         TabsRepository.load(restored)

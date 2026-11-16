@@ -12,7 +12,7 @@ class MultipleCollectionsStateTest {
 
     @Test
     fun testCreateMultipleCollectionsAndDisambiguation() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val col1 = state.createNewCollection("Payments")
         assertEquals("Payments", col1.name)
         assertTrue(col1.isCollection)
@@ -33,7 +33,7 @@ class MultipleCollectionsStateTest {
 
     @Test
     fun testOpenAndSyncCollectionTab() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val col = state.createNewCollection("Orders")
         state.openCollection(col.id)
 
@@ -64,7 +64,7 @@ class MultipleCollectionsStateTest {
 
     @Test
     fun testDeleteCollectionClosesTabs() {
-        val state = AppState(withDemoData = false, openDefaultTab = false)
+        val state = AppState(openDefaultTab = false)
         val col = state.createNewCollection("Analytics")
         state.openCollection(col.id)
         assertEquals(1, state.openTabs.size)

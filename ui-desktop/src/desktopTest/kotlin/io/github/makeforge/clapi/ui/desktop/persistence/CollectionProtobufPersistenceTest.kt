@@ -34,7 +34,7 @@ class CollectionProtobufPersistenceTest {
 
     @Test
     fun collection_proto_files_and_import_paths_persist_and_restore_across_workspace_reload() = runTest {
-        val sourceState = AppState(openDefaultTab = false, withDemoData = false)
+        val sourceState = AppState(openDefaultTab = false)
 
         sourceState.collectionProtoFiles.add(ProtoFileItemState("/shared/protos/user.proto"))
         sourceState.collectionProtoFiles.add(ProtoFileItemState("/shared/protos/order.proto"))
@@ -60,7 +60,7 @@ class CollectionProtobufPersistenceTest {
         assertEquals(true, protoConfig.importPaths[1].disabled)
 
         // Restore into new AppState
-        val restoredState = AppState(openDefaultTab = false, withDemoData = false)
+        val restoredState = AppState(openDefaultTab = false)
         WorkspaceRepository.load(restoredState)
 
         assertEquals(2, restoredState.collectionProtoFiles.size)

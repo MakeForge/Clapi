@@ -58,7 +58,7 @@ class RequestExecutionPipelineTest {
 
     @Test
     fun pre_request_script_requestScopedScriptVars_are_included_at_layer_0_on_wire_and_override_environment() = runTest {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val env = EnvState(
             name = "Dev",
             variables = listOf(
@@ -101,7 +101,7 @@ class RequestExecutionPipelineTest {
 
     @Test
     fun pre_request_script_reads_resolved_secret_true_environment_variable_instead_of_empty_string() = runTest {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val env = EnvState(
             name = "SecretEnv",
             variables = listOf(
@@ -138,7 +138,7 @@ class RequestExecutionPipelineTest {
 
     @Test
     fun post_script_pass_2_scans_and_resolves_external_secret_tokens_injected_by_pre_request_script_mutation() = runTest {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         state.settings.vaultServerUrl = "http://127.0.0.1:8200"
         state.settings.vaultToken = "vault-tok"
 
@@ -189,7 +189,7 @@ class RequestExecutionPipelineTest {
 
     @Test
     fun sendRequest_without_subRequest_does_not_instantiate_subReqClient_and_closes_per_request_client() = runTest {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val tab = RequestTabState(
             name = "Client Lifecycle Check",
             method = HttpMethodType.GET,

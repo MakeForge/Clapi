@@ -12,7 +12,7 @@ class CollectionVariablesIsolationTest {
 
     @Test
     fun collection_variables_set_in_collection_A_do_not_bleed_into_collection_B() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
 
         val reqA = CollectionNode(
             id = "req-a",
