@@ -399,7 +399,7 @@ class McpHttpE2ETest {
             java,
             "-cp",
             System.getProperty("java.class.path"),
-            "io.github.crustack.server.ApplicationKt",
+            "io.github.crustack.clapi.server.ApplicationKt",
             "--stdio",
         ).start()
         try {
@@ -583,7 +583,7 @@ class McpHttpE2ETest {
             java,
             "-cp",
             System.getProperty("java.class.path"),
-            "io.github.crustack.server.ApplicationKt",
+            "io.github.crustack.clapi.server.ApplicationKt",
             "--stdio",
         ).start()
         try {
