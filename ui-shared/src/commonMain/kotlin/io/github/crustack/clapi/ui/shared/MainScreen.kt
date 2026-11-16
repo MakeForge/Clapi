@@ -127,6 +127,7 @@ fun MainScreen(state: AppState = remember { AppState() }) {
                 "$autoSaveRequests|$confirmBeforeDelete|$defaultTimeoutSec|${theme.name}" +
                     "|${responseLayout.name}|${language.name}|$requestTimeoutSec|$followRedirects|$collectionsExpanded|$environmentsExpanded|$proxyEnabled|$httpProxy|$httpsProxy|$allowJson5InJsonBodies|$showEditorPositionIndicator" +
                     "|$environmentDialogWidthDp|$environmentDialogHeightDp" +
+                    "|$vaultProviderType|$vaultServerUrl|$vaultMountPath|$vaultNamespace|$vaultToken" +
                     "|${state.selectedEnvironment?.name ?: ""}"
             }
         }.drop(1)

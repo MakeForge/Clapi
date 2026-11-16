@@ -28,6 +28,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.UUID
 import java.util.prefs.Preferences
+import eu.anifantakis.lib.ksafe.KSafe
 
 actual fun generateUuid(): String = UUID.randomUUID().toString()
 
@@ -242,6 +243,8 @@ actual object PlatformStorage {
     private val prefs: Preferences =
         Preferences.userNodeForPackage(PlatformStorage::class.java)
 
+    private val ksafe by lazy { KSafe(fileName = "clapi_secrets") }
+
     // Values larger than this are written to a file in ~/.clapi/pstore/ instead of being
     // chunked into Preferences entries.  Java Preferences flushes to an XML plist on every
     // write; storing MB-scale data there creates thousands of entries and freezes the UI.
@@ -316,5 +319,14 @@ actual object PlatformStorage {
             prefs.remove("${key}__chunks")
         }
         prefs.flush()
+        runCatching { ksafe.deleteDirect(key) }
+    }
+
+    actual fun putSecretString(key: String, value: String) {
+        ksafe.putDirect(key, value)
+    }
+
+    actual fun getSecretString(key: String): String? {
+        return ksafe.getDirect<String?>(key, null)
     }
 }

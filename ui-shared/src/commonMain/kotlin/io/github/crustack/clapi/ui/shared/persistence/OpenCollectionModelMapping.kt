@@ -16,10 +16,12 @@ import io.github.crustack.clapi.core.model.opencollection.CollectionConfig
 import io.github.crustack.clapi.core.model.opencollection.CollectionInfo
 import io.github.crustack.clapi.core.model.opencollection.Description
 import io.github.crustack.clapi.core.model.opencollection.Environment
+import io.github.crustack.clapi.core.model.opencollection.ExternalSecrets
 import io.github.crustack.clapi.core.model.opencollection.FolderInfo
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
 import io.github.crustack.clapi.core.model.opencollection.FormParamEntry
 import io.github.crustack.clapi.core.model.opencollection.FormUrlEncodedBody
+import io.github.crustack.clapi.core.model.opencollection.HashicorpVaultExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestBody
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestDetails
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestHeader
@@ -43,6 +45,7 @@ import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.CollectionNode
 import io.github.crustack.clapi.ui.shared.state.EnvState
 import io.github.crustack.clapi.ui.shared.state.FormDataEntryState
+import io.github.crustack.clapi.ui.shared.state.MutableExternalSecret
 import io.github.crustack.clapi.ui.shared.state.MutableKeyValue
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -214,8 +217,20 @@ fun AppState.toGlobalOpenCollectionDocument(): OpenCollectionDocument {
     )
 }
 
-fun Environment.toEnvState(): EnvState =
-    EnvState(
+fun Environment.toEnvState(): EnvState {
+    val extSecrets = externalSecrets?.variables?.mapNotNull { v ->
+        when (v) {
+            is HashicorpVaultExternalSecret -> MutableExternalSecret(
+                name = v.name,
+                path = v.path,
+                description = v.description?.content ?: "",
+                enabled = v.disabled != true,
+            )
+            else -> null
+        }
+    } ?: emptyList()
+
+    return EnvState(
         name = name,
         variables = variables.map { it.toMutableKeyValue() },
         color = color,
@@ -223,10 +238,31 @@ fun Environment.toEnvState(): EnvState =
         clientCertificates = clientCertificates,
         extends = extends,
         dotEnvFilePath = dotEnvFilePath,
+        externalSecretsProvider = externalSecrets?.type ?: "hashicorp-vault-server",
+        externalSecrets = extSecrets,
     )
+}
 
-fun EnvState.toOpenCollectionEnvironment(): Environment =
-    Environment(
+fun EnvState.toOpenCollectionEnvironment(): Environment {
+    val extSecretList = externalSecrets
+        .filter { it.name.trim().isNotEmpty() && it.path.trim().isNotEmpty() }
+        .map {
+            HashicorpVaultExternalSecret(
+                name = it.name.trim(),
+                path = it.path.trim(),
+                description = if (it.description.isNotBlank()) Description(content = it.description.trim()) else null,
+                disabled = if (!it.enabled) true else null,
+            )
+        }
+
+    val extSecrets = if (extSecretList.isNotEmpty()) {
+        ExternalSecrets(
+            type = externalSecretsProvider.ifBlank { "hashicorp-vault-server" },
+            variables = extSecretList,
+        )
+    } else null
+
+    return Environment(
         name = name,
         color = color,
         description = description,
@@ -236,7 +272,9 @@ fun EnvState.toOpenCollectionEnvironment(): Environment =
         clientCertificates = clientCertificates,
         extends = extends,
         dotEnvFilePath = dotEnvFilePath,
+        externalSecrets = extSecrets,
     )
+}
 
 fun VariableEntry.toMutableKeyValue(): MutableKeyValue =
     when (this) {
@@ -301,6 +339,29 @@ fun EnvState.mergeFrom(incoming: Environment) {
         if (variable.name.isNotBlank() && variable.name !in existingKeys) {
             variables.add(variable.toMutableKeyValue())
             existingKeys.add(variable.name)
+        }
+    }
+    incoming.externalSecrets?.let { ext ->
+        if (externalSecretsProvider.isBlank()) {
+            externalSecretsProvider = ext.type
+        }
+        val existingSecretNames = externalSecrets.map { it.name }.toMutableSet()
+        for (sec in ext.variables) {
+            when (sec) {
+                is HashicorpVaultExternalSecret -> {
+                    if (sec.name.isNotBlank() && sec.name !in existingSecretNames) {
+                        externalSecrets.add(
+                            MutableExternalSecret(
+                                name = sec.name,
+                                path = sec.path,
+                                description = sec.description?.content.orEmpty(),
+                                enabled = sec.disabled != true,
+                            )
+                        )
+                        existingSecretNames.add(sec.name)
+                    }
+                }
+            }
         }
     }
 }

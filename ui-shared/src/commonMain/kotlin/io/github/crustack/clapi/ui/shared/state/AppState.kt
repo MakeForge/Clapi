@@ -233,6 +233,18 @@ fun CollectionNode.hasSseAccept(): Boolean =
 
 // ── Environment model ───────────────────────────────────────────
 
+class MutableExternalSecret(
+    name: String = "",
+    path: String = "",
+    description: String = "",
+    enabled: Boolean = true,
+) {
+    var name by mutableStateOf(name)
+    var path by mutableStateOf(path)
+    var description by mutableStateOf(description)
+    var enabled by mutableStateOf(enabled)
+}
+
 class EnvState(
     name: String,
     variables: List<MutableKeyValue> = emptyList(),
@@ -241,9 +253,13 @@ class EnvState(
     var clientCertificates: List<ClientCertificate> = emptyList(),
     var extends: String? = null,
     var dotEnvFilePath: String? = null,
+    externalSecretsProvider: String = "hashicorp-vault-server",
+    externalSecrets: List<MutableExternalSecret> = emptyList(),
 ) {
     var name by mutableStateOf(name)
     val variables = mutableStateListOf<MutableKeyValue>().also { it.addAll(variables) }
+    var externalSecretsProvider by mutableStateOf(externalSecretsProvider)
+    val externalSecrets = mutableStateListOf<MutableExternalSecret>().also { it.addAll(externalSecrets) }
 
     /** Produce a flat variable map for resolution (e.g. {{baseUrl}} → value). */
     fun toVariableMap(): Map<String, String> =
@@ -298,6 +314,13 @@ class AppSettings {
     /** Preferred manual size for the environment editor. Viewport clamping is not persisted. */
     var environmentDialogWidthDp by mutableStateOf(DEFAULT_ENVIRONMENT_DIALOG_WIDTH_DP)
     var environmentDialogHeightDp by mutableStateOf(DEFAULT_ENVIRONMENT_DIALOG_HEIGHT_DP)
+
+    // Secrets Manager (HashiCorp Vault)
+    var vaultProviderType    by mutableStateOf("hashicorp-vault-server")
+    var vaultServerUrl       by mutableStateOf("")
+    var vaultMountPath       by mutableStateOf("secret")
+    var vaultNamespace       by mutableStateOf("")
+    var vaultToken           by mutableStateOf("")
 }
 
 // ── Per-tab state (one per open request tab) ────────────────────

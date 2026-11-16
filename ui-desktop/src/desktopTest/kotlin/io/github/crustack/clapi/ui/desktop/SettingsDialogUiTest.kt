@@ -191,4 +191,24 @@ class SettingsDialogUiTest {
 
         assertFalse(state.settings.allowJson5InJsonBodies)
     }
+
+    @Test
+    fun secrets_manager_settings_tab_displays_vault_fields_and_persists_changes() {
+        val state = AppState()
+        composeRule.setContent { MainScreen(state = state) }
+
+        composeRule.onNodeWithTag("settings-button", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("settings-section-secrets", useUnmergedTree = true)
+            .assertIsDisplayed()
+            .performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("vault-server-url", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("vault-mount-path", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("vault-namespace", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("vault-token", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("vault-token-toggle", useUnmergedTree = true).assertIsDisplayed()
+    }
 }

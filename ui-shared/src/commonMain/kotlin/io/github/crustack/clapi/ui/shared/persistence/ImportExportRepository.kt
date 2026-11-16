@@ -12,12 +12,16 @@ import io.github.crustack.clapi.core.storage.opencollection.generateUniqueName
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.CollectionNode
 import io.github.crustack.clapi.ui.shared.state.EnvState
+import io.github.crustack.clapi.ui.shared.state.MutableExternalSecret
 import io.github.crustack.clapi.ui.shared.state.MutableKeyValue
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
@@ -45,6 +49,8 @@ object ImportExportNaming {
 data class ClapiEnvironmentDto(
     val name: String,
     val variables: Map<String, String>,
+    val externalSecretsProvider: String? = null,
+    val externalSecrets: List<MutableExternalSecret> = emptyList(),
 )
 
 object ImportExportRepository {
@@ -165,10 +171,35 @@ object ImportExportRepository {
                 if (key.isNotEmpty()) put(key, v.value)
             }
         }
+        val extSecretsJson = if (environment.externalSecrets.isNotEmpty()) {
+            buildJsonObject {
+                put("type", environment.externalSecretsProvider.ifBlank { "hashicorp-vault-server" })
+                put("variables", buildJsonArray {
+                    environment.externalSecrets.forEach { sec ->
+                        if (sec.name.isNotBlank() && sec.path.isNotBlank()) {
+                            add(buildJsonObject {
+                                put("name", sec.name.trim())
+                                put("path", sec.path.trim())
+                                if (sec.description.isNotBlank()) {
+                                    put("description", sec.description.trim())
+                                }
+                                if (!sec.enabled) {
+                                    put("disabled", true)
+                                }
+                            })
+                        }
+                    }
+                })
+            }
+        } else null
+
         return buildJsonObject {
             put("type", "clapiEnvironment")
             put("name", environment.name)
             put("variables", vars)
+            if (extSecretsJson != null) {
+                put("externalSecrets", extSecretsJson)
+            }
         }
     }
 
@@ -178,12 +209,35 @@ object ImportExportRepository {
         val variables = root["variables"]?.jsonObject
             ?.mapValues { it.value.jsonPrimitive.contentOrNull ?: "" }
             ?: emptyMap()
-        return ClapiEnvironmentDto(name = name, variables = variables)
+        val extSecretsObj = root["externalSecrets"]?.jsonObject
+        val provider = extSecretsObj?.get("type")?.jsonPrimitive?.contentOrNull
+        val secretsList = mutableListOf<MutableExternalSecret>()
+        extSecretsObj?.get("variables")?.jsonArray?.forEach { el ->
+            val obj = el.jsonObject
+            val secName = obj["name"]?.jsonPrimitive?.contentOrNull.orEmpty()
+            val path = obj["path"]?.jsonPrimitive?.contentOrNull.orEmpty()
+            val desc = obj["description"]?.jsonPrimitive?.contentOrNull.orEmpty()
+            val disabled = obj["disabled"]?.jsonPrimitive?.booleanOrNull == true
+            if (secName.isNotBlank() && path.isNotBlank()) {
+                secretsList.add(MutableExternalSecret(secName, path, desc, !disabled))
+            }
+        }
+        return ClapiEnvironmentDto(
+            name = name,
+            variables = variables,
+            externalSecretsProvider = provider,
+            externalSecrets = secretsList,
+        )
     }
 
     private fun environmentDtoToState(dto: ClapiEnvironmentDto, nameOverride: String): EnvState {
         val variables = dto.variables.map { (k, v) -> MutableKeyValue(k, v, enabled = true, secret = false) }
-        return EnvState(name = nameOverride, variables = variables)
+        return EnvState(
+            name = nameOverride,
+            variables = variables,
+            externalSecretsProvider = dto.externalSecretsProvider ?: "hashicorp-vault-server",
+            externalSecrets = dto.externalSecrets,
+        )
     }
 
     private fun collectAllNodeIds(nodes: List<CollectionNode>): Set<String> {

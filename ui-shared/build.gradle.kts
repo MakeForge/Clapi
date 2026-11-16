@@ -84,7 +84,15 @@ val generateBuildInfo by tasks.registering {
 }
 
 kotlin {
-    jvm("desktop")
+    jvm("desktop") {
+        compilerOptions {
+            freeCompilerArgs.add("-Xskip-metadata-version-check")
+        }
+    }
+
+    compilerOptions {
+        freeCompilerArgs.add("-Xskip-metadata-version-check")
+    }
 
     sourceSets {
         val commonMain by getting {
@@ -107,6 +115,7 @@ kotlin {
             implementation(project(":core-scripting"))
             implementation(libs.coroutines.core)
             implementation(libs.serialization.json)
+            implementation(libs.ksafe)
             implementation(libs.kotlinx.datetime)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
@@ -120,6 +129,7 @@ kotlin {
         }
         val desktopMain by getting {
             dependencies {
+                implementation(libs.ksafe)
                 implementation(libs.ktor.client.cio)
                 implementation(libs.coroutines.swing)
 

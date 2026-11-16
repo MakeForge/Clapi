@@ -5,6 +5,35 @@
     "version": "1.0"
   },
   "bundled": true,
+  "config": {
+    "environments": [
+      {
+        "name": "Vault Staging",
+        "variables": [
+          {
+            "name": "baseUrl",
+            "value": "http://localhost:8080"
+          }
+        ],
+        "externalSecrets": {
+          "type": "hashicorp-vault-server",
+          "variables": [
+            {
+              "name": "client_id",
+              "path": "payment/foo",
+              "description": "Gateway Client ID",
+              "disabled": false
+            },
+            {
+              "name": "client_secret",
+              "path": "payment/foo",
+              "description": "Gateway Secret"
+            }
+          ]
+        }
+      }
+    ]
+  },
   "items": [
     {
       "info": {
