@@ -1,5 +1,8 @@
 package io.github.crustack.clapi.ui.shared.components
 
+import org.jetbrains.compose.resources.painterResource
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,14 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Article
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -54,6 +49,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.crustack.clapi.core.model.storage.StorageType
 import io.github.crustack.clapi.core.storage.git.GitErrorTranslator
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_add
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_article
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_delete
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_description
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_folder
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_open_in_new
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_save
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.persistence.TabsRepository
 import io.github.crustack.clapi.ui.shared.persistence.WorkspaceRepository
@@ -118,8 +120,7 @@ fun CollectionEditor(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Icon(
-                Icons.Default.Article,
+            Icon(painter = painterResource(Res.drawable.ic_article),
                 contentDescription = null,
                 tint = ClapiColors.Tertiary,
                 modifier = Modifier.size(20.dp),
@@ -144,8 +145,7 @@ fun CollectionEditor(
                 shape = RoundedCornerShape(6.dp),
                 modifier = Modifier.height(32.dp).testTag("collection-save-button"),
             ) {
-                Icon(
-                    Icons.Default.Save,
+                Icon(painter = painterResource(Res.drawable.ic_save),
                     contentDescription = null,
                     modifier = Modifier.size(16.dp).padding(end = 4.dp),
                 )
@@ -708,7 +708,7 @@ fun CollectionProtobufSettings(
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                     modifier = Modifier.height(30.dp).testTag("add-proto-files-button"),
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(Strings.addProtoFiles, fontSize = 12.sp)
                 }
@@ -791,7 +791,7 @@ fun CollectionProtobufSettings(
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                     modifier = Modifier.height(30.dp).testTag("add-import-paths-button"),
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(Strings.importPaths, fontSize = 12.sp)
                 }
@@ -856,8 +856,7 @@ private fun ProtoFileRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Icon(
-            Icons.Default.Description,
+        Icon(painter = painterResource(Res.drawable.ic_description),
             contentDescription = null,
             tint = ClapiColors.MethodPatch,
             modifier = Modifier.size(16.dp),
@@ -908,8 +907,7 @@ private fun ProtoFileRow(
             onClick = onOpen,
             modifier = Modifier.size(24.dp).testTag("open-file-btn-${item.path}"),
         ) {
-            Icon(
-                Icons.AutoMirrored.Filled.OpenInNew,
+            Icon(painter = painterResource(Res.drawable.ic_open_in_new),
                 contentDescription = Strings.openFileExternally,
                 tint = ClapiColors.OnSurfaceDim,
                 modifier = Modifier.size(14.dp),
@@ -919,8 +917,7 @@ private fun ProtoFileRow(
             onClick = onDelete,
             modifier = Modifier.size(24.dp).testTag("delete-proto-btn-${item.path}"),
         ) {
-            Icon(
-                Icons.Default.Delete,
+            Icon(painter = painterResource(Res.drawable.ic_delete),
                 contentDescription = Strings.delete,
                 tint = ClapiColors.Error,
                 modifier = Modifier.size(14.dp),
@@ -959,7 +956,7 @@ private fun ProtoImportPathRow(
             modifier = Modifier.size(24.dp).testTag("import-path-toggle-${item.path}"),
         )
         Icon(
-            if (item.path.endsWith(".proto", ignoreCase = true)) Icons.Default.Description else Icons.Default.Folder,
+            if (item.path.endsWith(".proto", ignoreCase = true)) painterResource(Res.drawable.ic_description) else painterResource(Res.drawable.ic_folder),
             contentDescription = null,
             tint = if (item.enabled) ClapiColors.Tertiary else ClapiColors.OnSurfaceDim,
             modifier = Modifier.size(16.dp),
@@ -1004,8 +1001,7 @@ private fun ProtoImportPathRow(
             onClick = onOpen,
             modifier = Modifier.size(24.dp).testTag("open-import-btn-${item.path}"),
         ) {
-            Icon(
-                Icons.AutoMirrored.Filled.OpenInNew,
+            Icon(painter = painterResource(Res.drawable.ic_open_in_new),
                 contentDescription = Strings.openFileExternally,
                 tint = ClapiColors.OnSurfaceDim,
                 modifier = Modifier.size(14.dp),
@@ -1015,8 +1011,7 @@ private fun ProtoImportPathRow(
             onClick = onDelete,
             modifier = Modifier.size(24.dp).testTag("delete-import-btn-${item.path}"),
         ) {
-            Icon(
-                Icons.Default.Delete,
+            Icon(painter = painterResource(Res.drawable.ic_delete),
                 contentDescription = Strings.delete,
                 tint = ClapiColors.Error,
                 modifier = Modifier.size(14.dp),

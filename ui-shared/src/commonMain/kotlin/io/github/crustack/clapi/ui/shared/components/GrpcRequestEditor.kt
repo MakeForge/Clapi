@@ -19,14 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
@@ -35,8 +27,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import io.github.crustack.clapi.core.model.storage.StorageType
-import io.github.crustack.clapi.core.storage.git.ProtoPathResolver
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,12 +47,22 @@ import androidx.compose.ui.unit.sp
 import io.github.crustack.clapi.core.model.BodyType
 import io.github.crustack.clapi.core.model.KeyValueEntry
 import io.github.crustack.clapi.core.model.json.Json5
+import io.github.crustack.clapi.core.model.storage.StorageType
 import io.github.crustack.clapi.core.network.VariableResolver
 import io.github.crustack.clapi.core.network.grpc.GrpcCallRequest
 import io.github.crustack.clapi.core.network.grpc.ProtoMethodInfo
 import io.github.crustack.clapi.core.network.grpc.ProtoParseException
 import io.github.crustack.clapi.core.network.grpc.parseGrpcEndpoint
+import io.github.crustack.clapi.core.storage.git.ProtoPathResolver
 import io.github.crustack.clapi.editor.core.LanguageMode
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_arrow_drop_down
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_code
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_description
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_play_arrow
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_save
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_send
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_stop
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.network.NetworkClientFactory
 import io.github.crustack.clapi.ui.shared.state.AppState
@@ -73,6 +73,7 @@ import io.github.crustack.clapi.ui.shared.theme.ClapiColors
 import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
+import org.jetbrains.compose.resources.painterResource
 
 /**
  * Request editor tailored for gRPC unary requests (`RequestKind.GRPC`).
@@ -395,8 +396,7 @@ private fun GrpcRequestBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Icon(
-                Icons.Default.Description,
+            Icon(painter = painterResource(Res.drawable.ic_description),
                 contentDescription = "Select Proto File",
                 tint = ClapiColors.MethodPatch,
                 modifier = Modifier.size(15.dp),
@@ -474,8 +474,7 @@ private fun GrpcRequestBar(
                     modifier = Modifier.weight(1f, fill = false),
                 )
                 Spacer(Modifier.width(4.dp))
-                Icon(
-                    Icons.Default.ArrowDropDown,
+                Icon(painter = painterResource(Res.drawable.ic_arrow_drop_down),
                     contentDescription = null,
                     tint = ClapiColors.OnSurfaceDim,
                     modifier = Modifier.size(18.dp),
@@ -563,8 +562,7 @@ private fun GrpcSendButton(
             contentAlignment = Alignment.Center,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Icon(
-                    Icons.Default.Stop,
+                Icon(painter = painterResource(Res.drawable.ic_stop),
                     contentDescription = Strings.t("stop_request"),
                     tint = ClapiColors.OnPrimary,
                     modifier = Modifier.size(16.dp),
@@ -596,8 +594,7 @@ private fun GrpcSendButton(
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp,
                 )
-                Icon(
-                    Icons.AutoMirrored.Filled.Send,
+                Icon(painter = painterResource(Res.drawable.ic_send),
                     contentDescription = null,
                     tint = ClapiColors.OnPrimary,
                     modifier = Modifier.size(16.dp),
@@ -633,8 +630,7 @@ private fun GrpcSaveButton(
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
             )
-            Icon(
-                Icons.Default.Save,
+            Icon(painter = painterResource(Res.drawable.ic_save),
                 contentDescription = null,
                 tint = ClapiColors.OnSurface,
                 modifier = Modifier.size(15.dp),
@@ -680,14 +676,12 @@ private fun GrpcEditorTabBar(
                         modifier = Modifier.padding(horizontal = 12.dp),
                     ) {
                         when (tab) {
-                            GrpcEditorTab.MESSAGE -> Icon(
-                                Icons.Default.Code,
+                            GrpcEditorTab.MESSAGE -> Icon(painter = painterResource(Res.drawable.ic_code),
                                 contentDescription = null,
                                 tint = if (selected) ClapiColors.Primary else ClapiColors.OnSurfaceVariant,
                                 modifier = Modifier.size(14.dp),
                             )
-                            GrpcEditorTab.SCRIPTS -> Icon(
-                                Icons.Default.PlayArrow,
+                            GrpcEditorTab.SCRIPTS -> Icon(painter = painterResource(Res.drawable.ic_play_arrow),
                                 contentDescription = null,
                                 tint = if (selected) ClapiColors.Primary else ClapiColors.OnSurfaceVariant,
                                 modifier = Modifier.size(14.dp),

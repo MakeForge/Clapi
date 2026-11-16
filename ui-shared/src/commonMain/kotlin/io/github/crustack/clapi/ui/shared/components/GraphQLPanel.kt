@@ -1,5 +1,8 @@
 package io.github.crustack.clapi.ui.shared.components
 
+import org.jetbrains.compose.resources.painterResource
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,12 +24,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.automirrored.filled.FormatAlignLeft
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -57,6 +54,8 @@ import io.github.crustack.clapi.core.model.RequestDefinition
 import io.github.crustack.clapi.core.network.NetworkEvent
 import io.github.crustack.clapi.core.network.NetworkLogger
 import io.github.crustack.clapi.core.network.RetryPolicy
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_format_align_left
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_play_arrow
 import io.github.crustack.clapi.ui.shared.network.NetworkClientFactory
 import io.github.crustack.clapi.ui.shared.platform.currentTimeMillis
 import io.github.crustack.clapi.ui.shared.state.AppState
@@ -341,7 +340,7 @@ private fun GraphQLUrlBar(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Icon(
-                    imageVector = Icons.Default.PlayArrow,
+                    painter = painterResource(Res.drawable.ic_play_arrow),
                     contentDescription = Strings.t("execute"),
                     tint = Color.White,
                     modifier = Modifier.size(16.dp),
@@ -425,8 +424,7 @@ private fun GraphQLQueryEditor(
                 onClick = { onQueryChange(formatGraphQL(query)) },
                 modifier = Modifier.size(28.dp),
             ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.FormatAlignLeft,
+                Icon(painter = painterResource(Res.drawable.ic_format_align_left),
                     contentDescription = Strings.format,
                     tint = ClapiColors.OnSurfaceDim,
                     modifier = Modifier.size(16.dp),

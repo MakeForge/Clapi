@@ -16,10 +16,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
@@ -35,16 +31,21 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_add
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_delete
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_lock
 import io.github.crustack.clapi.ui.shared.i18n.Strings
+import io.github.crustack.clapi.ui.shared.platform.PlatformLazyVerticalScrollbar
+import io.github.crustack.clapi.ui.shared.platform.insetScrollbar
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.HeaderKind
 import io.github.crustack.clapi.ui.shared.state.MutableKeyValue
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
 import io.github.crustack.clapi.ui.shared.state.SystemHeaderRules
-import io.github.crustack.clapi.ui.shared.platform.PlatformLazyVerticalScrollbar
-import io.github.crustack.clapi.ui.shared.platform.insetScrollbar
-import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
+import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
+import org.jetbrains.compose.resources.painterResource
 
 /**
  * Generic key-value table editor used for both Params and Headers.
@@ -125,7 +126,7 @@ fun KeyValueEditor(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Icon(Icons.Default.Add, contentDescription = Strings.add, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
+            Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = Strings.add, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
             Text("${Strings.add} ${tag.replaceFirstChar { it.uppercaseChar() }}", color = ClapiColors.OnSurfaceDim, fontSize = 12.sp)
         }
     }
@@ -195,7 +196,7 @@ private fun KeyValueRow(
             ) {
                 when {
                     isSystemHeader -> {
-                        Icon(Icons.Default.Lock, contentDescription = Strings.t("system_header"), tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(12.dp))
+                        Icon(painter = painterResource(Res.drawable.ic_lock), contentDescription = Strings.t("system_header"), tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(12.dp))
                         Text(Strings.t("system"), fontSize = 11.sp, color = ClapiColors.OnSurfaceDim)
                     }
                     isInherited -> {
@@ -214,7 +215,7 @@ private fun KeyValueRow(
         }
 
         IconButton(onClick = onDelete, modifier = Modifier.size(24.dp).testTag("$testTag-remove"), enabled = !isSystemHeader && !isInherited) {
-            Icon(Icons.Default.Delete, contentDescription = Strings.t("remove"), tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
+            Icon(painter = painterResource(Res.drawable.ic_delete), contentDescription = Strings.t("remove"), tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
         }
     }
 }

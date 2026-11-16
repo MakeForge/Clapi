@@ -12,9 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -27,11 +24,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_folder
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_save
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.RequestEditorTab
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
+import org.jetbrains.compose.resources.painterResource
 
 /**
  * Dedicated editor for configuring folder request defaults (variables, headers,
@@ -65,8 +66,7 @@ fun FolderEditor(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Icon(
-                Icons.Default.Folder,
+            Icon(painter = painterResource(Res.drawable.ic_folder),
                 contentDescription = null,
                 tint = ClapiColors.Tertiary,
                 modifier = Modifier.size(20.dp),
@@ -88,8 +88,7 @@ fun FolderEditor(
                 shape = RoundedCornerShape(6.dp),
                 modifier = Modifier.height(32.dp).testTag("folder-save-button"),
             ) {
-                Icon(
-                    Icons.Default.Save,
+                Icon(painter = painterResource(Res.drawable.ic_save),
                     contentDescription = null,
                     modifier = Modifier.size(16.dp).padding(end = 4.dp),
                 )

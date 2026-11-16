@@ -10,11 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
@@ -27,21 +22,26 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.crustack.clapi.core.model.BodyType
+import io.github.crustack.clapi.core.model.FormEntryType
+import io.github.crustack.clapi.core.model.RequestKind
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_check_circle
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_code
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_lock
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_play_arrow
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.MutableKeyValue
 import io.github.crustack.clapi.ui.shared.state.RequestEditorTab
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
-import io.github.crustack.clapi.core.model.BodyType
-import io.github.crustack.clapi.core.model.FormEntryType
-import io.github.crustack.clapi.core.model.RequestKind
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
 import io.github.crustack.clapi.ui.shared.theme.ClapiTheme
-import io.github.crustack.clapi.ui.shared.platform.copyToClipboard as platformCopyToClipboard
-import io.ktor.http.decodeURLQueryComponent
-import io.ktor.http.encodeURLParameter
+import io.ktor.http.*
 import kotlinx.serialization.ExperimentalSerializationApi
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import io.github.crustack.clapi.ui.shared.platform.copyToClipboard as platformCopyToClipboard
 
 /**
  * Top-level composable for a single request tab's editor area.
@@ -290,10 +290,10 @@ internal fun EditorTabBar(
         RequestEditorTab.PARAMS      to null,
         RequestEditorTab.VARIABLES   to null,
         RequestEditorTab.HEADERS     to null,
-        RequestEditorTab.BODY        to Icons.Default.Code,
-        RequestEditorTab.AUTH        to Icons.Default.Lock,
-        RequestEditorTab.PRE_REQUEST to Icons.Default.PlayArrow,
-        RequestEditorTab.TESTS       to Icons.Default.CheckCircle,
+        RequestEditorTab.BODY        to painterResource(Res.drawable.ic_code),
+        RequestEditorTab.AUTH        to painterResource(Res.drawable.ic_lock),
+        RequestEditorTab.PRE_REQUEST to painterResource(Res.drawable.ic_play_arrow),
+        RequestEditorTab.TESTS       to painterResource(Res.drawable.ic_check_circle),
     )
     val counts = mapOf(
         RequestEditorTab.PARAMS    to paramCount,

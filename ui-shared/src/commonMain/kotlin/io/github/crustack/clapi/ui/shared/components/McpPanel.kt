@@ -26,10 +26,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
@@ -72,6 +68,10 @@ import io.github.crustack.clapi.core.model.McpRoot
 import io.github.crustack.clapi.core.model.McpSamplingMode
 import io.github.crustack.clapi.core.model.McpTool
 import io.github.crustack.clapi.core.model.McpTransportType
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_add
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_close
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_content_copy
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.mcp.mcpArgsGet
 import io.github.crustack.clapi.ui.shared.mcp.mcpArgsPut
@@ -87,18 +87,19 @@ import io.github.crustack.clapi.ui.shared.mcp.mcpToolHintChips
 import io.github.crustack.clapi.ui.shared.platform.PlatformColumnVerticalScrollbar
 import io.github.crustack.clapi.ui.shared.platform.PlatformLazyVerticalScrollbar
 import io.github.crustack.clapi.ui.shared.platform.copyToClipboard
-import io.github.crustack.clapi.ui.shared.platform.insetScrollbar
 import io.github.crustack.clapi.ui.shared.platform.formatTimestamp
+import io.github.crustack.clapi.ui.shared.platform.insetScrollbar
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.MutableKeyValue
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
 import io.github.crustack.clapi.ui.shared.state.ResponseTab
-import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
+import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
+import org.jetbrains.compose.resources.painterResource
 
 private const val SECTION_TOOLS = 0
 private const val SECTION_RESOURCES = 1
@@ -986,8 +987,7 @@ private fun ActivityRow(entry: McpLogEntry) {
                     onClick = { copyToClipboard(pretty) },
                     modifier = Modifier.size(28.dp).testTag("mcp-activity-copy"),
                 ) {
-                    Icon(
-                        Icons.Default.ContentCopy,
+                    Icon(painter = painterResource(Res.drawable.ic_content_copy),
                         contentDescription = Strings.copy,
                         tint = ClapiColors.OnSurfaceDim,
                         modifier = Modifier.size(14.dp),
@@ -1241,8 +1241,7 @@ private fun ClientSection(
                                 },
                                 modifier = Modifier.size(28.dp).testTag("mcp-root-remove-$index"),
                             ) {
-                                Icon(
-                                    Icons.Default.Close,
+                                Icon(painter = painterResource(Res.drawable.ic_close),
                                     contentDescription = Strings.t("mcp_remove_root"),
                                     tint = ClapiColors.OnSurfaceDim,
                                     modifier = Modifier.size(14.dp),
@@ -1257,7 +1256,7 @@ private fun ClientSection(
                     },
                     modifier = Modifier.testTag("mcp-add-root"),
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.size(4.dp))
                     Text(Strings.t("mcp_add_root"))
                 }
@@ -1575,8 +1574,7 @@ private fun SessionIdChip(sessionId: String) {
             onClick = { copyToClipboard(sessionId) },
             modifier = Modifier.size(28.dp).testTag("mcp-session-id-copy"),
         ) {
-            Icon(
-                Icons.Default.ContentCopy,
+            Icon(painter = painterResource(Res.drawable.ic_content_copy),
                 contentDescription = Strings.copy,
                 tint = ClapiColors.OnSurfaceDim,
                 modifier = Modifier.size(14.dp),

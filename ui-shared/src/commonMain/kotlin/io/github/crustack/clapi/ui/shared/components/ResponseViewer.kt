@@ -12,15 +12,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ScrollableTabRow
@@ -37,14 +34,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.crustack.clapi.core.model.RequestKind
 import io.github.crustack.clapi.core.model.ResponseDefinition
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_error_outline
 import io.github.crustack.clapi.ui.shared.i18n.Strings
+import io.github.crustack.clapi.ui.shared.platform.saveFileForExport
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
 import io.github.crustack.clapi.ui.shared.state.ResponseTab
-import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
+import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 import io.github.crustack.clapi.ui.shared.theme.statusCodeColor
 import kotlinx.serialization.ExperimentalSerializationApi
-import io.github.crustack.clapi.ui.shared.platform.saveFileForExport
+import org.jetbrains.compose.resources.painterResource
 
 @OptIn(ExperimentalSerializationApi::class)
 @Composable
@@ -135,8 +135,7 @@ private fun EmptyResponseState(tab: RequestTabState) {
                     }
                 }
                 error != null -> {
-                    Icon(
-                        Icons.Default.ErrorOutline,
+                    Icon(painter = painterResource(Res.drawable.ic_error_outline),
                         contentDescription = null,
                         tint = ClapiColors.Error,
                         modifier = Modifier.size(36.dp),
