@@ -43,6 +43,7 @@ import io.github.makeforge.clapi.core.network.keeper.createKeeperClient
 import io.github.makeforge.clapi.ui.shared.components.VariableAwareTextField
 import io.github.makeforge.clapi.ui.shared.components.IconButtonWithTooltip
 import io.github.makeforge.clapi.ui.shared.components.handPointerHover
+import io.github.makeforge.clapi.ui.shared.components.rememberAutoSelectTextFieldValue
 import io.github.makeforge.clapi.ui.shared.generated.resources.*
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
 import io.github.makeforge.clapi.ui.shared.platform.*
@@ -229,6 +230,7 @@ internal fun EnvTextField(
     state: AppState? = null,
     extraVariables: List<Pair<String, String>> = emptyList(),
     excludeVariables: Set<String> = emptySet(),
+    selectAllOnStart: Boolean = false,
 ) {
     val displayValue = if (masked) "•".repeat(value.length.coerceAtMost(20)) else value
     var isFocused by remember { mutableStateOf(false) }
@@ -252,6 +254,7 @@ internal fun EnvTextField(
                 state = state,
                 extraVariables = extraVariables,
                 excludeVariables = excludeVariables,
+                selectAllOnStart = selectAllOnStart,
                 modifier = Modifier
                     .fillMaxWidth()
                     .then(if (tag.isNotEmpty()) Modifier.testTag(tag) else Modifier),
@@ -266,9 +269,14 @@ internal fun EnvTextField(
             }
         }
     } else {
-        BasicTextField(
+        val (tfv, onTfvChange) = rememberAutoSelectTextFieldValue(
             value = if (masked) displayValue else value,
             onValueChange = if (masked) ({}) else onValueChange,
+            selectAllOnInitial = selectAllOnStart,
+        )
+        BasicTextField(
+            value = tfv,
+            onValueChange = onTfvChange,
             singleLine = true,
             readOnly = masked,
             textStyle = TextStyle(color = ClapiColors.OnSurface, fontSize = 13.sp, fontFamily = CodeFontFamily),

@@ -214,7 +214,7 @@ fun SelectProtoFileDialog(
                             tint = ClapiColors.MethodPatch,
                             modifier = Modifier.size(16.dp),
                         )
-                        BasicTextField(
+                        DialogBasicTextField(
                             value = selectedPath,
                             onValueChange = { selectedPath = it },
                             singleLine = true,

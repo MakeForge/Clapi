@@ -47,6 +47,7 @@ allprojects {
 
     tasks.withType<Test>().configureEach {
         systemProperty("clapi.dir", "${project.layout.buildDirectory.get().asFile.absolutePath}/test-clapi-storage")
+        systemProperty("skiko.data.path", "/tmp/skiko")
     }
 }
 

@@ -426,15 +426,20 @@ fun GitSyncDialog(
             }
 
             // Commit Section
-            OutlinedTextField(
+            val (commitMessageTfv, onCommitMessageChange) = rememberAutoSelectTextFieldValue(
                 value = commitMessage,
                 onValueChange = { commitMessage = it },
+            )
+            OutlinedTextField(
+                value = commitMessageTfv,
+                onValueChange = onCommitMessageChange,
                 label = { Text(Strings.gitCommitMessage) },
                 placeholder = { Text(Strings.gitCommitMessage) },
                 minLines = 2,
                 maxLines = 4,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .autoFocus(enabled = changes.isNotEmpty())
                     .testTag("git-sync-commit-message"),
             )
 
