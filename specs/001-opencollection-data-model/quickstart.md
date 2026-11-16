@@ -13,7 +13,7 @@ This guide outlines end-to-end runnable validation scenarios to prove that the O
 - **JDK**: Java 21 or higher.
 - **Gradle**: Uses repository wrapper `./gradlew`.
 - **Sample Server**: Local Ktor sample server running on an ephemeral port.
-- **Official OpenCollection Schema**: `docs/Clapi/todos/opencollection_v1.0.0.json`.
+- **Official OpenCollection Schema**: `../../scratch/Clapi`.
 - **Test Fixtures**:
   - Legacy Clapi fixture: `qa-tests/fixtures/clapi-test-collection.json`
   - Legacy environment fixture: `qa-tests/fixtures/clapi-test-environment.json`
@@ -32,7 +32,7 @@ This guide outlines end-to-end runnable validation scenarios to prove that the O
    rtk ./gradlew :core-model:desktopTest --tests "opencollection.*"
    ```
 2. **Expected Outcome**:
-   - `OpenCollectionDocument` parsed from valid JSON/YAML matches `docs/Clapi/todos/opencollection_v1.0.0.json` schema 100%.
+   - `OpenCollectionDocument` parsed from valid JSON/YAML matches `../../scratch/Clapi` schema 100%.
    - Opening an invalid fixture (e.g., missing required fields, illegal `info.type`) throws `CollectionValidationException` with line/path coordinates.
    - The original file on disk remains completely untouched.
 

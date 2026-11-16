@@ -28,7 +28,7 @@ Refactor Clapi's underlying data storage model so that **OpenCollection v1.0.0**
 **Testing**:
 - `org.jetbrains.kotlin:kotlin-test` & `junit:junit:4.13.2`
 - Ktor embedded Netty server & CIO client for end-to-end regression tests (`SampleCollectionE2ETest`)
-- Schema conformance test suites using `docs/Clapi/todos/opencollection_v1.0.0.json`
+- Schema conformance test suites using `../../scratch/Clapi`
 
 **Target Platform**: Desktop JVM (Linux, macOS, Windows)
 

@@ -7,7 +7,7 @@
 ## 1. OpenCollection Specification Version & Schema Validation
 
 ### Decision
-Target **OpenCollection Specification Version 1.0.0**. The validation authority is the official OpenCollection v1.0.0 JSON Schema (`docs/Clapi/todos/opencollection_v1.0.0.json` with ID `https://schema.opencollection.com/opencollection/v1.0.0.json`).
+Target **OpenCollection Specification Version 1.0.0**. The validation authority is the official OpenCollection v1.0.0 JSON Schema (`../../scratch/Clapi` with ID `https://schema.opencollection.com/opencollection/v1.0.0.json`).
 For schema validation on the JVM/desktop, use `com.networknt:json-schema-validator` (Draft-07 compliant).
 
 ### Rationale

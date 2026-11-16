@@ -10,6 +10,7 @@ sqldelight = "2.0.2"
 graalvm = "24.1.1"
 networknt = "3.0.9"
 kaml = "0.104.0"
+swagger-parser = "2.1.25"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -41,6 +42,7 @@ sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", 
 
 networknt-json-schema = { module = "com.networknt:json-schema-validator", version.ref = "networknt" }
 kaml = { module = "com.charleskorn.kaml:kaml", version.ref = "kaml" }
+swagger-parser = { module = "io.swagger.parser.v3:swagger-parser", version.ref = "swagger-parser" }
 
 graalvm-polyglot = { module = "org.graalvm.polyglot:polyglot", version.ref = "graalvm" }
 graalvm-js = { module = "org.graalvm.polyglot:js-community", version.ref = "graalvm" }

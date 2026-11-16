@@ -162,6 +162,20 @@ object Strings {
     val exportSuccess: String @Composable @ReadOnlyComposable get() = t("export_success")
     val operationFailed: String @Composable @ReadOnlyComposable get() = t("operation_failed")
 
+    val importDialogTitle: String @Composable @ReadOnlyComposable get() = t("import_dialog_title")
+    val importTabFile: String @Composable @ReadOnlyComposable get() = t("import_tab_file")
+    val importTabClipboard: String @Composable @ReadOnlyComposable get() = t("import_tab_clipboard")
+    val importDropFilesHere: String @Composable @ReadOnlyComposable get() = t("import_drop_files_here")
+    val importChooseFiles: String @Composable @ReadOnlyComposable get() = t("import_choose_files")
+    val importSupportedFormats: String @Composable @ReadOnlyComposable get() = t("import_supported_formats")
+    val importClipboardDesc: String @Composable @ReadOnlyComposable get() = t("import_clipboard_desc")
+    val importClipboardEmpty: String @Composable @ReadOnlyComposable get() = t("import_clipboard_empty")
+    val importScan: String @Composable @ReadOnlyComposable get() = t("import_scan")
+    val importScanning: String @Composable @ReadOnlyComposable get() = t("import_scanning")
+    val importSelectItems: String @Composable @ReadOnlyComposable get() = t("import_select_items")
+    val importOverwriteWarning: String @Composable @ReadOnlyComposable get() = t("import_overwrite_warning")
+    val importAction: String @Composable @ReadOnlyComposable get() = t("import_action")
+
     @Composable
     @ReadOnlyComposable
     fun t(key: String): String = LocalI18n.current.get(key)
