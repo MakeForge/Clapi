@@ -22,8 +22,8 @@
 
 **Purpose**: Project initialization, baseline data structures, and helper utilities.
 
-- [ ] T001 Inspect and verify environment models and OpenCollection serializers in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/EnvironmentModels.kt`
-- [ ] T002 [P] Setup color palette presets and hex parsing utilities in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvironmentDialogHelpers.kt`
+- [x] T001 Inspect and verify environment models and OpenCollection serializers in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/EnvironmentModels.kt`
+- [x] T002 [P] Setup color palette presets and hex parsing utilities in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvironmentDialogHelpers.kt`
 
 ---
 
@@ -33,10 +33,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 Make `color` and `extends` observable with `mutableStateOf` in `EnvState` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/EnvironmentModels.kt`
-- [ ] T004 Implement `resolveEffectiveVariables`, `resolveVariableProjections`, and cycle-safe `getEligibleParentEnvironments` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/EnvironmentModels.kt`
-- [ ] T005 [P] Update `AppState.activeVariableLayers` to resolve environment variables through inheritance in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt`
-- [ ] T006 [P] Create unit tests for inheritance, cycle detection, and variable overrides in `ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/state/EnvironmentInheritanceTest.kt`
+- [x] T003 Make `color` and `extends` observable with `mutableStateOf` in `EnvState` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/EnvironmentModels.kt`
+- [x] T004 Implement `resolveEffectiveVariables`, `resolveVariableProjections`, and cycle-safe `getEligibleParentEnvironments` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/EnvironmentModels.kt`
+- [x] T005 [P] Update `AppState.activeVariableLayers` to resolve environment variables through inheritance in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt`
+- [x] T006 [P] Create unit tests for inheritance, cycle detection, and variable overrides in `ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/state/EnvironmentInheritanceTest.kt`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel.
 
@@ -50,14 +50,14 @@
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T007 [P] [US1] Unit test for multi-tier variable inheritance, overrides, and cycle detection in `ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/state/EnvironmentInheritanceTest.kt`
-- [ ] T008 [P] [US1] Desktop Compose UI test for extends dropdown and override badge in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/EnvironmentEditorUiTest.kt`
+- [x] T007 [P] [US1] Unit test for multi-tier variable inheritance, overrides, and cycle detection in `ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/state/EnvironmentInheritanceTest.kt`
+- [x] T008 [P] [US1] Desktop Compose UI test for extends dropdown and override badge in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/EnvironmentEditorUiTest.kt`
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Implement extends dropdown in `EnvironmentEditDialog` with eligible environment options and disabled state when no other environments exist in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvironmentEditDialog.kt`
-- [ ] T010 [US1] Display inherited variables and render "Overridden" badge with tooltip for overridden variables in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvironmentEditDialog.kt`
-- [ ] T011 [US1] Persist `extends` selection to `EnvState` and canonical OpenCollection on dialog save in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvironmentEditDialog.kt`
+- [x] T009 [US1] Implement extends dropdown in `EnvironmentEditDialog` with eligible environment options and disabled state when no other environments exist in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvironmentEditDialog.kt`
+- [x] T010 [US1] Display inherited variables and render "Overridden" badge with tooltip for overridden variables in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvironmentEditDialog.kt`
+- [x] T011 [US1] Persist `extends` selection to `EnvState` and canonical OpenCollection on dialog save in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvironmentEditDialog.kt`
 
 **Checkpoint**: User Story 1 should be fully functional and testable independently.
 
@@ -71,12 +71,12 @@
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T012 [P] [US2] UI test verifying environment creation expands sidebar and opens edit dialog in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/EnvironmentEditorUiTest.kt`
+- [x] T012 [P] [US2] UI test verifying environment creation expands sidebar and opens edit dialog in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/EnvironmentEditorUiTest.kt`
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Update environment creation callback in `Sidebar.kt` to expand environments (`state.environmentsExpanded = true`, `state.settings.environmentsExpanded = true`) and invoke `state.openEnvEdit(newIndex)` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/sidebar/Sidebar.kt`
-- [ ] T014 [US2] Update toolbar environment creation flow in `TopToolbar.kt` to expand sidebar and open edit dialog in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/TopToolbar.kt`
+- [x] T013 [US2] Update environment creation callback in `Sidebar.kt` to expand environments (`state.environmentsExpanded = true`, `state.settings.environmentsExpanded = true`) and invoke `state.openEnvEdit(newIndex)` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/sidebar/Sidebar.kt`
+- [x] T014 [US2] Update toolbar environment creation flow in `TopToolbar.kt` to expand sidebar and open edit dialog in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/TopToolbar.kt`
 
 **Checkpoint**: User Stories 1 and 2 should both work independently.
 
@@ -90,12 +90,12 @@
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T015 [P] [US3] UI test verifying inline quick-add row at the top of variables and secrets tables in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/EnvironmentEditorUiTest.kt`
+- [x] T015 [P] [US3] UI test verifying inline quick-add row at the top of variables and secrets tables in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/EnvironmentEditorUiTest.kt`
 
 ### Implementation for User Story 3
 
-- [ ] T016 [US3] Implement pinned top inline quick-add row in Variables tab of `EnvironmentEditDialog` with Enter key commit in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvironmentEditDialog.kt`
-- [ ] T017 [US3] Implement pinned top inline quick-add row in External Secrets tab of `EnvironmentEditDialog` with provider fields in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvironmentEditDialog.kt`
+- [x] T016 [US3] Implement pinned top inline quick-add row in Variables tab of `EnvironmentEditDialog` with Enter key commit in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvironmentEditDialog.kt`
+- [x] T017 [US3] Implement pinned top inline quick-add row in External Secrets tab of `EnvironmentEditDialog` with provider fields in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvironmentEditDialog.kt`
 
 **Checkpoint**: User Stories 1, 2, and 3 should all be functional independently.
 
@@ -109,13 +109,13 @@
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T018 [P] [US4] UI test verifying predefined color selection and custom hex color rendering in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/EnvironmentEditorUiTest.kt`
+- [x] T018 [P] [US4] UI test verifying predefined color selection and custom hex color rendering in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/EnvironmentEditorUiTest.kt`
 
 ### Implementation for User Story 4
 
-- [ ] T019 [US4] Add color palette swatches and custom hex input controls to `EnvironmentEditDialog.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvironmentEditDialog.kt`
-- [ ] T020 [P] [US4] Update `SidebarEnvironmentRow` to render `env.color` in the indicator dot in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/sidebar/SidebarEnvironmentRow.kt`
-- [ ] T021 [P] [US4] Update `TopToolbar` environment dropdown button and items to display the environment color in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/TopToolbar.kt`
+- [x] T019 [US4] Add color palette swatches and custom hex input controls to `EnvironmentEditDialog.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvironmentEditDialog.kt`
+- [x] T020 [P] [US4] Update `SidebarEnvironmentRow` to render `env.color` in the indicator dot in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/sidebar/SidebarEnvironmentRow.kt`
+- [x] T021 [P] [US4] Update `TopToolbar` environment dropdown button and items to display the environment color in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/TopToolbar.kt`
 
 **Checkpoint**: User Stories 1 through 4 should all work independently.
 
@@ -129,13 +129,13 @@
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T022 [P] [US5] Compose UI test for YAML drag-and-drop file ingestion in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/ImportSpecificationUiTest.kt`
-- [ ] T023 [P] [US5] UI test asserting the environment import button displays the download icon in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/SidebarImportExportUiTest.kt`
+- [x] T022 [P] [US5] Compose UI test for YAML drag-and-drop file ingestion in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/ImportSpecificationUiTest.kt`
+- [x] T023 [P] [US5] UI test asserting the environment import button displays the download icon in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/SidebarImportExportUiTest.kt`
 
 ### Implementation for User Story 5
 
-- [ ] T024 [US5] Update environment import button icon to `Res.drawable.ic_download` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/sidebar/SidebarEnvironmentsSection.kt`
-- [ ] T025 [US5] Implement desktop drag-and-drop listener for `.yaml`, `.yml`, `.json` files on the import dropzone in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/ImportSpecificationDialog.kt`
+- [x] T024 [US5] Update environment import button icon to `Res.drawable.ic_download` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/sidebar/SidebarEnvironmentsSection.kt`
+- [x] T025 [US5] Implement desktop drag-and-drop listener for `.yaml`, `.yml`, `.json` files on the import dropzone in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/ImportSpecificationDialog.kt`
 
 **Checkpoint**: User Stories 1 through 5 should all work independently.
 
@@ -149,12 +149,12 @@
 
 ### Tests for User Story 6 ⚠️
 
-- [ ] T026 [P] [US6] Unit tests verifying external secret configuration export/import round-trip and secret value sanitization in `ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/persistence/EnvironmentImportExportTest.kt`
+- [x] T026 [P] [US6] Unit tests verifying external secret configuration export/import round-trip and secret value sanitization in `ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/persistence/EnvironmentImportExportTest.kt`
 
 ### Implementation for User Story 6
 
-- [ ] T027 [US6] Update `ImportExportRepository.exportEnvironmentToString` to include `color`, `extends`, and sanitized `externalSecrets` while omitting secret values in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/ImportExportRepository.kt`
-- [ ] T028 [US6] Update `ImportExportRepository.importEnvironmentFromString` to parse `color`, `extends`, and `externalSecrets` into `EnvState` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/ImportExportRepository.kt`
+- [x] T027 [US6] Update `ImportExportRepository.exportEnvironmentToString` to include `color`, `extends`, and sanitized `externalSecrets` while omitting secret values in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/ImportExportRepository.kt`
+- [x] T028 [US6] Update `ImportExportRepository.importEnvironmentFromString` to parse `color`, `extends`, and `externalSecrets` into `EnvState` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/ImportExportRepository.kt`
 
 **Checkpoint**: All user stories should now be independently functional.
 
@@ -164,8 +164,8 @@
 
 **Purpose**: Improvements that affect multiple user stories and end-to-end QA validation.
 
-- [ ] T029 [P] Create comprehensive end-to-end QA test suite covering creation, inheritance, colors, quick-add, and drag-and-drop in `qa-tests/src/desktopTest/kotlin/io/github/makeforge/clapi/qa/EnvironmentEnhancementsQaTest.kt`
-- [ ] T030 Execute quickstart validation guide and verify all test suites pass
+- [x] T029 [P] Create comprehensive end-to-end QA test suite covering creation, inheritance, colors, quick-add, and drag-and-drop in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/EnvironmentEnhancementsQaTest.kt`
+- [x] T030 Execute quickstart validation guide and verify all test suites pass
 
 ---
 

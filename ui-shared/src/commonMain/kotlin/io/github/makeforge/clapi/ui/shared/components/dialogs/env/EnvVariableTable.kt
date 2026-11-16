@@ -79,6 +79,7 @@ internal fun EnvVariableRow(
     onDelete: () -> Unit,
     state: AppState? = null,
     workingVars: List<MutableKeyValue> = emptyList(),
+    isOverridden: Boolean = false,
 ) {
     var showValue by remember { mutableStateOf(!kv.secret) }
     val interactionSource = remember { MutableInteractionSource() }
@@ -134,17 +135,39 @@ internal fun EnvVariableRow(
         )
 
         // Key field
-        EnvTextField(
-            value = kv.key,
-            onValueChange = { kv.key = it },
-            placeholder = Strings.variableName,
-            tag = "env-var-key-$index",
+        Row(
             modifier = Modifier.weight(1f),
-            focusRequester = keyFocusRequester,
-            state = state,
-            extraVariables = extraVars,
-            excludeVariables = excludeVars,
-        )
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            EnvTextField(
+                value = kv.key,
+                onValueChange = { kv.key = it },
+                placeholder = Strings.variableName,
+                tag = "env-var-key-$index",
+                modifier = Modifier.weight(1f),
+                focusRequester = keyFocusRequester,
+                state = state,
+                extraVariables = extraVars,
+                excludeVariables = excludeVars,
+            )
+            if (isOverridden) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(ClapiColors.StatusWarning.copy(alpha = 0.15f))
+                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                        .testTag("env-var-override-badge-${kv.key}"),
+                ) {
+                    Text(
+                        "Overridden",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = ClapiColors.StatusWarning,
+                    )
+                }
+            }
+        }
 
         // Value field (masked if secret)
         EnvTextField(

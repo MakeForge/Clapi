@@ -1,5 +1,16 @@
 package io.github.makeforge.clapi.ui.shared.platform
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.semantics.semantics
+import java.awt.datatransfer.DataFlavor
+import java.awt.dnd.DnDConstants
+import java.awt.dnd.DropTarget
+import java.awt.dnd.DropTargetAdapter
+import java.awt.dnd.DropTargetDragEvent
+import java.awt.dnd.DropTargetDropEvent
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.awtEventOrNull
 import androidx.compose.ui.input.key.Key
@@ -455,3 +466,74 @@ actual object PlatformStorage {
         return ksafe.getDirect<String?>(key, null)
     }
 }
+
+@Composable
+actual fun Modifier.fileDropTarget(
+    onFileDropped: (fileName: String, content: String) -> Unit,
+): Modifier {
+    val window = java.awt.Window.getWindows().firstOrNull { it.isShowing }
+    val currentOnFileDropped by rememberUpdatedState(onFileDropped)
+
+    DisposableEffect(window) {
+        val target = window ?: return@DisposableEffect onDispose {}
+        val previousDropTarget = target.dropTarget
+
+        val listener = object : DropTargetAdapter() {
+            override fun dragOver(dtde: DropTargetDragEvent) {
+                if (dtde.isDataFlavorSupported(DataFlavor.javaFileListFlavor) || dtde.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+                    dtde.acceptDrag(DnDConstants.ACTION_COPY)
+                } else {
+                    dtde.rejectDrag()
+                }
+            }
+
+            override fun drop(dtde: DropTargetDropEvent) {
+                try {
+                    if (dtde.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+                        dtde.acceptDrop(DnDConstants.ACTION_COPY)
+                        val files = dtde.transferable.getTransferData(DataFlavor.javaFileListFlavor) as? List<*>
+                        val file = files?.filterIsInstance<File>()?.firstOrNull { f ->
+                            val ext = f.extension.lowercase()
+                            ext in setOf("yaml", "yml", "json")
+                        }
+                        if (file != null) {
+                            fileIoScope.launch {
+                                val text = runCatching { file.readText() }.getOrNull()
+                                if (text != null) {
+                                    SwingUtilities.invokeLater {
+                                        currentOnFileDropped(file.name, text)
+                                    }
+                                }
+                            }
+                            dtde.dropComplete(true)
+                            return
+                        }
+                    } else if (dtde.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+                        dtde.acceptDrop(DnDConstants.ACTION_COPY)
+                        val text = dtde.transferable.getTransferData(DataFlavor.stringFlavor) as? String
+                        if (!text.isNullOrBlank()) {
+                            currentOnFileDropped("dropped-spec.yaml", text)
+                            dtde.dropComplete(true)
+                            return
+                        }
+                    }
+                    dtde.rejectDrop()
+                } catch (e: Exception) {
+                    dtde.dropComplete(false)
+                }
+            }
+        }
+
+        val newDropTarget = DropTarget(target, DnDConstants.ACTION_COPY, listener, true)
+        target.dropTarget = newDropTarget
+
+        onDispose {
+            target.dropTarget = previousDropTarget
+        }
+    }
+
+    return this.semantics {
+        set(FileDropSemanticsKey, currentOnFileDropped)
+    }
+}
+

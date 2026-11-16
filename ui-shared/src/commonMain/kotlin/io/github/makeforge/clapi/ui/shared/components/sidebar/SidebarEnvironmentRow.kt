@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.github.makeforge.clapi.ui.shared.components.dialogs.env.parseHexColor
 import io.github.makeforge.clapi.ui.shared.components.IconButtonWithTooltip
 import io.github.makeforge.clapi.ui.shared.components.sharedSidebarTooltipState
 import io.github.makeforge.clapi.ui.shared.generated.resources.Res
@@ -59,6 +60,7 @@ import org.jetbrains.compose.resources.painterResource
 internal fun EnvironmentRow(
     envName: String,
     active: Boolean,
+    colorHex: String? = null,
     onClick: () -> Unit,
     onDoubleClick: () -> Unit,
     onEdit: () -> Unit,
@@ -125,11 +127,13 @@ internal fun EnvironmentRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        val dotColor = colorHex?.let { parseHexColor(it) } ?: (if (active) ClapiColors.Secondary else ClapiColors.OnSurfaceDim)
         Box(
             modifier = Modifier
                 .size(8.dp)
                 .clip(RoundedCornerShape(50))
-                .background(if (active) ClapiColors.Secondary else ClapiColors.OnSurfaceDim),
+                .background(dotColor)
+                .testTag("env-color-dot-$envName"),
         )
         Text(
             text = envName,

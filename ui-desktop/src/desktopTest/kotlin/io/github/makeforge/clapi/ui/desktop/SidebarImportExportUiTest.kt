@@ -133,4 +133,13 @@ class SidebarImportExportUiTest {
 
         composeRule.onNodeWithText("Add Collection", useUnmergedTree = true).assertIsDisplayed()
     }
+
+    @Test
+    fun environmentImportButton_displaysDownloadIcon() {
+        val state = AppState()
+        composeRule.setContent { MainScreen(state) }
+
+        composeRule.onNodeWithTag("environment-import-button", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("environment-import-icon", useUnmergedTree = true).assertIsDisplayed()
+    }
 }

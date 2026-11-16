@@ -463,7 +463,7 @@ class AppState(openDefaultTab: Boolean = true) {
      */
     fun activeVariableLayers(tab: RequestTabState? = activeTab): List<Map<String, String>> {
         val layers = mutableListOf<Map<String, String>>()
-        layers.add(selectedEnvironment?.toVariableMap().orEmpty())
+        layers.add(selectedEnvironment?.toVariableMap(environments).orEmpty())
 
         var includedRootCollection = false
         if (tab != null) {

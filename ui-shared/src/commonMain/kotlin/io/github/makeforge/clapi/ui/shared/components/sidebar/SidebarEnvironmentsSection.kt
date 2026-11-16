@@ -68,7 +68,7 @@ internal fun LazyListScope.sidebarEnvironmentsSection(
                         tooltip = Strings.t("import_environment"),
                         modifier = Modifier.size(24.dp).testTag("environment-import-button"),
                     ) {
-                        Icon(painter = painterResource(Res.drawable.ic_input),
+                        Icon(painter = painterResource(Res.drawable.ic_download),
                             contentDescription = Strings.t("import_environment"),
                             tint = ClapiColors.OnSurfaceDim,
                             modifier = Modifier.size(14.dp).testTag("environment-import-icon"),
@@ -120,6 +120,7 @@ internal fun LazyListScope.sidebarEnvironmentsSection(
                 EnvironmentRow(
                     envName = env.name,
                     active = index == state.selectedEnvIndex,
+                    colorHex = env.color,
                     onClick = { state.selectedEnvIndex = index },
                     onDoubleClick = {
                         state.selectedEnvIndex = index

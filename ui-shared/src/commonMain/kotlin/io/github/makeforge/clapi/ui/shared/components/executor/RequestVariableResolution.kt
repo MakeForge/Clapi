@@ -64,7 +64,7 @@ internal suspend fun resolveExternalSecretsForTab(
         )
     } ?: emptyList()
 
-    val envVarsMap = state.selectedEnvironment?.toVariableMap() ?: emptyMap()
+    val envVarsMap = state.selectedEnvironment?.toVariableMap(state.environments) ?: emptyMap()
     val variableLayers = state.activeVariableLayers(tab)
 
     return try {

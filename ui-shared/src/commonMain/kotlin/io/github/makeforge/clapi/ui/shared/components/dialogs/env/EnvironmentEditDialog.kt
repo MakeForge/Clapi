@@ -44,7 +44,11 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.Checkbox
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.OutlinedButton
+import io.github.makeforge.clapi.ui.shared.generated.resources.ic_arrow_drop_down
+import io.github.makeforge.clapi.ui.shared.state.getEligibleParentEnvironments
+import io.github.makeforge.clapi.ui.shared.state.resolveEffectiveVariables
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -145,6 +149,17 @@ fun EnvironmentEditDialog(
     val scope = rememberCoroutineScope()
 
     val workingName = remember(envIndex) { mutableStateOf(env.name) }
+    val workingExtends = remember(envIndex) { mutableStateOf(env.extends) }
+    val workingColor = remember(envIndex) { mutableStateOf(env.color) }
+    var extendsMenuExpanded by remember(envIndex) { mutableStateOf(false) }
+
+    var quickAddVarKey by remember(envIndex) { mutableStateOf("") }
+    var quickAddVarValue by remember(envIndex) { mutableStateOf("") }
+    var quickAddVarSecret by remember(envIndex) { mutableStateOf(false) }
+
+    var quickAddSecName by remember(envIndex) { mutableStateOf("") }
+    var quickAddSecPath by remember(envIndex) { mutableStateOf("") }
+    var quickAddSecTargetField by remember(envIndex) { mutableStateOf("") }
     val workingVars = remember(envIndex) {
         mutableStateListOf<MutableKeyValue>().also { list ->
             env.variables.forEach { v -> list.add(MutableKeyValue(v.key, v.value, v.enabled, v.secret)) }
@@ -208,6 +223,8 @@ fun EnvironmentEditDialog(
     val captureSnapshot: () -> List<Any?> = {
         listOf(
             workingName.value,
+            workingExtends.value,
+            workingColor.value,
             workingProvider,
             workingVars.filter { it.key.isNotBlank() || it.value.isNotBlank() }
                 .map { listOf(it.key, it.value, it.enabled, it.secret) },
@@ -223,6 +240,8 @@ fun EnvironmentEditDialog(
 
     fun saveEnvironment(closeDialog: Boolean = false) {
         env.name = workingName.value
+        env.extends = workingExtends.value
+        env.color = workingColor.value
         env.variables.clear()
         workingVars.forEach { v ->
             if (v.key.isNotBlank() || v.value.isNotBlank()) {
@@ -489,7 +508,146 @@ fun EnvironmentEditDialog(
                         selectAllOnStart = true,
                         modifier = Modifier.autoFocus(),
                     )
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(10.dp))
+
+                    // Extends selector & Color picker row
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        // Extends selector
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Extends",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = ClapiColors.OnSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            val eligibleEnvs = remember(state.environments.toList(), env) {
+                                getEligibleParentEnvironments(env, state.environments)
+                            }
+                            val isExtendsEnabled = eligibleEnvs.isNotEmpty()
+                            Box {
+                                OutlinedButton(
+                                    onClick = { if (isExtendsEnabled) extendsMenuExpanded = true },
+                                    enabled = isExtendsEnabled,
+                                    modifier = Modifier.fillMaxWidth().height(36.dp).testTag("env-extends-dropdown"),
+                                    shape = RoundedCornerShape(6.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                ) {
+                                    Text(
+                                        text = workingExtends.value ?: if (isExtendsEnabled) "None (Optional)" else "No other environments",
+                                        color = if (isExtendsEnabled) ClapiColors.OnSurface else ClapiColors.OnSurfaceDim,
+                                        fontSize = 12.sp,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Icon(
+                                        painter = painterResource(Res.drawable.ic_arrow_drop_down),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = if (isExtendsEnabled) ClapiColors.OnSurfaceDim else ClapiColors.OnSurfaceDim.copy(alpha = 0.5f),
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = extendsMenuExpanded,
+                                    onDismissRequest = { extendsMenuExpanded = false },
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("None", fontSize = 12.sp) },
+                                        onClick = {
+                                            workingExtends.value = null
+                                            extendsMenuExpanded = false
+                                        },
+                                        modifier = Modifier.testTag("env-extends-option-none"),
+                                    )
+                                    eligibleEnvs.forEach { eligible ->
+                                        DropdownMenuItem(
+                                            text = { Text(eligible.name, fontSize = 12.sp) },
+                                            onClick = {
+                                                workingExtends.value = eligible.name
+                                                extendsMenuExpanded = false
+                                            },
+                                            modifier = Modifier.testTag("env-extends-option-${eligible.name}"),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Color picker
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Color",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = ClapiColors.OnSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                ENVIRONMENT_COLOR_PRESETS.forEach { preset ->
+                                    val presetColor = parseHexColor(preset.hex) ?: Color.Gray
+                                    val isSelected = workingColor.value?.equals(preset.hex, ignoreCase = true) == true
+                                    Box(
+                                        modifier = Modifier
+                                            .size(20.dp)
+                                            .clip(RoundedCornerShape(50))
+                                            .background(presetColor)
+                                            .then(
+                                                if (isSelected) Modifier.border(2.dp, ClapiColors.OnSurface, RoundedCornerShape(50))
+                                                else Modifier.border(1.dp, ClapiColors.Border, RoundedCornerShape(50))
+                                            )
+                                            .handPointerHover()
+                                            .clickable { workingColor.value = preset.hex }
+                                            .testTag("env-color-preset-${preset.name.lowercase()}"),
+                                    )
+                                }
+                                Spacer(Modifier.width(4.dp))
+                                BasicTextField(
+                                    value = workingColor.value ?: "",
+                                    onValueChange = { workingColor.value = it },
+                                    textStyle = TextStyle(
+                                        color = ClapiColors.OnSurface,
+                                        fontSize = 11.sp,
+                                        fontFamily = CodeFontFamily,
+                                    ),
+                                    singleLine = true,
+                                    cursorBrush = SolidColor(ClapiColors.Primary),
+                                    modifier = Modifier
+                                        .width(76.dp)
+                                        .height(28.dp)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(ClapiColors.SurfaceContainer)
+                                        .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 6.dp, vertical = 5.dp)
+                                        .testTag("env-color-hex-field"),
+                                    decorationBox = { innerTextField ->
+                                        if (workingColor.value.isNullOrBlank()) {
+                                            Text("#HEX", color = ClapiColors.OnSurfaceDim, fontSize = 11.sp, fontFamily = CodeFontFamily)
+                                        }
+                                        innerTextField()
+                                    },
+                                )
+                                if (workingColor.value != null) {
+                                    IconButtonWithTooltip(
+                                        onClick = { workingColor.value = null },
+                                        tooltip = "Clear color",
+                                        modifier = Modifier.size(20.dp).testTag("env-color-clear-button"),
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(Res.drawable.ic_close),
+                                            contentDescription = "Clear color",
+                                            tint = ClapiColors.OnSurfaceDim,
+                                            modifier = Modifier.size(12.dp),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(4.dp))
 
                     // Tab Selector: Variables vs External Secrets
                     Row(
@@ -565,6 +723,145 @@ fun EnvironmentEditDialog(
                             Spacer(Modifier.width(10.dp))
                         }
 
+                        val inheritedKeys = remember(workingExtends.value, state.environments.toList()) {
+                            val parentName = workingExtends.value?.trim()
+                            if (parentName.isNullOrEmpty()) emptySet<String>()
+                            else {
+                                val parent = state.environments.firstOrNull { it.name == parentName }
+                                if (parent != null) {
+                                    parent.resolveEffectiveVariables(state.environments).keys
+                                } else emptySet()
+                            }
+                        }
+
+                        // Quick-add row on top for variables
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(ClapiColors.SurfaceContainer)
+                                .border(1.dp, ClapiColors.Border)
+                                .padding(horizontal = 8.dp, vertical = 5.dp)
+                                .testTag("env-var-quick-add-row"),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_add),
+                                    contentDescription = null,
+                                    tint = ClapiColors.Primary,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                            BasicTextField(
+                                value = quickAddVarKey,
+                                onValueChange = { quickAddVarKey = it },
+                                textStyle = TextStyle(color = ClapiColors.OnSurface, fontSize = 12.sp),
+                                singleLine = true,
+                                cursorBrush = SolidColor(ClapiColors.Primary),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(28.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(ClapiColors.Surface)
+                                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 8.dp, vertical = 5.dp)
+                                    .onPreviewKeyEvent {
+                                        if (it.type == KeyEventType.KeyDown && it.key == Key.Enter) {
+                                            val trimmed = quickAddVarKey.trim()
+                                            if (trimmed.isNotEmpty()) {
+                                                val added = MutableKeyValue(trimmed, quickAddVarValue, enabled = true, secret = quickAddVarSecret)
+                                                workingVars.add(0, added)
+                                                quickAddVarKey = ""
+                                                quickAddVarValue = ""
+                                                quickAddVarSecret = false
+                                            }
+                                            true
+                                        } else false
+                                    }
+                                    .testTag("env-quick-add-key"),
+                                decorationBox = { innerTextField ->
+                                    if (quickAddVarKey.isEmpty()) {
+                                        Text(Strings.variableName, color = ClapiColors.OnSurfaceDim, fontSize = 12.sp)
+                                    }
+                                    innerTextField()
+                                },
+                            )
+                            BasicTextField(
+                                value = quickAddVarValue,
+                                onValueChange = { quickAddVarValue = it },
+                                textStyle = TextStyle(color = ClapiColors.OnSurface, fontSize = 12.sp),
+                                singleLine = true,
+                                cursorBrush = SolidColor(ClapiColors.Primary),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(28.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(ClapiColors.Surface)
+                                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 8.dp, vertical = 5.dp)
+                                    .onPreviewKeyEvent {
+                                        if (it.type == KeyEventType.KeyDown && it.key == Key.Enter) {
+                                            val trimmed = quickAddVarKey.trim()
+                                            if (trimmed.isNotEmpty()) {
+                                                val added = MutableKeyValue(trimmed, quickAddVarValue, enabled = true, secret = quickAddVarSecret)
+                                                workingVars.add(0, added)
+                                                quickAddVarKey = ""
+                                                quickAddVarValue = ""
+                                                quickAddVarSecret = false
+                                            }
+                                            true
+                                        } else false
+                                    }
+                                    .testTag("env-quick-add-value"),
+                                decorationBox = { innerTextField ->
+                                    if (quickAddVarValue.isEmpty()) {
+                                        Text(Strings.value, color = ClapiColors.OnSurfaceDim, fontSize = 12.sp)
+                                    }
+                                    innerTextField()
+                                },
+                            )
+                            Row(
+                                modifier = Modifier.width(90.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Text(
+                                    if (quickAddVarSecret) Strings.t("secret") else Strings.t("normal"),
+                                    fontSize = 11.sp,
+                                    color = if (quickAddVarSecret) ClapiColors.Tertiary else ClapiColors.OnSurfaceDim,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(if (quickAddVarSecret) ClapiColors.Tertiary.copy(alpha = 0.1f) else Color.Transparent)
+                                        .clickable { quickAddVarSecret = !quickAddVarSecret }
+                                        .padding(horizontal = 6.dp, vertical = 3.dp)
+                                        .testTag("env-quick-add-secret-toggle"),
+                                )
+                            }
+                            IconButtonWithTooltip(
+                                onClick = {
+                                    val trimmed = quickAddVarKey.trim()
+                                    if (trimmed.isNotEmpty()) {
+                                        val added = MutableKeyValue(trimmed, quickAddVarValue, enabled = true, secret = quickAddVarSecret)
+                                        workingVars.add(0, added)
+                                        quickAddVarKey = ""
+                                        quickAddVarValue = ""
+                                        quickAddVarSecret = false
+                                    }
+                                },
+                                tooltip = Strings.addVariable,
+                                modifier = Modifier.size(28.dp).testTag("env-quick-add-variable-button"),
+                            ) {
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_add),
+                                    contentDescription = Strings.addVariable,
+                                    tint = ClapiColors.Primary,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                            Spacer(Modifier.width(10.dp))
+                        }
+
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -603,6 +900,7 @@ fun EnvironmentEditDialog(
                                     },
                                     state = state,
                                     workingVars = workingVars,
+                                    isOverridden = kv.key.trim().isNotEmpty() && kv.key.trim() in inheritedKeys,
                                 )
                                 Box(Modifier.fillMaxWidth().height(1.dp).background(ClapiColors.Border))
                             }
@@ -807,6 +1105,183 @@ fun EnvironmentEditDialog(
                                 TableHeader("DESCRIPTION", Modifier.weight(1.5f))
                             }
                             Spacer(Modifier.width(36.dp))
+                        }
+
+                        // Quick-add row on top for external secrets
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(ClapiColors.SurfaceContainer)
+                                .border(1.dp, ClapiColors.Border)
+                                .padding(horizontal = 8.dp, vertical = 5.dp)
+                                .testTag("env-secret-quick-add-row"),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_add),
+                                    contentDescription = null,
+                                    tint = ClapiColors.Primary,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                            BasicTextField(
+                                value = quickAddSecName,
+                                onValueChange = { quickAddSecName = it },
+                                textStyle = TextStyle(color = ClapiColors.OnSurface, fontSize = 12.sp),
+                                singleLine = true,
+                                cursorBrush = SolidColor(ClapiColors.Primary),
+                                modifier = Modifier
+                                    .weight(1.2f)
+                                    .height(28.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(ClapiColors.Surface)
+                                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 8.dp, vertical = 5.dp)
+                                    .onPreviewKeyEvent {
+                                        if (it.type == KeyEventType.KeyDown && it.key == Key.Enter) {
+                                            val trimmedName = quickAddSecName.trim()
+                                            val trimmedPath = quickAddSecPath.trim()
+                                            if (trimmedName.isNotEmpty()) {
+                                                val defaultTarget = if (workingProvider == "keepassxc" || workingProvider == "keeper-security-cloud") "password" else ""
+                                                val sec = MutableExternalSecret(
+                                                    name = trimmedName,
+                                                    path = trimmedPath,
+                                                    targetField = quickAddSecTargetField.trim().ifBlank { defaultTarget },
+                                                )
+                                                workingSecrets.add(0, sec)
+                                                quickAddSecName = ""
+                                                quickAddSecPath = ""
+                                                quickAddSecTargetField = ""
+                                            }
+                                            true
+                                        } else false
+                                    }
+                                    .testTag("env-quick-add-secret-name"),
+                                decorationBox = { innerTextField ->
+                                    if (quickAddSecName.isEmpty()) {
+                                        Text(Strings.t("name"), color = ClapiColors.OnSurfaceDim, fontSize = 12.sp)
+                                    }
+                                    innerTextField()
+                                },
+                            )
+                            val pathPlaceholder = when (workingProvider) {
+                                "keepassxc" -> "Entry URL"
+                                "aws-secrets-manager" -> "Secret ID / Name"
+                                "azure-key-vault" -> "Secret Name"
+                                "gcp-secrets-manager" -> "Secret ID"
+                                "keeper-security-cloud" -> "Record Title"
+                                else -> "Path"
+                            }
+                            BasicTextField(
+                                value = quickAddSecPath,
+                                onValueChange = { quickAddSecPath = it },
+                                textStyle = TextStyle(color = ClapiColors.OnSurface, fontSize = 12.sp),
+                                singleLine = true,
+                                cursorBrush = SolidColor(ClapiColors.Primary),
+                                modifier = Modifier
+                                    .weight(1.5f)
+                                    .height(28.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(ClapiColors.Surface)
+                                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 8.dp, vertical = 5.dp)
+                                    .onPreviewKeyEvent {
+                                        if (it.type == KeyEventType.KeyDown && it.key == Key.Enter) {
+                                            val trimmedName = quickAddSecName.trim()
+                                            val trimmedPath = quickAddSecPath.trim()
+                                            if (trimmedName.isNotEmpty()) {
+                                                val defaultTarget = if (workingProvider == "keepassxc" || workingProvider == "keeper-security-cloud") "password" else ""
+                                                val sec = MutableExternalSecret(
+                                                    name = trimmedName,
+                                                    path = trimmedPath,
+                                                    targetField = quickAddSecTargetField.trim().ifBlank { defaultTarget },
+                                                )
+                                                workingSecrets.add(0, sec)
+                                                quickAddSecName = ""
+                                                quickAddSecPath = ""
+                                                quickAddSecTargetField = ""
+                                            }
+                                            true
+                                        } else false
+                                    }
+                                    .testTag("env-quick-add-secret-path"),
+                                decorationBox = { innerTextField ->
+                                    if (quickAddSecPath.isEmpty()) {
+                                        Text(pathPlaceholder, color = ClapiColors.OnSurfaceDim, fontSize = 12.sp)
+                                    }
+                                    innerTextField()
+                                },
+                            )
+                            BasicTextField(
+                                value = quickAddSecTargetField,
+                                onValueChange = { quickAddSecTargetField = it },
+                                textStyle = TextStyle(color = ClapiColors.OnSurface, fontSize = 12.sp),
+                                singleLine = true,
+                                cursorBrush = SolidColor(ClapiColors.Primary),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(28.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(ClapiColors.Surface)
+                                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 8.dp, vertical = 5.dp)
+                                    .onPreviewKeyEvent {
+                                        if (it.type == KeyEventType.KeyDown && it.key == Key.Enter) {
+                                            val trimmedName = quickAddSecName.trim()
+                                            val trimmedPath = quickAddSecPath.trim()
+                                            if (trimmedName.isNotEmpty()) {
+                                                val defaultTarget = if (workingProvider == "keepassxc" || workingProvider == "keeper-security-cloud") "password" else ""
+                                                val sec = MutableExternalSecret(
+                                                    name = trimmedName,
+                                                    path = trimmedPath,
+                                                    targetField = quickAddSecTargetField.trim().ifBlank { defaultTarget },
+                                                )
+                                                workingSecrets.add(0, sec)
+                                                quickAddSecName = ""
+                                                quickAddSecPath = ""
+                                                quickAddSecTargetField = ""
+                                            }
+                                            true
+                                        } else false
+                                    }
+                                    .testTag("env-quick-add-secret-target"),
+                                decorationBox = { innerTextField ->
+                                    if (quickAddSecTargetField.isEmpty()) {
+                                        Text("Target Field", color = ClapiColors.OnSurfaceDim, fontSize = 12.sp)
+                                    }
+                                    innerTextField()
+                                },
+                            )
+                            IconButtonWithTooltip(
+                                onClick = {
+                                    val trimmedName = quickAddSecName.trim()
+                                    val trimmedPath = quickAddSecPath.trim()
+                                    if (trimmedName.isNotEmpty()) {
+                                        val defaultTarget = if (workingProvider == "keepassxc" || workingProvider == "keeper-security-cloud") "password" else ""
+                                        val sec = MutableExternalSecret(
+                                            name = trimmedName,
+                                            path = trimmedPath,
+                                            targetField = quickAddSecTargetField.trim().ifBlank { defaultTarget },
+                                        )
+                                        workingSecrets.add(0, sec)
+                                        quickAddSecName = ""
+                                        quickAddSecPath = ""
+                                        quickAddSecTargetField = ""
+                                    }
+                                },
+                                tooltip = "Add Secret",
+                                modifier = Modifier.size(28.dp).testTag("env-quick-add-secret-button"),
+                            ) {
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_add),
+                                    contentDescription = "Add Secret",
+                                    tint = ClapiColors.Primary,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                            Spacer(Modifier.width(10.dp))
                         }
 
                         Box(

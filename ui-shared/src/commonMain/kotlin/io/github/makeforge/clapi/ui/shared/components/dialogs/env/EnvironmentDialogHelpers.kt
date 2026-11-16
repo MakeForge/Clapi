@@ -1,5 +1,6 @@
 package io.github.makeforge.clapi.ui.shared.components.dialogs.env
 
+import androidx.compose.ui.graphics.Color
 import io.github.makeforge.clapi.ui.shared.state.MutableKeyValue
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -107,5 +108,43 @@ internal fun visibleEnvironmentVariables(
 
 internal fun environmentVariableResultCountLabel(shown: Int, total: Int, template: String): String =
     template.replace("{shown}", shown.toString()).replace("{total}", total.toString())
+
+data class EnvironmentColorPreset(
+    val name: String,
+    val hex: String,
+)
+
+val ENVIRONMENT_COLOR_PRESETS = listOf(
+    EnvironmentColorPreset("Red", "#EF4444"),
+    EnvironmentColorPreset("Orange", "#F97316"),
+    EnvironmentColorPreset("Amber", "#F59E0B"),
+    EnvironmentColorPreset("Green", "#10B981"),
+    EnvironmentColorPreset("Cyan", "#06B6D4"),
+    EnvironmentColorPreset("Blue", "#3B82F6"),
+    EnvironmentColorPreset("Purple", "#8B5CF6"),
+    EnvironmentColorPreset("Gray", "#6B7280"),
+)
+
+fun parseHexColor(hex: String?): Color? {
+    if (hex.isNullOrBlank()) return null
+    val clean = hex.trim().removePrefix("#")
+    if (clean.length != 6 && clean.length != 8) return null
+    return runCatching {
+        if (clean.length == 6) {
+            Color(clean.toLong(16) or 0xFF000000L)
+        } else {
+            Color(clean.toLong(16))
+        }
+    }.getOrNull()
+}
+
+fun normalizeHexColor(hex: String?): String? {
+    if (hex.isNullOrBlank()) return null
+    val clean = hex.trim().removePrefix("#")
+    if (clean.length != 6 && clean.length != 8) return null
+    val isValid = clean.all { it in '0'..'9' || it in 'a'..'f' || it in 'A'..'F' }
+    if (!isValid) return null
+    return "#${clean.uppercase()}"
+}
 
 

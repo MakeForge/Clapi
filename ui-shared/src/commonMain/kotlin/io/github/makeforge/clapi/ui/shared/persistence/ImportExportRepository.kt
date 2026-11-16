@@ -52,6 +52,8 @@ object ImportExportNaming {
 data class ClapiEnvironmentDto(
     val name: String,
     val variables: Map<String, String>,
+    val color: String? = null,
+    val extends: String? = null,
     val externalSecretsProvider: String? = null,
     val externalSecrets: List<MutableExternalSecret> = emptyList(),
 )
@@ -232,7 +234,11 @@ object ImportExportRepository {
         val vars = buildJsonObject {
             environment.variables.forEach { v ->
                 val key = v.key.trim()
-                if (key.isNotEmpty()) put(key, v.value)
+                if (key.isNotEmpty()) {
+                    // Do not export secret values
+                    val valueToExport = if (v.secret) "" else v.value
+                    put(key, valueToExport)
+                }
             }
         }
         val isKeePassXc = environment.externalSecretsProvider.equals("keepassxc", ignoreCase = true)
@@ -374,6 +380,12 @@ object ImportExportRepository {
         return buildJsonObject {
             put("type", "clapiEnvironment")
             put("name", environment.name)
+            if (!environment.color.isNullOrBlank()) {
+                put("color", environment.color!!)
+            }
+            if (!environment.extends.isNullOrBlank()) {
+                put("extends", environment.extends!!)
+            }
             put("variables", vars)
             if (extSecretsJson != null) {
                 put("externalSecrets", extSecretsJson)
@@ -384,6 +396,8 @@ object ImportExportRepository {
     private fun environmentDtoFromJson(root: JsonObject): ClapiEnvironmentDto {
         val name = root["name"]?.jsonPrimitive?.contentOrNull
             ?: throw ImportExportException("Environment name is missing")
+        val color = root["color"]?.jsonPrimitive?.contentOrNull
+        val extends = root["extends"]?.jsonPrimitive?.contentOrNull
         val variables = root["variables"]?.jsonObject
             ?.mapValues { it.value.jsonPrimitive.contentOrNull ?: "" }
             ?: emptyMap()
@@ -424,6 +438,8 @@ object ImportExportRepository {
         return ClapiEnvironmentDto(
             name = name,
             variables = variables,
+            color = color,
+            extends = extends,
             externalSecretsProvider = provider,
             externalSecrets = secretsList,
         )
@@ -434,6 +450,8 @@ object ImportExportRepository {
         return EnvState(
             name = nameOverride,
             variables = variables,
+            color = dto.color,
+            extends = dto.extends,
             externalSecretsProvider = dto.externalSecretsProvider ?: "hashicorp-vault-server",
             externalSecrets = dto.externalSecrets,
         )
