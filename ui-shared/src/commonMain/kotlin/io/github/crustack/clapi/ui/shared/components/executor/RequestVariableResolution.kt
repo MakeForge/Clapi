@@ -4,6 +4,7 @@ import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.core.network.aws.AwsSecretsManagerClient
 import io.github.crustack.clapi.core.network.azure.AzureKeyVaultClient
 import io.github.crustack.clapi.core.network.gcp.GcpSecretManagerClient
+import io.github.crustack.clapi.core.network.keeper.KeeperClient
 import io.github.crustack.clapi.core.network.dynamicvar.DynamicVariableContext
 import io.github.crustack.clapi.core.network.dynamicvar.DynamicVariableRegistry
 import io.github.crustack.clapi.core.network.dynamicvar.OAuth2ResolvedConfig
@@ -28,6 +29,7 @@ internal suspend fun resolveExternalSecretsForTab(
     awsClient: AwsSecretsManagerClient? = null,
     azureClient: AzureKeyVaultClient? = null,
     gcpClient: GcpSecretManagerClient? = null,
+    keeperClient: KeeperClient? = null,
     processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
 ): Map<String, String>? {
     val secretVariableNames = state.selectedEnvironment?.variables
@@ -49,6 +51,7 @@ internal suspend fun resolveExternalSecretsForTab(
             targetField = it.targetField.ifBlank { defaultTarget }.trim(),
             customFilters = it.customFilters.toMap(),
             secretId = it.path.trim(),
+            recordTitle = it.path.trim(),
         )
     } ?: emptyList()
 
@@ -69,6 +72,9 @@ internal suspend fun resolveExternalSecretsForTab(
         }
         val gcpAccessToken = state.settings.gcpAccessToken.ifBlank {
             PlatformStorage.getSecretString("settings.gcpAccessToken").orEmpty()
+        }
+        val keeperConfigJson = state.settings.keeperConfigJson.ifBlank {
+            PlatformStorage.getSecretString("settings.keeperConfig").orEmpty()
         }
 
         secretResolutionService.resolveAllSecrets(
@@ -101,6 +107,8 @@ internal suspend fun resolveExternalSecretsForTab(
             gcpAccessToken = gcpAccessToken,
             gcpEndpointUrl = state.settings.gcpEndpointUrl,
             gcpClient = gcpClient,
+            keeperConfigJson = keeperConfigJson,
+            keeperClient = keeperClient,
             processEnvProvider = processEnvProvider,
         )
     } catch (e: Exception) {

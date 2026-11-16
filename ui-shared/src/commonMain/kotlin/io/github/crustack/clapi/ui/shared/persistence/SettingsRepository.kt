@@ -88,6 +88,9 @@ object SettingsRepository {
         settings.gcpProjectId       = PlatformStorage.getString(PREFIX + "gcpProjectId") ?: settings.gcpProjectId
         settings.gcpAccessToken     = PlatformStorage.getSecretString(PREFIX + "gcpAccessToken") ?: settings.gcpAccessToken
         settings.gcpEndpointUrl     = PlatformStorage.getString(PREFIX + "gcpEndpointUrl") ?: settings.gcpEndpointUrl
+
+        // Secrets Manager (Keeper Security Cloud)
+        settings.keeperConfigJson   = PlatformStorage.getSecretString(PREFIX + "keeperConfig") ?: settings.keeperConfigJson
     }
 
     // ── Save ───────────────────────────────────────────────────────────────
@@ -142,6 +145,13 @@ object SettingsRepository {
         PlatformStorage.putString(PREFIX + "gcpProjectId", settings.gcpProjectId)
         PlatformStorage.putSecretString(PREFIX + "gcpAccessToken", settings.gcpAccessToken)
         PlatformStorage.putString(PREFIX + "gcpEndpointUrl", settings.gcpEndpointUrl)
+
+        // Secrets Manager (Keeper Security Cloud)
+        if (settings.keeperConfigJson.isNotBlank()) {
+            PlatformStorage.putSecretString(PREFIX + "keeperConfig", settings.keeperConfigJson)
+        } else {
+            PlatformStorage.remove(PREFIX + "keeperConfig")
+        }
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────

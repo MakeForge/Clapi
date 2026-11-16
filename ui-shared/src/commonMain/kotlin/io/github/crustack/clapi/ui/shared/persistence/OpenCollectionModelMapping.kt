@@ -42,6 +42,7 @@ import io.github.crustack.clapi.core.model.opencollection.KeePassXcExternalSecre
 import io.github.crustack.clapi.core.model.opencollection.AwsSecretsManagerExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.AzureKeyVaultExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.GcpSecretsManagerExternalSecret
+import io.github.crustack.clapi.core.model.opencollection.KeeperSecurityExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestBody
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestDetails
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestHeader
@@ -366,6 +367,14 @@ fun Environment.toEnvState(): EnvState {
                 targetField = v.targetField,
                 customFilters = v.customFilters,
             )
+            is KeeperSecurityExternalSecret -> MutableExternalSecret(
+                name = v.name,
+                path = v.recordTitle,
+                description = v.description?.content ?: "",
+                enabled = v.disabled != true,
+                targetField = v.targetField,
+                customFilters = v.customFilters,
+            )
         }
     } ?: emptyList()
 
@@ -387,6 +396,7 @@ fun EnvState.toOpenCollectionEnvironment(): Environment {
     val isAws = externalSecretsProvider.equals("aws-secrets-manager", ignoreCase = true)
     val isAzure = externalSecretsProvider.equals("azure-key-vault", ignoreCase = true)
     val isGcp = externalSecretsProvider.equals("gcp-secrets-manager", ignoreCase = true)
+    val isKeeper = externalSecretsProvider.equals("keeper-security-cloud", ignoreCase = true)
     val extSecretList: List<ExternalSecretVariable> = when {
         isKeePassXc -> {
             externalSecrets
@@ -441,6 +451,20 @@ fun EnvState.toOpenCollectionEnvironment(): Environment {
                         version = "latest",
                         targetField = it.targetField.trim(),
                         projectId = it.url.trim(),
+                        customFilters = it.customFilters.toMap(),
+                        description = if (it.description.isNotBlank()) Description(content = it.description.trim()) else null,
+                        disabled = if (!it.enabled) true else null,
+                    )
+                }
+        }
+        isKeeper -> {
+            externalSecrets
+                .filter { it.name.trim().isNotEmpty() && it.path.trim().isNotEmpty() }
+                .map {
+                    KeeperSecurityExternalSecret(
+                        name = it.name.trim(),
+                        recordTitle = it.path.trim(),
+                        targetField = it.targetField.ifBlank { "password" }.trim(),
                         customFilters = it.customFilters.toMap(),
                         description = if (it.description.isNotBlank()) Description(content = it.description.trim()) else null,
                         disabled = if (!it.enabled) true else null,
@@ -620,6 +644,21 @@ fun EnvState.mergeFrom(incoming: Environment) {
                                 name = sec.name,
                                 path = sec.secretId,
                                 url = sec.projectId,
+                                description = sec.description?.content.orEmpty(),
+                                enabled = sec.disabled != true,
+                                targetField = sec.targetField,
+                                customFilters = sec.customFilters,
+                            )
+                        )
+                        existingSecretNames.add(sec.name)
+                    }
+                }
+                is KeeperSecurityExternalSecret -> {
+                    if (sec.name.isNotBlank() && sec.name !in existingSecretNames) {
+                        externalSecrets.add(
+                            MutableExternalSecret(
+                                name = sec.name,
+                                path = sec.recordTitle,
                                 description = sec.description?.content.orEmpty(),
                                 enabled = sec.disabled != true,
                                 targetField = sec.targetField,

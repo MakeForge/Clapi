@@ -5,6 +5,7 @@ import io.github.crustack.clapi.core.model.RequestDefinition
 import io.github.crustack.clapi.core.model.opencollection.AwsSecretsManagerExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.AzureKeyVaultExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.GcpSecretsManagerExternalSecret
+import io.github.crustack.clapi.core.model.opencollection.KeeperSecurityExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.ExternalSecretVariable
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
 import io.github.crustack.clapi.core.model.opencollection.GraphQLRequestItem
@@ -20,6 +21,7 @@ import io.github.crustack.clapi.core.network.NetworkEvent
 import io.github.crustack.clapi.core.network.VariableResolver
 import io.github.crustack.clapi.core.network.azure.AzureKeyVaultClient
 import io.github.crustack.clapi.core.network.gcp.GcpSecretManagerClient
+import io.github.crustack.clapi.core.network.keeper.KeeperClient
 import io.github.crustack.clapi.core.network.getEnvironmentVariable
 import io.github.crustack.clapi.core.network.grpc.DynamicGrpcClient
 import io.github.crustack.clapi.core.network.grpc.GrpcCallRequest
@@ -41,6 +43,7 @@ class RequestExecutionService(
         texts: Iterable<String>,
         externalSecrets: List<ExternalSecretVariable> = emptyList(),
         secretVariables: List<VariableEntry> = emptyList(),
+        variableValues: Map<String, String> = emptyMap(),
         vaultUrl: String? = null,
         vaultToken: String? = null,
         mountPath: String = "secret",
@@ -62,6 +65,8 @@ class RequestExecutionService(
         gcpAccessToken: String = "",
         gcpEndpointUrl: String = "https://secretmanager.googleapis.com",
         gcpClient: GcpSecretManagerClient? = null,
+        keeperConfigJson: String = "",
+        keeperClient: KeeperClient? = null,
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
     ): Map<String, String> {
         val declarations = externalSecrets.mapNotNull { sec ->
@@ -101,6 +106,15 @@ class RequestExecutionService(
                     providerType = "gcp-secrets-manager",
                     version = sec.version,
                 )
+                is KeeperSecurityExternalSecret -> SecretDeclaration(
+                    name = sec.name,
+                    path = sec.recordTitle,
+                    recordTitle = sec.recordTitle,
+                    targetField = sec.targetField,
+                    customFilters = sec.customFilters,
+                    enabled = sec.disabled != true,
+                    providerType = "keeper-security-cloud",
+                )
                 else -> null
             }
         }
@@ -116,6 +130,7 @@ class RequestExecutionService(
             vaultToken = vaultToken,
             mountPath = mountPath,
             namespace = namespace,
+            variableValues = variableValues,
             awsRegion = awsRegion,
             awsAccessKeyId = awsAccessKeyId,
             awsSecretAccessKey = awsSecretAccessKey,
@@ -133,6 +148,8 @@ class RequestExecutionService(
             gcpAccessToken = gcpAccessToken,
             gcpEndpointUrl = gcpEndpointUrl,
             gcpClient = gcpClient,
+            keeperConfigJson = keeperConfigJson,
+            keeperClient = keeperClient,
             processEnvProvider = processEnvProvider,
         )
     }
@@ -163,6 +180,8 @@ class RequestExecutionService(
         gcpAccessToken: String = "",
         gcpEndpointUrl: String = "https://secretmanager.googleapis.com",
         gcpClient: GcpSecretManagerClient? = null,
+        keeperConfigJson: String = "",
+        keeperClient: KeeperClient? = null,
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
     ): Flow<NetworkEvent> {
         val textsToScan = mutableListOf<String>()
@@ -170,6 +189,7 @@ class RequestExecutionService(
         request.headers.forEach { textsToScan.add(it.value) }
         request.queryParams.forEach { textsToScan.add(it.value) }
         request.body?.content?.let { textsToScan.add(it) }
+        val mergedVariables = buildMap { for (layer in variableLayers.asReversed()) putAll(layer) }
         val secretMap = resolveSecrets(
             texts = textsToScan,
             externalSecrets = externalSecrets,
@@ -178,6 +198,7 @@ class RequestExecutionService(
             vaultToken = vaultToken,
             mountPath = mountPath,
             namespace = namespace,
+            variableValues = mergedVariables,
             awsRegion = awsRegion,
             awsAccessKeyId = awsAccessKeyId,
             awsSecretAccessKey = awsSecretAccessKey,
@@ -195,6 +216,8 @@ class RequestExecutionService(
             gcpAccessToken = gcpAccessToken,
             gcpEndpointUrl = gcpEndpointUrl,
             gcpClient = gcpClient,
+            keeperConfigJson = keeperConfigJson,
+            keeperClient = keeperClient,
             processEnvProvider = processEnvProvider,
         )
         val effectiveLayers = if (secretMap.isNotEmpty()) listOf(secretMap) + variableLayers else variableLayers
@@ -228,6 +251,8 @@ class RequestExecutionService(
         gcpAccessToken: String = "",
         gcpEndpointUrl: String = "https://secretmanager.googleapis.com",
         gcpClient: GcpSecretManagerClient? = null,
+        keeperConfigJson: String = "",
+        keeperClient: KeeperClient? = null,
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
         includePaths: List<String> = emptyList(),
     ): GrpcCallResponse {
@@ -235,6 +260,7 @@ class RequestExecutionService(
         textsToScan.add(requestItem.grpc.url)
         textsToScan.add(requestItem.grpc.message.orEmpty())
         requestItem.grpc.metadata.forEach { textsToScan.add(it.value) }
+        val mergedVariables = buildMap { for (layer in variableLayers.asReversed()) putAll(layer) }
         val secretMap = resolveSecrets(
             texts = textsToScan,
             externalSecrets = externalSecrets,
@@ -243,6 +269,7 @@ class RequestExecutionService(
             vaultToken = vaultToken,
             mountPath = mountPath,
             namespace = namespace,
+            variableValues = mergedVariables,
             awsRegion = awsRegion,
             awsAccessKeyId = awsAccessKeyId,
             awsSecretAccessKey = awsSecretAccessKey,
@@ -260,6 +287,8 @@ class RequestExecutionService(
             gcpAccessToken = gcpAccessToken,
             gcpEndpointUrl = gcpEndpointUrl,
             gcpClient = gcpClient,
+            keeperConfigJson = keeperConfigJson,
+            keeperClient = keeperClient,
             processEnvProvider = processEnvProvider,
         )
         val effectiveLayers = if (secretMap.isNotEmpty()) listOf(secretMap) + variableLayers else variableLayers
