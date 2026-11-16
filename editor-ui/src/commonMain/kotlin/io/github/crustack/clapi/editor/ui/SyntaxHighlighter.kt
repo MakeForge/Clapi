@@ -13,7 +13,7 @@ import io.github.crustack.clapi.editor.core.TokenType
 /**
  * Single-responsibility interface for turning source text into a styled [AnnotatedString].
  *
- * Separated from [io.github.crustack.editor.core.LanguageModeProvider] (ISP) because highlighting
+ * Separated from [io.github.crustack.clapi.editor.core.LanguageModeProvider] (ISP) because highlighting
  * is a UI concern (Compose) while tokenization is a pure-Kotlin concern.
  *
  * Custom implementations can be registered per language via [SyntaxHighlighterRegistry]:

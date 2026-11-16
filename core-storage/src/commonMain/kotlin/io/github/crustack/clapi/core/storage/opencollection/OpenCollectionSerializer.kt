@@ -265,7 +265,7 @@ object OpenCollectionSerializer {
         return quote == '"' || quote == '\''
     }
 
-    private fun jsonElementToYaml(element: JsonElement, indent: Int = 0): String {
+    fun jsonElementToYaml(element: JsonElement, indent: Int = 0): String {
         val indentStr = "  ".repeat(indent)
         return when (element) {
             is JsonPrimitive -> {

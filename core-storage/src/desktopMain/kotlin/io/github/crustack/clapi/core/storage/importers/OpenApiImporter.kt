@@ -169,35 +169,69 @@ actual class OpenApiImporter actual constructor() : SpecificationImporter {
         )
 
         val candidateEnvironments = mutableListOf<ImportCandidateEnvironment>()
-        val servers = openAPI.getServers()
-        if (!servers.isNullOrEmpty()) {
-            val primaryServer = servers.first()
-            val serverUrl = primaryServer.getUrl()?.takeIf { s: String -> s.isNotBlank() } ?: "http://localhost"
-            val envVariables = mutableListOf<RegularVariable>(
-                RegularVariable(name = "baseUrl", value = VariableValue.of(serverUrl))
-            )
-            primaryServer.getVariables()?.forEach { (varName, varObj) ->
-                val defaultVal = varObj.getDefault() ?: ""
-                envVariables.add(RegularVariable(name = varName, value = VariableValue.of(defaultVal)))
+        val xEnvs = openAPI.extensions?.get("x-environments") as? List<*>
+        if (!xEnvs.isNullOrEmpty()) {
+            for (envObj in xEnvs) {
+                if (envObj is Map<*, *>) {
+                    val envName = envObj["name"]?.toString()?.takeIf { it.isNotBlank() } ?: "Imported Environment"
+                    val varsMap = envObj["variables"] as? Map<*, *>
+                    val envVariables = mutableListOf<RegularVariable>()
+                    varsMap?.forEach { (k, v) ->
+                        val kStr = k?.toString()?.trim().orEmpty()
+                        if (kStr.isNotEmpty()) {
+                            envVariables.add(RegularVariable(name = kStr, value = VariableValue.of(v?.toString() ?: "")))
+                        }
+                    }
+                    val env = Environment(
+                        name = envName,
+                        variables = envVariables,
+                    )
+                    candidateEnvironments.add(
+                        ImportCandidateEnvironment(
+                            id = UUID.randomUUID().toString(),
+                            originalName = envName,
+                            name = envName,
+                            environment = env,
+                            variableCount = envVariables.size,
+                            selected = true,
+                            hasConflict = false,
+                        )
+                    )
+                }
             }
+        }
 
-            val envName = "$specTitle Environment"
-            val env = Environment(
-                name = envName,
-                variables = envVariables
-            )
-
-            candidateEnvironments.add(
-                ImportCandidateEnvironment(
-                    id = UUID.randomUUID().toString(),
-                    originalName = envName,
-                    name = envName,
-                    environment = env,
-                    variableCount = envVariables.size,
-                    selected = true,
-                    hasConflict = false,
+        if (candidateEnvironments.isEmpty()) {
+            val servers = openAPI.getServers()
+            if (!servers.isNullOrEmpty()) {
+                val primaryServer = servers.first()
+                val serverUrl = primaryServer.getUrl()?.takeIf { s: String -> s.isNotBlank() } ?: "http://localhost"
+                val envVariables = mutableListOf<RegularVariable>(
+                    RegularVariable(name = "baseUrl", value = VariableValue.of(serverUrl))
                 )
-            )
+                primaryServer.getVariables()?.forEach { (varName, varObj) ->
+                    val defaultVal = varObj.getDefault() ?: ""
+                    envVariables.add(RegularVariable(name = varName, value = VariableValue.of(defaultVal)))
+                }
+
+                val envName = "$specTitle Environment"
+                val env = Environment(
+                    name = envName,
+                    variables = envVariables
+                )
+
+                candidateEnvironments.add(
+                    ImportCandidateEnvironment(
+                        id = UUID.randomUUID().toString(),
+                        originalName = envName,
+                        name = envName,
+                        environment = env,
+                        variableCount = envVariables.size,
+                        selected = true,
+                        hasConflict = false,
+                    )
+                )
+            }
         }
 
         return ImportScanResult.Success(

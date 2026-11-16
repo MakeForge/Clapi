@@ -16,19 +16,19 @@ import io.github.crustack.clapi.editor.ui.computeVisibleLines as editorComputeVi
 
 /**
  * Backward-compatible type alias for [EditorFoldRegion].
- * New code should use [io.github.crustack.editor.ui.FoldRegion] directly.
+ * New code should use [io.github.crustack.clapi.editor.ui.FoldRegion] directly.
  */
 typealias FoldRegion = EditorFoldRegion
 
 /**
  * Backward-compatible type alias for [EditorVisibleLine].
- * New code should use [io.github.crustack.editor.ui.VisibleLine] directly.
+ * New code should use [io.github.crustack.clapi.editor.ui.VisibleLine] directly.
  */
 typealias VisibleLine = EditorVisibleLine
 
 /**
  * Backward-compatible type alias for [EditorFoldState].
- * New code should use [io.github.crustack.editor.ui.FoldState] directly.
+ * New code should use [io.github.crustack.clapi.editor.ui.FoldState] directly.
  */
 typealias FoldState = EditorFoldState
 

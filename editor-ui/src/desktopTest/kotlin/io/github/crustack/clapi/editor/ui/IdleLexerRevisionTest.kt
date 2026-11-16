@@ -29,7 +29,7 @@ class IdleLexerRevisionTest {
         val releaseFirst = CountDownLatch(1)
         val provider = object : LanguageModeProvider by PlainTextMode {
             override fun tokenizeRangeIntoBuffer(
-                document: io.github.crustack.editor.core.DocumentModel,
+                document: io.github.crustack.clapi.editor.core.DocumentModel,
                 fromChar: Int,
                 toChar: Int,
                 buffer: StyleBuffer,

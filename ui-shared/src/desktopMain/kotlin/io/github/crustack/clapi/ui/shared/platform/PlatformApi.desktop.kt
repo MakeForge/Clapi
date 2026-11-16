@@ -88,12 +88,25 @@ actual fun saveFileForExport(content: String, defaultFilename: String) {
     val chooser = JFileChooser()
     chooser.applyRememberedDirectory()
     chooser.selectedFile = File(chooser.currentDirectory, defaultFilename)
-    chooser.fileFilter = FileNameExtensionFilter("JSON files", "json")
-    if (chooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-        var file = chooser.selectedFile
-        if (!file.name.endsWith(".json")) file = File(file.absolutePath + ".json")
-        rememberChooserDirectory(file)
-        runCatching { file.writeText(content) }
+    val ext = defaultFilename.substringAfterLast('.', "").lowercase()
+    if (ext == "yaml" || ext == "yml") {
+        chooser.fileFilter = FileNameExtensionFilter("YAML files (*.yaml, *.yml)", "yaml", "yml")
+        if (chooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+            var file = chooser.selectedFile
+            if (!file.name.endsWith(".yaml", ignoreCase = true) && !file.name.endsWith(".yml", ignoreCase = true)) {
+                file = File(file.absolutePath + ".yaml")
+            }
+            rememberChooserDirectory(file)
+            runCatching { file.writeText(content) }
+        }
+    } else {
+        chooser.fileFilter = FileNameExtensionFilter("JSON files (*.json)", "json")
+        if (chooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+            var file = chooser.selectedFile
+            if (!file.name.endsWith(".json", ignoreCase = true)) file = File(file.absolutePath + ".json")
+            rememberChooserDirectory(file)
+            runCatching { file.writeText(content) }
+        }
     }
 }
 
