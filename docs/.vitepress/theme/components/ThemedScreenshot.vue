@@ -100,7 +100,7 @@ function onKeyDown(e: KeyboardEvent) {
               ✕
             </button>
           </div>
-          <div class="lightbox-image-container">
+          <div class="lightbox-image-container" @click="closeLightbox">
             <img
               :src="withBase(light)"
               :alt="alt || ''"
@@ -131,7 +131,7 @@ function onKeyDown(e: KeyboardEvent) {
   background: var(--vp-c-bg-soft);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   overflow: hidden;
-  cursor: zoom-in;
+  cursor: pointer;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -292,5 +292,6 @@ function onKeyDown(e: KeyboardEvent) {
   object-fit: contain;
   border-radius: 6px;
   display: block;
+  cursor: zoom-out;
 }
 </style>

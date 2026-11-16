@@ -20,10 +20,10 @@ export default defineConfig({
       {
         text: 'Getting Started',
         items: [
-          { text: 'Overview & Highlights', link: '/guide/' },
-          { text: 'Installation & Setup', link: '/guide/installation' },
+          { text: 'Overview', link: '/guide/' },
+          { text: 'Installation', link: '/guide/installation' },
           { text: 'Quickstart', link: '/guide/quickstart' },
-          { text: 'Core Concepts & UI Anatomy', link: '/guide/core-concepts' }
+          { text: 'Core Concepts', link: '/guide/core-concepts' }
         ],
         activeMatch: '/guide/'
       },
@@ -87,10 +87,10 @@ export default defineConfig({
         {
           text: 'Getting Started',
           items: [
-            { text: 'Overview & Highlights', link: '/guide/' },
-            { text: 'Installation & Setup', link: '/guide/installation' },
+            { text: 'Overview', link: '/guide/' },
+            { text: 'Installation', link: '/guide/installation' },
             { text: 'Quickstart', link: '/guide/quickstart' },
-            { text: 'Core Concepts & UI Anatomy', link: '/guide/core-concepts' }
+            { text: 'Core Concepts', link: '/guide/core-concepts' }
           ]
         }
       ],

@@ -345,6 +345,17 @@ tasks.register<Exec>("runClapiJar") {
 tasks.withType<Test>().configureEach {
     useJUnit()
     systemProperty("java.util.prefs.userRoot", layout.buildDirectory.dir("tmp/prefs").get().asFile.absolutePath)
+    // When running Roborazzi tasks, skip regular unit/integration tests (like sample-server tests)
+    val isRoborazziRun = gradle.startParameter.taskNames.any {
+        it.contains("Roborazzi", ignoreCase = true) || it.contains("Screenshots", ignoreCase = true)
+    }
+    if (isRoborazziRun) {
+        filter {
+            // Roborazzi generates test classes under the `roborazzi` package or ending in `PreviewTest`
+            includeTestsMatching("*Roborazzi*")
+            includeTestsMatching("*Preview*")
+        }
+    }
 }
 
 tasks.withType<JavaExec>().configureEach {
