@@ -4,7 +4,7 @@ package io.github.makeforge.clapi.core.scripting
  * Evaluates a JavaScript program string and returns the result as a string.
  *
  * Each platform provides a concrete implementation:
- * - **Desktop / Android (JVM):** GraalVM Polyglot JS engine
+ * - **Desktop / Android (JVM):** Javet V8 JS engine
  * - **wasmJs / js (Browser):** Native `eval()`
  * - **iOS (Native):** JavaScriptCore (`JSContext`)
  *

@@ -21,17 +21,30 @@ kotlin {
 
         val desktopMain by getting {
             dependencies {
-                implementation(libs.graalvm.polyglot)
-                implementation(libs.graalvm.js)
+                implementation(libs.javet)
+                val osName = System.getProperty("os.name").lowercase()
+                val osArch = System.getProperty("os.arch").lowercase()
+                val isArm64 = osArch == "aarch64" || osArch == "arm64"
+                when {
+                    osName.contains("linux") -> {
+                        if (isArm64) {
+                            runtimeOnly(libs.javet.v8.linux.arm64)
+                        } else {
+                            runtimeOnly(libs.javet.v8.linux.x8664)
+                        }
+                    }
+                    osName.contains("mac") || osName.contains("darwin") -> {
+                        if (isArm64) {
+                            runtimeOnly(libs.javet.v8.macos.arm64)
+                        } else {
+                            runtimeOnly(libs.javet.v8.macos.x8664)
+                        }
+                    }
+                    osName.contains("win") -> {
+                        runtimeOnly(libs.javet.v8.windows.x8664)
+                    }
+                }
             }
         }
     }
 }
-
-// GraalVM Polyglot requires module access on standard JDK 21 (non-GraalVM JDK).
-tasks.matching { it.name == "desktopTest" }
-    .configureEach {
-        (this as Test).jvmArgs(
-            "-Dpolyglot.engine.WarnInterpreterOnly=false",
-        )
-    }
