@@ -46,3 +46,7 @@ Clapi provides built-in auto-completion for common HTTP request headers and MIME
 - `Content-Type`: `application/json`, `multipart/form-data`, `application/x-www-form-urlencoded`
 - `Authorization`: `Bearer {{token}}`, `Basic {{credentials}}`
 - `User-Agent`: Customizable per collection or globally
+
+::: tip Inserting Variables & Secrets
+Press **`Ctrl + Space`** inside any header key or value input to trigger autocomplete for environment variables and external secrets. See the [Keyboard Shortcuts](/reference/shortcuts) page for details.
+:::

@@ -14,8 +14,6 @@ description: Understanding Clapi's embedded Javet V8 JavaScript scripting runtim
 
 Clapi includes an embedded **Google V8 JavaScript engine** via [Javet](https://github.com/caoccao/Javet) (`com.caoccao.javet:javet`). Unlike lightweight JavaScript interpreters (like Nashorn or Rhino), Javet runs real Google V8 native binaries, providing modern ECMAScript (ES2023+) syntax support, high execution speed, and tight memory isolation.
 
----
-
 ## Script Execution Lifecycle
 
 ```
@@ -36,8 +34,6 @@ Clapi includes an embedded **Google V8 JavaScript engine** via [Javet](https://g
          ▼
 [Test Results Rendered in UI]
 ```
-
----
 
 ## Sandbox Security
 

@@ -31,8 +31,10 @@ import io.github.makeforge.clapi.core.model.opencollection.MultipartPartType
 import io.github.makeforge.clapi.core.model.opencollection.OpenCollectionDocument
 import io.github.makeforge.clapi.core.model.opencollection.RawBody
 import io.github.makeforge.clapi.core.model.opencollection.RequestBodyType
+import io.github.makeforge.clapi.core.model.opencollection.DynamicVariable
 import io.github.makeforge.clapi.core.model.opencollection.RegularVariable
 import io.github.makeforge.clapi.core.model.opencollection.SecretVariable
+import io.github.makeforge.clapi.core.model.opencollection.VariableEntry
 import io.github.makeforge.clapi.core.network.VariableResolver
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -76,6 +78,15 @@ interface HttpExecutionAdapter {
         globalVariables: Map<String, String> = emptyMap(),
         secretResolver: ((variableName: String) -> String?)? = null,
     ): List<Map<String, String>>
+
+    fun collectDynamicVariables(
+        requestItem: HttpRequestItem? = null,
+        runtimeVariables: Map<String, String> = emptyMap(),
+        environment: Environment? = null,
+        environmentVariables: Map<String, String> = emptyMap(),
+        parentHierarchy: List<FolderItem> = emptyList(),
+        collectionRoot: OpenCollectionDocument? = null,
+    ): List<DynamicVariable> = emptyList()
 
     /**
      * Resolves template variables in [value] against [variableLayers].
@@ -255,10 +266,33 @@ object DefaultHttpExecutionAdapter : HttpExecutionAdapter {
         secretResolver: ((variableName: String) -> String?)?,
     ): List<Map<String, String>> {
         val layers = mutableListOf<Map<String, String>>()
+        val definedStaticNames = mutableSetOf<String>()
+        val shadowedByDynamic = mutableSetOf<String>()
 
         // 1. Request / Runtime variables [Highest Precedence]
         val requestVars = mutableMapOf<String, String>()
-        requestVars.putAll(runtimeVariables)
+        requestItem?.runtime?.variables?.forEach { v ->
+            if (v.disabled != true) {
+                when (v) {
+                    is RegularVariable -> v.value?.asString?.let {
+                        requestVars[v.name] = it
+                        definedStaticNames.add(v.name)
+                    }
+                    is SecretVariable -> secretResolver?.invoke(v.name)?.let {
+                        requestVars[v.name] = it
+                        definedStaticNames.add(v.name)
+                    }
+                    is DynamicVariable -> if (v.name !in definedStaticNames) {
+                        shadowedByDynamic.add(v.name)
+                    }
+                }
+            }
+        }
+        runtimeVariables.forEach { (k, v) ->
+            requestVars[k] = v
+            definedStaticNames.add(k)
+            shadowedByDynamic.remove(k)
+        }
         if (requestVars.isNotEmpty()) {
             layers.add(requestVars)
         }
@@ -266,14 +300,28 @@ object DefaultHttpExecutionAdapter : HttpExecutionAdapter {
         // 2. Selected Environment variables
         val envVars = mutableMapOf<String, String>()
         environment?.variables?.forEach { v ->
-            if (v.disabled != true) {
+            if (v.disabled != true && v.name !in shadowedByDynamic) {
                 when (v) {
-                    is RegularVariable -> v.value?.asString?.let { envVars[v.name] = it }
-                    is SecretVariable -> secretResolver?.invoke(v.name)?.let { envVars[v.name] = it }
+                    is RegularVariable -> v.value?.asString?.let {
+                        envVars[v.name] = it
+                        definedStaticNames.add(v.name)
+                    }
+                    is SecretVariable -> secretResolver?.invoke(v.name)?.let {
+                        envVars[v.name] = it
+                        definedStaticNames.add(v.name)
+                    }
+                    is DynamicVariable -> if (v.name !in definedStaticNames) {
+                        shadowedByDynamic.add(v.name)
+                    }
                 }
             }
         }
-        envVars.putAll(environmentVariables)
+        environmentVariables.forEach { (k, v) ->
+            if (k !in shadowedByDynamic) {
+                envVars[k] = v
+                definedStaticNames.add(k)
+            }
+        }
         if (envVars.isNotEmpty()) {
             layers.add(envVars)
         }
@@ -283,10 +331,19 @@ object DefaultHttpExecutionAdapter : HttpExecutionAdapter {
         for (folder in leafFirstFolders) {
             val fVars = mutableMapOf<String, String>()
             folder.request?.variables?.forEach { v ->
-                if (v.disabled != true) {
+                if (v.disabled != true && v.name !in shadowedByDynamic) {
                     when (v) {
-                        is RegularVariable -> v.value?.asString?.let { fVars[v.name] = it }
-                        is SecretVariable -> secretResolver?.invoke(v.name)?.let { fVars[v.name] = it }
+                        is RegularVariable -> v.value?.asString?.let {
+                            fVars[v.name] = it
+                            definedStaticNames.add(v.name)
+                        }
+                        is SecretVariable -> secretResolver?.invoke(v.name)?.let {
+                            fVars[v.name] = it
+                            definedStaticNames.add(v.name)
+                        }
+                        is DynamicVariable -> if (v.name !in definedStaticNames) {
+                            shadowedByDynamic.add(v.name)
+                        }
                     }
                 }
             }
@@ -298,10 +355,19 @@ object DefaultHttpExecutionAdapter : HttpExecutionAdapter {
         // 4. Collection-level variables
         val colVars = mutableMapOf<String, String>()
         collectionRoot?.request?.variables?.forEach { v ->
-            if (v.disabled != true) {
+            if (v.disabled != true && v.name !in shadowedByDynamic) {
                 when (v) {
-                    is RegularVariable -> v.value?.asString?.let { colVars[v.name] = it }
-                    is SecretVariable -> secretResolver?.invoke(v.name)?.let { colVars[v.name] = it }
+                    is RegularVariable -> v.value?.asString?.let {
+                        colVars[v.name] = it
+                        definedStaticNames.add(v.name)
+                    }
+                    is SecretVariable -> secretResolver?.invoke(v.name)?.let {
+                        colVars[v.name] = it
+                        definedStaticNames.add(v.name)
+                    }
+                    is DynamicVariable -> if (v.name !in definedStaticNames) {
+                        shadowedByDynamic.add(v.name)
+                    }
                 }
             }
         }
@@ -311,10 +377,48 @@ object DefaultHttpExecutionAdapter : HttpExecutionAdapter {
 
         // 5. Global variables [Lowest Precedence]
         if (globalVariables.isNotEmpty()) {
-            layers.add(globalVariables)
+            val filteredGlobals = globalVariables.filterKeys { it !in shadowedByDynamic }
+            if (filteredGlobals.isNotEmpty()) {
+                layers.add(filteredGlobals)
+            }
         }
 
         return layers
+    }
+
+    override fun collectDynamicVariables(
+        requestItem: HttpRequestItem?,
+        runtimeVariables: Map<String, String>,
+        environment: Environment?,
+        environmentVariables: Map<String, String>,
+        parentHierarchy: List<FolderItem>,
+        collectionRoot: OpenCollectionDocument?,
+    ): List<DynamicVariable> {
+        val effective = LinkedHashMap<String, DynamicVariable>()
+
+        fun applyEntries(entries: List<VariableEntry>?) {
+            entries?.forEach { v ->
+                if (v.disabled != true && v.name.isNotBlank()) {
+                    when (v) {
+                        is DynamicVariable -> effective[v.name] = v
+                        is RegularVariable, is SecretVariable -> effective.remove(v.name)
+                    }
+                }
+            }
+        }
+
+        // Apply from lowest precedence to highest precedence
+        applyEntries(collectionRoot?.request?.variables)
+        val rootFirstFolders = normalizeToRootFirst(parentHierarchy)
+        for (folder in rootFirstFolders) {
+            applyEntries(folder.request?.variables)
+        }
+        applyEntries(environment?.variables)
+        environmentVariables.keys.forEach { effective.remove(it) }
+        applyEntries(requestItem?.runtime?.variables)
+        runtimeVariables.keys.forEach { effective.remove(it) }
+
+        return effective.values.toList()
     }
 
     override fun resolveVariables(

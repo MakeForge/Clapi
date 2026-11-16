@@ -229,6 +229,23 @@ object Strings {
     val summary: String @Composable @ReadOnlyComposable get() = t("summary")
     val version: String @Composable @ReadOnlyComposable get() = t("version")
 
+    val dynamic: String @Composable @ReadOnlyComposable get() = t("dynamic")
+    val editScript: String @Composable @ReadOnlyComposable get() = t("edit_script")
+    val dynamicVariableEditor: String @Composable @ReadOnlyComposable get() = t("dynamic_variable_editor")
+    val parameters: String @Composable @ReadOnlyComposable get() = t("parameters")
+    val addParameter: String @Composable @ReadOnlyComposable get() = t("add_parameter")
+    val parameterName: String @Composable @ReadOnlyComposable get() = t("parameter_name")
+    val defaultValue: String @Composable @ReadOnlyComposable get() = t("default_value")
+    val runTest: String @Composable @ReadOnlyComposable get() = t("run_test")
+    val testExecution: String @Composable @ReadOnlyComposable get() = t("test_execution")
+    val mockRequestContext: String @Composable @ReadOnlyComposable get() = t("mock_request_context")
+    val returnValue: String @Composable @ReadOnlyComposable get() = t("return_value")
+    val consoleOutput: String @Composable @ReadOnlyComposable get() = t("console_output")
+    val noOutputYet: String @Composable @ReadOnlyComposable get() = t("no_output_yet")
+    val scriptError: String @Composable @ReadOnlyComposable get() = t("script_error")
+    val dynamicScriptContextHint: String @Composable @ReadOnlyComposable get() = t("dynamic_script_context_hint")
+    val dynamicVariablesDocs: String @Composable @ReadOnlyComposable get() = t("dynamic_variables_docs")
+
     @Composable
     @ReadOnlyComposable
     fun t(key: String): String = LocalI18n.current.get(key)

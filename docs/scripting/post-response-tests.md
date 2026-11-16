@@ -13,8 +13,6 @@ description: Writing automated tests against HTTP status codes, headers, respons
 
 In the **Tests** tab, you can write automated assertions that validate whether the received response meets your API contract. Tests execute immediately upon response arrival, and the results appear in the **Tests** sub-tab in the response viewer.
 
----
-
 ## Writing Assertions
 
 Clapi provides a BDD/Chai-compatible assertion syntax:
@@ -43,8 +41,6 @@ clapi.test("User object contains required fields", function () {
   clapi.expect(data.roles).to.be.an("array").that.includes("admin");
 });
 ```
-
----
 
 ## Extracting Response Tokens into Variables
 

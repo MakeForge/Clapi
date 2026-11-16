@@ -12,3 +12,5 @@ package io.github.makeforge.clapi.core.scripting
  * that returns a JSON string with test results, logs, and variable changes.
  */
 internal expect fun evaluateJs(script: String): String
+
+internal expect fun evaluateJsWithTimeout(script: String, timeoutMs: Long): String

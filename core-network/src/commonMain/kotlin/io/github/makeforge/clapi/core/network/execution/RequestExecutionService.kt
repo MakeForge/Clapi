@@ -3,6 +3,8 @@ package io.github.makeforge.clapi.core.network.execution
 import io.github.makeforge.clapi.core.model.RequestDefinition
 import io.github.makeforge.clapi.core.model.opencollection.AwsSecretsManagerExternalSecret
 import io.github.makeforge.clapi.core.model.opencollection.AzureKeyVaultExternalSecret
+import io.github.makeforge.clapi.core.model.opencollection.DynamicVariable
+import io.github.makeforge.clapi.core.model.opencollection.Environment
 import io.github.makeforge.clapi.core.model.opencollection.ExternalSecretVariable
 import io.github.makeforge.clapi.core.model.opencollection.FolderItem
 import io.github.makeforge.clapi.core.model.opencollection.GcpSecretsManagerExternalSecret
@@ -19,7 +21,9 @@ import io.github.makeforge.clapi.core.network.ApiClient
 import io.github.makeforge.clapi.core.network.NetworkEvent
 import io.github.makeforge.clapi.core.network.VariableResolver
 import io.github.makeforge.clapi.core.network.azure.AzureKeyVaultClient
+import io.github.makeforge.clapi.core.network.dynamicvar.DynamicVariableContext
 import io.github.makeforge.clapi.core.network.dynamicvar.DynamicVariableRegistry
+import io.github.makeforge.clapi.core.network.dynamicvar.DynamicVariableResolutionException
 import io.github.makeforge.clapi.core.network.gcp.GcpSecretManagerClient
 import io.github.makeforge.clapi.core.network.getEnvironmentVariable
 import io.github.makeforge.clapi.core.network.grpc.DynamicGrpcClient
@@ -35,6 +39,7 @@ import io.github.makeforge.clapi.core.network.vault.SecretDeclaration
 import io.github.makeforge.clapi.core.network.vault.SecretResolutionContext
 import io.github.makeforge.clapi.core.network.vault.SecretResolutionService
 import io.github.makeforge.clapi.core.network.vault.VaultProviderConfig
+import io.github.makeforge.clapi.core.scripting.RequestContext
 import kotlinx.coroutines.flow.Flow
 
 class RequestExecutionService(
@@ -405,14 +410,66 @@ class RequestExecutionService(
 
     fun execute(
         request: RequestDefinition,
-        variableLayers: List<Map<String, String>> = emptyList()
-    ): Flow<NetworkEvent> = apiClient.execute(request, variableLayers)
+        variableLayers: List<Map<String, String>> = emptyList(),
+        userDynamicVariables: List<DynamicVariable> = emptyList(),
+    ): Flow<NetworkEvent> {
+        val effectiveLayers = if (userDynamicVariables.isNotEmpty()) {
+            val resolvedDynMap = resolveUserDynamicTokensSync(request, variableLayers, userDynamicVariables)
+            if (resolvedDynMap.isNotEmpty()) listOf(resolvedDynMap) + variableLayers else variableLayers
+        } else {
+            variableLayers
+        }
+        return apiClient.execute(request, effectiveLayers)
+    }
+
+    private fun resolveUserDynamicTokensSync(
+        request: RequestDefinition,
+        variableLayers: List<Map<String, String>>,
+        userDynamicVariables: List<DynamicVariable>,
+    ): Map<String, String> {
+        val activeUserDynMap = userDynamicVariables
+            .filter { it.disabled != true && it.name.isNotBlank() }
+            .associateBy { it.name.trim() }
+        if (activeUserDynMap.isEmpty()) return emptyMap()
+
+        val reqCtx = RequestContext(
+            url = VariableResolver.resolve(request.url, variableLayers, removeUnresolved = false),
+            method = request.method.name,
+            headers = request.headers.filter { it.enabled }.associate {
+                VariableResolver.resolve(it.key, variableLayers, removeUnresolved = false) to
+                    VariableResolver.resolve(it.value, variableLayers, removeUnresolved = false)
+            },
+            name = request.name,
+        )
+
+        val tokens = dynamicVariableRegistry.extractTokens(request.extractTemplateStrings())
+        val resolved = LinkedHashMap<String, String>()
+        for (rawToken in tokens) {
+            val parsed = VariableResolver.parseVariableToken(rawToken)
+            val dynVar = activeUserDynMap[parsed.name] ?: continue
+            if (parsed.hasMalformedSyntax) {
+                throw DynamicVariableResolutionException(
+                    "Malformed dynamic variable invocation '{{$rawToken}}' for variable '${dynVar.name}'"
+                )
+            }
+            val scriptCtx = VariableResolver.buildScriptContext(dynVar, parsed.args, reqCtx)
+            val execResult = VariableResolver.defaultDynamicEngine.evaluateDynamicVariable(dynVar.script, scriptCtx)
+            if (!execResult.success) {
+                throw DynamicVariableResolutionException(
+                    "Dynamic variable '${dynVar.name}' execution failed: ${execResult.errorMessage ?: "Unknown error"}"
+                )
+            }
+            resolved[rawToken.trim()] = execResult.returnValue ?: ""
+        }
+        return resolved
+    }
 
     fun execute(
         requestItem: HttpRequestItem,
         parentHierarchy: List<FolderItem> = emptyList(),
         collectionRoot: OpenCollectionDocument? = null,
-        variableLayers: List<Map<String, String>> = emptyList()
+        variableLayers: List<Map<String, String>> = emptyList(),
+        environment: Environment? = null,
     ): Flow<NetworkEvent> {
         val request = adapter.toExecutableRequest(requestItem, parentHierarchy, collectionRoot)
         val layers = if (variableLayers.isNotEmpty()) {
@@ -420,32 +477,48 @@ class RequestExecutionService(
         } else {
             adapter.buildVariableLayers(
                 requestItem = requestItem,
+                environment = environment,
                 parentHierarchy = parentHierarchy,
-                collectionRoot = collectionRoot
+                collectionRoot = collectionRoot,
             )
         }
-        return apiClient.execute(request, layers)
+        val userDynamicVariables = adapter.collectDynamicVariables(
+            requestItem = requestItem,
+            environment = environment,
+            parentHierarchy = parentHierarchy,
+            collectionRoot = collectionRoot,
+        )
+        return execute(request, layers, userDynamicVariables)
     }
 
     fun execute(
         requestItem: GraphQLRequestItem,
         parentHierarchy: List<FolderItem> = emptyList(),
         collectionRoot: OpenCollectionDocument? = null,
-        variableLayers: List<Map<String, String>> = emptyList()
+        variableLayers: List<Map<String, String>> = emptyList(),
+        environment: Environment? = null,
     ): Flow<NetworkEvent> {
         val request = adapter.toExecutableRequest(requestItem, parentHierarchy, collectionRoot)
+        val runtimeVars = requestItem.runtime?.variables?.mapNotNull { v ->
+            (v as? RegularVariable)?.let { it.name to (it.value?.asString ?: "") }
+        }?.toMap() ?: emptyMap()
         val layers = if (variableLayers.isNotEmpty()) {
             variableLayers
         } else {
             adapter.buildVariableLayers(
-                runtimeVariables = requestItem.runtime?.variables?.mapNotNull { v ->
-                    (v as? RegularVariable)?.let { it.name to (it.value?.asString ?: "") }
-                }?.toMap() ?: emptyMap(),
+                runtimeVariables = runtimeVars,
+                environment = environment,
                 parentHierarchy = parentHierarchy,
                 collectionRoot = collectionRoot,
             )
         }
-        return apiClient.execute(request, layers)
+        val userDynamicVariables = adapter.collectDynamicVariables(
+            runtimeVariables = runtimeVars,
+            environment = environment,
+            parentHierarchy = parentHierarchy,
+            collectionRoot = collectionRoot,
+        )
+        return execute(request, layers, userDynamicVariables)
     }
 
     suspend fun executeGrpc(

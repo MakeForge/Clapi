@@ -17,8 +17,6 @@ Software supply chain attacks are an increasing risk for enterprise developer to
 2. Every code change is audited against the **Open Source Vulnerabilities (OSV)** database using Google's **OSV-Scanner**.
 3. Security findings are reported directly to the repository's **GitHub Security** tab via SARIF.
 
----
-
 ## CycloneDX SBOM Generation
 
 Clapi utilizes the official [CycloneDX Gradle Plugin](https://github.com/CycloneDX/cyclonedx-gradle-plugin) (`org.cyclonedx.bom`) to generate a comprehensive bill of materials during the build:
@@ -36,8 +34,6 @@ The resulting artifacts are saved to:
 - Complete dependency graph of all direct and transitive runtime libraries.
 - Exact Package URLs (PURL), hashes (SHA-256), and component licenses.
 - Cryptographic provenance enabling enterprise compliance ingestion (Dependency-Track, Snyk, Black Duck, etc.).
-
----
 
 ## Continuous Vulnerability Auditing with OSV-Scanner
 

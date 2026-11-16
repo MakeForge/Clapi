@@ -28,6 +28,7 @@ import io.github.makeforge.clapi.core.model.opencollection.CollectionConfig
 import io.github.makeforge.clapi.core.model.opencollection.CollectionInfo
 import io.github.makeforge.clapi.core.model.opencollection.CollectionProtobufConfig
 import io.github.makeforge.clapi.core.model.opencollection.Description
+import io.github.makeforge.clapi.core.model.opencollection.DynamicVariable
 import io.github.makeforge.clapi.core.model.opencollection.Environment
 import io.github.makeforge.clapi.core.model.opencollection.ExternalSecretType
 import io.github.makeforge.clapi.core.model.opencollection.ExternalSecrets
@@ -533,28 +534,51 @@ fun VariableEntry.toMutableKeyValue(): MutableKeyValue =
             value = value?.asString ?: "",
             enabled = disabled != true,
             secret = false,
+            isDynamic = false,
+            description = description?.content.orEmpty(),
         )
         is SecretVariable -> MutableKeyValue(
             key = name,
             value = "",
             enabled = disabled != true,
             secret = true,
+            isDynamic = false,
+            description = description?.content.orEmpty(),
+        )
+        is DynamicVariable -> MutableKeyValue(
+            key = name,
+            value = "",
+            enabled = disabled != true,
+            secret = false,
+            isDynamic = true,
+            dynamicScript = script,
+            dynamicParameters = parameters,
+            description = description?.content.orEmpty(),
         )
     }
 
 fun MutableKeyValue.toVariableEntry(): VariableEntry {
     val trimmedKey = key.trim()
     val disabledFlag = if (enabled) null else true
-    return if (secret) {
-        SecretVariable(
+    val desc = description.takeIf { it.isNotBlank() }?.let { Description(it) }
+    return when {
+        isDynamic -> DynamicVariable(
             name = trimmedKey,
+            script = dynamicScript,
+            parameters = dynamicParameters.toList(),
+            description = desc,
+            disabled = disabledFlag,
+        )
+        secret -> SecretVariable(
+            name = trimmedKey,
+            description = desc,
             disabled = disabledFlag,
             secret = true,
         )
-    } else {
-        RegularVariable(
+        else -> RegularVariable(
             name = trimmedKey,
             value = VariableValue.of(value),
+            description = desc,
             disabled = disabledFlag,
         )
     }
@@ -742,11 +766,29 @@ internal fun CollectionNode.toRequestDefaults(): RequestDefaults? {
         scripts.add(Script(type = "after-response", code = testScript))
     }
     val vars = (variableEntries ?: emptyList()).filter { it.key.isNotBlank() }.map {
-        RegularVariable(
-            name = it.key,
-            value = VariableValue.of(it.value),
-            disabled = if (it.enabled) null else true,
-        )
+        val disabledFlag = if (it.enabled) null else true
+        val desc = it.description.takeIf { d -> d.isNotBlank() }?.let { d -> Description(d) }
+        when {
+            it.isDynamic -> DynamicVariable(
+                name = it.key.trim(),
+                script = it.dynamicScript,
+                parameters = it.dynamicParameters,
+                description = desc,
+                disabled = disabledFlag,
+            )
+            it.secret -> SecretVariable(
+                name = it.key.trim(),
+                description = desc,
+                disabled = disabledFlag,
+                secret = true,
+            )
+            else -> RegularVariable(
+                name = it.key.trim(),
+                value = VariableValue.of(it.value),
+                description = desc,
+                disabled = disabledFlag,
+            )
+        }
     }
     return if (effectiveHeaders.isNotEmpty() || authConfig != null || scripts.isNotEmpty() || vars.isNotEmpty()) {
         RequestDefaults(
@@ -1168,12 +1210,26 @@ fun OpenCollectionItem.toCollectionNode(
                         value = v.value?.asString ?: "",
                         enabled = v.disabled != true,
                         secret = false,
+                        isDynamic = false,
+                        description = v.description?.content.orEmpty(),
                     )
                     is SecretVariable -> KeyValueEntry(
                         key = v.name,
                         value = "",
                         enabled = v.disabled != true,
                         secret = true,
+                        isDynamic = false,
+                        description = v.description?.content.orEmpty(),
+                    )
+                    is DynamicVariable -> KeyValueEntry(
+                        key = v.name,
+                        value = "",
+                        enabled = v.disabled != true,
+                        secret = false,
+                        isDynamic = true,
+                        dynamicScript = v.script,
+                        dynamicParameters = v.parameters,
+                        description = v.description?.content.orEmpty(),
                     )
                 }
             }

@@ -1,5 +1,7 @@
 package io.github.makeforge.clapi.ui.shared.state
 
+import io.github.makeforge.clapi.core.model.opencollection.Description
+import io.github.makeforge.clapi.core.model.opencollection.DynamicVariable
 import io.github.makeforge.clapi.core.model.opencollection.GraphQLRequestSettings
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -438,11 +440,11 @@ class AppState(openDefaultTab: Boolean = true) {
         val openRootTab = openTabs.firstOrNull { it.id == root.id && it.isFolderTab }
         val baseVars = if (openRootTab != null) {
             openRootTab.variables
-                .filter { it.enabled && it.key.isNotBlank() }
+                .filter { it.enabled && !it.isDynamic && it.key.isNotBlank() }
                 .associate { it.key to it.value }
         } else {
             root.variableEntries
-                ?.filter { it.enabled && it.key.isNotBlank() }
+                ?.filter { it.enabled && !it.isDynamic && it.key.isNotBlank() }
                 ?.associate { it.key to it.value }
                 .orEmpty()
         }
@@ -463,7 +465,14 @@ class AppState(openDefaultTab: Boolean = true) {
      */
     fun activeVariableLayers(tab: RequestTabState? = activeTab): List<Map<String, String>> {
         val layers = mutableListOf<Map<String, String>>()
-        layers.add(selectedEnvironment?.toVariableMap(environments).orEmpty())
+        val envStaticMap = selectedEnvironment?.toVariableMap(environments).orEmpty()
+        val shadowedByDynamic = selectedEnvironment
+            ?.resolveEffectiveDynamicVariables(environments)
+            ?.map { it.name.trim() }
+            ?.toMutableSet()
+            ?: mutableSetOf()
+        val definedStaticNames = envStaticMap.keys.toMutableSet()
+        layers.add(envStaticMap)
 
         var includedRootCollection = false
         if (tab != null) {
@@ -471,35 +480,55 @@ class AppState(openDefaultTab: Boolean = true) {
             for (folder in ancestors) {
                 val openFolderTab = openTabs.firstOrNull { it.id == folder.id && it.isFolderTab }
                 val baseVars = if (openFolderTab != null) {
+                    openFolderTab.variables.forEach { v ->
+                        val k = v.key.trim()
+                        if (v.enabled && k.isNotEmpty() && v.isDynamic && k !in definedStaticNames) {
+                            shadowedByDynamic.add(k)
+                        }
+                    }
                     openFolderTab.variables
-                        .filter { it.enabled && it.key.isNotBlank() }
+                        .filter { it.enabled && !it.isDynamic && it.key.isNotBlank() && it.key.trim() !in shadowedByDynamic }
                         .associate { it.key to it.value }
                 } else {
+                    folder.variableEntries?.forEach { v ->
+                        val k = v.key.trim()
+                        if (v.enabled && k.isNotEmpty() && v.isDynamic && k !in definedStaticNames) {
+                            shadowedByDynamic.add(k)
+                        }
+                    }
                     folder.variableEntries
-                        ?.filter { it.enabled && it.key.isNotBlank() }
+                        ?.filter { it.enabled && !it.isDynamic && it.key.isNotBlank() && it.key.trim() !in shadowedByDynamic }
                         ?.associate { it.key to it.value }
                         .orEmpty()
                 }
                 val fVars = if (folder.isCollection) {
                     includedRootCollection = true
-                    baseVars + collectionVariablesById[folder.id]?.toMap().orEmpty()
+                    (baseVars + collectionVariablesById[folder.id]?.toMap().orEmpty()).filterKeys { it.trim() !in shadowedByDynamic }
                 } else {
                     baseVars
                 }
+                definedStaticNames.addAll(fVars.keys.map { it.trim() })
                 if (fVars.isNotEmpty()) {
                     layers.add(fVars)
                 }
             }
             if (tab.isFolderTab) {
+                tab.variables.forEach { v ->
+                    val k = v.key.trim()
+                    if (v.enabled && k.isNotEmpty() && v.isDynamic && k !in definedStaticNames) {
+                        shadowedByDynamic.add(k)
+                    }
+                }
                 val baseTabVars = tab.variables
-                    .filter { it.enabled && it.key.isNotBlank() }
+                    .filter { it.enabled && !it.isDynamic && it.key.isNotBlank() && it.key.trim() !in shadowedByDynamic }
                     .associate { it.key to it.value }
                 val tabVars = if (tab.isCollectionTab) {
                     includedRootCollection = true
-                    baseTabVars + collectionVariablesById[tab.id]?.toMap().orEmpty()
+                    (baseTabVars + collectionVariablesById[tab.id]?.toMap().orEmpty()).filterKeys { it.trim() !in shadowedByDynamic }
                 } else {
                     baseTabVars
                 }
+                definedStaticNames.addAll(tabVars.keys.map { it.trim() })
                 if (tabVars.isNotEmpty()) {
                     layers.add(tabVars)
                 }
@@ -507,16 +536,117 @@ class AppState(openDefaultTab: Boolean = true) {
         }
 
         if (!includedRootCollection) {
-            val colVars = collectionVariablesFor(tab)
+            val colVars = collectionVariablesFor(tab).filterKeys { it.trim() !in shadowedByDynamic }
             if (colVars.isNotEmpty()) {
                 layers.add(colVars)
             }
         }
-        val globals = globalVariables.filter { it.enabled }.associate { it.key to it.value }
+        val globals = globalVariables
+            .filter { it.enabled && !it.isDynamic && it.key.trim() !in shadowedByDynamic }
+            .associate { it.key to it.value }
         if (globals.isNotEmpty()) {
             layers.add(globals)
         }
         return layers
+    }
+
+    /**
+     * Collects effective user-defined dynamic variables for [tab] in precedence order
+     * (Environment overrides Folder overrides Collection overrides Global), ensuring higher-precedence
+     * static variables shadow lower-precedence dynamic variables.
+     */
+    fun activeDynamicVariables(tab: RequestTabState? = activeTab): List<DynamicVariable> {
+        val effective = LinkedHashMap<String, DynamicVariable>()
+
+        fun applyKeyValues(entries: List<KeyValueEntry>?) {
+            entries?.forEach { v ->
+                val k = v.key.trim()
+                if (v.enabled && k.isNotEmpty()) {
+                    if (v.isDynamic) {
+                        effective[k] = DynamicVariable(
+                            name = k,
+                            script = v.dynamicScript,
+                            parameters = v.dynamicParameters,
+                            description = v.description.takeIf { it.isNotBlank() }?.let { Description(it) },
+                            disabled = null,
+                        )
+                    } else {
+                        effective.remove(k)
+                    }
+                }
+            }
+        }
+
+        fun applyMutableKeyValues(entries: List<MutableKeyValue>?) {
+            entries?.forEach { v ->
+                val k = v.key.trim()
+                if (v.enabled && k.isNotEmpty()) {
+                    if (v.isDynamic) {
+                        effective[k] = v.toDynamicVariable()
+                    } else if (!v.secret || v.value.isNotBlank()) {
+                        effective.remove(k)
+                    }
+                }
+            }
+        }
+
+        // 1. Global variables (lowest precedence)
+        applyMutableKeyValues(globalVariables)
+
+        // 2. Collection & Folder hierarchy (root to leaf)
+        var includedRootCollection = false
+        if (tab != null) {
+            val ancestors = getAncestorFolders(tab) // root-first
+            for (folder in ancestors) {
+                val openFolderTab = openTabs.firstOrNull { it.id == folder.id && it.isFolderTab }
+                if (openFolderTab != null) {
+                    applyMutableKeyValues(openFolderTab.variables)
+                } else {
+                    applyKeyValues(folder.variableEntries)
+                }
+                if (folder.isCollection) {
+                    includedRootCollection = true
+                    collectionVariablesById[folder.id]?.keys?.forEach { effective.remove(it.trim()) }
+                }
+            }
+            if (tab.isFolderTab) {
+                applyMutableKeyValues(tab.variables)
+                if (tab.isCollectionTab) {
+                    includedRootCollection = true
+                    collectionVariablesById[tab.id]?.keys?.forEach { effective.remove(it.trim()) }
+                }
+            }
+        }
+        if (!includedRootCollection) {
+            val root = resolveRootCollectionNode(tab)
+            if (root != null) {
+                val openRootTab = openTabs.firstOrNull { it.id == root.id && it.isFolderTab }
+                if (openRootTab != null) {
+                    applyMutableKeyValues(openRootTab.variables)
+                } else {
+                    applyKeyValues(root.variableEntries)
+                }
+                collectionVariablesById[root.id]?.keys?.forEach { effective.remove(it.trim()) }
+            }
+        }
+
+        // 3. Selected Environment (with inheritance, highest scope before request)
+        val env = selectedEnvironment
+        if (env != null) {
+            val visited = mutableSetOf<String>()
+            fun walkEnv(current: EnvState) {
+                if (!visited.add(current.name)) return
+                val parentName = current.extends?.trim()
+                if (!parentName.isNullOrEmpty()) {
+                    val parent = environments.firstOrNull { it.name == parentName }
+                    if (parent != null) walkEnv(parent)
+                }
+                applyMutableKeyValues(current.variables)
+            }
+            walkEnv(env)
+        }
+
+        return effective.values.toList()
     }
 
     /**
@@ -816,7 +946,7 @@ class AppState(openDefaultTab: Boolean = true) {
 
         folderNode.variableEntries?.let { entries ->
             tab.variables.clear()
-            tab.variables.addAll(entries.map { MutableKeyValue(it.key, it.value, it.enabled, it.secret) })
+            tab.variables.addAll(entries.map { it.toMutableKeyValue() })
         }
         folderNode.headerEntries?.let { entries ->
             tab.headers.clear()
@@ -908,9 +1038,7 @@ class AppState(openDefaultTab: Boolean = true) {
         // Populate request defaults
         if (target.variableEntries != null) {
             tab.variables.clear()
-            tab.variables.addAll(target.variableEntries.map {
-                MutableKeyValue(key = it.key, value = it.value, enabled = it.enabled, secret = it.secret)
-            })
+            tab.variables.addAll(target.variableEntries.map { it.toMutableKeyValue() })
         }
         if (target.headerEntries != null) {
             tab.headers.clear()
@@ -1168,6 +1296,10 @@ class AppState(openDefaultTab: Boolean = true) {
                         secret = entry.secret,
                         kind = HeaderKind.INHERITED,
                         keyLocked = true,
+                        isDynamic = entry.isDynamic,
+                        dynamicScript = entry.dynamicScript,
+                        dynamicParameters = entry.dynamicParameters,
+                        description = entry.description,
                     )
                 )
             }
@@ -1637,12 +1769,12 @@ class AppState(openDefaultTab: Boolean = true) {
     }
 
     fun pruneEmptyGlobalVariables() {
-        globalVariables.removeAll { it.key.isBlank() && it.value.isBlank() }
+        globalVariables.removeAll { it.key.isBlank() && it.value.isBlank() && !it.isDynamic && it.dynamicScript.isBlank() }
     }
 
     fun pruneEmptyVariablesForEnvironment(index: Int) {
         val env = environments.getOrNull(index) ?: return
-        env.variables.removeAll { it.key.isBlank() && it.value.isBlank() }
+        env.variables.removeAll { it.key.isBlank() && it.value.isBlank() && !it.isDynamic && it.dynamicScript.isBlank() }
     }
 
     fun renameRequestEverywhere(requestId: String, newName: String) {
@@ -1994,7 +2126,7 @@ class AppState(openDefaultTab: Boolean = true) {
             if ((node.isFolder || node.isCollection) && (node.id == tab.id || (tab.isCollectionTab && (node.id == tab.collectionId || tab.id == "collection_${node.id}")))) {
                 val variableEntriesSnapshot = tab.variables
                     .filter { it.kind != HeaderKind.INHERITED }
-                    .map { KeyValueEntry(it.key, it.value, it.enabled, it.secret) }
+                    .map { it.toKeyValueEntry() }
                 val headerEntriesSnapshot = tab.headers
                     .filter { it.kind != HeaderKind.SYSTEM && it.kind != HeaderKind.INHERITED }
                     .map { KeyValueEntry(it.key, it.value, it.enabled, it.secret) }

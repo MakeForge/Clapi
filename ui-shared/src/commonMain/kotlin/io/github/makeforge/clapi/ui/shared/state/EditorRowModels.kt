@@ -2,9 +2,15 @@ package io.github.makeforge.clapi.ui.shared.state
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import io.github.makeforge.clapi.core.model.BodyType
 import io.github.makeforge.clapi.core.model.FormEntryType
+import io.github.makeforge.clapi.core.model.KeyValueEntry
+import io.github.makeforge.clapi.core.model.opencollection.Description
+import io.github.makeforge.clapi.core.model.opencollection.DynamicVariable
+import io.github.makeforge.clapi.core.model.opencollection.DynamicVariableParameter
 import io.github.makeforge.clapi.ui.shared.platform.generateUuid
 
 /**
@@ -36,16 +42,64 @@ class MutableKeyValue(
     secret: Boolean = false,
     kind: HeaderKind = HeaderKind.USER,
     keyLocked: Boolean = false,
+    isDynamic: Boolean = false,
+    dynamicScript: String = "",
+    dynamicParameters: List<DynamicVariableParameter> = emptyList(),
+    description: String = "",
     /** Stable unique identifier used as LazyColumn item key (fixes M-7 index-key bug). */
     val uid: String = generateUuid(),
 ) {
-    var key     by mutableStateOf(key)
-    var value   by mutableStateOf(value)
-    var enabled by mutableStateOf(enabled)
-    var secret  by mutableStateOf(secret)
-    var kind    by mutableStateOf(kind)
-    var keyLocked by mutableStateOf(keyLocked)
+    var key           by mutableStateOf(key)
+    var value         by mutableStateOf(value)
+    var enabled       by mutableStateOf(enabled)
+    var secret        by mutableStateOf(secret)
+    var kind          by mutableStateOf(kind)
+    var keyLocked     by mutableStateOf(keyLocked)
+    var isDynamic     by mutableStateOf(isDynamic)
+    var dynamicScript by mutableStateOf(dynamicScript)
+    val dynamicParameters: SnapshotStateList<DynamicVariableParameter> =
+        mutableStateListOf<DynamicVariableParameter>().apply { addAll(dynamicParameters) }
+    var description   by mutableStateOf(description)
+
+    fun signatureLabel(): String {
+        val trimmedKey = key.trim().ifEmpty { "fn" }
+        return if (dynamicParameters.isEmpty()) {
+            trimmedKey
+        } else {
+            "$trimmedKey(${dynamicParameters.joinToString(", ") { it.name }})"
+        }
+    }
+
+    fun toDynamicVariable(): DynamicVariable = DynamicVariable(
+        name = key.trim(),
+        script = dynamicScript,
+        parameters = dynamicParameters.toList(),
+        description = description.takeIf { it.isNotBlank() }?.let { Description(it) },
+        disabled = if (enabled) null else true,
+    )
+
+    fun toKeyValueEntry(): KeyValueEntry = KeyValueEntry(
+        key = key,
+        value = value,
+        enabled = enabled,
+        secret = secret,
+        isDynamic = isDynamic,
+        dynamicScript = dynamicScript,
+        dynamicParameters = dynamicParameters.toList(),
+        description = description,
+    )
 }
+
+fun KeyValueEntry.toMutableKeyValue(): MutableKeyValue = MutableKeyValue(
+    key = key,
+    value = value,
+    enabled = enabled,
+    secret = secret,
+    isDynamic = isDynamic,
+    dynamicScript = dynamicScript,
+    dynamicParameters = dynamicParameters,
+    description = description,
+)
 
 object SystemHeaderRules {
     const val CONTENT_TYPE = "Content-Type"

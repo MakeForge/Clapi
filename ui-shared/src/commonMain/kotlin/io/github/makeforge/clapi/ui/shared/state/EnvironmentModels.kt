@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import io.github.makeforge.clapi.core.model.opencollection.ClientCertificate
 import io.github.makeforge.clapi.core.model.opencollection.Description
+import io.github.makeforge.clapi.core.model.opencollection.DynamicVariable
 import io.github.makeforge.clapi.core.storage.git.ProtoPathResolver
 import io.github.makeforge.clapi.ui.shared.platform.generateUuid
 
@@ -93,7 +94,7 @@ class EnvState(
     fun toVariableMap(allEnvironments: List<EnvState> = emptyList()): Map<String, String> {
         if (extends.isNullOrBlank() || allEnvironments.isEmpty()) {
             return variables
-                .filter { it.enabled && (!it.secret || it.value.isNotBlank()) }
+                .filter { it.enabled && !it.isDynamic && (!it.secret || it.value.isNotBlank()) }
                 .associate { it.key to it.value }
         }
         return resolveEffectiveVariables(allEnvironments)
@@ -132,9 +133,11 @@ fun EnvState.resolveEffectiveVariables(allEnvironments: List<EnvState>): Map<Str
             }
         }
         current.variables.forEach { v ->
-            if (v.enabled && (!v.secret || v.value.isNotBlank())) {
-                val k = v.key.trim()
-                if (k.isNotEmpty()) {
+            val k = v.key.trim()
+            if (k.isNotEmpty() && v.enabled) {
+                if (v.isDynamic) {
+                    result.remove(k)
+                } else if (!v.secret || v.value.isNotBlank()) {
                     result[k] = v.value
                 }
             }
@@ -143,6 +146,38 @@ fun EnvState.resolveEffectiveVariables(allEnvironments: List<EnvState>): Map<Str
 
     walk(this)
     return result
+}
+
+/**
+ * Resolves the effective user-defined dynamic variables for this environment across its inheritance chain.
+ */
+fun EnvState.resolveEffectiveDynamicVariables(allEnvironments: List<EnvState> = emptyList()): List<DynamicVariable> {
+    val result = LinkedHashMap<String, DynamicVariable>()
+    val visited = mutableSetOf<String>()
+
+    fun walk(current: EnvState) {
+        if (!visited.add(current.name)) return
+        val parentName = current.extends?.trim()
+        if (!parentName.isNullOrEmpty() && allEnvironments.isNotEmpty()) {
+            val parent = allEnvironments.firstOrNull { it.name == parentName }
+            if (parent != null) {
+                walk(parent)
+            }
+        }
+        current.variables.forEach { v ->
+            val k = v.key.trim()
+            if (k.isNotEmpty() && v.enabled) {
+                if (v.isDynamic) {
+                    result[k] = v.toDynamicVariable()
+                } else {
+                    result.remove(k)
+                }
+            }
+        }
+    }
+
+    walk(this)
+    return result.values.toList()
 }
 
 /**

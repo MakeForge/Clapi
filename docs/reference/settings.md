@@ -13,8 +13,6 @@ description: Configuring visual themes, font sizes, HTTP proxies, and SSL/TLS ve
 
 Access the settings modal by clicking the gear icon in the top toolbar or pressing `⌘ + ,` / `Ctrl + ,`.
 
----
-
 ## Configuration Tabs
 
 ### 1. General & Appearance

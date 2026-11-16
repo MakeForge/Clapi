@@ -1,6 +1,8 @@
 package io.github.makeforge.clapi.core.model.opencollection
 
 import kotlinx.serialization.DeserializationStrategy
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -31,7 +33,9 @@ enum class VariableType(val value: String) {
     @SerialName("null")
     NULL("null"),
     @SerialName("object")
-    OBJECT("object");
+    OBJECT("object"),
+    @SerialName("dynamic")
+    DYNAMIC("dynamic");
 
     override fun toString(): String = value
 
@@ -150,11 +154,35 @@ data class SecretVariable(
     )
 }
 
+@Serializable
+data class DynamicVariableParameter(
+    val name: String,
+    val description: String? = null,
+    val defaultValue: String? = null,
+)
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class DynamicVariable(
+    override val name: String,
+    @EncodeDefault
+    val type: VariableType = VariableType.DYNAMIC,
+    @EncodeDefault
+    val script: String = "",
+    val parameters: List<DynamicVariableParameter> = emptyList(),
+    override val description: Description? = null,
+    override val disabled: Boolean? = null,
+) : VariableEntry
+
 object VariableEntrySerializer : JsonContentPolymorphicSerializer<VariableEntry>(VariableEntry::class) {
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<VariableEntry> {
         val obj = element.jsonObject
-        if (obj["secret"]?.jsonPrimitive?.booleanOrNull == true) {
+        if ((obj["secret"] as? JsonPrimitive)?.booleanOrNull == true) {
             return SecretVariable.serializer()
+        }
+        val typeStr = (obj["type"] as? JsonPrimitive)?.contentOrNull
+        if (typeStr.equals(VariableType.DYNAMIC.value, ignoreCase = true) || obj.containsKey("script")) {
+            return DynamicVariable.serializer()
         }
         return RegularVariable.serializer()
     }

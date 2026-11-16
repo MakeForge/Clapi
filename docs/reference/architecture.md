@@ -14,8 +14,6 @@ description: Architectural overview, module boundaries, state management, and co
 
 Clapi is engineered as a modular **Kotlin Multiplatform (KMP)** desktop application targeting the JVM (`jvm("desktop")`). It leverages Compose Multiplatform for declarative UI rendering.
 
----
-
 ## Module Hierarchy & Dependency Boundaries
 
 ```
@@ -39,8 +37,6 @@ Clapi is engineered as a modular **Kotlin Multiplatform (KMP)** desktop applicat
 1. **Unidirectional Dependency Flow**: The UI launcher (`ui-desktop`) depends only on `ui-shared`. `ui-shared` depends on editor and core modules. Core modules never depend on UI modules.
 2. **Platform Abstraction**: Common business logic and UI composables live strictly in `commonMain`. Desktop JVM platform integrations (windowing, system keychain, file dialogs) use `expect`/`actual` declarations.
 3. **Pure-Kotlin Code Editor**: The code editor engine (`editor-core`) is completely decoupled from UI frameworks, maintaining document models, syntax lexers, and line fold maps independently.
-
----
 
 ## State Management
 

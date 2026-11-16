@@ -119,6 +119,16 @@ expect fun openFileInDefaultApp(filePath: String)
 expect fun openUrlInBrowser(url: String)
 
 /**
+ * Returns true when running in local development mode (e.g. `./gradlew :ui-desktop:jvmDev`).
+ */
+expect fun isLocalDevMode(): Boolean
+
+/**
+ * Optional explicit override for the documentation site base URL (e.g. via system property or env var).
+ */
+expect fun platformDocsBaseUrlOverride(): String?
+
+/**
  * Save [content] as a file with the given [defaultFilename].
  * On desktop this opens a save dialog; on web it triggers a browser download.
  */

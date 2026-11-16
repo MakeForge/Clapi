@@ -29,16 +29,12 @@ Clapi's interface is designed specifically for desktop ergonomics, minimal visua
 +-------------------+----------------------------------------------------------------+
 ```
 
----
-
 ## 1. Top Toolbar
 
 - **Environment Picker**: Quickly toggle between your active variable sets (e.g. `Development`, `Staging`, `Production`, or `No Environment`).
 - **Git Sync Indicator**: Shows current repository branch and dirty status (`clean`, `uncommitted`, `ahead`, `behind`).
 - **Theme Toggle**: Switch between Material 3 Light and Dark palettes.
 - **Settings**: Global preferences for proxies, font sizing, SSL verification, and certificate authorities.
-
----
 
 ## 2. The Sidebar
 
@@ -47,13 +43,11 @@ The sidebar organizes your API assets into three collapsible sections:
 - **Environments**: Global, environment, and secret variable stores.
 - **History**: Chronological log of recent dispatched requests with one-click re-opening.
 
----
-
 ## 3. The Request Editor
 
 The center-left region allows composing and executing requests across five core protocols:
 - **Protocol & Method Dropdown**: Choose from HTTP verbs (`GET`, `POST`, `PUT`, `DELETE`, etc.), `GRAPHQL`, `WEBSOCKET`, `GRPC`, or `MCP`.
-- **URL Bar**: Enter the destination URL or stdio command. Supports dynamic interpolation: `https://{{host}}:{{port}}/api/users/{{userId}}`.
+- **URL Bar**: Enter the destination URL or stdio command. Supports dynamic interpolation: `https://{{host}}:{{port}}/api/users/{{userId}}`. Press `Ctrl + Space` anywhere to autocomplete variables and secrets (see [Keyboard Shortcuts](/reference/shortcuts)).
 - **Sub-Tabs**:
   - **Params**: Query string parameters with automatic bidirectional URL sync.
   - **Headers**: Custom and standard HTTP/transport headers with folder inheritance tags.
@@ -61,8 +55,6 @@ The center-left region allows composing and executing requests across five core 
   - **Auth**: Inheritable authentication (Bearer, Basic, API Key, OAuth 2.0 PKCE, AWS SigV4).
   - **Pre-request**: JavaScript script run before dispatch.
   - **Tests**: Assertions run against the response payload.
-
----
 
 ## 4. The Response Viewer
 

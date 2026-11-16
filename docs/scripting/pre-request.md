@@ -13,8 +13,6 @@ description: Generating HMAC signatures, timestamps, and dynamic headers before 
 
 Pre-request scripts run immediately before a request is transmitted over the network. They are commonly used to calculate authentication signatures (HMAC-SHA256), refresh access tokens, generate random nonces, or compute dynamic timestamps.
 
----
-
 ## Common Use Cases
 
 ### 1. Generating Dynamic Timestamps and Nonces

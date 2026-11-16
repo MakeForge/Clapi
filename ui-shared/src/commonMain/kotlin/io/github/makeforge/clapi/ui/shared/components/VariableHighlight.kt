@@ -157,6 +157,14 @@ fun variableNameAtOffset(text: String, offset: Int): String? {
  * Tokens that are not defined anywhere use [VariableUnresolvedColor] (red), so the user
  * can immediately see which variables are missing from the active environment.
  */
+internal fun isVariableTokenDefined(rawName: String, definedNames: Set<String>): Boolean {
+    val name = normalizeVariableDisplayName(rawName)
+    if (name.isEmpty()) return false
+    if (name in definedNames) return true
+    val parsedName = VariableResolver.parseVariableToken(name).name
+    return parsedName in definedNames
+}
+
 fun variableRangesForLine(
     line: String,
     definedNames: Set<String>,
@@ -164,7 +172,7 @@ fun variableRangesForLine(
     VARIABLE_REGEX.findAll(line).mapNotNull { match ->
         val name = normalizeVariableDisplayName(match.groupValues[1])
         if (name.isEmpty()) return@mapNotNull null
-        val color = if (name in definedNames) VariableHighlightColor else VariableUnresolvedColor
+        val color = if (isVariableTokenDefined(name, definedNames)) VariableHighlightColor else VariableUnresolvedColor
         match.range to color
     }.toList()
 
@@ -206,7 +214,7 @@ fun highlightVariablesWithStatus(text: String, definedNames: Set<String>): Annot
             append(text.substring(lastIndex, match.range.first))
             val spanStart = length
             val varName = normalizeVariableDisplayName(match.groupValues[1])
-            val spanStyle = if (varName.isNotEmpty() && varName in definedNames)
+            val spanStyle = if (isVariableTokenDefined(varName, definedNames))
                 VARIABLE_SPAN_STYLE
             else
                 VARIABLE_UNRESOLVED_SPAN_STYLE
@@ -308,6 +316,9 @@ fun VariableAwareTextField(
                     VariableResolver.dynamicVariables.forEach { dv ->
                         set.add(dv.name)
                         set.add(dv.name.removePrefix("$"))
+                    }
+                    state.activeDynamicVariables(currentTab).forEach { dv ->
+                        set.add(dv.name)
                     }
                     set
                 } else {
@@ -657,9 +668,28 @@ fun getAvailableVariables(state: AppState?, tab: RequestTabState?): List<Pair<St
         }
     }
 
+    val userDynamicVars: List<Pair<String, String>> = if (state != null) {
+        state.activeDynamicVariables(tab).map { dv ->
+            val tokenName = if (dv.parameters.isEmpty()) {
+                dv.name
+            } else {
+                val argList = dv.parameters.joinToString(", ") { p ->
+                    val def = p.defaultValue
+                    if (!def.isNullOrEmpty()) def else p.name
+                }
+                "${dv.name}($argList)"
+            }
+            val descContent = dv.description?.content
+            val desc = if (!descContent.isNullOrBlank()) descContent else "Dynamic Script"
+            tokenName to "[Dynamic] $desc"
+        }.sortedBy { it.first }
+    } else {
+        emptyList()
+    }
+
     val dynamicVars = VariableResolver.dynamicVariables.map { it.name to it.description }
 
-    return regularVars + secretVars + authVars + dynamicVars
+    return regularVars + secretVars + authVars + userDynamicVars + dynamicVars
 }
 
 @Composable

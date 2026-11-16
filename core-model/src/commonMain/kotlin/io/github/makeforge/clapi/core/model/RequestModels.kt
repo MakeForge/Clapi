@@ -50,7 +50,11 @@ data class KeyValueEntry(
     val key: String,
     val value: String,
     val enabled: Boolean = true,
-    val secret: Boolean = false
+    val secret: Boolean = false,
+    val isDynamic: Boolean = false,
+    val dynamicScript: String = "",
+    val dynamicParameters: List<io.github.makeforge.clapi.core.model.opencollection.DynamicVariableParameter> = emptyList(),
+    val description: String = "",
 )
 
 /**

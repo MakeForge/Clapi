@@ -38,7 +38,7 @@ Clicking a collection row in the sidebar opens its dedicated **Collection Settin
    - **Name**: Collection title.
    - **Summary**: Markdown description of the collection's purpose and usage.
    - **Version**: Semantic version string (e.g. `1.0.0`).
-2. **Variables**: Collection-scoped key-value variables cascaded to all child requests.
+2. **Variables**: Collection-scoped key-value variables cascaded to all child requests. These variables (along with environment variables and secrets) can be autocompleted in requests via `Ctrl + Space` (see [Keyboard Shortcuts](/reference/shortcuts)).
 3. **Headers**: Default headers applied automatically to all descendant requests.
 4. **Auth**: Inheritable authentication credentials (Bearer, Basic, API Key, OAuth2).
 5. **Pre-request**: Pre-request JavaScript executed before any request in the collection runs.

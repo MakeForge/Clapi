@@ -18,8 +18,8 @@
 
 **Purpose**: Project preparation and baseline module setup for dynamic variables.
 
-- [ ] T001 Verify project build and test baseline via `./gradlew build -x test` from repository root
-- [ ] T002 [P] Create dynamic variable UI package directory `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/dynamicvar`
+- [X] T001 Verify project build and test baseline via `./gradlew build -x test` from repository root
+- [X] T002 [P] Create dynamic variable UI package directory `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/dynamicvar`
 
 ---
 
@@ -29,11 +29,11 @@
 
 **⚠️ CRITICAL**: Must be completed before user story implementation begins.
 
-- [ ] T003 Add `DynamicVariable` (`name: String`, `script: String = ""`, `parameters: List<DynamicVariableParameter> = emptyList()`, `description: Description? = null`, `disabled: Boolean? = null`), `DynamicVariableParameter` (`name: String`, `description: String? = null`, `defaultValue: String? = null`), and `VariableType.DYNAMIC("dynamic")` to `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`
-- [ ] T004 Update `VariableEntrySerializer` polymorphic deserializer in `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/OpenCollectionEnvironment.kt` to route elements with `"type": "dynamic"` or `"script"` property to `DynamicVariable.serializer()`
-- [ ] T005 [P] Create model unit tests for `DynamicVariable` polymorphic serialization and deserialization in `core-model/src/commonTest/kotlin/io/github/makeforge/clapi/core/model/opencollection/DynamicVariableSerializationTest.kt`
-- [ ] T006 Add `DynamicScriptContext`, `RequestContext`, and `DynamicScriptExecutionResult` contracts to `core-scripting/src/commonMain/kotlin/io/github/makeforge/clapi/core/scripting/ScriptingContracts.kt` per `contracts/dynamic-variable-execution-contract.md`
-- [ ] T007 Implement `DynamicVariableEngine` using Javet V8 with IIFE sandboxing, 2000ms timeout guard, and console capture in `core-scripting/src/commonMain/kotlin/io/github/makeforge/clapi/core/scripting/DynamicVariableEngine.kt`
+- [X] T003 Add `DynamicVariable` (`name: String`, `script: String = ""`, `parameters: List<DynamicVariableParameter> = emptyList()`, `description: Description? = null`, `disabled: Boolean? = null`), `DynamicVariableParameter` (`name: String`, `description: String? = null`, `defaultValue: String? = null`), and `VariableType.DYNAMIC("dynamic")` to `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`
+- [X] T004 Update `VariableEntrySerializer` polymorphic deserializer in `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/OpenCollectionEnvironment.kt` to route elements with `"type": "dynamic"` or `"script"` property to `DynamicVariable.serializer()`
+- [X] T005 [P] Create model unit tests for `DynamicVariable` polymorphic serialization and deserialization in `core-model/src/commonTest/kotlin/io/github/makeforge/clapi/core/model/opencollection/DynamicVariableSerializationTest.kt`
+- [X] T006 Add `DynamicScriptContext`, `RequestContext`, and `DynamicScriptExecutionResult` contracts to `core-scripting/src/commonMain/kotlin/io/github/makeforge/clapi/core/scripting/ScriptingContracts.kt` per `contracts/dynamic-variable-execution-contract.md`
+- [X] T007 Implement `DynamicVariableEngine` using Javet V8 with IIFE sandboxing, 2000ms timeout guard, and console capture in `core-scripting/src/commonMain/kotlin/io/github/makeforge/clapi/core/scripting/DynamicVariableEngine.kt`
 
 **Checkpoint**: Core data structures and execution engine contracts ready. User story implementation can now begin.
 
@@ -47,17 +47,17 @@
 
 ### Tests for User Story 1
 
-- [ ] T008 [P] [US1] Unit test for dynamic script evaluation and return value coercion in `core-scripting/src/commonTest/kotlin/io/github/makeforge/clapi/core/scripting/DynamicVariableEngineTest.kt`
-- [ ] T009 [P] [US1] Unit test for dynamic variable token resolution in `core-network/src/commonTest/kotlin/io/github/makeforge/clapi/core/network/DynamicVariableResolverTest.kt`
+- [X] T008 [P] [US1] Unit test for dynamic script evaluation and return value coercion in `core-scripting/src/commonTest/kotlin/io/github/makeforge/clapi/core/scripting/DynamicVariableEngineTest.kt`
+- [X] T009 [P] [US1] Unit test for dynamic variable token resolution in `core-network/src/commonTest/kotlin/io/github/makeforge/clapi/core/network/DynamicVariableResolverTest.kt`
 
 ### Implementation for User Story 1
 
-- [ ] T010 [P] [US1] Expand `MutableKeyValue` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/EditorRowModels.kt` with observable properties `isDynamic: Boolean`, `dynamicScript: String`, and `dynamicParameters: SnapshotStateList<DynamicVariableParameter>`
-- [ ] T011 [US1] Update `OpenCollectionModelMapping.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to map `DynamicVariable` to/from `MutableKeyValue`
-- [ ] T012 [US1] Integrate `DynamicVariableEngine` into `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/VariableResolver.kt` to resolve non-parameterized dynamic tokens `{{variableName}}` via dynamic script execution
-- [ ] T013 [US1] Wire dynamic variable resolution into request execution lifecycles in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/execution/RequestExecutionService.kt` and `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/executor/RequestExecutionPipeline.kt`
-- [ ] T014 [US1] Update `EnvVariableRow` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvVariableTable.kt` to support a 3-way variable type toggle (`Normal`, `Secret`, `Dynamic`) and replace the static value text field with an `[Edit Script]` trigger button when `isDynamic = true`
-- [ ] T015 [US1] Update the quick-add row in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvironmentEditDialog.kt` to allow adding dynamic variables directly from the top row
+- [X] T010 [P] [US1] Expand `MutableKeyValue` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/EditorRowModels.kt` with observable properties `isDynamic: Boolean`, `dynamicScript: String`, and `dynamicParameters: SnapshotStateList<DynamicVariableParameter>`
+- [X] T011 [US1] Update `OpenCollectionModelMapping.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to map `DynamicVariable` to/from `MutableKeyValue`
+- [X] T012 [US1] Integrate `DynamicVariableEngine` into `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/VariableResolver.kt` to resolve non-parameterized dynamic tokens `{{variableName}}` via dynamic script execution
+- [X] T013 [US1] Wire dynamic variable resolution into request execution lifecycles in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/execution/RequestExecutionService.kt` and `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/executor/RequestExecutionPipeline.kt`
+- [X] T014 [US1] Update `EnvVariableRow` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvVariableTable.kt` to support a 3-way variable type toggle (`Normal`, `Secret`, `Dynamic`) and replace the static value text field with an `[Edit Script]` trigger button when `isDynamic = true`
+- [X] T015 [US1] Update the quick-add row in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvironmentEditDialog.kt` to allow adding dynamic variables directly from the top row
 
 **Checkpoint**: User Story 1 is functional and testable as an MVP slice.
 
@@ -71,13 +71,13 @@
 
 ### Tests for User Story 2
 
-- [ ] T016 [P] [US2] Compose desktop UI test for `DynamicVariableEditorDialog` in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/DynamicVariableEditorDialogTest.kt`
+- [X] T016 [P] [US2] Compose desktop UI test for `DynamicVariableEditorDialog` in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/DynamicVariableEditorDialogTest.kt`
 
 ### Implementation for User Story 2
 
-- [ ] T017 [P] [US2] Implement `DynamicVariableTestPanel.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/dynamicvar/DynamicVariableTestPanel.kt` displaying parameter inputs, mock request context inputs, "Run Test" trigger, status badge, return value display, duration badge, logs, and error banner
-- [ ] T018 [US2] Implement `DynamicVariableEditorDialog.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/dynamicvar/DynamicVariableEditorDialog.kt` with a two-pane layout: `CodeEditor` on the left pane and `DynamicVariableTestPanel` on the right pane, with Save and Discard actions
-- [ ] T019 [US2] Connect `[Edit Script]` click handlers in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvVariableTable.kt` and `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/collection/CollectionEditor.kt` to open `DynamicVariableEditorDialog`
+- [X] T017 [P] [US2] Implement `DynamicVariableTestPanel.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/dynamicvar/DynamicVariableTestPanel.kt` displaying parameter inputs, mock request context inputs, "Run Test" trigger, status badge, return value display, duration badge, logs, and error banner
+- [X] T018 [US2] Implement `DynamicVariableEditorDialog.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/dynamicvar/DynamicVariableEditorDialog.kt` with a two-pane layout: `CodeEditor` on the left pane and `DynamicVariableTestPanel` on the right pane, with Save and Discard actions
+- [X] T019 [US2] Connect `[Edit Script]` click handlers in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvVariableTable.kt` and `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/collection/CollectionEditor.kt` to open `DynamicVariableEditorDialog`
 
 **Checkpoint**: User Stories 1 and 2 work together seamlessly.
 
@@ -91,14 +91,14 @@
 
 ### Tests for User Story 3
 
-- [ ] T020 [P] [US3] Unit test for argument tokenizer and function-call expression parsing per `contracts/dynamic-variable-template-syntax-contract.md` in `core-network/src/commonTest/kotlin/io/github/makeforge/clapi/core/network/DynamicVariableSyntaxTest.kt`
+- [X] T020 [P] [US3] Unit test for argument tokenizer and function-call expression parsing per `contracts/dynamic-variable-template-syntax-contract.md` in `core-network/src/commonTest/kotlin/io/github/makeforge/clapi/core/network/DynamicVariableSyntaxTest.kt`
 
 ### Implementation for User Story 3
 
-- [ ] T021 [US3] Extend token regex and argument tokenizer in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/VariableResolver.kt` to parse `{{name(arg1, arg2)}}` expressions supporting string, number, boolean, and null literals
-- [ ] T022 [US3] Update `DynamicVariableEngine.kt` in `core-scripting/src/commonMain/kotlin/io/github/makeforge/clapi/core/scripting/DynamicVariableEngine.kt` to map parsed argument lists to declared parameter names in script execution context
-- [ ] T023 [US3] Add parameter declaration management (add, edit name, remove parameter chips) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/dynamicvar/DynamicVariableEditorDialog.kt`
-- [ ] T024 [US3] Update variable autocomplete suggestions in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/variable/VariableDropdownList.kt` to show parameter signatures (e.g. `secondsFromNow(seconds)`) for parameterized dynamic variables
+- [X] T021 [US3] Extend token regex and argument tokenizer in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/VariableResolver.kt` to parse `{{name(arg1, arg2)}}` expressions supporting string, number, boolean, and null literals
+- [X] T022 [US3] Update `DynamicVariableEngine.kt` in `core-scripting/src/commonMain/kotlin/io/github/makeforge/clapi/core/scripting/DynamicVariableEngine.kt` to map parsed argument lists to declared parameter names in script execution context
+- [X] T023 [US3] Add parameter declaration management (add, edit name, remove parameter chips) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/dynamicvar/DynamicVariableEditorDialog.kt`
+- [X] T024 [US3] Update variable autocomplete suggestions in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/variable/VariableDropdownList.kt` to show parameter signatures (e.g. `secondsFromNow(seconds)`) for parameterized dynamic variables
 
 **Checkpoint**: Parameterized dynamic variables are fully functional.
 
@@ -112,12 +112,12 @@
 
 ### Tests for User Story 4
 
-- [ ] T025 [P] [US4] Unit test for request context injection and read-only behavior in `core-scripting/src/commonTest/kotlin/io/github/makeforge/clapi/core/scripting/DynamicVariableRequestContextTest.kt`
+- [X] T025 [P] [US4] Unit test for request context injection and read-only behavior in `core-scripting/src/commonTest/kotlin/io/github/makeforge/clapi/core/scripting/DynamicVariableRequestContextTest.kt`
 
 ### Implementation for User Story 4
 
-- [ ] T026 [US4] Capture and pass active request context (`url`, `method`, `headers`, `name`) into `VariableResolver` during request dispatch in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/execution/RequestExecutionService.kt`
-- [ ] T027 [US4] Add expandable mock request context inputs (Mock URL, Method, Headers) to `DynamicVariableTestPanel.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/dynamicvar/DynamicVariableTestPanel.kt`
+- [X] T026 [US4] Capture and pass active request context (`url`, `method`, `headers`, `name`) into `VariableResolver` during request dispatch in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/execution/RequestExecutionService.kt`
+- [X] T027 [US4] Add expandable mock request context inputs (Mock URL, Method, Headers) to `DynamicVariableTestPanel.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/dynamicvar/DynamicVariableTestPanel.kt`
 
 **Checkpoint**: Request context is accessible in dynamic scripts and testable in the editor.
 
@@ -131,12 +131,12 @@
 
 ### Tests for User Story 5
 
-- [ ] T028 [P] [US5] Integration test for OpenCollection YAML & JSON export/import of dynamic variables in `core-storage/src/commonTest/kotlin/io/github/makeforge/clapi/core/storage/DynamicVariableStorageTest.kt`
+- [X] T028 [P] [US5] Integration test for OpenCollection YAML & JSON export/import of dynamic variables in `core-storage/src/commonTest/kotlin/io/github/makeforge/clapi/core/storage/DynamicVariableStorageTest.kt`
 
 ### Implementation for User Story 5
 
-- [ ] T029 [US5] Ensure `kaml` YAML serializer in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/OpenCollectionYaml.kt` encodes and decodes `DynamicVariable` entries per `contracts/dynamic-variable-serialization-contract.md`
-- [ ] T030 [US5] Update environment and collection import/export routines in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to preserve dynamic variables across workspace imports
+- [X] T029 [US5] Ensure `kaml` YAML serializer in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/OpenCollectionYaml.kt` encodes and decodes `DynamicVariable` entries per `contracts/dynamic-variable-serialization-contract.md`
+- [X] T030 [US5] Update environment and collection import/export routines in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to preserve dynamic variables across workspace imports
 
 **Checkpoint**: Full persistence and export/import roundtrip verified.
 
@@ -150,8 +150,8 @@
 
 ### Implementation for User Story 6
 
-- [ ] T031 [P] [US6] Create `docs/features/dynamic-variables.md` with Built-in Dynamic Variables reference (`$timestamp`, `$isoTimestamp`, `$randomInt`, `$guid`, etc.) and User-Defined Dynamic Variables scripting guide with example snippets
-- [ ] T032 [US6] Register `Dynamic Variables` under features navigation and sidebar in `docs/.vitepress/config.mts`
+- [X] T031 [P] [US6] Create `docs/features/dynamic-variables.md` with Built-in Dynamic Variables reference (`$timestamp`, `$isoTimestamp`, `$randomInt`, `$guid`, etc.) and User-Defined Dynamic Variables scripting guide with example snippets
+- [X] T032 [US6] Register `Dynamic Variables` under features navigation and sidebar in `docs/.vitepress/config.mts`
 
 **Checkpoint**: Documentation is complete and published.
 
@@ -161,9 +161,9 @@
 
 **Purpose**: End-to-end integration testing, quickstart verification, and codebase cleanup.
 
-- [ ] T033 Create end-to-end multiplatform integration test in `qa-tests/src/test/kotlin/io/github/makeforge/clapi/qa/DynamicVariablesE2ETest.kt` validating dynamic variable resolution in HTTP requests and roundtrip export/import
-- [ ] T034 Execute runnable validation scenarios in `specs/027-dynamic-variables/quickstart.md` and verify all tests pass
-- [ ] T035 [P] Code cleanup, import optimization, and formatting check across all modified modules
+- [X] T033 Create end-to-end multiplatform integration test in `qa-tests/src/test/kotlin/io/github/makeforge/clapi/qa/DynamicVariablesE2ETest.kt` validating dynamic variable resolution in HTTP requests and roundtrip export/import
+- [X] T034 Execute runnable validation scenarios in `specs/027-dynamic-variables/quickstart.md` and verify all tests pass
+- [X] T035 [P] Code cleanup, import optimization, and formatting check across all modified modules
 
 ---
 

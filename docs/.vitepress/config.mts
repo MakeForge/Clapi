@@ -45,6 +45,7 @@ export default defineConfig({
           { text: 'Collections & Folders', link: '/workspaces/collections' },
           { text: 'Request Defaults', link: '/workspaces/folders-and-inheritance' },
           { text: 'Variables & Environments', link: '/environments/variables' },
+          { text: 'Dynamic Variables', link: '/environments/dynamic-variables' },
           { text: 'Secret Managers', link: '/environments/secret-managers' },
           { text: 'Git Sync Collaboration', link: '/collaboration/git-sync-overview' }
         ],
@@ -176,6 +177,7 @@ export default defineConfig({
           text: 'Variables & Environments',
           items: [
             { text: 'Variables', link: '/environments/variables' },
+            { text: 'Dynamic Variables', link: '/environments/dynamic-variables' },
             { text: 'Environments', link: '/environments/environments' },
             { text: 'Secret Managers', link: '/environments/secret-managers' }
           ]
@@ -202,6 +204,7 @@ export default defineConfig({
           text: 'Variables & Environments',
           items: [
             { text: 'Variables', link: '/environments/variables' },
+            { text: 'Dynamic Variables', link: '/environments/dynamic-variables' },
             { text: 'Environments', link: '/environments/environments' },
             { text: 'Secret Managers', link: '/environments/secret-managers' }
           ]
@@ -228,6 +231,7 @@ export default defineConfig({
           text: 'Variables & Environments',
           items: [
             { text: 'Variables', link: '/environments/variables' },
+            { text: 'Dynamic Variables', link: '/environments/dynamic-variables' },
             { text: 'Environments', link: '/environments/environments' },
             { text: 'Secret Managers', link: '/environments/secret-managers' }
           ]

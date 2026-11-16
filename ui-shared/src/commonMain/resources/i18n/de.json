@@ -408,5 +408,21 @@
   "git_up_to_date": "Alles auf dem neuesten Stand",
   "git_not_installed": "Git CLI ist nicht installiert oder nicht im PATH gefunden.",
   "git_auth_failed": "Git-Authentifizierung fehlgeschlagen. Bitte Anmeldedaten oder SSH-Schlüssel prüfen.",
-  "git_network_error": "Git-Netzwerkfehler aufgetreten."
+  "git_network_error": "Git-Netzwerkfehler aufgetreten.",
+  "dynamic": "Dynamisch",
+  "edit_script": "Skript bearbeiten",
+  "dynamic_variable_editor": "Dynamischer Variablen-Skripteditor",
+  "parameters": "Parameter",
+  "add_parameter": "Parameter hinzufügen",
+  "parameter_name": "Parametername",
+  "default_value": "Standardwert",
+  "run_test": "Test ausführen",
+  "test_execution": "Testausführung",
+  "mock_request_context": "Mock-Anfragekontext",
+  "return_value": "Rückgabewert",
+  "console_output": "Konsolenausgabe",
+  "no_output_yet": "Klicken Sie auf Test ausführen, um das Skript zu starten und die Ausgabe anzuzeigen.",
+  "script_error": "Skriptfehler",
+  "dynamic_script_context_hint": "Skripte können über context.request (url, method, headers, name) schreibgeschützt auf Anfrage-Infos und über args auf Parameter zugreifen.",
+  "dynamic_variables_docs": "Dokumentation zu dynamischen Variablen"
 }

@@ -11,26 +11,32 @@ description: Complete catalog of open source libraries powering Clapi with direc
 
 ## Overview
 
-In the spirit of open-source transparency, this page indexes the primary external runtime libraries used by Clapi, with direct links to their official GitHub source repositories, pinned versions, and licenses.
+In the spirit of open-source transparency, this page indexes the primary external runtime libraries used by Clapi, with direct links to their official GitHub source repositories and licenses.
 
----
+For exact library coordinates, pinned versions, and build plugins, refer to the Gradle version catalog on the `main` branch:
+👉 [**`gradle/libs.versions.toml`**](https://github.com/MakeForge/Clapi/blob/main/gradle/libs.versions.toml)
 
 ## Runtime Libraries Catalog
 
-| Library | Coordinates | Version | License | Upstream GitHub Repository | Purpose in Clapi |
-|---|---|---|---|---|---|
-| **Kotlin** | `org.jetbrains.kotlin` | `2.1.21` | Apache-2.0 | [JetBrains/kotlin](https://github.com/JetBrains/kotlin) | Core programming language |
-| **Kotlin Coroutines** | `org.jetbrains.kotlinx:kotlinx-coroutines-core` | `1.10.2` | Apache-2.0 | [Kotlin/kotlinx.coroutines](https://github.com/Kotlin/kotlinx.coroutines) | Asynchronous runtime & concurrency |
-| **Compose Multiplatform** | `org.jetbrains.compose` | `1.8.1` | Apache-2.0 | [JetBrains/compose-multiplatform](https://github.com/JetBrains/compose-multiplatform) | Declarative desktop UI toolkit |
-| **Ktor Client** | `io.ktor` | `3.6.1` | Apache-2.0 | [ktorio/ktor](https://github.com/ktorio/ktor) | Network engine, HTTP, WebSockets, OAuth2 |
-| **KSafe** | `eu.anifantakis:ksafe` | `3.3.0` | Apache-2.0 | [ioannisa/ksafe](https://github.com/ioannisa/ksafe) | Hardware-accelerated local AES-256-GCM encryption |
-| **Koin** | `io.insert-koin:koin-core` | `4.0.2` | Apache-2.0 | [InsertKoinIO/koin](https://github.com/InsertKoinIO/koin) | Dependency injection framework |
-| **SQLDelight** | `app.cash.sqldelight:runtime` | `2.0.2` | Apache-2.0 | [cashapp/sqldelight](https://github.com/cashapp/sqldelight) | Type-safe embedded SQLite persistence |
-| **Javet** | `com.caoccao.javet:javet` | `6.0.3` | Apache-2.0 | [caoccao/Javet](https://github.com/caoccao/Javet) | Embedded Google V8 JavaScript engine for scripts |
-| **gRPC Java** | `io.grpc:grpc-netty-shaded` | `1.85.1` | Apache-2.0 | [grpc/grpc-java](https://github.com/grpc/grpc-java) | gRPC HTTP/2 transport & reflection client |
-| **Protocol Buffers** | `com.google.protobuf:protobuf-java` | `4.36.2` | BSD-3-Clause | [protocolbuffers/protobuf](https://github.com/protocolbuffers/protobuf) | Protobuf schema compilation & JSON mapping |
-| **KeePassXC Proxy Access** | `org.purejava:keepassxc-proxy-access` | `1.2.9` | MIT | [purejava/keepassxc-proxy-access](https://github.com/purejava/keepassxc-proxy-access) | Native messaging proxy client for KeePassXC |
-| **Keeper Secrets Manager** | `com.keepersecurity.secrets-manager:core` | `17.2.0` | MIT | [Keeper-Security/secrets-manager](https://github.com/Keeper-Security/secrets-manager) | Keeper vault secret resolution SDK |
-| **NetworkNT Schema Validator** | `com.networknt:json-schema-validator` | `3.0.9` | Apache-2.0 | [networknt/json-schema-validator](https://github.com/networknt/json-schema-validator) | MCP & JSON Schema validation engine |
-| **Kaml** | `com.charleskorn.kaml:kaml` | `0.104.0` | Apache-2.0 | [charleskorn/kaml](https://github.com/charleskorn/kaml) | YAML parser for OpenCollection & OpenAPI |
-| **Swagger Parser** | `io.swagger.parser.v3:swagger-parser` | `2.1.48` | Apache-2.0 | [swagger-api/swagger-parser](https://github.com/swagger-api/swagger-parser) | OpenAPI 3.0 / 3.1 specification importer |
+| Library | License | Upstream GitHub Repository | Purpose in Clapi |
+|---|---|---|---|
+| **Kotlin** | Apache-2.0 | [JetBrains/kotlin](https://github.com/JetBrains/kotlin) | Core programming language |
+| **Kotlin Coroutines** | Apache-2.0 | [Kotlin/kotlinx.coroutines](https://github.com/Kotlin/kotlinx.coroutines) | Asynchronous runtime & concurrency |
+| **Compose Multiplatform** | Apache-2.0 | [JetBrains/compose-multiplatform](https://github.com/JetBrains/compose-multiplatform) | Declarative desktop UI toolkit |
+| **Ktor Client** | Apache-2.0 | [ktorio/ktor](https://github.com/ktorio/ktor) | Network engine, HTTP, WebSockets, OAuth2 |
+| **KSafe** | Apache-2.0 | [ioannisa/ksafe](https://github.com/ioannisa/ksafe) | Hardware-accelerated local AES-256-GCM encryption |
+| **Koin** | Apache-2.0 | [InsertKoinIO/koin](https://github.com/InsertKoinIO/koin) | Dependency injection framework |
+| **SQLDelight** | Apache-2.0 | [cashapp/sqldelight](https://github.com/cashapp/sqldelight) | Type-safe embedded SQLite persistence |
+| **Javet** | Apache-2.0 | [caoccao/Javet](https://github.com/caoccao/Javet) | Embedded Google V8 JavaScript engine for scripts |
+| **gRPC Java** | Apache-2.0 | [grpc/grpc-java](https://github.com/grpc/grpc-java) | gRPC HTTP/2 transport & reflection client |
+| **Protocol Buffers** | BSD-3-Clause | [protocolbuffers/protobuf](https://github.com/protocolbuffers/protobuf) | Protobuf schema compilation & JSON mapping |
+| **KeePassXC Proxy Access** | MIT | [purejava/keepassxc-proxy-access](https://github.com/purejava/keepassxc-proxy-access) | Native messaging proxy client for KeePassXC |
+| **Keeper Secrets Manager** | MIT | [Keeper-Security/secrets-manager](https://github.com/Keeper-Security/secrets-manager) | Keeper vault secret resolution SDK |
+| **NetworkNT Schema Validator** | Apache-2.0 | [networknt/json-schema-validator](https://github.com/networknt/json-schema-validator) | MCP & JSON Schema validation engine |
+| **Kaml** | Apache-2.0 | [charleskorn/kaml](https://github.com/charleskorn/kaml) | YAML parser for OpenCollection & OpenAPI |
+| **Swagger Parser** | Apache-2.0 | [swagger-api/swagger-parser](https://github.com/swagger-api/swagger-parser) | OpenAPI 3.0 / 3.1 specification importer |
+
+::: tip Version Catalog
+To view the authoritative and pinned coordinates, dependencies, and version definitions used by Clapi, see the version catalog on GitHub:
+[`gradle/libs.versions.toml`](https://github.com/MakeForge/Clapi/blob/main/gradle/libs.versions.toml).
+:::

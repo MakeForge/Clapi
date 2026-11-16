@@ -19,8 +19,6 @@ Clapi makes it effortless to migrate your existing API workspaces without vendor
 - **Postman (`v2.0` / `v2.1` `JSON`)** — Collections, nested folders, auth configs, environments, and `pm.*` scripts.
 - **Insomnia (`v5` `YAML` / `JSON`)** — Request collections (`collection.insomnia.rest/5.0`), API design specs (`spec.insomnia.rest/5.0`), standalone environments (`environment.insomnia.rest/5.0`), and `insomnia.*` scripts.
 
----
-
 ## Migrating from Insomnia (v5)
 
 ### Step 1: Export from Insomnia
@@ -52,8 +50,6 @@ Clapi makes it effortless to migrate your existing API workspaces without vendor
 | **Environments & Sub-Environments** | Base `environments.data` and all `subEnvironments` are imported as Clapi Environments; `{{ _.varName }}` templates are normalized to `{{varName}}` |
 | **Pre-Request & After-Response Scripts** | `scripts.preRequest` and `scripts.afterResponse` are automatically translated from `insomnia.*` to `clapi.*` |
 | **Embedded OpenAPI Specs (`spec.contents`)** | Automatically delegated to Clapi's OpenAPI 3.0+ importer while preserving Insomnia environments |
-
----
 
 ## Migrating from Postman (v2.0 / v2.1)
 
@@ -91,8 +87,6 @@ Both Postman and Insomnia v5 scripts are automatically translated during import 
 | `insomnia.response.code` / `.status` | `pm.response.code` / `.status` | `clapi.response.code` / `.status` |
 | `insomnia.response.json()` / `.text()` | `pm.response.json()` / `.text()` | `clapi.response.json()` / `.text()` |
 | `insomnia.sendRequest(...)` | `pm.sendRequest(...)` | `clapi.sendRequest(...)` |
-
----
 
 ## Unsupported Insomnia v5 Fields & Graceful Degradation
 

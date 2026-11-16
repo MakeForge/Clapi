@@ -67,8 +67,11 @@ fun VariableDropdownList(
                 val isSelected = index == selectedIndex
                 val isSecret = name.startsWith("_secret.")
                 val isAuth = name.startsWith("_auth.")
-                val isDynamic = name.startsWith("$") || VariableResolver.isDynamicToken(name)
-                val isFirstDynamic = isDynamic && (index == 0 || !variables[index - 1].first.let { it.startsWith("$") || VariableResolver.isDynamicToken(it) })
+                val isDynamic = name.startsWith("$") || VariableResolver.isDynamicToken(name) || value.startsWith("[Dynamic] ")
+                val isFirstDynamic = isDynamic && (index == 0 || !variables[index - 1].let { (prevName, prevVal) ->
+                    prevName.startsWith("$") || VariableResolver.isDynamicToken(prevName) || prevVal.startsWith("[Dynamic] ")
+                })
+                val displayValue = value.removePrefix("[Dynamic] ")
 
                 Column(modifier = Modifier.fillMaxWidth()) {
                     if (isFirstDynamic && index > 0) {
@@ -152,9 +155,9 @@ fun VariableDropdownList(
                             }
                         }
                         Spacer(modifier = Modifier.weight(1f))
-                        if (value.isNotEmpty()) {
+                        if (displayValue.isNotEmpty()) {
                             Text(
-                                text = if (isSecret) "Path: $value" else if (isAuth || isDynamic) value else "${Strings.value}: $value",
+                                text = if (isSecret) "Path: $displayValue" else if (isAuth || isDynamic) displayValue else "${Strings.value}: $displayValue",
                                 color = ClapiColors.OnSurfaceDim,
                                 fontSize = 11.sp,
                                 maxLines = 1,

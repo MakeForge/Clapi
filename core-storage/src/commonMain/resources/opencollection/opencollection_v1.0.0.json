@@ -109,7 +109,17 @@
           "type": "array",
           "description": "Array of variables",
           "items": {
-            "$ref": "#/$defs/Variable"
+            "oneOf": [
+              {
+                "$ref": "#/$defs/Variable"
+              },
+              {
+                "$ref": "#/$defs/SecretVariable"
+              },
+              {
+                "$ref": "#/$defs/DynamicVariable"
+              }
+            ]
           }
         },
         "scripts": {
@@ -1944,7 +1954,17 @@
           "type": "array",
           "description": "Array of variables",
           "items": {
-            "$ref": "#/$defs/Variable"
+            "oneOf": [
+              {
+                "$ref": "#/$defs/Variable"
+              },
+              {
+                "$ref": "#/$defs/SecretVariable"
+              },
+              {
+                "$ref": "#/$defs/DynamicVariable"
+              }
+            ]
           }
         },
         "scripts": {
@@ -2082,7 +2102,17 @@
           "type": "array",
           "description": "Array of variables",
           "items": {
-            "$ref": "#/$defs/Variable"
+            "oneOf": [
+              {
+                "$ref": "#/$defs/Variable"
+              },
+              {
+                "$ref": "#/$defs/SecretVariable"
+              },
+              {
+                "$ref": "#/$defs/DynamicVariable"
+              }
+            ]
           }
         },
         "scripts": {
@@ -2212,7 +2242,17 @@
           "type": "array",
           "description": "Array of variables",
           "items": {
-            "$ref": "#/$defs/Variable"
+            "oneOf": [
+              {
+                "$ref": "#/$defs/Variable"
+              },
+              {
+                "$ref": "#/$defs/SecretVariable"
+              },
+              {
+                "$ref": "#/$defs/DynamicVariable"
+              }
+            ]
           }
         },
         "scripts": {
@@ -2319,7 +2359,17 @@
           "type": "array",
           "description": "Array of variables",
           "items": {
-            "$ref": "#/$defs/Variable"
+            "oneOf": [
+              {
+                "$ref": "#/$defs/Variable"
+              },
+              {
+                "$ref": "#/$defs/SecretVariable"
+              },
+              {
+                "$ref": "#/$defs/DynamicVariable"
+              }
+            ]
           }
         },
         "scripts": {
@@ -2537,6 +2587,9 @@
               },
               {
                 "$ref": "#/$defs/SecretVariable"
+              },
+              {
+                "$ref": "#/$defs/DynamicVariable"
               }
             ]
           }
@@ -2621,6 +2674,61 @@
         }
       },
       "required": ["secret"],
+      "additionalProperties": false
+    },
+    "DynamicVariableParameter": {
+      "type": "object",
+      "description": "A parameter definition for a user-defined dynamic variable",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The parameter name"
+        },
+        "defaultValue": {
+          "type": "string",
+          "description": "Default value when omitted at call site"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of the parameter"
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    },
+    "DynamicVariable": {
+      "type": "object",
+      "description": "A user-defined scriptable dynamic variable",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The variable name"
+        },
+        "type": {
+          "type": "string",
+          "const": "dynamic",
+          "description": "Indicates this is a dynamic variable"
+        },
+        "script": {
+          "type": "string",
+          "description": "JavaScript body evaluated per request"
+        },
+        "parameters": {
+          "type": "array",
+          "description": "Ordered list of input parameters",
+          "items": {
+            "$ref": "#/$defs/DynamicVariableParameter"
+          }
+        },
+        "description": {
+          "$ref": "#/$defs/Description"
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "Whether the variable is disabled"
+        }
+      },
+      "required": ["name", "type"],
       "additionalProperties": false
     },
     "ExternalSecrets": {

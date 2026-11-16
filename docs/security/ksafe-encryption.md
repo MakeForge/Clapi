@@ -18,8 +18,6 @@ Clapi completely decouples **workspace definitions** from **sensitive secrets**:
 1. Collection and request files (`.json` / `.yaml`) store non-sensitive metadata and variable placeholder references (e.g. <code v-pre>{{vaultSecret}}</code>).
 2. Actual sensitive credentials and vault tokens are persisted in an isolated, encrypted local keystore.
 
----
-
 ## Cryptographic Architecture
 
 Clapi uses the multiplatform cryptographic library **[KSafe](https://github.com/ioannisa/KSafe)** for local keystore management:
@@ -42,8 +40,6 @@ Clapi uses the multiplatform cryptographic library **[KSafe](https://github.com/
 - **Key Derivation**: **PBKDF2** with a high iteration count and unique local salts to protect against offline brute-force attacks.
 - **Hardware Acceleration**: Utilizes CPU AES-NI instructions for near-zero latency cryptographic throughput during read/write cycles.
 
----
-
 ## What data is store encrypted?
 
 | Category | Encrypted Fields | Storage Location |
@@ -52,8 +48,6 @@ Clapi uses the multiplatform cryptographic library **[KSafe](https://github.com/
 | **OAuth 2.0 Credentials** | Client secrets, Refresh tokens, Access tokens | Encrypted local keystore |
 | **Authentication Passwords** | Basic auth passwords, mTLS private keys | Encrypted local keystore |
 | **Sensitive Environment Vars** | Any variable flagged as `Secret` | Encrypted local keystore |
-
----
 
 ## Git Safety
 

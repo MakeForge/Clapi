@@ -408,5 +408,21 @@
   "git_up_to_date": "Tout est à jour",
   "git_not_installed": "Git CLI n'est pas installé ou introuvable dans le PATH système.",
   "git_auth_failed": "Échec de l'authentification Git. Veuillez vérifier vos identifiants ou clés SSH.",
-  "git_network_error": "Une erreur réseau Git s'est produite."
+  "git_network_error": "Une erreur réseau Git s'est produite.",
+  "dynamic": "Dynamique",
+  "edit_script": "Modifier le script",
+  "dynamic_variable_editor": "Éditeur de script de variable dynamique",
+  "parameters": "Paramètres",
+  "add_parameter": "Ajouter un paramètre",
+  "parameter_name": "Nom du paramètre",
+  "default_value": "Valeur par défaut",
+  "run_test": "Exécuter le test",
+  "test_execution": "Exécution du test",
+  "mock_request_context": "Contexte de requête simulé",
+  "return_value": "Valeur de retour",
+  "console_output": "Sortie console",
+  "no_output_yet": "Cliquez sur Exécuter le test pour lancer le script et prévisualiser la sortie.",
+  "script_error": "Erreur de script",
+  "dynamic_script_context_hint": "Les scripts peuvent accéder aux infos de la requête via context.request (url, method, headers, name) et aux paramètres via args.",
+  "dynamic_variables_docs": "Documentation des variables dynamiques"
 }

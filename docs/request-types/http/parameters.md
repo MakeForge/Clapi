@@ -23,8 +23,12 @@ The **Params** tab allows toggling, editing, and adding query parameters:
 |---|---|
 | **Enabled Checkbox** | Temporarily disable a query parameter without deleting its key or value. Disabled parameters are excluded from the wire request. |
 | **Key** | The parameter name (e.g. `limit`, `sort`, `filter`). |
-| **Value** | The parameter value. Supports dynamic interpolation like <code v-pre>{{pageSize}}` or `{{$timestamp}}</code>. |
+| **Value** | The parameter value. Supports dynamic interpolation like <code v-pre>{{pageSize}}</code> or <code v-pre>{{$timestamp}}</code>. |
 | **Description** | Optional human-readable documentation note for the parameter. |
+
+::: tip Inserting Variables & Secrets
+Press **`Ctrl + Space`** inside any parameter key or value cell to open the autocomplete popup and quickly insert variables and secrets. See the [Keyboard Shortcuts](/reference/shortcuts) page for details.
+:::
 
 ---
 

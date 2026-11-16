@@ -14,16 +14,12 @@ description: Get up and running with Clapi, create a collection, and execute you
 
 In this quickstart guide, you will create a new API collection, send an HTTP request to a live endpoint, inspect the returned headers and response payload, and observe performance metrics.
 
----
-
 ## Step 1: Launch Clapi & Create a Collection
 
 1. Open Clapi on your desktop.
 2. In the left **Sidebar**, locate the **Collections** section.
 3. Click the `+` icon on the header to create a new collection.
 4. Double-click the newly created collection to name it `My API Workspace`.
-
----
 
 ## Step 2: Create a Request
 
@@ -45,8 +41,6 @@ Clapi supports multiple first-class protocol types. You can create:
    ```
 4. Notice how the query parameters `user` and `source` automatically populate the **Params** key-value table below the URL bar.
 
----
-
 ## Step 3: Send the Request & Inspect Response
 
 1. Click the purple **Send** button on the right of the URL bar (or press `⌘ + Enter` on macOS / `Ctrl + Enter` on Windows/Linux).
@@ -58,8 +52,6 @@ Clapi supports multiple first-class protocol types. You can create:
    - **Pretty**: Formatted, syntax-highlighted JSON with foldable nodes.
    - **Headers**: Complete response headers (e.g. `Content-Type`, `Date`, `Server`).
    - **Metrics**: Detailed connection breakdown (DNS, TCP, TLS, First Byte / TTFB).
-
----
 
 ## Step 4: Add a Test Assertion
 
@@ -77,8 +69,6 @@ Clapi supports multiple first-class protocol types. You can create:
    ```
 3. Click **Send** again.
 4. Click the **Tests** sub-tab in the response viewer to see your test assertions pass with green checkmarks (`2 / 2 Passed`).
-
----
 
 ## Migrating from Postman or Insomnia?
 

@@ -11,6 +11,7 @@ import io.github.makeforge.clapi.core.model.opencollection.OpenCollectionDocumen
 import io.github.makeforge.clapi.core.model.opencollection.OpenCollectionItem
 import io.github.makeforge.clapi.core.model.opencollection.RawBody
 import io.github.makeforge.clapi.core.model.opencollection.RequestBodyType
+import io.github.makeforge.clapi.core.model.opencollection.DynamicVariable
 import io.github.makeforge.clapi.core.model.opencollection.RegularVariable
 import io.github.makeforge.clapi.core.model.opencollection.SecretVariable
 import io.github.makeforge.clapi.core.storage.opencollection.OpenCollectionSerializer
@@ -57,6 +58,7 @@ object OpenApiExporter {
                                         val strVal = when (entry) {
                                             is RegularVariable -> entry.value?.asString ?: ""
                                             is SecretVariable -> ""
+                                            is DynamicVariable -> ""
                                         }
                                         put(key, strVal)
                                     }
@@ -92,6 +94,7 @@ object OpenApiExporter {
             val value = when (entry) {
                 is RegularVariable -> entry.value?.asString?.trim() ?: ""
                 is SecretVariable -> ""
+                is DynamicVariable -> ""
             }
             if (key.equals("baseUrl", ignoreCase = true) ||
                 key.equals("base_url", ignoreCase = true) ||
@@ -105,6 +108,7 @@ object OpenApiExporter {
             val value = when (entry) {
                 is RegularVariable -> entry.value?.asString?.trim() ?: ""
                 is SecretVariable -> ""
+                is DynamicVariable -> ""
             }
             if (value.startsWith("http://", ignoreCase = true) || value.startsWith("https://", ignoreCase = true)) {
                 return value

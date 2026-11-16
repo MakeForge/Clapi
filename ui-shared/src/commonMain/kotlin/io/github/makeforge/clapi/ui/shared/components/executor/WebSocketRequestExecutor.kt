@@ -6,6 +6,7 @@ import io.github.makeforge.clapi.core.network.VariableResolver
 import io.github.makeforge.clapi.core.network.encodeBase64
 import io.github.makeforge.clapi.core.network.websocket.WebSocketClientManager
 import io.github.makeforge.clapi.core.network.websocket.WebSocketConnectConfig
+import io.github.makeforge.clapi.core.scripting.RequestContext
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.state.LogLevel
 import io.github.makeforge.clapi.ui.shared.state.RequestTabState
@@ -24,7 +25,20 @@ fun connectWebSocketTab(
     }
 
     val layers = state.activeVariableLayers(tab)
-    var resolvedUrl = VariableResolver.resolve(tab.url.trim(), layers, removeUnresolved = true)
+    val dynamicVars = state.activeDynamicVariables(tab)
+    val reqContext = RequestContext(
+        url = VariableResolver.resolve(tab.url.trim(), layers),
+        method = "WS",
+        headers = emptyMap(),
+        name = tab.name,
+    )
+    var resolvedUrl = VariableResolver.resolve(
+        tab.url.trim(),
+        layers,
+        removeUnresolved = true,
+        userDynamicVariables = dynamicVars,
+        requestContext = reqContext,
+    )
     if (!resolvedUrl.startsWith("ws://", ignoreCase = true) && !resolvedUrl.startsWith("wss://", ignoreCase = true)) {
         if (resolvedUrl.startsWith("http://", ignoreCase = true)) {
             resolvedUrl = "ws://" + resolvedUrl.substring(7)
@@ -39,8 +53,8 @@ fun connectWebSocketTab(
     tab.headers
         .filter { it.enabled && it.key.isNotBlank() }
         .forEach {
-            val k = VariableResolver.resolve(it.key, layers, removeUnresolved = true)
-            val v = VariableResolver.resolve(it.value, layers, removeUnresolved = true)
+            val k = VariableResolver.resolve(it.key, layers, removeUnresolved = true, userDynamicVariables = dynamicVars, requestContext = reqContext)
+            val v = VariableResolver.resolve(it.value, layers, removeUnresolved = true, userDynamicVariables = dynamicVars, requestContext = reqContext)
             headersMap[k] = v
         }
 
@@ -100,7 +114,20 @@ fun sendWebSocketMessage(
     val rawPayload = tab.webSocketOutgoingMessage
     val format = tab.effectiveWebSocketFormat
     val layers = state.activeVariableLayers(tab)
-    val resolvedPayload = VariableResolver.resolve(rawPayload, layers, removeUnresolved = true)
+    val dynamicVars = state.activeDynamicVariables(tab)
+    val reqContext = RequestContext(
+        url = VariableResolver.resolve(tab.url.trim(), layers),
+        method = "WS",
+        headers = emptyMap(),
+        name = tab.name,
+    )
+    val resolvedPayload = VariableResolver.resolve(
+        rawPayload,
+        layers,
+        removeUnresolved = true,
+        userDynamicVariables = dynamicVars,
+        requestContext = reqContext,
+    )
 
     scope.launch {
         try {

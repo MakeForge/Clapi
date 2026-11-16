@@ -46,6 +46,7 @@ import io.github.makeforge.clapi.ui.shared.state.*
 import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
 import io.github.makeforge.clapi.ui.shared.theme.CodeFontFamily
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
@@ -56,14 +57,27 @@ internal fun <T> SettingDropdown(
     selected: T,
     onSelected: (T) -> Unit,
     tagPrefix: String = "setting-dropdown",
+    headerAction: (@Composable () -> Unit)? = null,
+    optionIcon: ((T) -> DrawableResource?)? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val selectedText = options.firstOrNull { it.first == selected }?.second ?: selected.toString()
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(label, fontSize = 13.sp, color = ClapiColors.OnSurface)
-        if (description.isNotEmpty()) {
-            Text(description, fontSize = 11.sp, color = ClapiColors.OnSurfaceDim)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f, fill = false)) {
+                Text(label, fontSize = 13.sp, color = ClapiColors.OnSurface)
+                if (description.isNotEmpty()) {
+                    Text(description, fontSize = 11.sp, color = ClapiColors.OnSurfaceDim)
+                }
+            }
+            if (headerAction != null) {
+                headerAction()
+            }
         }
         Box(
             modifier = Modifier
@@ -80,13 +94,27 @@ internal fun <T> SettingDropdown(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text(
-                    text = selectedText,
-                    color = ClapiColors.OnSurface,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.testTag("$tagPrefix-selected-text"),
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    val icon = optionIcon?.invoke(selected)
+                    if (icon != null) {
+                        Icon(
+                            painter = painterResource(icon),
+                            contentDescription = null,
+                            tint = Color.Unspecified,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                    Text(
+                        text = selectedText,
+                        color = ClapiColors.OnSurface,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.testTag("$tagPrefix-selected-text"),
+                    )
+                }
                 Icon(
                     painter = painterResource(Res.drawable.ic_keyboard_arrow_down),
                     contentDescription = null,
@@ -101,7 +129,18 @@ internal fun <T> SettingDropdown(
             ) {
                 options.forEach { (value, text) ->
                     val isSelected = value == selected
+                    val itemIcon = optionIcon?.invoke(value)
                     DropdownMenuItem(
+                        leadingIcon = itemIcon?.let { ic ->
+                            {
+                                Icon(
+                                    painter = painterResource(ic),
+                                    contentDescription = null,
+                                    tint = Color.Unspecified,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                        },
                         text = {
                             Text(
                                 text = text,
