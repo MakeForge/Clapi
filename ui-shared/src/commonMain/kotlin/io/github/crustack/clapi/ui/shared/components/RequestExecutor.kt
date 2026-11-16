@@ -14,6 +14,7 @@ import io.github.crustack.clapi.core.model.RequestDefinition
 import io.github.crustack.clapi.core.model.RequestKind
 import io.github.crustack.clapi.core.model.ResponseDefinition
 import io.github.crustack.clapi.core.model.ResponseMetrics
+import io.github.crustack.clapi.core.model.storage.StorageType
 import io.github.crustack.clapi.core.network.ApiClient
 import io.github.crustack.clapi.core.network.LlmTextAssembler
 import io.github.crustack.clapi.core.network.NetworkEvent
@@ -777,6 +778,21 @@ fun saveRequest(
     tab.syncSystemHeaders()
     scope.launch {
         val checkpoint = tab.captureSaveCheckpoint()
+        if (tab.isCollectionTab && tab.storageType == StorageType.GIT && tab.gitRemoteUrl.isNotBlank()) {
+            try {
+                withContext(ioDispatcher) {
+                    state.gitRepositoryManager.ensureClonedOrCheckedOut(
+                        tab.gitRemoteUrl.trim(),
+                        tab.gitBranch.trim().ifBlank { "main" },
+                    )
+                }
+                tab.storageError = null
+            } catch (e: Exception) {
+                tab.storageError = e.message ?: "Failed to clone or checkout Git repository"
+                state.log("✗ Failed to configure Git storage: ${tab.storageError}", LogLevel.ERROR)
+                return@launch
+            }
+        }
         val collectionSynced = tab.collectionName == null || state.syncTabToCollectionNode(tab)
         // The clean marker must be part of the persisted tab snapshot. Previously
         // TabsRepository.save ran first, so an immediate reload restored a dirty tab.

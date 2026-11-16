@@ -33,6 +33,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
@@ -57,6 +58,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ForkRight
 import androidx.compose.material.icons.automirrored.filled.Input
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
@@ -1152,6 +1154,8 @@ fun Sidebar(state: AppState) {
                 }
             }
             }
+
+            SidebarGitStatusIndicator(state = state)
         }
         // Single tooltip overlay — not a Popup, so no hover-exit flicker.
         SidebarTooltipOverlay()
@@ -3064,3 +3068,62 @@ private fun containsFolderId(node: CollectionNode, folderId: String): Boolean {
     }
     return false
 }
+
+@Composable
+fun SidebarGitStatusIndicator(
+    state: AppState,
+    modifier: Modifier = Modifier,
+) {
+    val gitCollection = state.activeGitCollectionNode ?: return
+    val gitStatus = state.activeGitStatus
+    val branchName = gitStatus?.branch?.ifBlank { gitCollection.gitBranch } ?: gitCollection.gitBranch
+    val isDirty = gitStatus != null && (!gitStatus.isClean || gitStatus.hasConflicts)
+
+    LaunchedEffect(
+        gitCollection.id,
+        gitCollection.gitRemoteUrl,
+        gitCollection.gitBranch,
+        state.activeTabIndex,
+        state.selectedCollectionId,
+        state.selectedRequestId,
+    ) {
+        state.refreshGitStatusForCollection(gitCollection)
+    }
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(ClapiColors.Surface)
+            .clickable { state.showGitSyncDialog = true }
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .testTag("sidebar-git-indicator"),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Default.ForkRight,
+            contentDescription = Strings.gitSync,
+            tint = ClapiColors.Primary,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = branchName,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Medium,
+            color = ClapiColors.OnSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f).testTag("sidebar-git-branch-label"),
+        )
+        if (isDirty) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(if (gitStatus?.hasConflicts == true) ClapiColors.Error else ClapiColors.Primary)
+                    .testTag("sidebar-git-dirty-dot"),
+            )
+        }
+    }
+}
+
