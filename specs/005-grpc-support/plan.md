@@ -91,29 +91,29 @@ specs/005-grpc-support/
 
 ```text
 core-model/
-└── src/commonMain/kotlin/io/github/crustack/clapi/core/model/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/core/model/
     ├── McpModels.kt                                 # Extend RequestKind with GRPC
     └── opencollection/
         └── OpenCollectionItem.kt                    # Add GrpcRequestItem, GrpcMetadata, and serializer cases
 
 core-network/
 └── src/
-    ├── commonMain/kotlin/io/github/crustack/clapi/core/network/
+    ├── commonMain/kotlin/io/github/makeforge/clapi/core/network/
     │   └── grpc/
     │       ├── GrpcModels.kt                        # Call request/response & proto info types
     │       ├── ProtoParser.kt                       # Proto compilation & descriptor parsing interface
     │       └── DynamicGrpcClient.kt                 # Unary dynamic execution interface
-    └── desktopMain/kotlin/io/github/crustack/clapi/core/network/
+    └── desktopMain/kotlin/io/github/makeforge/clapi/core/network/
         └── grpc/
             ├── ProtocJarParser.kt                   # Implementation using protoc-jar & FileDescriptorSet
             └── NettyDynamicGrpcClient.kt            # Implementation using DynamicMessage & ManagedChannel
 
 core-storage/
-└── src/commonMain/kotlin/io/github/crustack/clapi/core/storage/opencollection/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/opencollection/
     └── OpenCollectionSerializer.kt                  # Register KNOWN_GRPC_REQUEST_KEYS and extension handling
 
 ui-shared/
-└── src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/
     ├── components/
     │   ├── Sidebar.kt                               # Folder "+" context menu (HTTP / gRPC) & GrpcBadge
     │   ├── RequestTabsBar.kt                        # Render GrpcBadge for GRPC tab items
@@ -128,7 +128,7 @@ ui-shared/
 qa-tests/
 ├── fixtures/
 │   └── clapi-test-collection.json                   # Include sample gRPC request item
-├── src/test/kotlin/io/github/crustack/clapi/
+├── src/test/kotlin/io/github/makeforge/clapi/
 │   ├── testsupport/
 │   │   └── DummyApiServer.kt                        # Add gRPC service endpoint (using kotlinx.rpc / gRPC)
 │   └── qa/

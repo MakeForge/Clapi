@@ -24,9 +24,9 @@ description: "Task list for Git Collection Sync implementation"
 
 **Purpose**: Define core data structures, storage extension types, and UI localization resources required by all user stories.
 
-- [x] T001 Create `StorageExtension`, `StorageType`, `GitStorageConfig`, and `GitCredentialsConfig` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/storage/StorageExtension.kt` with validation rules (when `type == "git"`, `remoteUrl` and `branch` must be non-blank, `credentials.type == "system"`).
-- [x] T002 [P] Update `OpenCollectionModelMapping.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to serialize and deserialize `extensions.storage` for both `"local"` and `"git"` configurations.
-- [x] T003 [P] Add string localization entries for Storage tab, Git indicator, Git Sync Dialog, commit/push/pull actions, and Git error notices in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/i18n/Strings.kt`.
+- [x] T001 Create `StorageExtension`, `StorageType`, `GitStorageConfig`, and `GitCredentialsConfig` in `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/storage/StorageExtension.kt` with validation rules (when `type == "git"`, `remoteUrl` and `branch` must be non-blank, `credentials.type == "system"`).
+- [x] T002 [P] Update `OpenCollectionModelMapping.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to serialize and deserialize `extensions.storage` for both `"local"` and `"git"` configurations.
+- [x] T003 [P] Add string localization entries for Storage tab, Git indicator, Git Sync Dialog, commit/push/pull actions, and Git error notices in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/i18n/Strings.kt`.
 
 ---
 
@@ -36,10 +36,10 @@ description: "Task list for Git Collection Sync implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [x] T004 Define `GitCliExecutor` interface, `GitCommandResult`, and Git exception hierarchy in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/git/GitCliExecutor.kt`.
-- [x] T005 Implement `DesktopGitCliExecutor` in `core-storage/src/desktopMain/kotlin/io/github/crustack/clapi/core/storage/git/DesktopGitCliExecutor.kt` using `ProcessBuilder` on Dispatchers.IO to invoke host system `git` binary and capture stdout/stderr with timeouts.
-- [x] T006 Implement `GitRepositoryManager` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/git/GitRepositoryManager.kt` handling clone, checkout, status (`git status --porcelain=v1`), stage/commit, push, and pull within `~/.clapi/storage/<repoId>/`.
-- [x] T007 [P] Create unit tests for `DesktopGitCliExecutor` and `GitRepositoryManager` in `core-storage/src/desktopTest/kotlin/io/github/crustack/clapi/core/storage/git/GitCliExecutorTest.kt` verifying version check, command execution, and status parsing against a local test Git repo.
+- [x] T004 Define `GitCliExecutor` interface, `GitCommandResult`, and Git exception hierarchy in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/git/GitCliExecutor.kt`.
+- [x] T005 Implement `DesktopGitCliExecutor` in `core-storage/src/desktopMain/kotlin/io/github/makeforge/clapi/core/storage/git/DesktopGitCliExecutor.kt` using `ProcessBuilder` on Dispatchers.IO to invoke host system `git` binary and capture stdout/stderr with timeouts.
+- [x] T006 Implement `GitRepositoryManager` in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/git/GitRepositoryManager.kt` handling clone, checkout, status (`git status --porcelain=v1`), stage/commit, push, and pull within `~/.clapi/storage/<repoId>/`.
+- [x] T007 [P] Create unit tests for `DesktopGitCliExecutor` and `GitRepositoryManager` in `core-storage/src/desktopTest/kotlin/io/github/makeforge/clapi/core/storage/git/GitCliExecutorTest.kt` verifying version check, command execution, and status parsing against a local test Git repo.
 
 **Checkpoint**: Foundation ready — user story implementation can now begin.
 
@@ -53,14 +53,14 @@ description: "Task list for Git Collection Sync implementation"
 
 ### Tests for User Story 1
 
-- [X] T008 [P] [US1] Create UI and state tests for Storage tab in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/CollectionStorageTabUiTest.kt` verifying Local vs Git radio selection, input field visibility, Save button state, and error banner display.
+- [X] T008 [P] [US1] Create UI and state tests for Storage tab in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/CollectionStorageTabUiTest.kt` verifying Local vs Git radio selection, input field visibility, Save button state, and error banner display.
 
 ### Implementation for User Story 1
 
-- [X] T009 [P] [US1] Extend `CollectionEditorTab` enum with `STORAGE("Storage")` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/CollectionEditor.kt`.
-- [X] T010 [US1] Add `storageType`, `gitRemoteUrl`, and `gitBranch` state properties to `CollectionNode` and `RequestTabState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt`.
-- [X] T011 [US1] Implement the Storage Tab UI composable in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/CollectionEditor.kt` with Local vs Git selection, `remoteUrl` and `branch` text fields, and "Save Storage Settings" button.
-- [X] T012 [US1] Implement storage configuration save handler in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/CollectionEditor.kt` and `WorkspaceRepository.kt` triggering repository clone via `GitRepositoryManager`, writing `collection.opencollection.yaml` to `<repo-root>/<collection-name>/`, and updating `extensions.storage`.
+- [X] T009 [P] [US1] Extend `CollectionEditorTab` enum with `STORAGE("Storage")` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/CollectionEditor.kt`.
+- [X] T010 [US1] Add `storageType`, `gitRemoteUrl`, and `gitBranch` state properties to `CollectionNode` and `RequestTabState` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt`.
+- [X] T011 [US1] Implement the Storage Tab UI composable in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/CollectionEditor.kt` with Local vs Git selection, `remoteUrl` and `branch` text fields, and "Save Storage Settings" button.
+- [X] T012 [US1] Implement storage configuration save handler in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/CollectionEditor.kt` and `WorkspaceRepository.kt` triggering repository clone via `GitRepositoryManager`, writing `collection.opencollection.yaml` to `<repo-root>/<collection-name>/`, and updating `extensions.storage`.
 
 **Checkpoint**: User Story 1 (MVP) is fully functional and testable independently.
 
@@ -74,13 +74,13 @@ description: "Task list for Git Collection Sync implementation"
 
 ### Tests for User Story 2
 
-- [X] T013 [P] [US2] Create UI tests for sidebar Git indicator and Git Sync Dialog in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/GitSyncUiTest.kt` verifying branch display, dirty dot, dialog opening, commit button enabling, and pull conflict warning.
+- [X] T013 [P] [US2] Create UI tests for sidebar Git indicator and Git Sync Dialog in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/GitSyncUiTest.kt` verifying branch display, dirty dot, dialog opening, commit button enabling, and pull conflict warning.
 
 ### Implementation for User Story 2
 
-- [X] T014 [US2] Implement live Git status tracking and polling in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` observing active collection's repository state via `GitRepositoryManager.checkStatus()`.
-- [X] T015 [US2] Implement bottom-left sidebar Git status indicator composable in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` displaying branch icon, branch name, uncommitted changes badge/dot, and click trigger.
-- [X] T016 [US2] Implement `GitSyncDialog` composable in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GitSyncDialog.kt` with modified files list grouped by collection, commit message text field, "Commit", "Push", and "Pull" action buttons.
+- [X] T014 [US2] Implement live Git status tracking and polling in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt` observing active collection's repository state via `GitRepositoryManager.checkStatus()`.
+- [X] T015 [US2] Implement bottom-left sidebar Git status indicator composable in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/Sidebar.kt` displaying branch icon, branch name, uncommitted changes badge/dot, and click trigger.
+- [X] T016 [US2] Implement `GitSyncDialog` composable in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/GitSyncDialog.kt` with modified files list grouped by collection, commit message text field, "Commit", "Push", and "Pull" action buttons.
 - [X] T017 [US2] Implement Commit and Push handlers in `GitSyncDialog.kt` executing `git add -A && git commit -m <msg>` and `git push` via `GitRepositoryManager`.
 - [X] T018 [US2] Implement Pull handler and conflict detection in `GitSyncDialog.kt` executing `git pull`, parsing conflict status (`UU`, `AA`), alerting the user with external resolution instructions, and reloading the collection YAML on clean pulls.
 
@@ -96,16 +96,16 @@ description: "Task list for Git Collection Sync implementation"
 
 ### Tests for User Story 3
 
-- [X] T019 [P] [US3] Create unit tests for dual-path resolution in `core-storage/src/desktopTest/kotlin/io/github/crustack/clapi/core/storage/git/ProtoPathResolverTest.kt` verifying `./protobuf/...` resolves against collection Git directory and absolute paths resolve against host filesystem.
-- [X] T020 [P] [US3] Create UI tests for proto sync toggles in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/ProtoGitSyncUiTest.kt` verifying toggle visibility when Git sync is enabled and persistence into OpenCollection YAML.
+- [X] T019 [P] [US3] Create unit tests for dual-path resolution in `core-storage/src/desktopTest/kotlin/io/github/makeforge/clapi/core/storage/git/ProtoPathResolverTest.kt` verifying `./protobuf/...` resolves against collection Git directory and absolute paths resolve against host filesystem.
+- [X] T020 [P] [US3] Create UI tests for proto sync toggles in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/ProtoGitSyncUiTest.kt` verifying toggle visibility when Git sync is enabled and persistence into OpenCollection YAML.
 
 ### Implementation for User Story 3
 
-- [X] T021 [P] [US3] Implement `ProtoPathResolver` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/git/ProtoPathResolver.kt` resolving relative `./protobuf/...` paths against collection repository directory and preserving absolute filesystem paths.
-- [X] T022 [US3] Update `ProtoFileItemState` and `ProtoImportPathState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` to add `syncToGit: Boolean` flag.
-- [X] T023 [US3] Add "Sync to Git" toggle switch in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/CollectionEditor.kt` (Protobuf tab) and in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GrpcRequestEditor.kt`.
-- [X] T024 [US3] Implement proto file copying to `<collection-folder>/protobuf/` and relative path rewriting (`./protobuf/...`) in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt`.
-- [X] T025 [US3] Integrate `ProtoPathResolver` into `ProtocJarParser.kt` in `core-network/src/desktopMain/kotlin/io/github/crustack/clapi/core/network/grpc/ProtocJarParser.kt` and gRPC execution pipeline in `RequestExecutor.kt`.
+- [X] T021 [P] [US3] Implement `ProtoPathResolver` in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/git/ProtoPathResolver.kt` resolving relative `./protobuf/...` paths against collection repository directory and preserving absolute filesystem paths.
+- [X] T022 [US3] Update `ProtoFileItemState` and `ProtoImportPathState` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt` to add `syncToGit: Boolean` flag.
+- [X] T023 [US3] Add "Sync to Git" toggle switch in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/CollectionEditor.kt` (Protobuf tab) and in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/GrpcRequestEditor.kt`.
+- [X] T024 [US3] Implement proto file copying to `<collection-folder>/protobuf/` and relative path rewriting (`./protobuf/...`) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt`.
+- [X] T025 [US3] Integrate `ProtoPathResolver` into `ProtocJarParser.kt` in `core-network/src/desktopMain/kotlin/io/github/makeforge/clapi/core/network/grpc/ProtocJarParser.kt` and gRPC execution pipeline in `RequestExecutor.kt`.
 
 **Checkpoint**: User Stories 1, 2, and 3 are functional and testable independently.
 
@@ -119,11 +119,11 @@ description: "Task list for Git Collection Sync implementation"
 
 ### Tests for User Story 4
 
-- [x] T026 [P] [US4] Create multi-collection Git sync E2E test in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/MultiCollectionGitSyncE2ETest.kt` verifying shared repository cloning, per-collection subfolder isolation, and unified commit/push.
+- [x] T026 [P] [US4] Create multi-collection Git sync E2E test in `qa-tests/src/test/kotlin/io/github/makeforge/clapi/qa/MultiCollectionGitSyncE2ETest.kt` verifying shared repository cloning, per-collection subfolder isolation, and unified commit/push.
 
 ### Implementation for User Story 4
 
-- [x] T027 [US4] Update `GitRepositoryManager` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/git/GitRepositoryManager.kt` to register multiple collections against the same repository clone and map working directory changes to their respective collection roots.
+- [x] T027 [US4] Update `GitRepositoryManager` in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/git/GitRepositoryManager.kt` to register multiple collections against the same repository clone and map working directory changes to their respective collection roots.
 - [x] T028 [US4] Update `AppState.kt` and `Sidebar.kt` to update the active Git repository and branch indicator reactively when the user switches between collections or tabs.
 - [x] T029 [US4] Update `GitSyncDialog.kt` to render change lists grouped under expandable/collapsible collection headers with individual file counts.
 
@@ -135,8 +135,8 @@ description: "Task list for Git Collection Sync implementation"
 
 **Purpose**: Error handling, end-to-end quickstart validation, and regression verification across all test suites.
 
-- [x] T030 [P] Implement friendly error translation for Git errors (Git not installed, SSH authentication failure, network timeout, branch not found) in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/git/GitErrorTranslator.kt`.
-- [x] T031 Create end-to-end Git sync round-trip QA integration test in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/GitSyncE2ETest.kt` executing the scenarios from `quickstart.md`.
+- [x] T030 [P] Implement friendly error translation for Git errors (Git not installed, SSH authentication failure, network timeout, branch not found) in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/git/GitErrorTranslator.kt`.
+- [x] T031 Create end-to-end Git sync round-trip QA integration test in `qa-tests/src/test/kotlin/io/github/makeforge/clapi/qa/GitSyncE2ETest.kt` executing the scenarios from `quickstart.md`.
 - [x] T032 Run regression verification test suites: `:core-model:allTests`, `:core-storage:allTests`, `:core-network:allTests`, `:ui-shared:desktopTest`, `:ui-desktop:desktopTest`, and `:qa-tests:jvmTest`.
 
 ---

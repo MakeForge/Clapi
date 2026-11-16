@@ -24,12 +24,12 @@ Run the automated UI and unit test suites verifying folder tab state, inheritanc
 
 ```bash
 # Run unit & state tests for tabs, folders, and models
-./gradlew :ui-shared:desktopTest --tests "io.github.crustack.clapi.ui.shared.*"
+./gradlew :ui-shared:desktopTest --tests "io.github.makeforge.clapi.ui.shared.*"
 ./gradlew :core-model:desktopTest
 
 # Run desktop integration tests
-./gradlew :ui-desktop:desktopTest --tests "io.github.crustack.clapi.ui.desktop.TabManagementUiTest"
-./gradlew :ui-desktop:desktopTest --tests "io.github.crustack.clapi.ui.desktop.components.SidebarCollectionHelpersTest"
+./gradlew :ui-desktop:desktopTest --tests "io.github.makeforge.clapi.ui.desktop.TabManagementUiTest"
+./gradlew :ui-desktop:desktopTest --tests "io.github.makeforge.clapi.ui.desktop.components.SidebarCollectionHelpersTest"
 ```
 
 ---

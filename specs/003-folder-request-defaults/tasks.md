@@ -26,11 +26,11 @@
 
 ⚠️ **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [x] T002 [P] Add `INHERIT` to `AuthType` enum in core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/RequestModels.kt
-- [x] T003 [P] Add `FOLDER` to `RequestKind` enum in core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/McpModels.kt
-- [x] T004 [P] Add `INHERITED` to `HeaderKind` enum in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt
-- [x] T005 Map `FolderItem.request` (headers, params, auth, scripts) to and from `CollectionNode` in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt
-- [x] T006 Update `TabsRepository.kt` to serialize and deserialize `RequestKind.FOLDER` tabs preserving folder defaults in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/TabsRepository.kt
+- [x] T002 [P] Add `INHERIT` to `AuthType` enum in core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/RequestModels.kt
+- [x] T003 [P] Add `FOLDER` to `RequestKind` enum in core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/McpModels.kt
+- [x] T004 [P] Add `INHERITED` to `HeaderKind` enum in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt
+- [x] T005 Map `FolderItem.request` (headers, params, auth, scripts) to and from `CollectionNode` in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt
+- [x] T006 Update `TabsRepository.kt` to serialize and deserialize `RequestKind.FOLDER` tabs preserving folder defaults in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/TabsRepository.kt
 
 **Checkpoint**: Core enums and serialization foundations ready. User story implementation can now begin.
 
@@ -45,9 +45,9 @@
 ### Implementation for User Story 1
 
 - [x] T007 [P] [US1] Update localization strings and translation values for collections to folders in ui-shared/src/commonMain/resources/i18n/en.json, de.json, es.json, fr.json
-- [x] T008 [P] [US1] Update `Strings.kt` string accessors for folder terminology in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/i18n/Strings.kt
-- [x] T009 [US1] Update sidebar section headers, context menu labels, and dialog prompts from "Collection" to "Folder" in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt
-- [x] T010 [P] [US1] Update or add unit tests for folder terminology in ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/components/SidebarCollectionHelpersTest.kt
+- [x] T008 [P] [US1] Update `Strings.kt` string accessors for folder terminology in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/i18n/Strings.kt
+- [x] T009 [US1] Update sidebar section headers, context menu labels, and dialog prompts from "Collection" to "Folder" in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/Sidebar.kt
+- [x] T010 [P] [US1] Update or add unit tests for folder terminology in ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/components/SidebarCollectionHelpersTest.kt
 
 **Checkpoint**: At this point, User Story 1 is fully functional and all UI references display "Folder".
 
@@ -61,13 +61,13 @@
 
 ### Implementation for User Story 2
 
-- [x] T011 [US2] Implement `AppState.openFolder(folderId: String)` to open or focus a `RequestKind.FOLDER` tab in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt
-- [x] T012 [US2] Update `CollectionTreeNode` in `Sidebar.kt` to distinguish clicking folder name text (which invokes `openFolder`) vs chevron/folder icon (which toggles expand/collapse) in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt
-- [x] T013 [US2] Update `RequestTabsBar.kt` to render `Icons.Default.Folder` (instead of method badge) and handle tab close/rename for `RequestKind.FOLDER` tabs in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestTabsBar.kt
-- [x] T014 [US2] Create `FolderEditor.kt` composable reusing `EditorTabBar`, `KeyValueEditor`, `AuthEditor`, and `ScriptEditor` for editing `RequestDefaults` in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/FolderEditor.kt
-- [x] T015 [US2] Wire `FolderEditor` into `MainScreen.kt` when `activeTab.kind == RequestKind.FOLDER`, omitting URL bar and ResponseViewer in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/MainScreen.kt
-- [x] T016 [US2] Implement save handling for `RequestKind.FOLDER` tabs in `MainScreen.kt` and `AppState.kt` to persist defaults to `CollectionNode` and trigger workspace saving in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/MainScreen.kt
-- [x] T017 [P] [US2] Add unit tests for opening, focusing, and saving folder settings tabs in ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/TabManagementUiTest.kt
+- [x] T011 [US2] Implement `AppState.openFolder(folderId: String)` to open or focus a `RequestKind.FOLDER` tab in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt
+- [x] T012 [US2] Update `CollectionTreeNode` in `Sidebar.kt` to distinguish clicking folder name text (which invokes `openFolder`) vs chevron/folder icon (which toggles expand/collapse) in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/Sidebar.kt
+- [x] T013 [US2] Update `RequestTabsBar.kt` to render `Icons.Default.Folder` (instead of method badge) and handle tab close/rename for `RequestKind.FOLDER` tabs in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/RequestTabsBar.kt
+- [x] T014 [US2] Create `FolderEditor.kt` composable reusing `EditorTabBar`, `KeyValueEditor`, `AuthEditor`, and `ScriptEditor` for editing `RequestDefaults` in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/FolderEditor.kt
+- [x] T015 [US2] Wire `FolderEditor` into `MainScreen.kt` when `activeTab.kind == RequestKind.FOLDER`, omitting URL bar and ResponseViewer in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/MainScreen.kt
+- [x] T016 [US2] Implement save handling for `RequestKind.FOLDER` tabs in `MainScreen.kt` and `AppState.kt` to persist defaults to `CollectionNode` and trigger workspace saving in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/MainScreen.kt
+- [x] T017 [P] [US2] Add unit tests for opening, focusing, and saving folder settings tabs in ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/TabManagementUiTest.kt
 
 **Checkpoint**: Users can open, edit, and persist folder request defaults via dedicated editor tabs.
 
@@ -81,11 +81,11 @@
 
 ### Implementation for User Story 3
 
-- [x] T018 [US3] Implement inherited defaults resolution in `AppState.kt` to traverse ancestor folders along `folderPath` and populate inherited headers and auth defaults in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt
-- [x] T019 [US3] Update `KeyValueEditor.kt` to display an "Inherited" badge for `HeaderKind.INHERITED` rows and lock their fields as read-only in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/KeyValueEditor.kt
-- [x] T020 [US3] Update `AuthEditor.kt` to include `AuthType.INHERIT` chip when the request is in a folder, showing resolved parent auth in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/AuthEditor.kt
-- [x] T021 [US3] Update `RequestExecutor.kt` to merge inherited headers on HTTP dispatch with case-insensitive user overrides, and apply resolved folder authentication when `authType == AuthType.INHERIT` in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt
-- [x] T022 [P] [US3] Add unit tests for inherited headers display, case-insensitive overrides, and auth inheritance in ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/state/RequestTabStateTest.kt
+- [x] T018 [US3] Implement inherited defaults resolution in `AppState.kt` to traverse ancestor folders along `folderPath` and populate inherited headers and auth defaults in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt
+- [x] T019 [US3] Update `KeyValueEditor.kt` to display an "Inherited" badge for `HeaderKind.INHERITED` rows and lock their fields as read-only in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/KeyValueEditor.kt
+- [x] T020 [US3] Update `AuthEditor.kt` to include `AuthType.INHERIT` chip when the request is in a folder, showing resolved parent auth in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/AuthEditor.kt
+- [x] T021 [US3] Update `RequestExecutor.kt` to merge inherited headers on HTTP dispatch with case-insensitive user overrides, and apply resolved folder authentication when `authType == AuthType.INHERIT` in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/RequestExecutor.kt
+- [x] T022 [P] [US3] Add unit tests for inherited headers display, case-insensitive overrides, and auth inheritance in ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/state/RequestTabStateTest.kt
 
 **Checkpoint**: Requests inside folders visually display inherited headers/auth and correctly execute with effective settings.
 
@@ -99,10 +99,10 @@
 
 ### Implementation for User Story 4
 
-- [x] T023 [US4] Implement hierarchical inheritance cascading for nested folders in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt
-- [x] T024 [US4] Update `RequestExecutor.kt` to execute ancestor folder pre-request scripts before the request pre-request script in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt
-- [x] T025 [US4] Add explicit `// TODO:` comments and documentation in `RequestExecutor.kt` addressing cross-script variable isolation, test script cascading, and error boundary handling in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt
-- [x] T026 [P] [US4] Add unit tests for multi-level nested folder inheritance and script cascading in ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/state/AppStateCollectionTest.kt
+- [x] T023 [US4] Implement hierarchical inheritance cascading for nested folders in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt
+- [x] T024 [US4] Update `RequestExecutor.kt` to execute ancestor folder pre-request scripts before the request pre-request script in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/RequestExecutor.kt
+- [x] T025 [US4] Add explicit `// TODO:` comments and documentation in `RequestExecutor.kt` addressing cross-script variable isolation, test script cascading, and error boundary handling in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/RequestExecutor.kt
+- [x] T026 [P] [US4] Add unit tests for multi-level nested folder inheritance and script cascading in ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/state/AppStateCollectionTest.kt
 
 **Checkpoint**: Deeply nested folder structures cascade request defaults and scripts seamlessly.
 
@@ -112,7 +112,7 @@
 
 **Purpose**: Verification, tests, and documentation across all user stories
 
-- [x] T027 [P] Verify and update OpenCollection import/export tests for folder request defaults in ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/persistence/ImportExportFormDataTest.kt
+- [x] T027 [P] Verify and update OpenCollection import/export tests for folder request defaults in ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/persistence/ImportExportFormDataTest.kt
 - [x] T028 [P] Update developer documentation in docs/ explaining folder settings and inheritance rules
 - [x] T029 Execute full validation walkthrough following specs/003-folder-request-defaults/quickstart.md
 
@@ -156,9 +156,9 @@ graph TD
 
 ```bash
 # Launch core enum modifications in parallel:
-Task: "T002 [P] Add INHERIT to AuthType enum in core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/RequestModels.kt"
-Task: "T003 [P] Add FOLDER to RequestKind enum in core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/McpModels.kt"
-Task: "T004 [P] Add INHERITED to HeaderKind enum in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt"
+Task: "T002 [P] Add INHERIT to AuthType enum in core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/RequestModels.kt"
+Task: "T003 [P] Add FOLDER to RequestKind enum in core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/McpModels.kt"
+Task: "T004 [P] Add INHERITED to HeaderKind enum in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt"
 ```
 
 ---

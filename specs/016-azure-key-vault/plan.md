@@ -57,41 +57,41 @@ specs/016-azure-key-vault/
 
 ```text
 core-model/
-└── src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/
     └── OpenCollectionEnvironment.kt     # AzureKeyVaultExternalSecret, serializer update
 
 core-network/
-├── src/commonMain/kotlin/io/github/crustack/clapi/core/network/azure/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/core/network/azure/
 │   ├── AzureKeyVaultConfig.kt           # Configuration data model
 │   └── AzureKeyVaultClient.kt           # Interface & KtorAzureKeyVaultClient
-├── src/commonMain/kotlin/io/github/crustack/clapi/core/network/vault/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/core/network/vault/
 │   └── SecretResolutionService.kt       # resolveAzureSecrets & resolveAllSecrets wiring
-└── src/commonTest/kotlin/io/github/crustack/clapi/core/network/azure/
+└── src/commonTest/kotlin/io/github/makeforge/clapi/core/network/azure/
     ├── AzureKeyVaultClientTest.kt       # MockEngine unit tests
     └── SecretResolutionServiceAzureTest.kt # Resolution & batching tests
 
 core-storage/
 ├── src/commonMain/resources/opencollection/
 │   └── opencollection_v1.0.0.json       # Update schema for AzureKeyVaultExternalSecret
-└── src/commonTest/kotlin/io/github/crustack/clapi/core/storage/opencollection/
+└── src/commonTest/kotlin/io/github/makeforge/clapi/core/storage/opencollection/
     └── OpenCollectionExternalSecretsTest.kt # Azure roundtrip & leak check tests
 
 feature-requests/
-└── src/commonMain/kotlin/io/github/crustack/clapi/feature/requests/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/feature/requests/
     └── RequestExecutionService.kt       # Azure parameters & mapping for execution
 
 ui-shared/
-├── src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/
 │   └── AppSettings.kt                   # Global Azure settings properties
-├── src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/
 │   ├── SettingsRepository.kt            # Load/save Azure settings with encrypted clientSecret
 │   ├── OpenCollectionModelMapping.kt    # Bidirectional mapping for AzureKeyVaultExternalSecret
 │   └── ImportExportRepository.kt        # Serialize targetField and customFilters
-├── src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/
 │   ├── SettingsDialog.kt                # Azure Key Vault settings form
 │   ├── EnvironmentEditDialog.kt         # azure-key-vault provider row & table headers
 │   └── executor/RequestVariableResolution.kt # Wire AppState.settings into resolveAllSecrets
-└── src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/
+└── src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/components/
     ├── AzureSettingsTest.kt             # Settings persistence & masking tests
     ├── EnvironmentEditorAzureTest.kt    # Environment editor mapping tests
     └── RequestExecutorAzureSecretsTest.kt # Dispatch & error tests
@@ -99,7 +99,7 @@ ui-shared/
 qa-tests/
 ├── docker/secret-managers-compose.yml   # Add local-azure-vault (Lowkey Vault) & seeder
 ├── fixtures/clapi-test-collection.json  # Add Azure Staging environment
-└── src/test/kotlin/io/github/crustack/clapi/qa/
+└── src/test/kotlin/io/github/makeforge/clapi/qa/
     └── AzureKeyVaultIntegrationTest.kt  # E2E Lowkey Vault integration test
 ```
 

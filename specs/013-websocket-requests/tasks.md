@@ -20,8 +20,8 @@
 
 **Purpose**: Theme color additions and i18n string definitions for WebSocket requests
 
-- [X] T001 Add `methodWebSocket` color property to `AppColorPalette` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/theme/AppColorPalette.kt` with dark color `Color(0xFF29B6F6)` and light color `Color(0xFF0288D1)`
-- [X] T002 [P] Expose `ClapiColors.MethodWebSocket` accessor in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/theme/ClapiTheme.kt`
+- [X] T001 Add `methodWebSocket` color property to `AppColorPalette` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/theme/AppColorPalette.kt` with dark color `Color(0xFF29B6F6)` and light color `Color(0xFF0288D1)`
+- [X] T002 [P] Expose `ClapiColors.MethodWebSocket` accessor in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/theme/ClapiTheme.kt`
 - [X] T003 [P] Add i18n localization keys (`new_websocket_request`, `websocket_connect`, `websocket_disconnect`, `websocket_send`, `websocket_variants`, `websocket_messages`) in `ui-shared/src/commonMain/resources/i18n/en.json`, `de.json`, `es.json`, and `fr.json`
 
 ---
@@ -32,12 +32,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this foundational phase is complete
 
-- [X] T004 Extend `RequestKind` enum with `WEBSOCKET` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/McpModels.kt`
-- [X] T005 [P] Define `WebSocketMessageType`, `WebSocketMessage`, `WebSocketMessageVariant`, `WebSocketMessagePayload`, `WebSocketRequestSettings`, `WebSocketRequestRuntime`, `WebSocketRequestDetails`, `WebSocketRequestInfo`, and `WebSocketRequestItem` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt`
-- [X] T006 Implement `WebSocketMessagePayloadSerializer` handling polymorphic serialization of `WebSocketMessagePayload` (Single `WebSocketMessage` vs Variants `List<WebSocketMessageVariant>`) in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt`
-- [X] T007 Update `OpenCollectionItemSerializer` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt` to handle polymorphic deserialization for `WebSocketRequestItem` when element has `websocket` or `info.type == "websocket"`
-- [X] T008 [P] Define `WebSocketLogMessage` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/RealtimeModels.kt`
-- [X] T009 [P] Add unit tests for `WebSocketRequestItem` serialization and polymorphic `WebSocketMessagePayload` in `core-model/src/commonTest/kotlin/io/github/crustack/clapi/core/model/opencollection/WebSocketSerializationTest.kt`
+- [X] T004 Extend `RequestKind` enum with `WEBSOCKET` in `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/McpModels.kt`
+- [X] T005 [P] Define `WebSocketMessageType`, `WebSocketMessage`, `WebSocketMessageVariant`, `WebSocketMessagePayload`, `WebSocketRequestSettings`, `WebSocketRequestRuntime`, `WebSocketRequestDetails`, `WebSocketRequestInfo`, and `WebSocketRequestItem` in `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/OpenCollectionItem.kt`
+- [X] T006 Implement `WebSocketMessagePayloadSerializer` handling polymorphic serialization of `WebSocketMessagePayload` (Single `WebSocketMessage` vs Variants `List<WebSocketMessageVariant>`) in `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/OpenCollectionItem.kt`
+- [X] T007 Update `OpenCollectionItemSerializer` in `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/OpenCollectionItem.kt` to handle polymorphic deserialization for `WebSocketRequestItem` when element has `websocket` or `info.type == "websocket"`
+- [X] T008 [P] Define `WebSocketLogMessage` in `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/RealtimeModels.kt`
+- [X] T009 [P] Add unit tests for `WebSocketRequestItem` serialization and polymorphic `WebSocketMessagePayload` in `core-model/src/commonTest/kotlin/io/github/makeforge/clapi/core/model/opencollection/WebSocketSerializationTest.kt`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -50,14 +50,14 @@
 **Independent Test**: Click "+" on any collection folder in sidebar, select "New WebSocket Request", and verify item is created and rendered with a "WS" badge displaying `MethodWebSocket` accent color.
 
 ### Tests for User Story 1
-- [X] T010 [P] [US1] Create UI unit test verifying `WebSocketBadge` rendering and folder "+" context menu in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/components/SidebarWebSocketBadgeTest.kt`
+- [X] T010 [P] [US1] Create UI unit test verifying `WebSocketBadge` rendering and folder "+" context menu in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/components/SidebarWebSocketBadgeTest.kt`
 
 ### Implementation for User Story 1
-- [X] T011 [P] [US1] Create `WebSocketBadge` composable with `ClapiColors.MethodWebSocket` styling in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt`
-- [X] T012 [US1] Update `CollectionTreeNode` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` to display `WebSocketBadge` when `node.kind == RequestKind.WEBSOCKET`
-- [X] T013 [P] [US1] Update `RequestTabsBar` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestTabsBar.kt` to render `WebSocketBadge` for tabs with `RequestKind.WEBSOCKET`
-- [X] T014 [US1] Update folder and collection "+" dropdown menus in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` to include "New WebSocket Request" action
-- [X] T015 [US1] Add handler `onAddWebSocketRequest` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` and `AppState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` to create a `CollectionNode` with `kind = RequestKind.WEBSOCKET` and default URL `ws://`
+- [X] T011 [P] [US1] Create `WebSocketBadge` composable with `ClapiColors.MethodWebSocket` styling in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/Sidebar.kt`
+- [X] T012 [US1] Update `CollectionTreeNode` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/Sidebar.kt` to display `WebSocketBadge` when `node.kind == RequestKind.WEBSOCKET`
+- [X] T013 [P] [US1] Update `RequestTabsBar` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/RequestTabsBar.kt` to render `WebSocketBadge` for tabs with `RequestKind.WEBSOCKET`
+- [X] T014 [US1] Update folder and collection "+" dropdown menus in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/Sidebar.kt` to include "New WebSocket Request" action
+- [X] T015 [US1] Add handler `onAddWebSocketRequest` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/Sidebar.kt` and `AppState` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt` to create a `CollectionNode` with `kind = RequestKind.WEBSOCKET` and default URL `ws://`
 
 **Checkpoint**: User Story 1 is functional and testable independently (MVP ready).
 
@@ -70,10 +70,10 @@
 **Independent Test**: Open a WebSocket request, enter target URL with `{{variables}}`, configure custom handshake headers, select Bearer authentication, update timeout settings, and verify values persist in tab state.
 
 ### Implementation for User Story 2
-- [X] T016 [US2] Extend `RequestTabState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` with fields for `webSocketTimeout`, `webSocketKeepAliveInterval`, and selected editor tab routing
-- [X] T017 [P] [US2] Implement top address bar in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt` with `WebSocketBadge`, URL input field with variable resolution preview, and connection status indicator
-- [X] T018 [US2] Implement "Headers", "Auth", "Settings" (timeout and keep-alive interval), and "Docs" tabs in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt`
-- [X] T019 [US2] Route `tab.kind == RequestKind.WEBSOCKET` to `WebSocketRequestEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestEditor.kt`
+- [X] T016 [US2] Extend `RequestTabState` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt` with fields for `webSocketTimeout`, `webSocketKeepAliveInterval`, and selected editor tab routing
+- [X] T017 [P] [US2] Implement top address bar in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/WebSocketRequestEditor.kt` with `WebSocketBadge`, URL input field with variable resolution preview, and connection status indicator
+- [X] T018 [US2] Implement "Headers", "Auth", "Settings" (timeout and keep-alive interval), and "Docs" tabs in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/WebSocketRequestEditor.kt`
+- [X] T019 [US2] Route `tab.kind == RequestKind.WEBSOCKET` to `WebSocketRequestEditor` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/RequestEditor.kt`
 
 **Checkpoint**: User Stories 1 and 2 operate together independently.
 
@@ -86,9 +86,9 @@
 **Independent Test**: Create two message variants with different titles and JSON payloads, toggle between them, and confirm the active variant payload and format update accordingly.
 
 ### Implementation for User Story 3
-- [X] T020 [US3] Extend `RequestTabState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` with `webSocketMessageVariants` list, `activeWebSocketVariantIndex`, and `webSocketMessageFormat`
-- [X] T021 [US3] Implement message format selector (`TEXT`, `JSON`, `XML`, `BINARY`) and syntax-highlighted code editor in the "Message" tab in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt`
-- [X] T022 [US3] Implement Message Variants management UI (variant tabs/dropdown, add variant, delete variant, rename title, select active variant) in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt`
+- [X] T020 [US3] Extend `RequestTabState` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt` with `webSocketMessageVariants` list, `activeWebSocketVariantIndex`, and `webSocketMessageFormat`
+- [X] T021 [US3] Implement message format selector (`TEXT`, `JSON`, `XML`, `BINARY`) and syntax-highlighted code editor in the "Message" tab in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/WebSocketRequestEditor.kt`
+- [X] T022 [US3] Implement Message Variants management UI (variant tabs/dropdown, add variant, delete variant, rename title, select active variant) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/WebSocketRequestEditor.kt`
 
 **Checkpoint**: Outgoing message composition and variant management are functional.
 
@@ -101,11 +101,11 @@
 **Independent Test**: Connect to a live WebSocket echo endpoint, verify status switches to "Connected", send a JSON message, observe both SENT and RECEIVED entries appear in the timeline with timestamps, and click Disconnect.
 
 ### Implementation for User Story 4
-- [X] T023 [P] [US4] Implement `WebSocketClientManager` and `KtorWebSocketClientManager` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/websocket/WebSocketClientManager.kt` using Ktor `WebSockets` plugin to handle connect, frame sending, incoming frame loop, keep-alive, and graceful close
-- [X] T024 [US4] Implement `sendWebSocketRequestInternal` and connection action handlers in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt` wired to `WebSocketClientManager`
-- [X] T025 [US4] Implement timeline stream pane in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt` displaying chronological messages with SENT/RECEIVED direction badges, timestamps, byte size, format tag, copy button, and clear log action
-- [X] T026 [US4] Add FIFO buffer cap (maximum 1,000 entries) and auto-scroll behavior for the message timeline in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt`
-- [X] T027 [US4] Add cleanup handler on tab close in `AppState.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` to gracefully close active WebSocket sessions when tabs are closed
+- [X] T023 [P] [US4] Implement `WebSocketClientManager` and `KtorWebSocketClientManager` in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/websocket/WebSocketClientManager.kt` using Ktor `WebSockets` plugin to handle connect, frame sending, incoming frame loop, keep-alive, and graceful close
+- [X] T024 [US4] Implement `sendWebSocketRequestInternal` and connection action handlers in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/RequestExecutor.kt` wired to `WebSocketClientManager`
+- [X] T025 [US4] Implement timeline stream pane in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/WebSocketRequestEditor.kt` displaying chronological messages with SENT/RECEIVED direction badges, timestamps, byte size, format tag, copy button, and clear log action
+- [X] T026 [US4] Add FIFO buffer cap (maximum 1,000 entries) and auto-scroll behavior for the message timeline in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/WebSocketRequestEditor.kt`
+- [X] T027 [US4] Add cleanup handler on tab close in `AppState.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt` to gracefully close active WebSocket sessions when tabs are closed
 
 **Checkpoint**: End-to-end interactive WebSocket communication and real-time timeline are fully operational.
 
@@ -118,10 +118,10 @@
 **Independent Test**: Export a collection containing WebSocket requests to JSON and YAML, re-import into a fresh workspace, and verify all properties (URL, headers, auth, message variants, settings, docs) match 100%.
 
 ### Implementation for User Story 5
-- [X] T028 [P] [US5] Update `OpenCollectionSerializer.kt` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionSerializer.kt` to include `KNOWN_WEBSOCKET_REQUEST_KEYS` and handle serialization/deserialization for `WebSocketRequestItem`
-- [X] T029 [US5] Update `OpenCollectionModelMapping.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to map between `CollectionNode`/`RequestTabState` and `WebSocketRequestItem`
-- [X] T030 [US5] Implement legacy URL fallback in `OpenCollectionModelMapping.kt` and `KtorApiClient.kt` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/KtorApiClient.kt` ensuring existing HTTP requests with `ws://`/`wss://` URLs continue to function or can be upgraded to first-class WebSocket requests
-- [X] T031 [US5] Update `TabsRepository.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/TabsRepository.kt` to persist and restore `RequestKind.WEBSOCKET` open tabs
+- [X] T028 [P] [US5] Update `OpenCollectionSerializer.kt` in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/opencollection/OpenCollectionSerializer.kt` to include `KNOWN_WEBSOCKET_REQUEST_KEYS` and handle serialization/deserialization for `WebSocketRequestItem`
+- [X] T029 [US5] Update `OpenCollectionModelMapping.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to map between `CollectionNode`/`RequestTabState` and `WebSocketRequestItem`
+- [X] T030 [US5] Implement legacy URL fallback in `OpenCollectionModelMapping.kt` and `KtorApiClient.kt` in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/KtorApiClient.kt` ensuring existing HTTP requests with `ws://`/`wss://` URLs continue to function or can be upgraded to first-class WebSocket requests
+- [X] T031 [US5] Update `TabsRepository.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/TabsRepository.kt` to persist and restore `RequestKind.WEBSOCKET` open tabs
 
 **Checkpoint**: OpenCollection v1.0.0 persistence, serialization, and legacy migration are complete.
 
@@ -135,8 +135,8 @@
 
 ### Tests & Implementation for QA Suite
 - [X] T032 [P] Add sample WebSocket request item with message variants and settings to `clapi-test-collection.json` in `qa-tests/fixtures/clapi-test-collection.json`
-- [X] T033 Update `OpenCollectionRoundTripE2ETest.kt` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/OpenCollectionRoundTripE2ETest.kt` to verify `WebSocketRequestItem` survives save/load and YAML export/import round-trips
-- [X] T034 Extend `WebSocketE2ETest.kt` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/WebSocketE2ETest.kt` to test connection, message transmission, echo frame verification, and clean disconnection using `WebSocketClientManager` against `DummyApiServer`
+- [X] T033 Update `OpenCollectionRoundTripE2ETest.kt` in `qa-tests/src/test/kotlin/io/github/makeforge/clapi/qa/OpenCollectionRoundTripE2ETest.kt` to verify `WebSocketRequestItem` survives save/load and YAML export/import round-trips
+- [X] T034 Extend `WebSocketE2ETest.kt` in `qa-tests/src/test/kotlin/io/github/makeforge/clapi/qa/WebSocketE2ETest.kt` to test connection, message transmission, echo frame verification, and clean disconnection using `WebSocketClientManager` against `DummyApiServer`
 
 **Checkpoint**: Automated regression suite verifies WebSocket requests against the mock server in CI.
 

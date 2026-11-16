@@ -2,7 +2,7 @@
 
 ## Entities kept (OpenCollection)
 
-Source: `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/`. Not changed by this feature.
+Source: `core-model/src/commonMain/kotlin/io/github/makeforge/core/model/opencollection/`. Not changed by this feature.
 
 | Entity | Key fields | Notes |
 |---|---|---|

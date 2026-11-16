@@ -32,11 +32,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this foundational phase is complete
 
-- [X] T004 Extend `PlatformStorage` declaration with `putSecretString(key: String, value: String)` and `getSecretString(key: String): String?` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/platform/PlatformApi.kt`
-- [X] T005 Implement `PlatformStorage.putSecretString` and `getSecretString` using `KSafe(fileName = "clapi-secrets")` with `putDirect` and `getDirect` in `ui-shared/src/desktopMain/kotlin/io/github/crustack/clapi/ui/shared/platform/PlatformApi.desktop.kt`
-- [X] T006 Implement OpenCollection data models `ExternalSecrets`, `ExternalSecretVariable`, `HashicorpVaultExternalSecret`, and polymorphic serializer `ExternalSecretVariableSerializer` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`
-- [X] T007 Extend `Environment` data class with `val externalSecrets: ExternalSecrets? = null` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`
-- [X] T008 [P] Define Vault KV v2 wire models `VaultKvV2Response` and `VaultKvV2Data` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/vault/VaultModels.kt`
+- [X] T004 Extend `PlatformStorage` declaration with `putSecretString(key: String, value: String)` and `getSecretString(key: String): String?` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/platform/PlatformApi.kt`
+- [X] T005 Implement `PlatformStorage.putSecretString` and `getSecretString` using `KSafe(fileName = "clapi-secrets")` with `putDirect` and `getDirect` in `ui-shared/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/shared/platform/PlatformApi.desktop.kt`
+- [X] T006 Implement OpenCollection data models `ExternalSecrets`, `ExternalSecretVariable`, `HashicorpVaultExternalSecret`, and polymorphic serializer `ExternalSecretVariableSerializer` in `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`
+- [X] T007 Extend `Environment` data class with `val externalSecrets: ExternalSecrets? = null` in `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`
+- [X] T008 [P] Define Vault KV v2 wire models `VaultKvV2Response` and `VaultKvV2Data` in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/vault/VaultModels.kt`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -49,14 +49,14 @@
 **Independent Test**: Open Settings dialog -> Secrets Manager tab, enter Vault URL, mount path, and token, close and re-open dialog, and assert that credentials persist with the token stored encrypted via `ksafe`.
 
 ### Tests for User Story 1
-- [X] T009 [P] [US1] Create unit tests for `PlatformStorage.putSecretString` and `getSecretString` encryption in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/persistence/PlatformStorageSecretTest.kt`
-- [X] T010 [P] [US1] Create unit tests for `SettingsRepository` loading and saving Vault settings in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/persistence/SettingsRepositorySecretsTest.kt`
+- [X] T009 [P] [US1] Create unit tests for `PlatformStorage.putSecretString` and `getSecretString` encryption in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/persistence/PlatformStorageSecretTest.kt`
+- [X] T010 [P] [US1] Create unit tests for `SettingsRepository` loading and saving Vault settings in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/persistence/SettingsRepositorySecretsTest.kt`
 
 ### Implementation for User Story 1
-- [X] T011 [US1] Extend `AppSettings` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` with fields for `vaultServerUrl: String`, `vaultMountPath: String`, `vaultNamespace: String`, and `vaultToken: String`
-- [X] T012 [US1] Update `SettingsRepository.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/SettingsRepository.kt` to load and save Vault settings (`vaultServerUrl`, `vaultMountPath`, `vaultNamespace` via `putString`/`getString`, and `vaultToken` via `putSecretString`/`getSecretString`)
-- [X] T013 [P] [US1] Add `SECRETS` section to `SettingsSection` enum and section label in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SettingsDialog.kt`
-- [X] T014 [US1] Implement Secrets Manager settings tab UI in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SettingsDialog.kt` with provider selector (`hashicorp-vault-server`), Server URL, Mount Path, Namespace, and masked Vault Token with visibility toggle
+- [X] T011 [US1] Extend `AppSettings` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt` with fields for `vaultServerUrl: String`, `vaultMountPath: String`, `vaultNamespace: String`, and `vaultToken: String`
+- [X] T012 [US1] Update `SettingsRepository.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/SettingsRepository.kt` to load and save Vault settings (`vaultServerUrl`, `vaultMountPath`, `vaultNamespace` via `putString`/`getString`, and `vaultToken` via `putSecretString`/`getSecretString`)
+- [X] T013 [P] [US1] Add `SECRETS` section to `SettingsSection` enum and section label in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/SettingsDialog.kt`
+- [X] T014 [US1] Implement Secrets Manager settings tab UI in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/SettingsDialog.kt` with provider selector (`hashicorp-vault-server`), Server URL, Mount Path, Namespace, and masked Vault Token with visibility toggle
 
 **Checkpoint**: User Story 1 is functional and testable independently (MVP ready).
 
@@ -69,14 +69,14 @@
 **Independent Test**: Open Environment Editor, switch to the "External Secrets" tab, select "HashiCorp Vault (Server)", add secrets (`client_id`, `client_secret` with path `payment/foo`), save, and verify that the environment data model contains the external secrets.
 
 ### Tests for User Story 2
-- [X] T015 [P] [US2] Create unit tests for `EnvState` external secrets mapping to and from OpenCollection `Environment` in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/EnvironmentEditorSecretsTest.kt`
+- [X] T015 [P] [US2] Create unit tests for `EnvState` external secrets mapping to and from OpenCollection `Environment` in `ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/components/EnvironmentEditorSecretsTest.kt`
 
 ### Implementation for User Story 2
-- [X] T016 [P] [US2] Implement `MutableExternalSecret` class with `name`, `path`, `description`, and `enabled` reactive properties in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt`
-- [X] T017 [US2] Extend `EnvState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` with `externalSecretsProvider: String` and `externalSecrets: SnapshotStateList<MutableExternalSecret>`
-- [X] T018 [US2] Update `Environment.toEnvState()` and `EnvState.toOpenCollectionEnvironment()` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to serialize and deserialize `externalSecrets`
-- [X] T019 [US2] Add tab header selector ("Variables" vs "External Secrets") in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/EnvironmentEditDialog.kt`
-- [X] T020 [US2] Implement "External Secrets" tab view in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/EnvironmentEditDialog.kt` with provider dropdown, secret rows table (Enabled checkbox, Name, Path, Description, Delete button), and "Add Secret" button
+- [X] T016 [P] [US2] Implement `MutableExternalSecret` class with `name`, `path`, `description`, and `enabled` reactive properties in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt`
+- [X] T017 [US2] Extend `EnvState` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt` with `externalSecretsProvider: String` and `externalSecrets: SnapshotStateList<MutableExternalSecret>`
+- [X] T018 [US2] Update `Environment.toEnvState()` and `EnvState.toOpenCollectionEnvironment()` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to serialize and deserialize `externalSecrets`
+- [X] T019 [US2] Add tab header selector ("Variables" vs "External Secrets") in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/EnvironmentEditDialog.kt`
+- [X] T020 [US2] Implement "External Secrets" tab view in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/EnvironmentEditDialog.kt` with provider dropdown, secret rows table (Enabled checkbox, Name, Path, Description, Delete button), and "Add Secret" button
 
 **Checkpoint**: User Stories 1 and 2 operate together independently.
 
@@ -89,12 +89,12 @@
 **Independent Test**: In a request editor input with an active environment containing external secrets, press `Ctrl+Space`, verify that external secrets appear in the suggestions list with a Secret indicator, and confirm selection inserts `{{_secret.<name>}}`.
 
 ### Tests for User Story 3
-- [X] T021 [P] [US3] Create unit tests for `getAvailableVariables()` with external secrets in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/components/VariableHighlightSecretsTest.kt`
+- [X] T021 [P] [US3] Create unit tests for `getAvailableVariables()` with external secrets in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/components/VariableHighlightSecretsTest.kt`
 
 ### Implementation for User Story 3
-- [X] T022 [US3] Update `getAvailableVariables()` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/VariableHighlight.kt` to extract enabled external secrets from `state.selectedEnvironment?.externalSecrets` and append them as `_secret.<name>` entries
-- [X] T023 [US3] Update `VariableDropdownList` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/VariableHighlight.kt` to visually distinguish secret items (e.g., rendering a distinctive Secret badge or tag)
-- [X] T024 [US3] Ensure autocomplete confirmation in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/VariableHighlight.kt` inserts `{{_secret.<name>}}` without introducing unintended whitespace
+- [X] T022 [US3] Update `getAvailableVariables()` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/VariableHighlight.kt` to extract enabled external secrets from `state.selectedEnvironment?.externalSecrets` and append them as `_secret.<name>` entries
+- [X] T023 [US3] Update `VariableDropdownList` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/VariableHighlight.kt` to visually distinguish secret items (e.g., rendering a distinctive Secret badge or tag)
+- [X] T024 [US3] Ensure autocomplete confirmation in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/VariableHighlight.kt` inserts `{{_secret.<name>}}` without introducing unintended whitespace
 
 **Checkpoint**: Autocomplete displays external secrets with the required syntax and formatting.
 
@@ -107,14 +107,14 @@
 **Independent Test**: Configure Vault credentials and an environment with secret `client_id` pointing to `payment/foo`. Execute a request using `{{_secret.client_id}}` against a test endpoint, and verify that the dispatched request contains the resolved secret value.
 
 ### Tests for User Story 4
-- [X] T025 [P] [US4] Create unit test for `HashiCorpVaultClient` using Ktor MockEngine in `core-network/src/commonTest/kotlin/io/github/crustack/clapi/core/network/vault/HashiCorpVaultClientTest.kt`
-- [X] T026 [P] [US4] Create unit test for `SecretResolutionService` path-batching and key extraction in `core-network/src/commonTest/kotlin/io/github/crustack/clapi/core/network/vault/SecretResolutionServiceTest.kt`
+- [X] T025 [P] [US4] Create unit test for `HashiCorpVaultClient` using Ktor MockEngine in `core-network/src/commonTest/kotlin/io/github/makeforge/clapi/core/network/vault/HashiCorpVaultClientTest.kt`
+- [X] T026 [P] [US4] Create unit test for `SecretResolutionService` path-batching and key extraction in `core-network/src/commonTest/kotlin/io/github/makeforge/clapi/core/network/vault/SecretResolutionServiceTest.kt`
 
 ### Implementation for User Story 4
-- [X] T027 [US4] Implement `HashiCorpVaultClient` interface and Ktor implementation in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/vault/HashiCorpVaultClient.kt` querying `/v1/{mount}/data/{path}` with `X-Vault-Token` and optional `X-Vault-Namespace`
-- [X] T028 [US4] Implement `SecretResolutionService` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/vault/SecretResolutionService.kt` to extract required `{{_secret.<name>}}` tokens, batch Vault calls by secret path, match keys within `data.data`, and return a resolved secret map
-- [X] T029 [US4] Update `RequestExecutionService.kt` in `feature-requests/src/commonMain/kotlin/io/github/crustack/clapi/feature/requests/RequestExecutionService.kt` to resolve secret variables and inject them into execution layers
-- [X] T030 [US4] Update `RequestExecutor.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt` to invoke secret resolution before HTTP and gRPC request dispatch, handling errors (unreachable Vault, missing token, non-existent secret, disabled secret) and displaying user-facing error notices
+- [X] T027 [US4] Implement `HashiCorpVaultClient` interface and Ktor implementation in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/vault/HashiCorpVaultClient.kt` querying `/v1/{mount}/data/{path}` with `X-Vault-Token` and optional `X-Vault-Namespace`
+- [X] T028 [US4] Implement `SecretResolutionService` in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/vault/SecretResolutionService.kt` to extract required `{{_secret.<name>}}` tokens, batch Vault calls by secret path, match keys within `data.data`, and return a resolved secret map
+- [X] T029 [US4] Update `RequestExecutionService.kt` in `feature-requests/src/commonMain/kotlin/io/github/makeforge/clapi/feature/requests/RequestExecutionService.kt` to resolve secret variables and inject them into execution layers
+- [X] T030 [US4] Update `RequestExecutor.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/RequestExecutor.kt` to invoke secret resolution before HTTP and gRPC request dispatch, handling errors (unreachable Vault, missing token, non-existent secret, disabled secret) and displaying user-facing error notices
 
 **Checkpoint**: Requests referencing external secrets seamlessly resolve secrets from HashiCorp Vault at runtime.
 
@@ -127,11 +127,11 @@
 **Independent Test**: Export a collection containing an environment with external secrets to JSON/YAML. Verify that `externalSecrets` declarations are serialized while Vault tokens and server URLs are completely absent. Re-import and verify external secrets are restored.
 
 ### Tests for User Story 5
-- [X] T031 [P] [US5] Create round-trip serialization and zero-credential-leakage tests in `core-storage/src/commonTest/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionExternalSecretsTest.kt`
+- [X] T031 [P] [US5] Create round-trip serialization and zero-credential-leakage tests in `core-storage/src/commonTest/kotlin/io/github/makeforge/clapi/core/storage/opencollection/OpenCollectionExternalSecretsTest.kt`
 
 ### Implementation for User Story 5
-- [X] T032 [US5] Update `OpenCollectionSerializer.kt` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionSerializer.kt` to serialize and deserialize `externalSecrets` in environment blocks
-- [X] T033 [US5] Update `ImportExportRepository.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/ImportExportRepository.kt` to preserve `externalSecrets` during collection import/export while ensuring provider credentials are strictly excluded
+- [X] T032 [US5] Update `OpenCollectionSerializer.kt` in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/opencollection/OpenCollectionSerializer.kt` to serialize and deserialize `externalSecrets` in environment blocks
+- [X] T033 [US5] Update `ImportExportRepository.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/ImportExportRepository.kt` to preserve `externalSecrets` during collection import/export while ensuring provider credentials are strictly excluded
 
 **Checkpoint**: Collections with external secrets export and import losslessly without leaking credentials.
 
@@ -141,11 +141,11 @@
 
 **Goal**: Provide automated end-to-end regression tests running against the local HashiCorp Vault Docker container (`qa-tests/secret-managers-compose.yml`).
 
-**Independent Test**: Start the Vault container and run `./gradlew :qa-tests:test --tests "io.github.crustack.clapi.qa.ExternalSecretsIntegrationTest"` to verify end-to-end secret resolution.
+**Independent Test**: Start the Vault container and run `./gradlew :qa-tests:test --tests "io.github.makeforge.clapi.qa.ExternalSecretsIntegrationTest"` to verify end-to-end secret resolution.
 
 ### Tests & Implementation for User Story 6
 - [X] T034 [P] [US6] Add sample environment with `externalSecrets` (`client_id`, `client_secret` at path `payment/foo`) to `qa-tests/fixtures/clapi-test-collection.json`
-- [X] T035 [US6] Implement `ExternalSecretsIntegrationTest.kt` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/ExternalSecretsIntegrationTest.kt` verifying connection to Vault (`http://127.0.0.1:8200`, `root-dev-token`), fetching `payment/foo`, secret substitution in requests, and error reporting for invalid tokens and missing paths
+- [X] T035 [US6] Implement `ExternalSecretsIntegrationTest.kt` in `qa-tests/src/test/kotlin/io/github/makeforge/clapi/qa/ExternalSecretsIntegrationTest.kt` verifying connection to Vault (`http://127.0.0.1:8200`, `root-dev-token`), fetching `payment/foo`, secret substitution in requests, and error reporting for invalid tokens and missing paths
 
 **Checkpoint**: Automated regression suite verifies external secret resolution against live HashiCorp Vault container.
 

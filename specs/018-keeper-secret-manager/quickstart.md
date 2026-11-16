@@ -85,7 +85,7 @@ Verify that integration tests pass offline without external Keeper network depen
 ### Execution
 Run the automated Keeper integration test suite:
 ```bash
-rtk gradlew :qa-tests:test --tests "io.github.crustack.clapi.qa.KeeperSecurityCloudIntegrationTest"
+rtk gradlew :qa-tests:test --tests "io.github.makeforge.clapi.qa.KeeperSecurityCloudIntegrationTest"
 ```
 
 ### Expected Outcome

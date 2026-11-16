@@ -98,28 +98,28 @@ specs/006-external-secret-variables/
 
 ```text
 core-model/
-└── src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/
     └── OpenCollectionEnvironment.kt                 # Add ExternalSecrets and HashicorpVaultExternalSecret
 
 core-network/
-└── src/commonMain/kotlin/io/github/crustack/clapi/core/network/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/core/network/
     └── vault/
         ├── VaultModels.kt                           # VaultKvV2Response, VaultKvV2Data
         ├── HashiCorpVaultClient.kt                  # Interface & Ktor implementation
         └── SecretResolutionService.kt               # Path-batched secret retrieval & map extraction
 
 core-storage/
-└── src/commonMain/kotlin/io/github/crustack/clapi/core/storage/opencollection/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/opencollection/
     └── OpenCollectionSerializer.kt                  # Ensure externalSecrets serialization and validation
 
 feature-requests/
-└── src/commonMain/kotlin/io/github/crustack/clapi/feature/requests/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/feature/requests/
     ├── HttpExecutionAdapter.kt                      # Support _secret. variable resolution layer
     └── RequestExecutionService.kt                   # Pre-fetch secrets before dispatching requests
 
 ui-shared/
 └── src/
-    ├── commonMain/kotlin/io/github/crustack/clapi/ui/shared/
+    ├── commonMain/kotlin/io/github/makeforge/clapi/ui/shared/
     │   ├── components/
     │   │   ├── SettingsDialog.kt                    # New Secrets Manager section & Vault fields
     │   │   ├── EnvironmentEditDialog.kt             # New External Secrets tab & table
@@ -132,11 +132,11 @@ ui-shared/
     │   │   └── PlatformApi.kt                       # putSecretString / getSecretString expectations
     │   └── state/
     │       └── AppState.kt                          # AppSettings vault fields & EnvState externalSecrets
-    └── desktopMain/kotlin/io/github/crustack/clapi/ui/shared/platform/
+    └── desktopMain/kotlin/io/github/makeforge/clapi/ui/shared/platform/
         └── PlatformApi.desktop.kt                   # PlatformStorage actual implementation using ksafe
 
 qa-tests/
-└── src/test/kotlin/io/github/crustack/clapi/qa/
+└── src/test/kotlin/io/github/makeforge/clapi/qa/
     └── ExternalSecretsIntegrationTest.kt            # Integration tests against local Vault container
 ```
 

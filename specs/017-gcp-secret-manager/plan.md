@@ -57,41 +57,41 @@ specs/017-gcp-secret-manager/
 
 ```text
 core-model/
-└── src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/
     └── OpenCollectionEnvironment.kt     # GcpSecretsManagerExternalSecret & serializer update
 
 core-network/
-├── src/commonMain/kotlin/io/github/crustack/clapi/core/network/gcp/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/core/network/gcp/
 │   ├── GcpSecretManagerConfig.kt        # Configuration data model
 │   └── GcpSecretManagerClient.kt        # Interface & KtorGcpSecretManagerClient
-├── src/commonMain/kotlin/io/github/crustack/clapi/core/network/vault/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/core/network/vault/
 │   └── SecretResolutionService.kt       # resolveGcpSecrets & resolveAllSecrets wiring
-└── src/commonTest/kotlin/io/github/crustack/clapi/core/network/gcp/
+└── src/commonTest/kotlin/io/github/makeforge/clapi/core/network/gcp/
     ├── GcpSecretManagerClientTest.kt    # MockEngine unit tests
     └── SecretResolutionServiceGcpTest.kt# Resolution & batching tests
 
 core-storage/
 ├── src/commonMain/resources/opencollection/
 │   └── opencollection_v1.0.0.json       # Update schema for GcpSecretsManagerExternalSecret
-└── src/commonTest/kotlin/io/github/crustack/clapi/core/storage/opencollection/
+└── src/commonTest/kotlin/io/github/makeforge/clapi/core/storage/opencollection/
     └── OpenCollectionExternalSecretsTest.kt # GCP roundtrip & credential leak check tests
 
 feature-requests/
-└── src/commonMain/kotlin/io/github/crustack/clapi/feature/requests/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/feature/requests/
     └── RequestExecutionService.kt       # GCP parameters & mapping for execution
 
 ui-shared/
-├── src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/
 │   └── AppSettings.kt                   # Global GCP settings properties (gcpProjectId, gcpAccessToken, gcpEndpointUrl)
-├── src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/
 │   ├── SettingsRepository.kt            # Load/save GCP settings with encrypted accessToken
 │   ├── OpenCollectionModelMapping.kt    # Bidirectional mapping for GcpSecretsManagerExternalSecret
 │   └── ImportExportRepository.kt        # Serialize targetField, version, and customFilters for GCP
-├── src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/
 │   ├── SettingsDialog.kt                # GCP Secret Manager settings form
 │   ├── EnvironmentEditDialog.kt         # gcp-secrets-manager provider row & table headers
 │   └── executor/RequestVariableResolution.kt # Wire AppSettings into resolveAllSecrets for GCP
-└── src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/
+└── src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/components/
     ├── GcpSettingsTest.kt               # Settings persistence & masking tests
     ├── EnvironmentEditorGcpTest.kt      # Environment editor mapping tests
     └── RequestExecutorGcpSecretsTest.kt # Dispatch & error tests
@@ -99,7 +99,7 @@ ui-shared/
 qa-tests/
 ├── docker/secret-managers-compose.yml   # Add gcp-secretmanager emulator & seeder service
 ├── fixtures/clapi-test-collection.json  # Add GCP Staging environment
-└── src/test/kotlin/io/github/crustack/clapi/qa/
+└── src/test/kotlin/io/github/makeforge/clapi/qa/
     └── GcpSecretManagerIntegrationTest.kt # E2E GCP Secret Manager integration tests
 ```
 

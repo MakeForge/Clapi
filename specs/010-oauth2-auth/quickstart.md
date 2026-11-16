@@ -85,7 +85,7 @@ Keycloak Configuration Summary:
 
 Run the OAuth2 integration test suite:
 ```bash
-./gradlew :qa-tests:test --tests "io.github.crustack.clapi.qa.OAuth2IntegrationTest"
+./gradlew :qa-tests:test --tests "io.github.makeforge.clapi.qa.OAuth2IntegrationTest"
 ```
 
 **Expected Outcome**:

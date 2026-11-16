@@ -1,14 +1,14 @@
 # Contract: External Secret Provider SPI & SecretResolutionService
 
 **Feature**: `019-unify-request-execution`  
-**Module**: `:core-network` (`io.github.crustack.clapi.core.network.secrets`)
+**Module**: `:core-network` (`io.github.makeforge.clapi.core.network.secrets`)
 
 ---
 
 ## 1. `ExternalSecretProvider` SPI
 
 ```kotlin
-package io.github.crustack.clapi.core.network.secrets
+package io.github.makeforge.clapi.core.network.secrets
 
 interface ExternalSecretProvider {
     val providerId: String
@@ -48,7 +48,7 @@ interface ExternalSecretProvider {
 ## 2. `SecretResolutionService` API
 
 ```kotlin
-package io.github.crustack.clapi.core.network.secrets
+package io.github.makeforge.clapi.core.network.secrets
 
 class SecretResolutionService(
     private val providers: List<ExternalSecretProvider>,

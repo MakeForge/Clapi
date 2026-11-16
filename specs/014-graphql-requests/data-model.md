@@ -94,7 +94,7 @@ classDiagram
     GraphQLBodyVariant *-- GraphQLBody
 ```
 
-### Kotlin Data Classes (`io.github.crustack.clapi.core.model.opencollection`)
+### Kotlin Data Classes (`io.github.makeforge.clapi.core.model.opencollection`)
 
 ```kotlin
 @Serializable

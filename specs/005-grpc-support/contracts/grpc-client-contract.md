@@ -7,7 +7,7 @@
 Responsible for compiling and extracting service and method definitions from `.proto` files on disk.
 
 ```kotlin
-package io.github.crustack.clapi.core.network.grpc
+package io.github.makeforge.clapi.core.network.grpc
 
 import java.io.File
 
@@ -40,7 +40,7 @@ class ProtoParseException(
 Responsible for executing dynamic unary RPC calls using Protobuf dynamic messages and managed gRPC channels.
 
 ```kotlin
-package io.github.crustack.clapi.core.network.grpc
+package io.github.makeforge.clapi.core.network.grpc
 
 interface DynamicGrpcClient {
     /**

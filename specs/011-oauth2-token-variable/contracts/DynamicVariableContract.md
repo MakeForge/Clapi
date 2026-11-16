@@ -1,6 +1,6 @@
 # Contract: Dynamic Variable Provider Interface & Resolution
 
-**Package**: `io.github.crustack.clapi.core.network.dynamicvar`
+**Package**: `io.github.makeforge.clapi.core.network.dynamicvar`
 
 ---
 

@@ -13,7 +13,7 @@ This guide outlines end-to-end verification scenarios to validate WebSocket requ
 - **Target**: `DummyApiServer` local endpoint `ws://localhost:<port>/ws`
 - **Execution Command**:
   ```bash
-  ./gradlew :qa-tests:jvmTest --tests "io.github.crustack.clapi.qa.WebSocketE2ETest"
+  ./gradlew :qa-tests:jvmTest --tests "io.github.makeforge.clapi.qa.WebSocketE2ETest"
   ```
 - **Expectation**:
   - Connects to `/ws`
@@ -25,7 +25,7 @@ This guide outlines end-to-end verification scenarios to validate WebSocket requ
 - **Target**: `OpenCollectionRoundTripE2ETest`
 - **Execution Command**:
   ```bash
-  ./gradlew :qa-tests:jvmTest --tests "io.github.crustack.clapi.qa.OpenCollectionRoundTripE2ETest"
+  ./gradlew :qa-tests:jvmTest --tests "io.github.makeforge.clapi.qa.OpenCollectionRoundTripE2ETest"
   ```
 - **Expectation**:
   - OpenCollection document containing `WebSocketRequestItem` with custom headers, auth, message variants, settings, and docs serializes to JSON.

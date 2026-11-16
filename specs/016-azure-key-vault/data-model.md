@@ -13,7 +13,7 @@ This document specifies the data models, entity relationships, validation rules,
 Represents an individual external secret declaration in an environment backed by Azure Key Vault.
 
 ```kotlin
-package io.github.crustack.clapi.core.model.opencollection
+package io.github.makeforge.clapi.core.model.opencollection
 
 import kotlinx.serialization.Serializable
 
@@ -47,7 +47,7 @@ data class AzureKeyVaultExternalSecret(
 Encapsulates all connection, authentication, and secret identification parameters needed to retrieve a secret from Azure Key Vault.
 
 ```kotlin
-package io.github.crustack.clapi.core.network.azure
+package io.github.makeforge.clapi.core.network.azure
 
 data class AzureKeyVaultConfig(
     val vaultName: String,

@@ -9,7 +9,7 @@ Defines the contract for communicating with the Google Cloud Platform (GCP) Secr
 ## 1. Client Interface Definition
 
 ```kotlin
-package io.github.crustack.clapi.core.network.gcp
+package io.github.makeforge.clapi.core.network.gcp
 
 interface GcpSecretManagerClient {
 

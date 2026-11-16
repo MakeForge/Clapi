@@ -133,7 +133,7 @@ NONE, BASIC, BEARER, API_KEY, OAUTH2, JWT
 All shared Compose code — compiled for both `jvm("desktop")` and `wasmJs{browser()}`.
 
 ```
-ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/
+ui-shared/src/commonMain/kotlin/io/github/makeforge/ui/shared/
 ├── MainScreen.kt                   Root composable: toolbar, sidebar, tab bar, editor, dialogs
 ├── components/
 │   ├── RequestBar.kt               Method dropdown, URL field, Send/Save/Retry/cURL buttons

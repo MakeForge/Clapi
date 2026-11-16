@@ -1,7 +1,7 @@
 # Interface Contract: Dialog Escape Dismissal
 
 **Contract ID**: `CTR-DIALOG-ESCAPE-001`  
-**Applies to**: All modal dialogs in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/`
+**Applies to**: All modal dialogs in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/`
 
 ---
 

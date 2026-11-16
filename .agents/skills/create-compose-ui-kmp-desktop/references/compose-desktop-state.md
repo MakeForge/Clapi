@@ -32,7 +32,7 @@ val selectedItemIds = remember { mutableStateOf(setOf<String>()) }
 
 ## 3. Clapi State Architecture & Unidirectional Data Flow (UDF)
 
-In Clapi, application state is organized in clear, observable state containers in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/`:
+In Clapi, application state is organized in clear, observable state containers in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/`:
 
 * **`AppState`**: The root application state holder. Contains observable lists (`collections`, `environments`, `openTabs`, `history`), active tab indices, sidebar configuration, and sub-states.
 * **`RequestTabState`**: Per-tab mutable state holding request definitions, response state, active sub-tabs, and dirty state.

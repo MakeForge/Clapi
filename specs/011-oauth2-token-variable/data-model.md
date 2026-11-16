@@ -12,7 +12,7 @@
 Interface implemented by dynamic variable providers to participate in the pre-execution resolution lifecycle.
 
 ```kotlin
-package io.github.crustack.clapi.core.network.dynamicvar
+package io.github.makeforge.clapi.core.network.dynamicvar
 
 interface DynamicVariableProvider {
     /**
@@ -46,11 +46,11 @@ interface DynamicVariableProvider {
 Encapsulates contextual data and services required by providers during variable resolution.
 
 ```kotlin
-package io.github.crustack.clapi.core.network.dynamicvar
+package io.github.makeforge.clapi.core.network.dynamicvar
 
-import io.github.crustack.clapi.core.model.AuthType
-import io.github.crustack.clapi.core.network.oauth2.OAuth2TokenClient
-import io.github.crustack.clapi.core.network.oauth2.OAuth2TokenState
+import io.github.makeforge.clapi.core.model.AuthType
+import io.github.makeforge.clapi.core.network.oauth2.OAuth2TokenClient
+import io.github.makeforge.clapi.core.network.oauth2.OAuth2TokenState
 
 data class DynamicVariableContext(
     val effectiveAuthType: AuthType,
@@ -69,10 +69,10 @@ data class DynamicVariableContext(
 Resolved OAuth2 parameters required for token fetching or refresh.
 
 ```kotlin
-package io.github.crustack.clapi.core.network.dynamicvar
+package io.github.makeforge.clapi.core.network.dynamicvar
 
-import io.github.crustack.clapi.core.model.opencollection.OAuth2CredentialsPlacement
-import io.github.crustack.clapi.core.model.opencollection.OAuth2Flow
+import io.github.makeforge.clapi.core.model.opencollection.OAuth2CredentialsPlacement
+import io.github.makeforge.clapi.core.model.opencollection.OAuth2Flow
 
 data class OAuth2ResolvedConfig(
     val flow: OAuth2Flow = OAuth2Flow.CLIENT_CREDENTIALS,
@@ -93,7 +93,7 @@ data class OAuth2ResolvedConfig(
 Concrete provider handling `_auth.oauth2.accessToken`.
 
 ```kotlin
-package io.github.crustack.clapi.core.network.dynamicvar
+package io.github.makeforge.clapi.core.network.dynamicvar
 
 class OAuth2DynamicVariableProvider : DynamicVariableProvider {
     override val name: String = "OAuth2TokenProvider"
@@ -134,7 +134,7 @@ class OAuth2DynamicVariableProvider : DynamicVariableProvider {
 Central coordinator for dynamic variable resolution.
 
 ```kotlin
-package io.github.crustack.clapi.core.network.dynamicvar
+package io.github.makeforge.clapi.core.network.dynamicvar
 
 class DynamicVariableRegistry(
     providers: List<DynamicVariableProvider> = listOf(OAuth2DynamicVariableProvider()),

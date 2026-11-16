@@ -13,7 +13,7 @@ This guide outlines end-to-end verification scenarios to validate GraphQL reques
 - **Target**: `DummyApiServer` local endpoint `POST /graphql`
 - **Execution Command**:
   ```bash
-  ./gradlew :qa-tests:jvmTest --tests "io.github.crustack.clapi.qa.GraphQLRequestE2ETest"
+  ./gradlew :qa-tests:jvmTest --tests "io.github.makeforge.clapi.qa.GraphQLRequestE2ETest"
   ```
 - **Expectation**:
   - Sends a GraphQL query (`query { users { id name } }`) with variables (`{"limit": 10}`).
@@ -24,7 +24,7 @@ This guide outlines end-to-end verification scenarios to validate GraphQL reques
 - **Target**: `OpenCollectionRoundTripE2ETest`
 - **Execution Command**:
   ```bash
-  ./gradlew :qa-tests:jvmTest --tests "io.github.crustack.clapi.qa.OpenCollectionRoundTripE2ETest"
+  ./gradlew :qa-tests:jvmTest --tests "io.github.makeforge.clapi.qa.OpenCollectionRoundTripE2ETest"
   ```
 - **Expectation**:
   - Collection document containing `GraphQLRequestItem` (with headers, params, body variants, auth, settings, docs) serializes to JSON.

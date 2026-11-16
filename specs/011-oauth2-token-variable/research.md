@@ -17,7 +17,7 @@ Clapi currently supports:
 We now require support for special runtime variables starting with `{{_auth.oauth2.accessToken}}` across both HTTP and gRPC requests, with an extensible API allowing additional runtime variables to be plugged in effortlessly.
 
 ### Decision
-Introduce a provider-based dynamic runtime variable resolution framework in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/dynamicvar/`:
+Introduce a provider-based dynamic runtime variable resolution framework in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/dynamicvar/`:
 - `DynamicVariableProvider`: An interface declaring variable detection (`supports(token: String)`), token extraction, and asynchronous resolution (`resolve(...)`).
 - `DynamicVariableContext`: Encapsulates request execution context, effective authentication configuration, active variable layers, cached token state, token update callbacks, and logging.
 - `OAuth2DynamicVariableProvider`: Implements `DynamicVariableProvider` for `_auth.oauth2.accessToken`.

@@ -129,7 +129,7 @@ Developers and continuous integration pipelines need automated, reproducible end
 
 **Why this priority**: Guarantees regressions in Azure Entra authentication, Ktor client communication, or secret parsing are caught before release.
 
-**Independent Test**: Execute `./gradlew :qa-tests:jvmTest --tests "io.github.crustack.clapi.qa.AzureKeyVaultIntegrationTest"` against a running Lowkey Vault container and verify all assertions pass.
+**Independent Test**: Execute `./gradlew :qa-tests:jvmTest --tests "io.github.makeforge.clapi.qa.AzureKeyVaultIntegrationTest"` against a running Lowkey Vault container and verify all assertions pass.
 
 **Acceptance Scenarios**:
 

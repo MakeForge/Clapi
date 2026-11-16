@@ -60,7 +60,7 @@ This guide outlines end-to-end runnable validation scenarios to prove that the O
 
 1. **Run E2E Regression Suite against Embedded Server**:
    ```bash
-   rtk ./gradlew :qa-tests:test --tests "io.github.crustack.qa.SampleCollectionE2ETest"
+   rtk ./gradlew :qa-tests:test --tests "io.github.makeforge.qa.SampleCollectionE2ETest"
    ```
 2. **Expected Outcome**:
    - 100% of existing tests pass against the Ktor test server with identical status codes, headers, and response bodies.

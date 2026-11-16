@@ -144,5 +144,5 @@ tasks.register<JavaExec>("runDummyServer") {
     description = "Runs the DummyApiServer with HTTP, WebSocket, and gRPC endpoints for manual testing"
     classpath = kotlin.jvm().compilations.getByName("test").output.classesDirs +
         kotlin.jvm().compilations.getByName("test").runtimeDependencyFiles
-    mainClass.set("io.github.crustack.clapi.testsupport.DummyApiServerKt")
+    mainClass.set("io.github.makeforge.clapi.testsupport.DummyApiServerKt")
 }

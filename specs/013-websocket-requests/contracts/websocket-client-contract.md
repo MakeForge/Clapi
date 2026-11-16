@@ -10,11 +10,11 @@ Manages live WebSocket connections, session coroutines, sending frames, and mess
 
 ### Interface Definition
 ```kotlin
-package io.github.crustack.clapi.core.network.websocket
+package io.github.makeforge.clapi.core.network.websocket
 
-import io.github.crustack.clapi.core.model.ConnectionState
-import io.github.crustack.clapi.core.model.WebSocketLogMessage
-import io.github.crustack.clapi.core.model.WebSocketMessageType
+import io.github.makeforge.clapi.core.model.ConnectionState
+import io.github.makeforge.clapi.core.model.WebSocketLogMessage
+import io.github.makeforge.clapi.core.model.WebSocketMessageType
 import kotlinx.coroutines.flow.SharedFlow
 
 data class WebSocketConnectConfig(

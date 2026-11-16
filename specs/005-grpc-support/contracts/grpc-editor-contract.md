@@ -7,7 +7,7 @@
 Renders the visual indicator for gRPC requests across the application.
 
 ```kotlin
-package io.github.crustack.clapi.ui.shared.components
+package io.github.makeforge.clapi.ui.shared.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -39,7 +39,7 @@ fun GrpcBadge(
 Modal dialog allowing users to view and update the request's `.proto` file path.
 
 ```kotlin
-package io.github.crustack.clapi.ui.shared.components
+package io.github.makeforge.clapi.ui.shared.components
 
 import androidx.compose.runtime.Composable
 

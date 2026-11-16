@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package clapi.common;
 
-option java_package = "io.github.crustack.clapi.qa.grpc.common";
+option java_package = "io.github.makeforge.clapi.qa.grpc.common";
 option java_multiple_files = true;
 
 // Custom metadata structure

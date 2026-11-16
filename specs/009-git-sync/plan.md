@@ -79,12 +79,12 @@ specs/009-git-sync/
 
 ```text
 core-model/
-└── src/commonMain/kotlin/io/github/crustack/clapi/core/model/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/core/model/
     └── storage/
         └── StorageExtension.kt          # StorageType, GitStorageConfig, GitCredentialsConfig
 
 core-storage/
-├── src/commonMain/kotlin/io/github/crustack/clapi/core/storage/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/
     ├── git/
     │   ├── GitCliExecutor.kt            # Interface and data classes for CLI Git calls
     │   ├── GitRepositoryManager.kt      # Clones, branch tracking, multi-collection storage
@@ -92,16 +92,16 @@ core-storage/
     │   └── GitStatusModels.kt           # GitFileChange, CollectionGitStatus
     └── opencollection/
         └── OpenCollectionSerializer.kt  # Serializes and deserializes storage extension
-└── src/desktopMain/kotlin/io/github/crustack/clapi/core/storage/
+└── src/desktopMain/kotlin/io/github/makeforge/clapi/core/storage/
     └── git/
         └── DesktopGitCliExecutor.kt     # ProcessBuilder implementation using host git binary
 
 core-network/
-└── src/desktopMain/kotlin/io/github/crustack/clapi/core/network/grpc/
+└── src/desktopMain/kotlin/io/github/makeforge/clapi/core/network/grpc/
     └── ProtocJarParser.kt               # Integrates ProtoPathResolver for import and proto files
 
 ui-shared/
-└── src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/
     ├── state/
     │   ├── AppState.kt                  # Active Git status, sync state, repository manager
     │   └── ProtoFileItemState.kt        # syncToGit toggle flag
@@ -111,11 +111,11 @@ ui-shared/
         └── GitSyncDialog.kt             # Commit message, changed files, Commit, Push, Pull
 
 ui-desktop/
-└── src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/
+└── src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/
     └── GitSyncUiTest.kt                 # Compose UI tests for Storage tab & Git Sync Dialog
 
 qa-tests/
-└── src/test/kotlin/io/github/crustack/clapi/qa/
+└── src/test/kotlin/io/github/makeforge/clapi/qa/
     └── GitSyncE2ETest.kt                # End-to-end Git clone, commit, push, pull test suite
 ```
 

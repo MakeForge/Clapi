@@ -80,17 +80,17 @@ specs/010-oauth2-auth/
 ### Source Code (repository root)
 
 ```text
-core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/
+core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/
 └── OpenCollectionAuth.kt                  # Canonical AuthOAuth2, OAuth2Flow, credentials models
 
-core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/
+core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/
 ├── oauth2/
 │   ├── OAuth2TokenClient.kt              # Ktor HTTP client for token requests (client_credentials, password, refresh)
 │   ├── OAuth2TokenResponse.kt            # RFC 6749 response model
 │   └── OAuth2TokenState.kt               # Token state & validity checking (expires_in & JWT exp claim)
 └── KtorApiClient.kt                       # Injects Authorization Bearer header from resolved token
 
-ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/
+ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/
 ├── components/
 │   ├── AuthEditor.kt                     # OAuth2 flow selector, credential fields, Fetch Tokens button & token displays
 │   └── RequestExecutor.kt                # Token pre-flight check, auto-refresh, and execution integration
@@ -99,7 +99,7 @@ ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/
 └── state/
     └── AppState.kt                       # OAuth2 properties on RequestTabState & CollectionNode
 
-qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/
+qa-tests/src/test/kotlin/io/github/makeforge/clapi/qa/
 └── OAuth2IntegrationTest.kt              # E2E Keycloak OAuth2 test suite (client_credentials, password, auto-refresh)
 ```
 

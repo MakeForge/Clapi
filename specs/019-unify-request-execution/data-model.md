@@ -8,7 +8,7 @@
 
 ## 1. Secret Resolution Models (`:core-network`)
 
-**Package**: `io.github.crustack.clapi.core.network.secrets`
+**Package**: `io.github.makeforge.clapi.core.network.secrets`
 
 ### `SecretResolutionContext`
 Replaces the 27-parameter signatures on `SecretResolutionService` with a single immutable context object holding provider configurations, variable layers, and custom filters.
@@ -91,7 +91,7 @@ interface ExternalSecretProvider {
 
 ## 2. OAuth2 Token Management Models (`:core-network`)
 
-**Package**: `io.github.crustack.clapi.core.network.oauth2`
+**Package**: `io.github.makeforge.clapi.core.network.oauth2`
 
 ### `OAuth2TokenManager`
 Centralized service for checking expiry, refreshing via `refresh_token`, or acquiring a new token via `client_credentials` / `password` grants. Used by both `OAuth2DynamicVariableProvider` and request authentication preparation.
@@ -117,7 +117,7 @@ data class OAuth2TokenRefreshResult(
 
 ## 3. Exhaustive Template Extraction (`:core-network`)
 
-**Package**: `io.github.crustack.clapi.core.network.execution`
+**Package**: `io.github.makeforge.clapi.core.network.execution`
 
 ### `RequestDefinition.extractTemplateStrings()` & `GrpcCallRequest.extractTemplateStrings()`
 Extension functions that return all candidate strings from a request that may contain `{{...}}` placeholders (for secret scanning and dynamic variable resolution):
@@ -158,7 +158,7 @@ When assembling `effectiveVariableLayers: List<Map<String, String>>` for transpo
 | `N+2` | `Global` | `AppState.globalVariables` |
 
 ### `EnvState.toVariableMap()` Filtering Rule
-In `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/EnvironmentModels.kt`:
+In `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/EnvironmentModels.kt`:
 - **Previous (Buggy)**:
   ```kotlin
   fun toVariableMap(): Map<String, String> =
@@ -174,7 +174,7 @@ In `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/Env
 - **Why**: Imported OpenCollection `SecretVariable` entries have `secret = true` and `value = ""`. Filtering out blank secret entries prevents `""` from shadowing resolved secrets or lower-priority folder/collection/global variables.
 
 ### Collection-Scoped Variable Storage (`AppState`)
-In `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt`:
+In `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt`:
 - Add `collectionVariablesById = mutableStateMapOf<String, SnapshotStateMap<String, String>>()`.
 - Provide collection-scoped accessors:
   - `fun collectionVariablesFor(collectionId: String?): SnapshotStateMap<String, String>`
@@ -185,7 +185,7 @@ In `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/App
 
 ## 5. Canonical Settings Storage Keys (`:ui-shared`)
 
-**Package**: `io.github.crustack.clapi.ui.shared.state`
+**Package**: `io.github.makeforge.clapi.ui.shared.state`
 
 ### `SettingsStorageKeys`
 Eliminates key prefix drift between `SettingsRepository.kt` and `RequestVariableResolution.kt`:

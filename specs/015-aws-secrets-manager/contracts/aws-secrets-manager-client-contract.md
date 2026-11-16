@@ -6,7 +6,7 @@ Defines the client contract for retrieving secrets from AWS Secrets Manager usin
 ## Interface Definition
 
 ```kotlin
-package io.github.crustack.clapi.core.network.aws
+package io.github.makeforge.clapi.core.network.aws
 
 interface AwsSecretsManagerClient {
     /**

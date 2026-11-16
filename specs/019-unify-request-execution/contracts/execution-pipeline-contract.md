@@ -1,7 +1,7 @@
 # Contract: Unified Request Execution Pipeline
 
 **Feature**: `019-unify-request-execution`  
-**Modules**: `:core-network` (`io.github.crustack.clapi.core.network.execution`) and `:ui-shared` (`io.github.crustack.clapi.ui.shared.components`)
+**Modules**: `:core-network` (`io.github.makeforge.clapi.core.network.execution`) and `:ui-shared` (`io.github.makeforge.clapi.ui.shared.components`)
 
 ---
 
@@ -61,7 +61,7 @@ All three request executors MUST satisfy the following parity contract:
 ## 3. Core Service Signatures (`:core-network`)
 
 ```kotlin
-package io.github.crustack.clapi.core.network.execution
+package io.github.makeforge.clapi.core.network.execution
 
 class RequestExecutionService(
     private val apiClient: ApiClient,

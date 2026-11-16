@@ -1,17 +1,17 @@
 # Contract: OAuth2TokenManager
 
 **Feature**: `019-unify-request-execution`  
-**Module**: `:core-network` (`io.github.crustack.clapi.core.network.oauth2`)
+**Module**: `:core-network` (`io.github.makeforge.clapi.core.network.oauth2`)
 
 ---
 
 ## 1. Interface & Responsibilities
 
 ```kotlin
-package io.github.crustack.clapi.core.network.oauth2
+package io.github.makeforge.clapi.core.network.oauth2
 
-import io.github.crustack.clapi.core.model.AuthConfig
-import io.github.crustack.clapi.core.model.AuthType
+import io.github.makeforge.clapi.core.model.AuthConfig
+import io.github.makeforge.clapi.core.model.AuthType
 
 class OAuth2TokenManager(
     private val oauth2Client: OAuth2Client,

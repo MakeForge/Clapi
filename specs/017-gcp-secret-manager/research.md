@@ -91,7 +91,7 @@
   - Include a `gcp-seeder` service using `curlimages/curl` that creates:
     - JSON secret: `payment-foo` with payload `{"client_id":"gcp_client_789","client_secret":"sk_gcp_secret_999"}`
     - Plaintext secret: `plain-token` with payload `"gcp-plain-token-value-12345"`
-  - Provide automated QA integration tests in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/GcpSecretManagerIntegrationTest.kt` verifying:
+  - Provide automated QA integration tests in `qa-tests/src/test/kotlin/io/github/makeforge/clapi/qa/GcpSecretManagerIntegrationTest.kt` verifying:
     - Fetching JSON secret key-values
     - Target field filtering
     - Plaintext secret retrieval
@@ -108,7 +108,7 @@
 - **Research Question**: How to integrate GCP Secret Manager into the OpenCollection model and serialization hierarchy?
 - **Decision**:
   - `ExternalSecretType` enum in `core-model`: `@SerialName("gcp-secrets-manager") GCP_SECRETS_MANAGER("gcp-secrets-manager")` (already present).
-  - Add `GcpSecretsManagerExternalSecret` data class in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`:
+  - Add `GcpSecretsManagerExternalSecret` data class in `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`:
     ```kotlin
     @Serializable
     data class GcpSecretsManagerExternalSecret(

@@ -12,12 +12,12 @@ Specifies the transformation boundary between the canonical persisted `HttpReque
 ## 2. Interface Definitions
 
 ```kotlin
-package io.github.crustack.clapi.feature.requests
+package io.github.makeforge.clapi.feature.requests
 
-import io.github.crustack.clapi.core.model.HttpRequestItem
-import io.github.crustack.clapi.core.model.RequestDefinition
-import io.github.crustack.clapi.core.model.OpenCollectionDocument
-import io.github.crustack.clapi.core.model.FolderItem
+import io.github.makeforge.clapi.core.model.HttpRequestItem
+import io.github.makeforge.clapi.core.model.RequestDefinition
+import io.github.makeforge.clapi.core.model.OpenCollectionDocument
+import io.github.makeforge.clapi.core.model.FolderItem
 
 interface HttpExecutionAdapter {
     /**

@@ -61,54 +61,54 @@ gradle/
 └── libs.versions.toml                   # Add keeper-secrets-manager core library
 
 core-model/
-└── src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/
     └── OpenCollectionEnvironment.kt     # ExternalSecretType.KEEPER_SECURITY_CLOUD, KeeperSecurityExternalSecret & serializer
 
 core-network/
 ├── build.gradle.kts                     # Add keeper-secrets-manager dependency under desktopMain
-├── src/commonMain/kotlin/io/github/crustack/clapi/core/network/keeper/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/core/network/keeper/
 │   ├── KeeperClient.kt                  # KeeperClient interface
 │   ├── KeeperClientConfig.kt            # Serialized client config model
 │   ├── KeeperClientManager.kt           # Lifecycle manager (lazy getClient & onEnvironmentSwitched)
 │   └── KeeperRecordFilter.kt            # Dynamic field matching and target field extraction
-├── src/desktopMain/kotlin/io/github/crustack/clapi/core/network/keeper/
+├── src/desktopMain/kotlin/io/github/makeforge/clapi/core/network/keeper/
 │   ├── KeeperSecretsManagerClient.kt    # KSM SDK implementation
 │   └── KeeperStorageInitializer.kt      # OTT initialization & binding logic
-├── src/commonMain/kotlin/io/github/crustack/clapi/core/network/vault/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/core/network/vault/
 │   └── SecretResolutionService.kt       # resolveKeeperSecrets and resolveAllSecrets wiring
-└── src/commonTest/kotlin/io/github/crustack/clapi/core/network/keeper/
+└── src/commonTest/kotlin/io/github/makeforge/clapi/core/network/keeper/
     ├── KeeperClientManagerTest.kt       # Lifecycle and cleanup unit tests
     └── KeeperRecordFilterTest.kt        # Dynamic matching across login, serverCredentials, custom OAuth records
 
 core-storage/
 ├── src/commonMain/resources/opencollection/
 │   └── opencollection_v1.0.0.json       # Update schema for keeper-security-cloud & KeeperSecurityExternalSecret
-└── src/commonTest/kotlin/io/github/crustack/clapi/core/storage/opencollection/
+└── src/commonTest/kotlin/io/github/makeforge/clapi/core/storage/opencollection/
     └── OpenCollectionExternalSecretsTest.kt # Keeper roundtrip & serialization tests
 
 ui-shared/
-├── src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/platform/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/platform/
 │   └── PlatformApi.kt                   # openUrlInBrowser declaration
-├── src/desktopMain/kotlin/io/github/crustack/clapi/ui/shared/platform/
+├── src/desktopMain/kotlin/io/github/makeforge/clapi/ui/shared/platform/
 │   └── PlatformApi.desktop.kt           # openUrlInBrowser implementation via Desktop.browse
-├── src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/
 │   ├── AppSettings.kt                   # keeperConfigJson property & status enum
 │   └── AppState.kt                      # onEnvironmentSwitched hook for KeeperClientManager
-├── src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/
 │   ├── SettingsRepository.kt            # Save/load keeperConfig via PlatformStorage.putSecretString
 │   ├── OpenCollectionModelMapping.kt    # Mapping for KeeperSecurityExternalSecret
 │   └── ImportExportRepository.kt        # Import/export handling for Keeper
-├── src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/
 │   ├── SettingsDialog.kt                # Keeper settings with OTT input, Connect, status check & help link
 │   ├── EnvironmentEditDialog.kt         # Keeper provider row, table headers, and custom filters panel
 │   └── executor/RequestVariableResolution.kt # Wire Keeper config into resolveAllSecrets
-└── src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/
+└── src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/components/
     ├── KeeperSettingsTest.kt            # Settings dialog OTT binding & KSafe storage tests
     └── EnvironmentEditorKeeperTest.kt   # Environment editor Keeper mapping tests
 
 qa-tests/
 ├── build.gradle.kts                     # Add compileTestKotlin friendPaths configuration for Keeper SDK
-└── src/test/kotlin/io/github/crustack/clapi/qa/
+└── src/test/kotlin/io/github/makeforge/clapi/qa/
     └── KeeperSecurityCloudIntegrationTest.kt # Offline E2E test using test-records.json for login, serverCredentials, OAuth
 ```
 

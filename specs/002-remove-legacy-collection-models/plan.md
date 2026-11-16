@@ -62,28 +62,28 @@ specs/002-remove-legacy-collection-models/
 Single feature across existing modules. No new modules.
 
 ```text
-core-model/src/commonMain/kotlin/io/github/crustack/core/model/
+core-model/src/commonMain/kotlin/io/github/makeforge/core/model/
 ├── CollectionModels.kt            # DELETE the 3 @Deprecated types (file removed if empty)
 └── opencollection/                # Unchanged. Only supported collection model.
 
 core-storage/src/
-├── commonMain/kotlin/io/github/crustack/core/storage/
+├── commonMain/kotlin/io/github/makeforge/core/storage/
 │   ├── StorageContracts.kt        # DELETE legacy CollectionRepository interface
 │   ├── InMemoryRepositories.kt    # InMemoryCollectionRepository holds OpenCollectionDocument
 │   └── opencollection/CanonicalCollectionRepository.kt  # Reworked to one global workspace document. Only production store.
 │                                                       # OpenCollectionSerializer.kt also writes folder extensions (FR-019).
-└── commonTest/kotlin/io/github/crustack/core/storage/
+└── commonTest/kotlin/io/github/makeforge/core/storage/
     └── InMemoryRepositoriesTest.kt  # Retype to OpenCollection
 
 ui-shared/src/
-├── commonMain/kotlin/io/github/crustack/ui/shared/persistence/
+├── commonMain/kotlin/io/github/makeforge/ui/shared/persistence/
 │   ├── ImportExportRepository.kt  # REMOVE legacy DTOs, clapiCollection/clapiWorkspace read/write,
 │   │                              #   workspace export/import; ADD legacy rejection
 │   ├── WorkspaceRepository.kt     # Save/load of the global OpenCollection document (environments in config),
 │   │                              #   global vars, history, expanded state in a private store (no clapi* type)
 │   ├── PostmanImporter.kt         # Unchanged
 │   └── OpenCollectionModelMapping.kt  # Unchanged. Maps runtime CollectionNode, not legacy.
-└── commonTest/kotlin/io/github/crustack/ui/shared/
+└── commonTest/kotlin/io/github/makeforge/ui/shared/
     ├── components/PreReleaseQaTest.kt        # Fixtures to OpenCollection
     ├── components/RequestReliabilityTest.kt  # Fixtures to OpenCollection
     ├── persistence/ImportExportFormDataTest.kt  # Fixtures to OpenCollection
@@ -91,7 +91,7 @@ ui-shared/src/
     ├── persistence/McpWorkspaceBackwardCompatTest.kt  # DELETE (FR-011)
     └── platform/FileChooserMemoryTest.kt     # Fixture reference check
 
-ui-desktop/src/desktopTest/kotlin/io/github/crustack/ui/desktop/persistence/
+ui-desktop/src/desktopTest/kotlin/io/github/makeforge/ui/desktop/persistence/
 ├── ImportExportRepositoryTest.kt          # Legacy cases become rejection cases
 ├── ImportExportFixturesIntegrationTest.kt # Collection fixture asserts OpenCollection content
 └── PostmanImportIntegrationTest.kt        # Keep Postman; drop legacy workspace cases
@@ -102,7 +102,7 @@ qa-tests/
 │   ├── clapi-test-environment.json        # Unchanged (environment out of scope)
 │   └── collection-validation-results.json # Regenerate if the validator output changes
 ├── collection-validator.mjs               # Read OpenCollection (items/info/http), not folders/requests
-└── src/test/kotlin/io/github/crustack/qa/
+└── src/test/kotlin/io/github/makeforge/qa/
     ├── OpenCollectionRoundTripE2ETest.kt     # Keep; must stay green
     ├── OpenCollectionValidationE2ETest.kt    # Keep; must stay green
     └── SampleCollectionE2ETest.kt            # Verify fixture is OpenCollection

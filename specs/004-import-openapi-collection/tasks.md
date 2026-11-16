@@ -17,7 +17,7 @@
 **Purpose**: Project initialization and basic dependencies
 
 - [X] T001 Add `swagger-parser` version `2.1.25` to gradle/libs.versions.toml and add `implementation("io.swagger.parser.v3:swagger-parser:2.1.25")` in core-storage/build.gradle.kts
-- [X] T002 [P] Add import dialog localization strings (dialog title, tabs, scan, overwrite warning, cancel, import) to ui-shared/src/commonMain/resources/i18n/en.json, de.json, es.json, fr.json and update ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/i18n/Strings.kt
+- [X] T002 [P] Add import dialog localization strings (dialog title, tabs, scan, overwrite warning, cancel, import) to ui-shared/src/commonMain/resources/i18n/en.json, de.json, es.json, fr.json and update ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/i18n/Strings.kt
 
 ---
 
@@ -27,10 +27,10 @@
 
 ⚠️ **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [X] T003 [P] Define data entities `ImportSourceType`, `ImportSourceState`, `ImportCandidateFolder`, `ImportCandidateEnvironment`, `ImportScanResult`, `SpecFormat`, and `ImportDialogStep` with verbatim validation constraints in core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/importers/ImportModels.kt
-- [X] T004 [P] Update `pickFileForImport` in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/platform/PlatformApi.kt and ui-shared/src/desktopMain/kotlin/io/github/crustack/clapi/ui/shared/platform/PlatformApi.desktop.kt to support single file picking filtered to `.json`, `.yaml`, and `.yml` returning file name and text content
-- [X] T005 Define `SpecificationImporter` interface and scan contract in core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/importers/SpecificationImporter.kt
-- [X] T006 Implement `OpenCollectionImporter` for OpenCollection YAML using `OpenCollectionSchemaValidator` and `OpenCollectionSerializer` in core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/importers/OpenCollectionImporter.kt
+- [X] T003 [P] Define data entities `ImportSourceType`, `ImportSourceState`, `ImportCandidateFolder`, `ImportCandidateEnvironment`, `ImportScanResult`, `SpecFormat`, and `ImportDialogStep` with verbatim validation constraints in core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/importers/ImportModels.kt
+- [X] T004 [P] Update `pickFileForImport` in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/platform/PlatformApi.kt and ui-shared/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/shared/platform/PlatformApi.desktop.kt to support single file picking filtered to `.json`, `.yaml`, and `.yml` returning file name and text content
+- [X] T005 Define `SpecificationImporter` interface and scan contract in core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/importers/SpecificationImporter.kt
+- [X] T006 Implement `OpenCollectionImporter` for OpenCollection YAML using `OpenCollectionSchemaValidator` and `OpenCollectionSerializer` in core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/importers/OpenCollectionImporter.kt
 - [X] T007 [P] Create test fixtures `petstore-openapi-v3.yaml`, `sample-opencollection.yaml`, and `swagger-v2.yaml` in core-storage/src/commonTest/resources/fixtures/
 
 **Checkpoint**: Core data models, platform file picker extensions, and foundational parser interfaces ready. User story implementation can now begin.
@@ -45,15 +45,15 @@
 
 ### Tests for User Story 1
 
-- [X] T008 [P] [US1] Unit test for OpenAPI v3 and OpenCollection file scanning in core-storage/src/commonTest/kotlin/io/github/crustack/clapi/core/storage/importers/SpecificationImporterTest.kt
+- [X] T008 [P] [US1] Unit test for OpenAPI v3 and OpenCollection file scanning in core-storage/src/commonTest/kotlin/io/github/makeforge/clapi/core/storage/importers/SpecificationImporterTest.kt
 
 ### Implementation for User Story 1
 
-- [X] T009 [US1] Implement `OpenApiImporter` in core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/importers/OpenApiImporter.kt using `OpenAPIParser` to parse OpenAPI v3 (JSON/YAML) and reject Swagger 2.0 or invalid content with diagnostic messages
-- [X] T010 [US1] Create `ImportSpecificationDialog.kt` with Step 1 (Source Selection) supporting File tab, dropzone drag-and-drop, "Choose Files" button, file clear action, and dynamic Scan button enablement in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ImportSpecificationDialog.kt
-- [X] T011 [US1] Update sidebar import folder button (`collection-import-button`) to open `ImportSpecificationDialog` in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt
-- [X] T012 [US1] Implement asynchronous scan execution, error banner display on validation failure, and transition to Step 2 (Item Selection) in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ImportSpecificationDialog.kt
-- [X] T013 [US1] Implement committing selected candidate folders to `state.collections` and saving workspace via `WorkspaceRepository.save(state)` on Import in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ImportSpecificationDialog.kt
+- [X] T009 [US1] Implement `OpenApiImporter` in core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/importers/OpenApiImporter.kt using `OpenAPIParser` to parse OpenAPI v3 (JSON/YAML) and reject Swagger 2.0 or invalid content with diagnostic messages
+- [X] T010 [US1] Create `ImportSpecificationDialog.kt` with Step 1 (Source Selection) supporting File tab, dropzone drag-and-drop, "Choose Files" button, file clear action, and dynamic Scan button enablement in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/ImportSpecificationDialog.kt
+- [X] T011 [US1] Update sidebar import folder button (`collection-import-button`) to open `ImportSpecificationDialog` in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/Sidebar.kt
+- [X] T012 [US1] Implement asynchronous scan execution, error banner display on validation failure, and transition to Step 2 (Item Selection) in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/ImportSpecificationDialog.kt
+- [X] T013 [US1] Implement committing selected candidate folders to `state.collections` and saving workspace via `WorkspaceRepository.save(state)` on Import in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/ImportSpecificationDialog.kt
 
 **Checkpoint**: User Story 1 is functional as an independent MVP. Files can be selected or dropped, scanned, and imported.
 
@@ -67,14 +67,14 @@
 
 ### Tests for User Story 3
 
-- [X] T014 [P] [US3] Unit test for conflict detection, real-time rename validation, and overwrite logic in ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/importers/ImportConflictResolutionTest.kt
+- [X] T014 [P] [US3] Unit test for conflict detection, real-time rename validation, and overwrite logic in ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/importers/ImportConflictResolutionTest.kt
 
 ### Implementation for User Story 3
 
-- [X] T015 [US3] Implement Step 2 (Item Selection view) in `ImportSpecificationDialog.kt` rendering lists of candidate folders and environments with selection checkboxes (`testTag("import-folder-check-${id}")`, `testTag("import-env-check-${id}")`) in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ImportSpecificationDialog.kt
-- [X] T016 [US3] Implement conflict detection comparing candidate names against `state.collections` and `state.environments`, rendering overwrite warning badges (`testTag("import-folder-conflict-${id}")`, `testTag("import-env-conflict-${id}")`) in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ImportSpecificationDialog.kt
-- [X] T017 [US3] Implement inline renaming for candidate folders and environments (`testTag("import-folder-name-${id}")`, `testTag("import-env-name-${id}")`), recomputing conflict status dynamically on name changes in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ImportSpecificationDialog.kt
-- [X] T018 [US3] Wire "Cancel" button to abort without mutations and "Import" button to overwrite conflicting items and insert non-conflicting items into `state.collections` and `state.environments` in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ImportSpecificationDialog.kt
+- [X] T015 [US3] Implement Step 2 (Item Selection view) in `ImportSpecificationDialog.kt` rendering lists of candidate folders and environments with selection checkboxes (`testTag("import-folder-check-${id}")`, `testTag("import-env-check-${id}")`) in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/ImportSpecificationDialog.kt
+- [X] T016 [US3] Implement conflict detection comparing candidate names against `state.collections` and `state.environments`, rendering overwrite warning badges (`testTag("import-folder-conflict-${id}")`, `testTag("import-env-conflict-${id}")`) in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/ImportSpecificationDialog.kt
+- [X] T017 [US3] Implement inline renaming for candidate folders and environments (`testTag("import-folder-name-${id}")`, `testTag("import-env-name-${id}")`), recomputing conflict status dynamically on name changes in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/ImportSpecificationDialog.kt
+- [X] T018 [US3] Wire "Cancel" button to abort without mutations and "Import" button to overwrite conflicting items and insert non-conflicting items into `state.collections` and `state.environments` in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/ImportSpecificationDialog.kt
 
 **Checkpoint**: User Story 3 is complete. Users have full control over item selection, renaming, and conflict overwrite safety.
 
@@ -88,12 +88,12 @@
 
 ### Tests for User Story 2
 
-- [X] T019 [P] [US2] Unit and UI test for clipboard reading, scan state validation, and content parsing in ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/importers/ImportClipboardUiTest.kt
+- [X] T019 [P] [US2] Unit and UI test for clipboard reading, scan state validation, and content parsing in ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/importers/ImportClipboardUiTest.kt
 
 ### Implementation for User Story 2
 
-- [X] T020 [US2] Implement Clipboard source tab in `ImportSpecificationDialog.kt` reading `PlatformApi.readFromClipboard()`, showing status/byte length, and toggling Scan button enablement in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ImportSpecificationDialog.kt
-- [X] T021 [US2] Connect Clipboard content to `SpecificationImporter.scanContent()` when Scan is triggered from Clipboard tab in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ImportSpecificationDialog.kt
+- [X] T020 [US2] Implement Clipboard source tab in `ImportSpecificationDialog.kt` reading `PlatformApi.readFromClipboard()`, showing status/byte length, and toggling Scan button enablement in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/ImportSpecificationDialog.kt
+- [X] T021 [US2] Connect Clipboard content to `SpecificationImporter.scanContent()` when Scan is triggered from Clipboard tab in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/ImportSpecificationDialog.kt
 
 **Checkpoint**: User Story 2 is complete. Clipboard import works seamlessly alongside File import.
 
@@ -107,13 +107,13 @@
 
 ### Tests for User Story 4
 
-- [X] T022 [P] [US4] Unit test for OpenAPI schema title root folder, tag subfolders, untagged operations, and server environment generation in core-storage/src/commonTest/kotlin/io/github/crustack/clapi/core/storage/importers/OpenApiHierarchyMappingTest.kt
+- [X] T022 [P] [US4] Unit test for OpenAPI schema title root folder, tag subfolders, untagged operations, and server environment generation in core-storage/src/commonTest/kotlin/io/github/makeforge/clapi/core/storage/importers/OpenApiHierarchyMappingTest.kt
 
 ### Implementation for User Story 4
 
-- [X] T023 [US4] Implement OpenAPI tag-to-subfolder hierarchy mapping in `OpenApiImporter.kt` placing operations with tags into subfolders under the root parent folder and untagged operations directly under root in core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/importers/OpenApiImporter.kt
-- [X] T024 [US4] Map OpenAPI operation parameters (path templates `{{baseUrl}}/path`, query parameters, headers) and request bodies (JSON schema/examples) to collection requests in core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/importers/OpenApiImporter.kt
-- [X] T025 [US4] Extract OpenAPI `servers` and server variables into an `ImportCandidateEnvironment` with `baseUrl` variable in core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/importers/OpenApiImporter.kt
+- [X] T023 [US4] Implement OpenAPI tag-to-subfolder hierarchy mapping in `OpenApiImporter.kt` placing operations with tags into subfolders under the root parent folder and untagged operations directly under root in core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/importers/OpenApiImporter.kt
+- [X] T024 [US4] Map OpenAPI operation parameters (path templates `{{baseUrl}}/path`, query parameters, headers) and request bodies (JSON schema/examples) to collection requests in core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/importers/OpenApiImporter.kt
+- [X] T025 [US4] Extract OpenAPI `servers` and server variables into an `ImportCandidateEnvironment` with `baseUrl` variable in core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/importers/OpenApiImporter.kt
 
 **Checkpoint**: User Story 4 is complete. OpenAPI specs generate complete, structured hierarchies with environments.
 
@@ -123,7 +123,7 @@
 
 **Purpose**: End-to-end integration testing, quickstart verification, and user documentation
 
-- [X] T026 [P] Add end-to-end Compose UI test suite covering the full dialog workflow in ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/ImportSpecificationUiTest.kt
+- [X] T026 [P] Add end-to-end Compose UI test suite covering the full dialog workflow in ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/ImportSpecificationUiTest.kt
 - [X] T027 [P] Update documentation for OpenAPI and OpenCollection importing in docs/Clapi/features/import-export.md
 - [X] T028 Execute manual verification scenarios documented in specs/004-import-openapi-collection/quickstart.md
 

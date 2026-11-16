@@ -105,5 +105,5 @@ Fixtures used for testing can be found or placed in `core-storage/src/commonTest
 Run the UI and parser unit/integration tests:
 ```bash
 ./gradlew :core-storage:desktopTest
-./gradlew :ui-desktop:desktopTest --tests "io.github.crustack.clapi.ui.desktop.ImportSpecificationUiTest"
+./gradlew :ui-desktop:desktopTest --tests "io.github.makeforge.clapi.ui.desktop.ImportSpecificationUiTest"
 ```

@@ -308,7 +308,7 @@ See [`docs/architecture.md`](docs/architecture.md) for a full write-up. Key rule
 ### `ui-shared` component map
 
 All shared UI code lives in
-`ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/`:
+`ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/`:
 
 ```
 MainScreen.kt              — root composable (toolbar, sidebar, editors, dialogs)
@@ -348,7 +348,7 @@ Platform-specific actuals are in `desktopMain/` (JVM).
 
 ### `ui-desktop` (thin launcher)
 
-`ui-desktop/src/desktopMain/kotlin/io/github/crustack/ui/desktop/Main.kt` — ~44 lines.
+`ui-desktop/src/desktopMain/kotlin/io/github/makeforge/ui/desktop/Main.kt` — ~44 lines.
 Opens a Compose `Window`, loads settings/tabs/workspace, and renders `MainScreen`.
 
 ### UI Development Guidelines & Skills
@@ -357,7 +357,7 @@ For authoring and evaluating Compose Multiplatform Desktop UI elements, refer to
 - **Modifier hygiene**: Mandatory `modifier: Modifier = Modifier` first optional parameter on the root element.
 - **Desktop ergonomics**: Pairing scrollable containers with `VerticalScrollbar` / `HorizontalScrollbar`, cursor hover icons (`PointerIcon.Hand`), hover feedback, and `Key.Escape` dialog dismissal.
 - **State management**: Aligning with `AppState` / `DialogState` / `RequestTabState` without Android ViewModels or mobile lifecycles.
-- **Desktop previews**: Previews are reserved for sophisticated views (e.g. `MainScreen`, `RequestEditor`, `Sidebar`) to ease maintenance and debugging, and must live strictly in the `ui-desktop` module under `preview/` (`io.github.crustack.clapi.ui.desktop.preview`). Individual leaf components/buttons do not require previews.
+- **Desktop previews**: Previews are reserved for sophisticated views (e.g. `MainScreen`, `RequestEditor`, `Sidebar`) to ease maintenance and debugging, and must live strictly in the `ui-desktop` module under `preview/` (`io.github.makeforge.clapi.ui.desktop.preview`). Individual leaf components/buttons do not require previews.
 
 ---
 
@@ -384,12 +384,12 @@ For authoring and evaluating Compose Multiplatform Desktop UI elements, refer to
 ## Remove data
 ```
 # macOS — delete the prefs file
-defaults delete io.github.crustack.clapi.ui.shared.platform
+defaults delete io.github.makeforge.clapi.ui.shared.platform
 # or remove the file directly
-rm ~/Library/Preferences/io.github.crustack.clapi.ui.plist
+rm ~/Library/Preferences/io.github.makeforge.clapi.ui.plist
 
 # Linux
-rm -rf ~/.java/.userPrefs/io/github/crustack/
+rm -rf ~/.java/.userPrefs/io/github/makeforge/
 
 # Windows (PowerShell)
 Remove-Item -Path "HKCU:\Software\JavaSoft\Prefs\com\clapi" -Recurse

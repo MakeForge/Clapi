@@ -5,7 +5,7 @@
 ## 1. Client Interface
 
 ```kotlin
-package io.github.crustack.clapi.core.network.keeper
+package io.github.makeforge.clapi.core.network.keeper
 
 import com.keepersecurity.secretsManager.core.KeeperSecrets
 
@@ -31,7 +31,7 @@ interface KeeperClient {
 ## 2. Client Manager Interface
 
 ```kotlin
-package io.github.crustack.clapi.core.network.keeper
+package io.github.makeforge.clapi.core.network.keeper
 
 interface KeeperClientManager {
     /**
@@ -61,7 +61,7 @@ interface KeeperClientManager {
 ## 3. Storage Initializer
 
 ```kotlin
-package io.github.crustack.clapi.core.network.keeper
+package io.github.makeforge.clapi.core.network.keeper
 
 object KeeperStorageInitializer {
     /**

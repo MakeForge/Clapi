@@ -104,11 +104,11 @@ specs/015-aws-secrets-manager/
 
 ```text
 core-model/
-└── src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/
     └── OpenCollectionEnvironment.kt        # AwsSecretsManagerExternalSecret & polymorphic serializer
 
 core-network/
-└── src/commonMain/kotlin/io/github/crustack/clapi/core/network/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/core/network/
     ├── aws/
     │   ├── AwsSigV4Signer.kt               # AWS SigV4 request signer
     │   ├── AwsSecretsManagerConfig.kt      # Configuration data class
@@ -117,11 +117,11 @@ core-network/
         └── SecretResolutionService.kt      # AWS secret resolution & query batching
 
 core-storage/
-└── src/commonTest/kotlin/io/github/crustack/clapi/core/storage/opencollection/
+└── src/commonTest/kotlin/io/github/makeforge/clapi/core/storage/opencollection/
     └── OpenCollectionExternalSecretsTest.kt # AWS OpenCollection JSON/YAML roundtrip & zero leakage tests
 
 ui-shared/
-└── src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/
     ├── state/
     │   └── AppSettings.kt                  # AWS settings properties
     ├── persistence/
@@ -136,7 +136,7 @@ ui-shared/
 qa-tests/
 ├── docker/
 │   └── secret-managers-compose.yml         # LocalStack Secrets Manager service & seeder
-└── src/test/kotlin/io/github/crustack/clapi/qa/
+└── src/test/kotlin/io/github/makeforge/clapi/qa/
     └── AwsSecretsManagerIntegrationTest.kt # Live E2E test with LocalStack
 ```
 

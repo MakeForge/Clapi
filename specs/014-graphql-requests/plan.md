@@ -80,25 +80,25 @@ specs/014-graphql-requests/
 
 ```text
 core-model/
-└── src/commonMain/kotlin/io/github/crustack/clapi/core/model/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/core/model/
     ├── McpModels.kt                             # Add GRAPHQL to RequestKind
     └── opencollection/
         └── OpenCollectionItem.kt                # GraphQLRequestItem, details, payload, settings, serializer
 
 core-network/
-└── src/commonMain/kotlin/io/github/crustack/clapi/core/network/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/core/network/
     └── GraphQlEnvelope.kt                       # Reused for envelope encoding & variable interpolation
 
 core-storage/
-├── src/commonMain/kotlin/io/github/crustack/clapi/core/storage/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/
 │   ├── exporters/OpenApiExporter.kt             # Handle GraphQLRequestItem export
 │   ├── importers/OpenCollectionImporter.kt      # Handle GraphQLRequestItem count & import
 │   └── opencollection/OpenCollectionSerializer.kt # KNOWN_GRAPHQL_REQUEST_KEYS and serializer handling
-└── src/desktopMain/kotlin/io/github/crustack/clapi/core/storage/importers/
+└── src/desktopMain/kotlin/io/github/makeforge/clapi/core/storage/importers/
     └── OpenApiImporter.kt                       # Count & handle GraphQLRequestItem
 
 ui-shared/
-└── src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/
     ├── components/
     │   ├── GraphQLBadge.kt                      # Or in Sidebar.kt: GQL badge with #e10098
     │   ├── GraphQLRequestEditor.kt              # Dedicated first-class GraphQL editor
@@ -115,7 +115,7 @@ ui-shared/
         └── ClapiTheme.kt                        # ClapiColors.MethodGraphQl accessor
 
 qa-tests/
-└── src/test/kotlin/io/github/crustack/clapi/qa/
+└── src/test/kotlin/io/github/makeforge/clapi/qa/
     ├── GraphQLRequestE2ETest.kt                 # E2E query/variable execution against DummyApiServer
     └── OpenCollectionRoundTripE2ETest.kt        # Round-trip JSON/YAML test for GraphQLRequestItem
 ```
