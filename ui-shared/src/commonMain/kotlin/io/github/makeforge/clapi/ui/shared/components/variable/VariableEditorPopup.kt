@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.makeforge.clapi.core.network.VariableResolver
 import androidx.compose.ui.window.Dialog
 import io.github.makeforge.clapi.ui.shared.components.DirtyCloseDialog
 import io.github.makeforge.clapi.ui.shared.components.VariableAwareTextField
@@ -134,6 +135,7 @@ fun resolveVariableSourceInfo(
         folderValue
     } else {
         state.activeVariableLayers(targetTab).firstNotNullOfOrNull { it[cleanName] }
+            ?: VariableResolver.resolveDynamicToken(cleanName)
     }
 
     return VariableSourceInfo(

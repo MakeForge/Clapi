@@ -69,6 +69,7 @@ class I18nCompletenessTest {
         "import_collection", "export_collection", "import_success",
         "export_success", "operation_failed",
         // MCP
+        "http_request", "grpc_request", "websocket_request", "graphql_request",
         "mcp_connection", "new_mcp_connection", "new_sse_request", "mcp_tools", "mcp_resources", "mcp_prompts",
         "mcp_url", "mcp_command", "mcp_notifications", "mcp_timeline", "mcp_client",
         "mcp_call_tool", "mcp_stdio_confirm", "mcp_roots", "mcp_sampling_mode", "mcp_auto_elicit",

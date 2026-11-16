@@ -412,7 +412,8 @@ private fun GlobalVariableRow(
         // Value input
         BasicTextField(
             value = variable.value,
-            onValueChange = { variable.value = it },
+            onValueChange = { if (!variable.secret) variable.value = it },
+            readOnly = variable.secret,
             singleLine = true,
             visualTransformation = if (variable.secret && !showValue) PasswordVisualTransformation() else VisualTransformation.None,
             textStyle = TextStyle(
@@ -431,7 +432,7 @@ private fun GlobalVariableRow(
             decorationBox = { inner ->
                 Box {
                     if (variable.value.isEmpty()) {
-                        Text(Strings.value, color = ClapiColors.OnSurfaceDim, fontSize = 12.sp, fontFamily = CodeFontFamily)
+                        Text(if (variable.secret) "-" else Strings.value, color = ClapiColors.OnSurfaceDim, fontSize = 12.sp, fontFamily = CodeFontFamily)
                     }
                     inner()
                 }
@@ -451,7 +452,10 @@ private fun GlobalVariableRow(
                 .handPointerHover()
                 .clickable {
                     variable.secret = !variable.secret
-                    if (variable.secret) showValue = false
+                    if (variable.secret) {
+                        showValue = false
+                        variable.value = ""
+                    }
                 }
                 .padding(horizontal = 6.dp, vertical = 6.dp)
                 .testTag("global-var-type-$index"),

@@ -69,6 +69,7 @@ import io.github.makeforge.clapi.ui.shared.components.SettingsDialog
 import io.github.makeforge.clapi.ui.shared.components.SidebarResizeDivider
 import io.github.makeforge.clapi.ui.shared.components.TopToolbar
 import io.github.makeforge.clapi.ui.shared.components.VerticalSplitPane
+import io.github.makeforge.clapi.ui.shared.components.WebSocketRequestEditor
 import io.github.makeforge.clapi.ui.shared.components.executor.saveRequest
 import io.github.makeforge.clapi.ui.shared.components.executor.sendRequest
 import io.github.makeforge.clapi.ui.shared.components.sidebar.Sidebar
@@ -441,6 +442,15 @@ private fun ColumnScope.HttpWorkspaceContent(
                         } else if (tab.kind == RequestKind.COLLECTION) {
                             key(tab.id) {
                                 CollectionEditor(
+                                    tab = tab,
+                                    state = state,
+                                    onSave = { saveRequest(scope, state, tab) },
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+                        } else if (tab.kind == RequestKind.WEBSOCKET) {
+                            key(tab.id) {
+                                WebSocketRequestEditor(
                                     tab = tab,
                                     state = state,
                                     onSave = { saveRequest(scope, state, tab) },

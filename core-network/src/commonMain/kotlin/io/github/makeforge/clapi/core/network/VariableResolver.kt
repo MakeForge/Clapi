@@ -1,12 +1,16 @@
 package io.github.makeforge.clapi.core.network
 
-import kotlin.random.Random
-import kotlinx.datetime.Clock
-
 private val variablePattern = Regex("\\{\\{\\s*([^{}]+?)\\s*\\}\\}")
-private val randomIntPattern = Regex("^\\$?randomInt\\(\\s*(-?\\d+)\\s*,\\s*(-?\\d+)\\s*\\)$", RegexOption.IGNORE_CASE)
 
 object VariableResolver {
+    val dynamicVariables: List<DynamicVariable> = listOf(
+        TimestampDynamicVariable,
+        IsoTimestampDynamicVariable,
+        RandomIntDynamicVariable,
+        RandomIntRangeDynamicVariable,
+        GuidDynamicVariable,
+    )
+
     fun resolve(
         value: String,
         variableLayers: List<Map<String, String>>,
@@ -23,20 +27,19 @@ object VariableResolver {
         }
     }
 
-    private fun resolveDynamicToken(token: String): String? {
-        val normalized = token.removePrefix("$")
-        return when {
-            normalized.equals("timestamp", ignoreCase = true) -> Clock.System.now().toEpochMilliseconds().toString()
-            normalized.equals("isoTimestamp", ignoreCase = true) -> Clock.System.now().toString()
-            randomIntPattern.matches(token) -> {
-                val groups = randomIntPattern.find(token)?.groupValues ?: return null
-                val minInclusive = groups[1].toIntOrNull() ?: return null
-                val maxInclusive = groups[2].toIntOrNull() ?: return null
-                if (minInclusive > maxInclusive) return null
-                Random.nextInt(minInclusive, maxInclusive + 1).toString()
+    fun resolveDynamicToken(token: String): String? {
+        val trimmed = token.trim()
+        for (handler in dynamicVariables) {
+            if (handler.matches(trimmed)) {
+                val resolved = handler.resolve(trimmed)
+                if (resolved != null) return resolved
             }
-            normalized.equals("randomInt", ignoreCase = true) -> Random.nextInt(0, 1000).toString()
-            else -> null
         }
+        return null
+    }
+
+    fun isDynamicToken(token: String): Boolean {
+        val trimmed = token.trim()
+        return dynamicVariables.any { it.matches(trimmed) }
     }
 }
