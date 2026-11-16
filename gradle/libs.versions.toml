@@ -12,7 +12,7 @@ networknt = "3.0.9"
 kaml = "0.104.0"
 swagger-parser = "2.1.25"
 grpc = "1.68.2"
-protobuf = "4.28.3"
+protobuf = "4.36.2"
 protoc-jar = "3.11.4"
 ksafe = "3.3.0"
 keepassxc-proxy-access = "1.2.9" # higher versions require java >=21
