@@ -778,7 +778,7 @@ fun saveRequest(
         // TabsRepository.save ran first, so an immediate reload restored a dirty tab.
         tab.markSaved()
         val tabsSaved = withContext(ioDispatcher) { TabsRepository.save(state) }
-        val workspaceSaved = if ((tab.isFolderTab || tab.collectionName != null) && collectionSynced) {
+        val workspaceSaved = if ((tab.isFolderTab || tab.isCollectionTab || tab.collectionName != null) && collectionSynced) {
             withContext(ioDispatcher) { WorkspaceRepository.save(state) }
         } else {
             collectionSynced

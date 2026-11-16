@@ -314,6 +314,10 @@ object TabsRepository {
                     tab.urlencodedRows.add(formRowFromJson(el.jsonObject))
                 }
 
+                if (savedKind == RequestKind.COLLECTION) {
+                    tab.collectionSnapshotProvider = { state.collectionProtobufSnapshot() }
+                }
+
                 val legacyDirty = obj["isDirty"]?.jsonPrimitive?.booleanOrNull ?: false
                 val snapshotFormat = obj["snapshotFormat"]?.jsonPrimitive?.intOrNull ?: 1
                 tab.restoreSavedSnapshot(

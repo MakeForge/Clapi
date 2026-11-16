@@ -49,6 +49,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
@@ -587,12 +588,20 @@ fun Sidebar(state: AppState) {
 
             item {
                 SectionHeader(
-                    icon = Icons.Default.FolderOpen,
-                    title = Strings.folders,
+                    icon = Icons.Default.Article,
+                    title = Strings.collection,
                     expanded = state.collectionsExpanded,
+                    modifier = Modifier.testTag("sidebar-collection-header"),
                     onToggle = {
                         state.collectionsExpanded = !state.collectionsExpanded
                         state.settings.collectionsExpanded = state.collectionsExpanded
+                    },
+                    onClick = {
+                        state.openCollection()
+                        if (!state.collectionsExpanded) {
+                            state.collectionsExpanded = true
+                            state.settings.collectionsExpanded = true
+                        }
                     },
                     trailing = {
                         Row {
@@ -1288,18 +1297,20 @@ private fun SectionHeader(
     title: String,
     expanded: Boolean,
     onToggle: () -> Unit,
+    onClick: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
     trailing: @Composable (() -> Unit)? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(6.dp))
             .background(if (isHovered) ClapiColors.HoverOverlay else Color.Transparent)
             .hoverable(interactionSource)
-            .clickable(onClick = onToggle)
+            .clickable(onClick = { onClick?.invoke() ?: onToggle() })
             .padding(horizontal = 8.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -1307,7 +1318,11 @@ private fun SectionHeader(
             if (expanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
             tint = ClapiColors.OnSurfaceDim,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(16.dp).clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onToggle,
+            ),
         )
         Spacer(Modifier.width(4.dp))
         Icon(icon, contentDescription = null, tint = ClapiColors.OnSurfaceVariant, modifier = Modifier.size(16.dp))

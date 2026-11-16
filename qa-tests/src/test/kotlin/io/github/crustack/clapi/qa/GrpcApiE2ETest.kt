@@ -59,7 +59,10 @@ class GrpcApiE2ETest {
     @Test
     fun `parses greeter proto and discovers SayHello and SayHelloAgain unary RPCs`() = runTest {
         val protoFile = File(server.protoFilePath())
-        val schema = protoParser.parseProtoFile(protoFile)
+        val schema = protoParser.parseProtoFile(
+            protoFilePath = protoFile.absolutePath,
+            includePaths = listOf(server.metadataProtoFilePath()),
+        )
 
         assertNotNull(schema.fileDescriptorBytes, "Expected compiled descriptor bytes")
         assertEquals(1, schema.services.size)
@@ -84,6 +87,7 @@ class GrpcApiE2ETest {
                 fullMethodName = "helloworld.Greeter/SayHello",
                 jsonPayload = """{"name": "Clapi QA"}""",
                 metadata = listOf("x-custom-meta" to "meta-value-123"),
+                includePaths = listOf(server.metadataProtoFilePath()),
             )
         )
 
@@ -96,6 +100,11 @@ class GrpcApiE2ETest {
             response1.responseJson!!.contains("\"receivedMeta\": \"meta-value-123\"") ||
                 response1.responseJson!!.contains("\"received_meta\": \"meta-value-123\"")
         )
+        assertTrue(
+            response1.responseJson!!.contains("ackMetadata") ||
+                response1.responseJson!!.contains("ack_metadata")
+        )
+        assertTrue(response1.responseJson!!.contains("trace-Clapi QA"))
         assertTrue(response1.responseMetadata.any { it.first == "x-grpc-server" && it.second == "DummyApiServer" })
         assertTrue(response1.responseMetadata.any { it.first == "x-echo-custom-meta" && it.second == "meta-value-123" })
 
@@ -108,6 +117,7 @@ class GrpcApiE2ETest {
                 protoFilePath = server.protoFilePath(),
                 fullMethodName = "helloworld.Greeter/SayHelloAgain",
                 jsonPayload = """{"name": "Clapi QA"}""",
+                includePaths = listOf(server.metadataProtoFilePath()),
             )
         )
 
@@ -144,6 +154,7 @@ class GrpcApiE2ETest {
                     "bearerToken" to "secret-jwt",
                 )
             ),
+            includePaths = listOf(server.metadataProtoFilePath()),
         )
 
         assertEquals(0, result.statusCode)
@@ -165,6 +176,7 @@ class GrpcApiE2ETest {
                 protoFilePath = server.protoFilePath(),
                 fullMethodName = "helloworld.Greeter/SayHello",
                 jsonPayload = """{"name": "denied"}""",
+                includePaths = listOf(server.metadataProtoFilePath()),
             )
         )
 
@@ -173,6 +185,32 @@ class GrpcApiE2ETest {
         assertNull(deniedResponse.responseJson)
         assertNotNull(deniedResponse.errorMessage)
         assertTrue(deniedResponse.errorMessage!!.contains("Access denied for denied"))
+    }
+
+    @Test
+    fun `disabling or omitting required collection import path fails gRPC call with descriptive error`() = runTest {
+        // Direct test against server.protoFilePath() without include paths:
+        val failedDirectResponse = grpcClient.executeUnary(
+            GrpcCallRequest(
+                requestId = "e2e-disabled-import-direct",
+                host = "127.0.0.1",
+                port = server.grpcPort(),
+                useTls = false,
+                protoFilePath = server.protoFilePath(),
+                fullMethodName = "helloworld.Greeter/SayHello",
+                jsonPayload = """{"name": "Clapi QA"}""",
+                includePaths = emptyList(), // Disabled import path
+            )
+        )
+
+        assertEquals(Status.Code.INVALID_ARGUMENT.value(), failedDirectResponse.statusCode)
+        assertNull(failedDirectResponse.responseJson)
+        assertNotNull(failedDirectResponse.errorMessage)
+        assertTrue(
+            failedDirectResponse.errorMessage!!.contains("metadata.proto") ||
+                failedDirectResponse.errorMessage!!.contains("Failed to compile"),
+            "Expected error message mentioning missing import or compilation failure, but was: ${failedDirectResponse.errorMessage}"
+        )
     }
 
     @Test

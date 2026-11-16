@@ -133,4 +133,35 @@ class OpenCollectionModelTest {
         assertFalse(encoded.contains("\"value\""))
         assertTrue(encoded.contains("\"secret\":true"))
     }
+
+    @Test
+    fun testCollectionProtobufConfigSerializationRoundTrip() {
+        val config = CollectionConfig(
+            protobuf = CollectionProtobufConfig(
+                protoFiles = listOf(
+                    ProtoFile(type = "file", path = "/path/to/service.proto")
+                ),
+                importPaths = listOf(
+                    ProtoFileImportPath(path = "/path/to/imports", disabled = false),
+                    ProtoFileImportPath(path = "/path/to/other.proto", disabled = true),
+                )
+            )
+        )
+        val encoded = json.encodeToString(CollectionConfig.serializer(), config)
+        assertTrue(encoded.contains("\"protobuf\""))
+        assertTrue(encoded.contains("\"protoFiles\""))
+        assertTrue(encoded.contains("\"/path/to/service.proto\""))
+        assertTrue(encoded.contains("\"importPaths\""))
+        assertTrue(encoded.contains("\"disabled\":true"))
+
+        val decoded = json.decodeFromString(CollectionConfig.serializer(), encoded)
+        assertNotNull(decoded.protobuf)
+        assertEquals(1, decoded.protobuf!!.protoFiles.size)
+        assertEquals("/path/to/service.proto", decoded.protobuf!!.protoFiles[0].path)
+        assertEquals("file", decoded.protobuf!!.protoFiles[0].type)
+        assertEquals(2, decoded.protobuf!!.importPaths.size)
+        assertEquals("/path/to/imports", decoded.protobuf!!.importPaths[0].path)
+        assertEquals(false, decoded.protobuf!!.importPaths[0].disabled)
+        assertEquals(true, decoded.protobuf!!.importPaths[1].disabled)
+    }
 }

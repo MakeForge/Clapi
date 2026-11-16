@@ -17,6 +17,7 @@ import androidx.compose.ui.input.pointer.PointerIcon
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import java.awt.Cursor
+import java.awt.Desktop
 import java.awt.FileDialog
 import java.awt.Frame
 import java.awt.Toolkit
@@ -122,6 +123,45 @@ actual fun pickProtoFile(onResult: (filePath: String) -> Unit) {
         val selected = File(selectedDir, selectedFile)
         rememberChooserDirectory(selected)
         onResult(selected.absolutePath)
+    }
+}
+
+actual fun pickProtoFiles(onResult: (filePaths: List<String>) -> Unit) {
+    val dialog = FileDialog(null as Frame?, "Select Proto Files", FileDialog.LOAD).apply {
+        applyRememberedDirectory()
+        isMultipleMode = true
+        filenameFilter = FilenameFilter { _, name -> name.endsWith(".proto", ignoreCase = true) }
+        isVisible = true
+    }
+    val files = dialog.files
+    if (files != null && files.isNotEmpty()) {
+        rememberChooserDirectory(files.first())
+        onResult(files.map { it.absolutePath })
+    } else {
+        val selectedDir = dialog.directory
+        val selectedFile = dialog.file
+        if (selectedDir != null && selectedFile != null) {
+            val selected = File(selectedDir, selectedFile)
+            rememberChooserDirectory(selected)
+            onResult(listOf(selected.absolutePath))
+        }
+    }
+}
+
+actual fun openFileInDefaultApp(filePath: String) {
+    runCatching {
+        val file = File(filePath)
+        if (!file.exists()) return
+        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN)) {
+            Desktop.getDesktop().open(file)
+        } else {
+            val os = System.getProperty("os.name", "").lowercase()
+            when {
+                os.contains("win") -> ProcessBuilder("cmd", "/c", "start", "\"\"", file.absolutePath).start()
+                os.contains("mac") -> ProcessBuilder("open", file.absolutePath).start()
+                else -> ProcessBuilder("xdg-open", file.absolutePath).start()
+            }
+        }
     }
 }
 

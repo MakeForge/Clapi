@@ -137,4 +137,60 @@ class ProtocJarParserTest {
             invalidProto.delete()
         }
     }
+
+    @Test
+    fun `resolves imported proto files using includePaths with file links and ancestor traversal`() = runTest {
+        val rootDir = kotlin.io.path.createTempDirectory("clapi_import_test_").toFile()
+        try {
+            val serviceDir = File(rootDir, "services").apply { mkdirs() }
+            val commonDir = File(rootDir, "external/protobuf/common").apply { mkdirs() }
+            val metaFile = File(commonDir, "metadata.proto").apply {
+                writeText(
+                    """
+                    syntax = "proto3";
+                    package clapi.common;
+                    message RequestMetadata {
+                      string trace_id = 1;
+                    }
+                    """.trimIndent()
+                )
+            }
+
+            val serviceFile = File(serviceDir, "service.proto").apply {
+                writeText(
+                    """
+                    syntax = "proto3";
+                    package helloworld;
+                    import "protobuf/common/metadata.proto";
+
+                    service TestService {
+                      rpc Ping (clapi.common.RequestMetadata) returns (clapi.common.RequestMetadata);
+                    }
+                    """.trimIndent()
+                )
+            }
+
+            // Test 1: Passing the specific file path as an includePath should resolve through ancestor traversal (external directory)
+            val schema = parser.parseProtoFile(
+                protoFilePath = serviceFile.absolutePath,
+                includePaths = listOf(metaFile.absolutePath),
+            )
+
+            assertEquals(1, schema.services.size)
+            val service = schema.services.first()
+            assertEquals("helloworld.TestService", service.fullName)
+            assertEquals("clapi.common.RequestMetadata", service.methods.first().inputTypeName)
+
+            // Test 2: Passing empty includePaths when service relies on external import should fail
+            val ex = assertFailsWith<ProtoParseException> {
+                parser.parseProtoFile(
+                    protoFilePath = serviceFile.absolutePath,
+                    includePaths = emptyList(),
+                )
+            }
+            assertTrue(ex.message!!.contains("Failed to compile") || ex.stderr?.contains("not found") == true)
+        } finally {
+            rootDir.deleteRecursively()
+        }
+    }
 }
