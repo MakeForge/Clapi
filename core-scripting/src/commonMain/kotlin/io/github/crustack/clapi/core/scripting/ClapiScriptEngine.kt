@@ -110,14 +110,17 @@ class ClapiScriptEngine(
      * and invokes the serialized callback source with it.
      */
     private fun buildCallbackUserScript(callbackSource: String, sub: SendRequestResult): String {
-        fun esc(s: String) = s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r")
-        val escapedBody = esc(sub.body)
-        val escapedStatus = esc(sub.statusText)
-        val headersJson = sub.headers.entries.joinToString(",") { (k, v) -> "\"${esc(k)}\":\"${esc(v)}\"" }
+        fun jsStringLiteral(s: String): String =
+            JsonPrimitive(s).toString()
+                .replace("\u2028", "\\u2028")
+                .replace("\u2029", "\\u2029")
+        val bodyLiteral = jsStringLiteral(sub.body)
+        val statusLiteral = jsStringLiteral(sub.statusText)
+        val headersJson = sub.headers.entries.joinToString(",") { (k, v) -> "${jsStringLiteral(k)}:${jsStringLiteral(v)}" }
         return """
             var __sr_code=${sub.statusCode};
-            var __sr_st="${escapedStatus}";
-            var __sr_body="${escapedBody}";
+            var __sr_st=${statusLiteral};
+            var __sr_body=${bodyLiteral};
             var __sr_time=${sub.elapsedMs};
             var __sr_hdr={${headersJson}};
             var __sr_resp={

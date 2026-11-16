@@ -15,7 +15,7 @@ import io.github.crustack.clapi.core.model.opencollection.HttpRequestHeader
 import io.github.crustack.clapi.core.network.KtorApiClient
 import io.github.crustack.clapi.core.network.NetworkEvent
 import io.github.crustack.clapi.core.network.RetryPolicy
-import io.github.crustack.clapi.feature.requests.RequestExecutionService
+import io.github.crustack.clapi.core.network.execution.RequestExecutionService
 import io.github.crustack.clapi.testsupport.DummyApiServer
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest

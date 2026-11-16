@@ -2,6 +2,14 @@ package io.github.crustack.clapi.core.network.vault
 
 import io.github.crustack.clapi.core.network.aws.AwsSecretsManagerClient
 import io.github.crustack.clapi.core.network.aws.AwsSecretsManagerConfig
+import io.github.crustack.clapi.core.network.azure.AzureKeyVaultClient
+import io.github.crustack.clapi.core.network.azure.AzureKeyVaultConfig
+import io.github.crustack.clapi.core.network.gcp.GcpSecretManagerClient
+import io.github.crustack.clapi.core.network.gcp.GcpSecretManagerConfig
+import io.github.crustack.clapi.core.network.keeper.KeeperClient
+import io.github.crustack.clapi.core.network.keeper.KeeperConnectionStatusState
+import io.github.crustack.clapi.core.network.keeper.KeeperRecordFieldSummary
+import io.github.crustack.clapi.core.network.keeper.KeeperRecordSummary
 import io.github.crustack.clapi.core.network.keepassxc.KeePassXcClient
 import io.github.crustack.clapi.core.network.keepassxc.KeePassXcEntry
 import io.github.crustack.clapi.core.network.keepassxc.KeePassXcStatus
@@ -773,5 +781,129 @@ class SecretResolutionServiceTest {
 
         assertEquals("direct_val_111", resolved["_secret.direct_token"])
         assertEquals("sec_var_val_222", resolved["AWS_SECRET_VAR"])
+    }
+
+    @Test
+    fun resolveAllSecrets_with_SecretResolutionContext_dispatches_all_six_providers_and_resolves_spaced_custom_filters() = runTest {
+        val fakeVault = FakeVaultClient(mapOf("kv/v" to mapOf("v_sec" to "vault-val")))
+        val fakeAws = FakeAwsSecretsManagerClient(
+            mapOf("aws/sec" to mapOf("env" to "staging", "key" to "aws-val")),
+        )
+        val fakeAzure = object : AzureKeyVaultClient {
+            override suspend fun fetchSecret(config: AzureKeyVaultConfig): Map<String, String> =
+                mapOf("env" to "staging", "key" to "azure-val")
+        }
+        val fakeGcp = object : GcpSecretManagerClient {
+            override suspend fun fetchSecret(config: GcpSecretManagerConfig): Map<String, String> =
+                mapOf("env" to "staging", "key" to "gcp-val")
+        }
+        val fakeKeeper = object : KeeperClient {
+            override suspend fun checkStatus(): KeeperConnectionStatusState = KeeperConnectionStatusState.Connected
+            override suspend fun testConnection(): Boolean = true
+            override suspend fun getRecords(recordsFilter: List<String>): List<KeeperRecordSummary> = listOf(
+                KeeperRecordSummary(
+                    recordUid = "uid-1",
+                    title = "KeeperRec",
+                    type = "login",
+                    password = "keeper-val",
+                    customFields = listOf(
+                        KeeperRecordFieldSummary(type = "text", label = "env", values = listOf("staging")),
+                    ),
+                )
+            )
+            override suspend fun countMatchingRecords(recordTitle: String, customFilters: Map<String, String>): Int = 1
+            override suspend fun disconnect() {}
+        }
+        val fakeKpa = FakeKeePassXcClient(
+            entriesByUrl = mapOf(
+                "https://kpa.local" to listOf(
+                    KeePassXcEntry(
+                        name = "KPA",
+                        login = "u",
+                        password = "kpa-val",
+                        uuid = "u1",
+                        stringFields = mapOf("env" to "staging"),
+                    )
+                )
+            )
+        )
+
+        val service = SecretResolutionService(
+            vaultClient = fakeVault,
+            awsClient = fakeAws,
+            azureClient = fakeAzure,
+            gcpClient = fakeGcp,
+        )
+
+        val declarations = listOf(
+            SecretDeclaration(
+                name = "v_sec",
+                path = "kv/v",
+                providerType = "hashicorp-vault-server",
+            ),
+            SecretDeclaration(
+                name = "aws_sec",
+                path = "aws/sec",
+                targetField = "key",
+                customFilters = mapOf("env" to "{{ target_env }}"), // whitespace-padded variable token (BUG-08)
+                providerType = "aws-secrets-manager",
+            ),
+            SecretDeclaration(
+                name = "az_sec",
+                path = "az/sec",
+                targetField = "key",
+                customFilters = mapOf("env" to "{{ target_env }}"),
+                providerType = "azure-key-vault",
+            ),
+            SecretDeclaration(
+                name = "gcp_sec",
+                path = "gcp/sec",
+                targetField = "key",
+                customFilters = mapOf("env" to "{{ target_env }}"),
+                providerType = "gcp-secrets-manager",
+            ),
+            SecretDeclaration(
+                name = "keeper_sec",
+                path = "KeeperRec",
+                targetField = "password",
+                customFilters = mapOf("env" to "{{ target_env }}"),
+                providerType = "keeper-security-cloud",
+            ),
+            SecretDeclaration(
+                name = "kpa_sec",
+                url = "https://kpa.local",
+                targetField = "password",
+                customFilters = mapOf("env" to "{{ target_env }}"),
+                providerType = "keepassxc",
+            ),
+        )
+
+        val context = SecretResolutionContext(
+            declarations = declarations,
+            vault = VaultProviderConfig(url = "http://127.0.0.1:8200", token = "v-tok"),
+            aws = AwsProviderConfig(accessKeyId = "ak", secretAccessKey = "sk"),
+            azure = AzureProviderConfig(vaultName = "my-vault", tenantId = "t", clientId = "c", clientSecret = "s"),
+            gcp = GcpProviderConfig(projectId = "my-proj", accessToken = "gcp-tok"),
+            keeper = KeeperProviderConfig(clientOverride = fakeKeeper),
+            keepassXc = KeepassXcProviderConfig(clientOverride = fakeKpa),
+            variableLayers = listOf(
+                mapOf("target_env" to "staging"),
+                mapOf("target_env" to "overridden-lower-layer"),
+            ),
+        )
+
+        val resolved = service.resolveAllSecrets(
+            texts = listOf(
+                "{{_secret.v_sec}} {{_secret.aws_sec}} {{_secret.az_sec}} {{_secret.gcp_sec}} {{_secret.keeper_sec}} {{_secret.kpa_sec}}"
+            ),
+            context = context,
+        )
+
+        assertEquals("vault-val", resolved["_secret.v_sec"])
+        assertEquals("aws-val", resolved["_secret.aws_sec"])
+        assertEquals("azure-val", resolved["_secret.az_sec"])
+        assertEquals("gcp-val", resolved["_secret.gcp_sec"])
+        assertEquals("keeper-val", resolved["_secret.keeper_sec"])
+        assertEquals("kpa-val", resolved["_secret.kpa_sec"])
     }
 }

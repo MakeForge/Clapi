@@ -408,6 +408,41 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         }
     }
     val collectionVariables = mutableStateMapOf<String, String>()
+    val collectionVariablesById = mutableStateMapOf<String, androidx.compose.runtime.snapshots.SnapshotStateMap<String, String>>()
+
+    /**
+     * Resolves the root [CollectionNode] owning [tab], or null if [tab] is not associated with a collection.
+     */
+    fun resolveRootCollectionNode(tab: RequestTabState? = activeTab): CollectionNode? {
+        if (tab == null) return null
+        if (tab.isCollectionTab) {
+            return collections.firstOrNull { it.id == tab.id }
+        }
+        return getAncestorFolders(tab).firstOrNull { it.isCollection }
+            ?: tab.collectionId?.let { id -> collections.firstOrNull { it.id == id } }
+            ?: tab.collectionName?.let { name -> collections.firstOrNull { it.name == name } }
+    }
+
+    /**
+     * Returns the effective collection variables for [tab]'s root collection, isolating collection
+     * variables across different collections in the workspace.
+     */
+    fun collectionVariablesFor(tab: RequestTabState? = activeTab): Map<String, String> {
+        val root = resolveRootCollectionNode(tab) ?: return collectionVariables.toMap()
+        val openRootTab = openTabs.firstOrNull { it.id == root.id && it.isFolderTab }
+        val baseVars = if (openRootTab != null) {
+            openRootTab.variables
+                .filter { it.enabled && it.key.isNotBlank() }
+                .associate { it.key to it.value }
+        } else {
+            root.variableEntries
+                ?.filter { it.enabled && it.key.isNotBlank() }
+                ?.associate { it.key to it.value }
+                .orEmpty()
+        }
+        val runtimeVars = collectionVariablesById[root.id]?.toMap().orEmpty()
+        return baseVars + runtimeVars
+    }
 
     // ── collection protobuf ──
     val collectionProtoFiles = mutableStateListOf<ProtoFileItemState>()
@@ -424,11 +459,12 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         val layers = mutableListOf<Map<String, String>>()
         layers.add(selectedEnvironment?.toVariableMap().orEmpty())
 
+        var includedRootCollection = false
         if (tab != null) {
             val ancestors = getAncestorFolders(tab).asReversed()
             for (folder in ancestors) {
                 val openFolderTab = openTabs.firstOrNull { it.id == folder.id && it.isFolderTab }
-                val fVars = if (openFolderTab != null) {
+                val baseVars = if (openFolderTab != null) {
                     openFolderTab.variables
                         .filter { it.enabled && it.key.isNotBlank() }
                         .associate { it.key to it.value }
@@ -438,22 +474,37 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                         ?.associate { it.key to it.value }
                         .orEmpty()
                 }
+                val fVars = if (folder.isCollection) {
+                    includedRootCollection = true
+                    baseVars + collectionVariablesById[folder.id]?.toMap().orEmpty()
+                } else {
+                    baseVars
+                }
                 if (fVars.isNotEmpty()) {
                     layers.add(fVars)
                 }
             }
             if (tab.isFolderTab) {
-                val tabVars = tab.variables
+                val baseTabVars = tab.variables
                     .filter { it.enabled && it.key.isNotBlank() }
                     .associate { it.key to it.value }
+                val tabVars = if (tab.isCollectionTab) {
+                    includedRootCollection = true
+                    baseTabVars + collectionVariablesById[tab.id]?.toMap().orEmpty()
+                } else {
+                    baseTabVars
+                }
                 if (tabVars.isNotEmpty()) {
                     layers.add(tabVars)
                 }
             }
         }
 
-        if (collectionVariables.isNotEmpty()) {
-            layers.add(collectionVariables.toMap())
+        if (!includedRootCollection) {
+            val colVars = collectionVariablesFor(tab)
+            if (colVars.isNotEmpty()) {
+                layers.add(colVars)
+            }
         }
         val globals = globalVariables.filter { it.enabled }.associate { it.key to it.value }
         if (globals.isNotEmpty()) {
@@ -475,9 +526,34 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         mergeInto(globalVariables, vars)
     }
 
-    fun mergeCollectionScriptVariables(vars: Map<String, String>) {
-        vars.forEach { (key, value) ->
-            collectionVariables[key] = value
+    fun mergeCollectionScriptVariables(vars: Map<String, String>, tab: RequestTabState? = activeTab) {
+        val root = resolveRootCollectionNode(tab)
+        if (root != null) {
+            val map = collectionVariablesById.getOrPut(root.id) { mutableStateMapOf() }
+            vars.forEach { (key, value) ->
+                map[key] = value
+            }
+            val openRootTab = openTabs.firstOrNull { it.id == root.id && it.isFolderTab }
+            if (openRootTab != null) {
+                mergeInto(openRootTab.variables, vars)
+            }
+            val updatedEntries = (root.variableEntries ?: emptyList()).toMutableList()
+            vars.forEach { (key, value) ->
+                val idx = updatedEntries.indexOfFirst { it.key == key }
+                if (idx >= 0) {
+                    updatedEntries[idx] = updatedEntries[idx].copy(value = value, enabled = true)
+                } else {
+                    updatedEntries.add(io.github.crustack.clapi.core.model.KeyValueEntry(key = key, value = value, enabled = true))
+                }
+            }
+            val rootIdx = collections.indexOfFirst { it.id == root.id }
+            if (rootIdx >= 0) {
+                collections[rootIdx] = collections[rootIdx].copy(variableEntries = updatedEntries)
+            }
+        } else {
+            vars.forEach { (key, value) ->
+                collectionVariables[key] = value
+            }
         }
     }
 

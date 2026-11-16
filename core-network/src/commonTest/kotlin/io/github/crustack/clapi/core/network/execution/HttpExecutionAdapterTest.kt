@@ -1,4 +1,4 @@
-package io.github.crustack.clapi.feature.requests
+package io.github.crustack.clapi.core.network.execution
 
 import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.core.model.BodyType
@@ -35,13 +35,11 @@ import io.github.crustack.clapi.core.model.opencollection.withClapiExtensionData
 import io.github.crustack.clapi.core.network.ApiClient
 import io.github.crustack.clapi.core.network.NetworkEvent
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -156,7 +154,6 @@ class HttpExecutionAdapterTest {
             request = RequestDefaults(auth = AuthInherit)
         )
 
-        // 1. Request with AuthInherit inherits from closest parent with auth
         val inheritingRequest = HttpRequestItem(
             info = HttpRequestInfo(name = "Req1"),
             http = HttpRequestDetails(
@@ -176,7 +173,6 @@ class HttpExecutionAdapterTest {
         assertEquals("admin", req1.auth.params["username"])
         assertEquals("secret", req1.auth.params["password"])
 
-        // 2. Request with explicit auth overrides parent hierarchy
         val explicitRequest = HttpRequestItem(
             info = HttpRequestInfo(name = "Req2"),
             http = HttpRequestDetails(
@@ -196,7 +192,6 @@ class HttpExecutionAdapterTest {
         assertEquals("X-Api-Key", req2.auth.params["key"])
         assertEquals("key-123", req2.auth.params["value"])
 
-        // 3. When folders have no auth, it inherits from collection defaults
         val req3 = adapter.toExecutableRequest(
             requestItem = inheritingRequest,
             parentHierarchy = emptyList(),
@@ -246,15 +241,13 @@ class HttpExecutionAdapterTest {
             runtimeVariables = mapOf("key" to "runtime-value", "runtimeVar" to "runtime")
         )
 
-        // Verify layer count and order
         assertEquals(5, layers.size)
-        assertEquals("runtime-value", layers[0]["key"]) // Layer 0: Runtime/Request
-        assertEquals("env-value", layers[1]["key"])     // Layer 1: Environment
-        assertEquals("folder-value", layers[2]["key"])  // Layer 2: Folder
-        assertEquals("collection-value", layers[3]["key"]) // Layer 3: Collection
-        assertEquals("global-value", layers[4]["key"])  // Layer 4: Global
+        assertEquals("runtime-value", layers[0]["key"])
+        assertEquals("env-value", layers[1]["key"])
+        assertEquals("folder-value", layers[2]["key"])
+        assertEquals("collection-value", layers[3]["key"])
+        assertEquals("global-value", layers[4]["key"])
 
-        // Resolve variables on template string
         val resolved = adapter.resolveVariables(requestItem.http.url, layers)
         assertEquals("https://runtime-value.com/folder/col/env/runtime?g=global", resolved)
     }
@@ -303,7 +296,6 @@ class HttpExecutionAdapterTest {
 
     @Test
     fun maps_various_body_types() {
-        // Raw JSON
         val jsonItem = HttpRequestItem(
             info = HttpRequestInfo(name = "Json"),
             http = HttpRequestDetails(
@@ -316,7 +308,6 @@ class HttpExecutionAdapterTest {
         assertEquals(BodyType.JSON, jsonReq.body.type)
         assertEquals("""{"a": 1}""", jsonReq.body.content)
 
-        // UrlEncoded
         val urlEncodedItem = HttpRequestItem(
             info = HttpRequestInfo(name = "Form"),
             http = HttpRequestDetails(
@@ -336,7 +327,6 @@ class HttpExecutionAdapterTest {
         assertEquals("foo", formReq.body.formEntries[0].key)
         assertEquals("bar", formReq.body.formEntries[0].value)
 
-        // Multipart Form
         val multipartItem = HttpRequestItem(
             info = HttpRequestInfo(name = "Multipart"),
             http = HttpRequestDetails(
@@ -409,5 +399,112 @@ class HttpExecutionAdapterTest {
         assertEquals(HttpMethodType.POST, executedRequest?.method)
         assertEquals("https://api.example.com/test", executedRequest?.url)
         assertNotNull(executedLayers)
+    }
+
+    @Test
+    fun extractTemplateStrings_and_resolveRequest_cover_all_request_fields() {
+        val req = RequestDefinition(
+            id = "req-full",
+            name = "Full Template Request",
+            method = HttpMethodType.POST,
+            url = "https://{{host}}/v1",
+            queryParams = listOf(
+                io.github.crustack.clapi.core.model.KeyValueEntry("{{qKey}}", "{{qVal}}", enabled = true),
+                io.github.crustack.clapi.core.model.KeyValueEntry("{{disabledQ}}", "ignore", enabled = false),
+            ),
+            headers = listOf(
+                io.github.crustack.clapi.core.model.KeyValueEntry("{{hKey}}", "{{hVal}}", enabled = true),
+            ),
+            cookies = listOf(
+                io.github.crustack.clapi.core.model.KeyValueEntry("{{cKey}}", "{{cVal}}", enabled = true),
+            ),
+            auth = io.github.crustack.clapi.core.model.AuthConfig(
+                type = AuthType.BEARER,
+                params = mapOf("token" to "{{authToken}}"),
+            ),
+            body = io.github.crustack.clapi.core.model.RequestBody(
+                type = BodyType.GRAPHQL,
+                content = "{{rawBody}}",
+                formEntries = listOf(
+                    io.github.crustack.clapi.core.model.KeyValueEntry("{{fKey}}", "{{fVal}}", enabled = true),
+                ),
+                formDataEntries = listOf(
+                    io.github.crustack.clapi.core.model.FormDataEntry(
+                        key = "{{fdKey}}",
+                        value = "{{fdVal}}",
+                        description = "{{fdDesc}}",
+                        enabled = true,
+                    ),
+                ),
+                graphQl = io.github.crustack.clapi.core.model.GraphQlBody(
+                    query = "query { user(id: \"{{gqlId}}\") { name } }",
+                    operationName = "{{gqlOp}}",
+                    variablesJson = "{\"id\": \"{{gqlVar}}\"}",
+                ),
+            ),
+            createdAtEpochMillis = 0L,
+            updatedAtEpochMillis = 0L,
+        )
+
+        val extracted = req.extractTemplateStrings()
+        assertTrue(extracted.contains("https://{{host}}/v1"))
+        assertTrue(extracted.contains("{{qKey}}"))
+        assertTrue(extracted.contains("{{qVal}}"))
+        assertTrue(!extracted.contains("{{disabledQ}}"))
+        assertTrue(extracted.contains("{{hKey}}"))
+        assertTrue(extracted.contains("{{hVal}}"))
+        assertTrue(extracted.contains("{{cKey}}"))
+        assertTrue(extracted.contains("{{cVal}}"))
+        assertTrue(extracted.contains("{{authToken}}"))
+        assertTrue(extracted.contains("{{rawBody}}"))
+        assertTrue(extracted.contains("{{fKey}}"))
+        assertTrue(extracted.contains("{{fVal}}"))
+        assertTrue(extracted.contains("{{fdKey}}"))
+        assertTrue(extracted.contains("{{fdVal}}"))
+        assertTrue(extracted.contains("{{fdDesc}}"))
+        assertTrue(extracted.contains("query { user(id: \"{{gqlId}}\") { name } }"))
+        assertTrue(extracted.contains("{{gqlOp}}"))
+        assertTrue(extracted.contains("{\"id\": \"{{gqlVar}}\"}"))
+
+        val layers = listOf(
+            mapOf(
+                "host" to "api.clapi.io",
+                "qKey" to "filter",
+                "qVal" to "active",
+                "hKey" to "X-Custom-Header",
+                "hVal" to "header-123",
+                "cKey" to "session_id",
+                "cVal" to "cookie-456",
+                "authToken" to "bearer-789",
+                "rawBody" to "resolved-raw",
+                "fKey" to "formKey",
+                "fVal" to "formVal",
+                "fdKey" to "partKey",
+                "fdVal" to "partVal",
+                "fdDesc" to "partDesc",
+                "gqlId" to "u-1",
+                "gqlOp" to "GetUser",
+                "gqlVar" to "v-1",
+            )
+        )
+
+        val resolved = adapter.resolveRequest(req, layers)
+        assertEquals("https://api.clapi.io/v1", resolved.url)
+        assertEquals("filter", resolved.queryParams[0].key)
+        assertEquals("active", resolved.queryParams[0].value)
+        assertEquals("X-Custom-Header", resolved.headers[0].key)
+        assertEquals("header-123", resolved.headers[0].value)
+        assertEquals("session_id", resolved.cookies[0].key)
+        assertEquals("cookie-456", resolved.cookies[0].value)
+        assertEquals("bearer-789", resolved.auth.params["token"])
+        assertEquals("resolved-raw", resolved.body.content)
+        assertEquals("formKey", resolved.body.formEntries[0].key)
+        assertEquals("formVal", resolved.body.formEntries[0].value)
+        assertEquals("partKey", resolved.body.formDataEntries[0].key)
+        assertEquals("partVal", resolved.body.formDataEntries[0].value)
+        assertEquals("partDesc", resolved.body.formDataEntries[0].description)
+        assertEquals("query { user(id: \"u-1\") { name } }", resolved.body.graphQl?.query)
+        assertEquals("GetUser", resolved.body.graphQl?.operationName)
+        assertEquals("{\"id\": \"v-1\"}", resolved.body.graphQl?.variablesJson)
     }
 }

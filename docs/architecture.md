@@ -13,14 +13,14 @@
 
 ```
 core-model/          Shared domain models — no runtime deps
-core-network/        Ktor HTTP engine, auth, retry, WebSocket, interceptors, MCP client
+core-network/        Ktor HTTP engine, request execution service & adapter, auth, OAuth2 token manager,
+                     external secret providers, retry, WebSocket, interceptors, MCP client
 core-storage/        Persistence contracts + JSON file adapter
 core-scripting/      Script runtime contracts (pre-request / post-request JS)
 editor-core/         Pure-Kotlin editor engine: document model, lexer tokens,
                      fold regions, display-line map, inline diagnostics
 editor-ui/           Compose renderer (EditorRenderer, EditorViewModel, LineView,
                      IdleLexer, syntax highlighting)
-feature-requests/    Request use-cases: ties core-model + core-network
 ui-shared/           Shared Compose UI (jvm + wasmJs) — all composables,
                      app state, persistence adapters, platform expect/actual
 ui-desktop/          Thin Compose Desktop launcher (~74 lines)
@@ -45,14 +45,12 @@ buildSrc/            Shared Gradle build logic
 ui-desktop  ──▶  ui-shared
                │
                ├──▶ editor-ui  ──▶  editor-core
-               ├──▶ feature-requests
                ├──▶ core-model
-               ├──▶ core-network
-               ├──▶ core-storage
+               ├──▶ core-network  ──▶  core-model
+               ├──▶ core-storage  ──▶  core-model
                └──▶ core-scripting
 
-feature-requests  ──▶  core-model  +  core-network
-core-*            ──▶  (no app deps — leaf modules)
+core-model        ──▶  (no app deps — leaf module)
 editor-core       ──▶  (no app deps — leaf module)
 editor-ui         ──▶  editor-core  (+ Compose)
 ```
@@ -60,9 +58,8 @@ editor-ui         ──▶  editor-core  (+ Compose)
 Rules enforced at the module level:
 
 - UI launchers (`ui-desktop`) depend on `ui-shared` only.
-- `ui-shared` depends on feature modules, core modules, and `editor-ui`.
-- Feature modules depend on core modules only.
-- Core and `editor-core` modules are leaf modules with no upward dependencies.
+- `ui-shared` depends on core modules and `editor-ui`.
+- Core and `editor-core` modules have no upward dependencies on UI modules.
 - All business logic and UI composables live in `commonMain` sources.
 - Platform-specific code uses `expect`/`actual` declarations in `ui-shared`.
 
@@ -120,10 +117,9 @@ NONE, BASIC, BEARER, API_KEY, OAUTH2, JWT
 
 | Module | Responsibility |
 |---|---|
-| `core-network` | `KtorApiClient` executing HTTP requests; SSE/NDJSON streaming via `NetworkEvent.Chunk` (`SseParser`, `LlmTextAssembler`); `WebSocketClientManager` / `KtorWebSocketClientManager` managing persistent bi-directional tab-scoped WebSocket sessions; MCP client (`McpClient`, Streamable HTTP, legacy HTTP+SSE, stdio); OAuth 2.1 for MCP; auth schemes (Basic, Bearer, API Key, OAuth2, JWT); retry; `{{variable}}` interpolation in URL/headers/body; `NetworkInterceptor` interface |
+| `core-network` | `KtorApiClient` executing HTTP requests; `RequestExecutionService` & `HttpExecutionAdapter` orchestrating OpenCollection & headless request execution; `SecretResolutionService` & `ExternalSecretProvider` strategies; `OAuth2TokenManager`; SSE/NDJSON streaming via `NetworkEvent.Chunk` (`SseParser`, `LlmTextAssembler`); `WebSocketClientManager` / `KtorWebSocketClientManager` managing persistent bi-directional tab-scoped WebSocket sessions; MCP client (`McpClient`, Streamable HTTP, legacy HTTP+SSE, stdio); OAuth 2.1 for MCP; auth schemes (Basic, Bearer, API Key, OAuth2, JWT); retry; `{{variable}}` interpolation in URL/headers/body; `NetworkInterceptor` interface |
 | `core-storage` | `PlatformStorage` abstraction; workspace, tab, settings, and environment JSON persistence |
 | `core-scripting` | JavaScript runtime contracts; pre-request / post-request execution; variable scope injection (`environment`, `globals`, `collectionVariables`); `pm.*` → `clapi.*` API rewriter |
-| `feature-requests` | `RequestExecutionService` — orchestrates an HTTP round-trip: resolves variables → runs pre-request script → dispatches via `KtorApiClient` → feeds response into post-request scripts |
 
 ### Editor Layer
 
