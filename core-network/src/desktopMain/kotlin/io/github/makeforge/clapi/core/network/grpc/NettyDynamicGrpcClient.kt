@@ -16,7 +16,7 @@ import io.grpc.ManagedChannel
 import io.grpc.Metadata
 import io.grpc.MethodDescriptor
 import io.grpc.Status
-import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder
+import io.grpc.okhttp.OkHttpChannelBuilder
 import io.grpc.protobuf.ProtoUtils
 import io.grpc.stub.ClientCalls
 import kotlinx.coroutines.CancellationException
@@ -209,7 +209,7 @@ class NettyDynamicGrpcClient(
             if (current != null && !current.isShutdown && !current.isTerminated) {
                 current
             } else {
-                val builder = NettyChannelBuilder.forAddress(key.host, key.port)
+                val builder = OkHttpChannelBuilder.forAddress(key.host, key.port)
                 if (key.useTls) {
                     builder.useTransportSecurity()
                 } else {

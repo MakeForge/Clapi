@@ -166,3 +166,27 @@ Measured via `./gradlew :ui-desktop:analyzeReleaseSize` and `dpkg-deb -c`:
 | **Total** | **Combined Projected Impact** | **-16.49 MB** (or **-25.58 MB** with ArtifactTransform) | **-24.14 MB (-18.2%)**<br>`132.80 MB` → **~108.66 MB** | **-22.3 to -38.2 MB**<br>`149.05 MB` (`main-release`) / `133.11 MB` (`main`) → **~110.8 MB** | **Low** |
 
 *(Note: During implementation, we will execute `:ui-desktop:analyzeReleaseSize` and `:ui-desktop:packageDeb` after each individual step and record the exact measured delta in the build verification log.)*
+
+---
+
+## 4. Incremental Actual Measurements Log (Live Build Verification)
+
+| Step | Task ID | Optimization Applied | `desktopRuntimeClasspath` (MB / JARs) | Step Classpath Delta | `Clapi-1.20.2.jar` Fat JAR (MB) | Step Fat JAR Delta | `.deb` Installer (`main` / `main-release`) | Verification Status |
+|---|---|---|---|---|---|---|---|---|
+| **Baseline** | `T001` | Initial `v1.20.2` baseline | **158.97 MB** (183 JARs) | — | **132.80 MB** (`139,245,698` B) | — | `133.11 MB` (`main`) / `149.05 MB` (`main-release`) | PASS |
+| **Step 1** | `T003`–`T004` | Exclude `swagger-parser-v2-converter` in `core-storage` | **153.98 MB** (159 JARs) | **-4.99 MB** (-24 JARs) | **128.00 MB** | **-4.80 MB** | *(Measured after all US1/US2 steps)* | PASS (`:core-storage:allTests`) |
+| **Step 2** | `T005`–`T006` | Exclude Compose Material 2 (`material-desktop`) & `ui-shared` `uiTooling` | **152.29 MB** (156 JARs) | **-1.69 MB** (-3 JARs) | **126.32 MB** | **-1.68 MB** | *(Measured after all US1/US2 steps)* | PASS (`:ui-shared:desktopTest`, `:ui-desktop:desktopTest`) |
+| **Step 3** | `T007`–`T008` | Strip obsolete `protoc-jar` `bin/2.6.1/**` binaries in `ui-desktop` | **152.29 MB** (156 JARs) | **0.00 MB** *(in-archive filter)* | **124.49 MB** | **-1.83 MB** (-5.70 MB raw) | *(Measured after all US1/US2 steps)* | PASS (`:core-network:desktopTest`, `:ui-desktop:verifyPackagedRuntime`) |
+| **Phase 1–3 Subtotal** | `T001`–`T008` | **Cumulative Phase 1–3 (US1 MVP) Savings** | **152.29 MB** (156 JARs) | **-6.68 MB** (-27 JARs) | **124.49 MB** | **-8.31 MB (-6.3%)** | — | **100% PASS** |
+| **Step 4** | `T009`–`T010` | Configure explicit 14-module JRE `modules(...)` in `ui-desktop` `nativeDistributions` | **152.29 MB** (156 JARs) | *0.00 MB* | **124.49 MB** | *0.00 MB* | **`128.35 MB` (`main`)** (**-4.76 MB** vs `133.11 MB` `main`, **-20.70 MB** vs `149.05 MB` `main-release`) | PASS (`:ui-desktop:packageDeb`) |
+| **Step 5** | `T011`–`T013` | Switch gRPC client from `grpc-netty-shaded` to `grpc-okhttp` in `core-network` | **142.13 MB** (156 JARs) | **-10.16 MB** | **114.32 MB** | **-10.17 MB** | *(Measured in Phase 6)* | PASS (`:core-network:desktopTest`, `verifyPackagedRuntime`) |
+| **Step 6** | `T014`–`T015` | Strip unused ICU4J data tables (`brkitr`, `coll`, `lang`, `curr`, `unit`, `region`, `translit`, `rbnf`) & legacy `protoc` `bin/2.*/**` | **142.13 MB** (156 JARs) | *0.00 MB* *(in-JAR filter)* | **103.53 MB** | **-10.79 MB** (`-7.28 MB` ICU4J + `-3.51 MB` `bin/2.4.1` & `bin/2.5.0`) | *(Measured in Phase 6)* | PASS (`:core-scripting:allTests`, `:qa-tests:jvmTest`, `verifyPackagedRuntime`) |
+| **Final (Step 7)** | `T016`–`T017` | **All Phases 1–6 Combined (Final Release Artifacts)** | **142.13 MB** (156 JARs) | **-16.84 MB (-10.6%)**<br>(-27 JARs) | **103.53 MB** (`108,560,673` B) | **-29.27 MB (-22.0%)** | **`119.31 MB` (`main/deb`)**<br>(**-13.80 MB / -10.4%** vs `133.11 MB` `main`;<br>**-29.74 MB / -20.0%** vs `149.05 MB` `main-release`) | **100% PASS** (All module test suites + `verifyPackagedRuntime` + `packageDeb`) |
+
+
+
+
+
+
+
+

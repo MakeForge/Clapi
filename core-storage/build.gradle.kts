@@ -19,7 +19,9 @@ kotlin {
                 implementation(libs.sqldelight.runtime)
                 implementation(libs.sqldelight.coroutines)
                 implementation(libs.networknt.json.schema)
-                implementation(libs.swagger.parser)
+                implementation(libs.swagger.parser.get().toString()) {
+                    exclude(group = "io.swagger.parser.v3", module = "swagger-parser-v2-converter")
+                }
                 implementation("io.swagger.core.v3:swagger-models:2.2.28")
             }
         }
