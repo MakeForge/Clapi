@@ -3,6 +3,7 @@ package io.github.crustack.clapi.qa
 import io.github.crustack.clapi.core.model.opencollection.AuthBearer
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
 import io.github.crustack.clapi.core.model.opencollection.GrpcMetadata
+import io.github.crustack.clapi.core.model.opencollection.GrpcMethodType
 import io.github.crustack.clapi.core.model.opencollection.GrpcRequestDetails
 import io.github.crustack.clapi.core.model.opencollection.GrpcRequestInfo
 import io.github.crustack.clapi.core.model.opencollection.GrpcRequestItem
@@ -235,7 +236,7 @@ class GrpcApiE2ETest {
         val sayHello = assertIs<GrpcRequestItem>(grpcFolder.items.first())
         assertEquals("Greeter SayHello", sayHello.info.name)
         assertEquals("helloworld.Greeter/SayHello", sayHello.grpc.method)
-        assertEquals("unary", sayHello.grpc.methodType)
+        assertEquals(GrpcMethodType.UNARY, sayHello.grpc.methodType)
         assertEquals("greeter.proto", sayHello.grpc.protoFilePath)
     }
 }

@@ -2,6 +2,7 @@ package io.github.crustack.clapi.ui.shared.components
 
 import io.github.crustack.clapi.core.model.opencollection.Description
 import io.github.crustack.clapi.core.model.opencollection.Environment
+import io.github.crustack.clapi.core.model.opencollection.ExternalSecretType
 import io.github.crustack.clapi.core.model.opencollection.ExternalSecrets
 import io.github.crustack.clapi.core.model.opencollection.HashicorpVaultExternalSecret
 import io.github.crustack.clapi.ui.shared.persistence.toEnvState
@@ -82,7 +83,7 @@ class EnvironmentEditorSecretsTest {
         val env = envState.toOpenCollectionEnvironment()
 
         assertNotNull(env.externalSecrets)
-        assertEquals("hashicorp-vault-server", env.externalSecrets?.type)
+        assertEquals(ExternalSecretType.HASHICORP_VAULT_SERVER, env.externalSecrets?.type)
         assertEquals(2, env.externalSecrets?.variables?.size)
 
         val v1 = env.externalSecrets!!.variables[0] as HashicorpVaultExternalSecret

@@ -4,6 +4,7 @@ import io.github.crustack.clapi.core.model.opencollection.CollectionConfig
 import io.github.crustack.clapi.core.model.opencollection.CollectionInfo
 import io.github.crustack.clapi.core.model.opencollection.Description
 import io.github.crustack.clapi.core.model.opencollection.Environment
+import io.github.crustack.clapi.core.model.opencollection.ExternalSecretType
 import io.github.crustack.clapi.core.model.opencollection.ExternalSecrets
 import io.github.crustack.clapi.core.model.opencollection.HashicorpVaultExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.OpenCollectionDocument
@@ -79,7 +80,7 @@ class OpenCollectionExternalSecretsTest {
         assertEquals("Staging", env.name)
         val extSecrets = env.externalSecrets
         assertNotNull(extSecrets)
-        assertEquals("hashicorp-vault-server", extSecrets.type)
+        assertEquals(ExternalSecretType.HASHICORP_VAULT_SERVER, extSecrets.type)
         assertEquals(2, extSecrets.variables.size)
 
         val v1 = extSecrets.variables[0] as HashicorpVaultExternalSecret
@@ -111,7 +112,7 @@ class OpenCollectionExternalSecretsTest {
         assertNotNull(env)
         val extSecrets = env.externalSecrets
         assertNotNull(extSecrets)
-        assertEquals("hashicorp-vault-server", extSecrets.type)
+        assertEquals(ExternalSecretType.HASHICORP_VAULT_SERVER, extSecrets.type)
         assertEquals(2, extSecrets.variables.size)
 
         val v1 = extSecrets.variables[0] as HashicorpVaultExternalSecret
