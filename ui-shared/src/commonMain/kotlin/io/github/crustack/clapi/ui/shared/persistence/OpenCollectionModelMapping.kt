@@ -50,6 +50,9 @@ import io.github.crustack.clapi.ui.shared.state.EnvState
 import io.github.crustack.clapi.ui.shared.state.FormDataEntryState
 import io.github.crustack.clapi.ui.shared.state.MutableExternalSecret
 import io.github.crustack.clapi.ui.shared.state.MutableKeyValue
+import io.github.crustack.clapi.ui.shared.state.ProtoFileItemState
+import io.github.crustack.clapi.ui.shared.state.ProtoImportPathState
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -152,10 +155,25 @@ fun CollectionNode.toOpenCollectionDocument(): OpenCollectionDocument {
             })
         }
     }
+    val protobufConfig = if (protoFiles.isNotEmpty() || importPaths.isNotEmpty()) {
+        CollectionProtobufConfig(
+            protoFiles = protoFiles
+                .filter { it.path.isNotBlank() }
+                .map { ProtoFile(type = "file", path = it.path) },
+            importPaths = importPaths
+                .filter { it.path.isNotBlank() }
+                .map { ProtoFileImportPath(path = it.path, disabled = if (!it.enabled) true else null) },
+        )
+    } else null
     return OpenCollectionDocument(
         opencollection = "1.0.0",
-        info = CollectionInfo(name = name),
-        config = null,
+        info = CollectionInfo(
+            name = name,
+            summary = summary?.takeIf { it.isNotBlank() },
+            version = version?.takeIf { it.isNotBlank() },
+        ),
+        config = if (protobufConfig != null) CollectionConfig(protobuf = protobufConfig) else null,
+        request = toRequestDefaults(),
         bundled = true,
         items = children.map { it.toOpenCollectionItem() },
         extensions = ext,
@@ -165,10 +183,29 @@ fun CollectionNode.toOpenCollectionDocument(): OpenCollectionDocument {
 /**
  * Maps a Clapi Collection [CollectionNode] to a top-level [FolderItem] of the global OpenCollection document.
  */
-fun CollectionNode.toCollectionFolder(): FolderItem {
+fun CollectionNode.toCollectionFolder(asCollection: Boolean = isCollection): FolderItem {
     val ext = mutableMapOf<String, JsonElement>("id" to JsonPrimitive(id))
+    val clapiMap = mutableMapOf<String, JsonElement>()
     if (authType == AuthType.JWT) {
-        ext["clapi"] = buildJsonObject { put("authType", "jwt") }
+        clapiMap["authType"] = JsonPrimitive("jwt")
+    }
+    if (asCollection || isCollection) {
+        clapiMap["isCollection"] = JsonPrimitive(true)
+    }
+    summary?.takeIf { it.isNotBlank() }?.let { clapiMap["summary"] = JsonPrimitive(it) }
+    version?.takeIf { it.isNotBlank() }?.let { clapiMap["version"] = JsonPrimitive(it) }
+    if (protoFiles.isNotEmpty()) {
+        clapiMap["protoFiles"] = buildJsonArray {
+            protoFiles.forEach { add(buildJsonObject { put("path", it.path) }) }
+        }
+    }
+    if (importPaths.isNotEmpty()) {
+        clapiMap["importPaths"] = buildJsonArray {
+            importPaths.forEach { add(buildJsonObject { put("path", it.path); put("enabled", it.enabled) }) }
+        }
+    }
+    if (clapiMap.isNotEmpty()) {
+        ext["clapi"] = JsonObject(clapiMap)
     }
     return FolderItem(
         info = FolderInfo(name = name, type = "folder"),
@@ -228,7 +265,7 @@ fun AppState.toGlobalOpenCollectionDocument(): OpenCollectionDocument {
             protobuf = protobufConfig,
         ),
         bundled = true,
-        items = collections.map { it.toCollectionFolder() },
+        items = collections.map { it.toCollectionFolder(asCollection = true) },
         extensions = ext,
     )
 }
@@ -579,11 +616,23 @@ fun OpenCollectionDocument.toCollectionNode(
 ): CollectionNode {
     val clapiRequests = (extensions["clapi"] as? JsonObject)?.get("requests")?.jsonObject
     val folder = toCollectionFolder(nameOverride = nameOverride)
-    return folder.toCollectionNode(
+    val baseNode = folder.toCollectionNode(
         preserveIds = preserveIds,
         clapiRequests = clapiRequests,
         path = "",
         existingIds = existingIds,
+    )
+    val protoFilesState = config?.protobuf?.protoFiles.orEmpty()
+        .map { ProtoFileItemState(path = it.path) }
+    val importPathsState = config?.protobuf?.importPaths.orEmpty()
+        .map { ProtoImportPathState(path = it.path, enabled = it.disabled != true) }
+
+    return baseNode.copy(
+        kind = RequestKind.COLLECTION,
+        summary = info.summary,
+        version = info.version,
+        protoFiles = protoFilesState,
+        importPaths = importPathsState,
     )
 }
 
@@ -655,6 +704,19 @@ fun OpenCollectionItem.toCollectionNode(
                 }
             }
 
+            val isCol = (meta?.get("isCollection") as? JsonPrimitive)?.booleanOrNull == true
+            val colSummary = (meta?.get("summary") as? JsonPrimitive)?.contentOrNull
+            val colVersion = (meta?.get("version") as? JsonPrimitive)?.contentOrNull
+            val colProtoFiles = (meta?.get("protoFiles") as? JsonArray)?.mapNotNull { el ->
+                (el as? JsonObject)?.get("path")?.jsonPrimitive?.contentOrNull?.let { ProtoFileItemState(it) }
+            }.orEmpty()
+            val colImportPaths = (meta?.get("importPaths") as? JsonArray)?.mapNotNull { el ->
+                val obj = el as? JsonObject ?: return@mapNotNull null
+                val p = obj["path"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                val enabled = obj["enabled"]?.jsonPrimitive?.booleanOrNull ?: true
+                ProtoImportPathState(p, enabled)
+            }.orEmpty()
+
             val folderVariables = req?.variables?.map { v ->
                 when (v) {
                     is RegularVariable -> KeyValueEntry(
@@ -676,6 +738,11 @@ fun OpenCollectionItem.toCollectionNode(
                 id = folderId,
                 name = info.name,
                 isFolder = true,
+                kind = if (isCol) RequestKind.COLLECTION else RequestKind.FOLDER,
+                summary = colSummary,
+                version = colVersion,
+                protoFiles = colProtoFiles,
+                importPaths = colImportPaths,
                 headerEntries = headers,
                 userHeaders = userHeaders,
                 variableEntries = folderVariables,

@@ -8,7 +8,9 @@ import io.github.crustack.clapi.core.storage.opencollection.CollectionValidation
 import io.github.crustack.clapi.core.storage.opencollection.ExportFormat
 import io.github.crustack.clapi.core.storage.opencollection.OpenCollectionSchemaValidator
 import io.github.crustack.clapi.core.storage.opencollection.OpenCollectionSerializer
+import io.github.crustack.clapi.core.storage.opencollection.fileExists
 import io.github.crustack.clapi.core.storage.opencollection.generateUniqueName
+import io.github.crustack.clapi.core.storage.opencollection.writeTextFile
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.CollectionNode
 import io.github.crustack.clapi.ui.shared.state.EnvState
@@ -58,6 +60,47 @@ object ImportExportRepository {
 
     private const val UNRECOGNIZED_COLLECTION_MESSAGE =
         "Unrecognized collection format. Expected an OpenCollection or Postman v2/v2.1 collection."
+
+    fun sanitizeFileName(name: String): String {
+        val sanitized = name.replace(Regex("[\\\\/:*?\"<>|]"), "_").trim()
+        return if (sanitized.isBlank()) "collection" else sanitized
+    }
+
+    fun resolveAvailableFilePath(targetDirectory: String, baseFileName: String, ext: String): String {
+        val dir = targetDirectory.trimEnd('/', '\\')
+        val firstCandidate = "$dir/$baseFileName.$ext"
+        if (!fileExists(firstCandidate)) {
+            return firstCandidate
+        }
+        var index = 1
+        while (true) {
+            val nextCandidate = "$dir/$baseFileName ($index).$ext"
+            if (!fileExists(nextCandidate)) {
+                return nextCandidate
+            }
+            index++
+        }
+    }
+
+    fun exportCollectionsToDirectory(
+        collections: List<CollectionNode>,
+        targetDirectory: String,
+        format: ExportFormat = ExportFormat.JSON,
+    ): List<String> {
+        val writtenPaths = mutableListOf<String>()
+        val ext = when (format) {
+            ExportFormat.JSON -> "opencollection.json"
+            ExportFormat.YAML -> "opencollection.yaml"
+        }
+        for (col in collections) {
+            val content = exportCollectionToString(col, format)
+            val baseName = sanitizeFileName(col.name)
+            val targetPath = resolveAvailableFilePath(targetDirectory, baseName, ext)
+            writeTextFile(targetPath, content)
+            writtenPaths.add(targetPath)
+        }
+        return writtenPaths
+    }
 
     fun exportCollectionToString(
         collectionRoot: CollectionNode,
@@ -111,21 +154,19 @@ object ImportExportRepository {
         // Merge any environments carried in the imported OpenCollection document by name (FR-016).
         mergeEnvironmentsIntoState(state, doc.config?.environments.orEmpty())
 
-        // Add the imported collection as a top-level OpenCollection Folder with a unique name,
-        // keeping its folder id (extensions["id"], FR-019).
+        // Add the imported collection as a distinct root Collection with a unique name,
+        // preserving its id and child ids.
         val existingNames = state.collections.map { it.name }.toSet()
         val baseName = doc.info.name.trim().ifBlank { "Untitled" }
-        val uniqueName = generateUniqueName(baseName, existingNames)
+        val uniqueName = ImportExportNaming.generateUniqueCollectionName(baseName, existingNames)
         val existingIds = collectAllNodeIds(state.collections)
-        val clapiRequests = (doc.extensions["clapi"] as? JsonObject)?.get("requests")?.jsonObject
-        val topLevelFolder = doc.toCollectionFolder(nameOverride = uniqueName)
-        val node = topLevelFolder.toCollectionNode(
+        val node = doc.toCollectionNode(
+            nameOverride = uniqueName,
             preserveIds = true,
-            clapiRequests = clapiRequests,
-            path = "",
             existingIds = existingIds,
         )
         state.collections.add(node)
+        state.notifyCollectionsChanged()
         return uniqueName
     }
 

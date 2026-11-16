@@ -104,6 +104,11 @@ expect fun openFileInDefaultApp(filePath: String)
 expect fun saveFileForExport(content: String, defaultFilename: String)
 
 /**
+ * Prompt user to select a directory and deliver its absolute path to [onResult].
+ */
+expect fun pickDirectory(onResult: (directoryPath: String) -> Unit)
+
+/**
  * Returns true if [event] on [targetId] corresponds to a double click.
  */
 expect fun isPointerDoubleClick(targetId: String, event: androidx.compose.ui.input.pointer.PointerEvent): Boolean
