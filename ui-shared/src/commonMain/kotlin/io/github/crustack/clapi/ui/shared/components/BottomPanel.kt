@@ -152,7 +152,7 @@ fun BottomPanel(state: AppState) {
 
             // Clear button
             if (state.bottomPanelExpanded) {
-                IconButton(
+                IconButtonWithTooltip(
                     onClick = {
                         copyToClipboard(
                             when (state.selectedBottomTab) {
@@ -169,6 +169,7 @@ fun BottomPanel(state: AppState) {
                         }
                         state.log("Copied ${tabLabel.lowercase()} output", LogLevel.INFO)
                     },
+                    tooltip = copyOutputLabel,
                     modifier = Modifier.size(24.dp),
                 ) {
                     Icon(painter = painterResource(Res.drawable.ic_content_copy),
@@ -177,14 +178,18 @@ fun BottomPanel(state: AppState) {
                         modifier = Modifier.size(14.dp),
                     )
                 }
-                IconButton(onClick = {
-                    when (state.selectedBottomTab) {
-                        BottomTab.CONSOLE      -> state.consoleLogs.clear()
-                        BottomTab.TEST_RESULTS -> state.testResults.clear()
-                        // M-3: Clear only network event logs for the Logs tab
-                        BottomTab.LOGS         -> state.networkEventLogs.clear()
-                    }
-                }, modifier = Modifier.size(24.dp)) {
+                IconButtonWithTooltip(
+                    onClick = {
+                        when (state.selectedBottomTab) {
+                            BottomTab.CONSOLE      -> state.consoleLogs.clear()
+                            BottomTab.TEST_RESULTS -> state.testResults.clear()
+                            // M-3: Clear only network event logs for the Logs tab
+                            BottomTab.LOGS         -> state.networkEventLogs.clear()
+                        }
+                    },
+                    tooltip = Strings.t("clear"),
+                    modifier = Modifier.size(24.dp),
+                ) {
                     Icon(painter = painterResource(Res.drawable.ic_close), contentDescription = Strings.t("clear"), tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
                 }
             }

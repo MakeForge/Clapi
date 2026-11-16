@@ -74,7 +74,12 @@ fun TopToolbar(state: AppState) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Sidebar toggle
-        IconButton(onClick = { state.sidebarExpanded = !state.sidebarExpanded }) {
+        ToolbarIconButtonWithTooltip(
+            tooltip = Strings.t("toggle_sidebar"),
+            tooltipTag = "toolbar-tooltip-toggle-sidebar",
+            onClick = { state.sidebarExpanded = !state.sidebarExpanded },
+            modifier = Modifier.testTag("toolbar-toggle-sidebar-button"),
+        ) {
             Icon(painter = painterResource(Res.drawable.ic_menu),
                 contentDescription = Strings.t("toggle_sidebar"),
                 tint = ClapiColors.OnSurfaceVariant,

@@ -600,7 +600,7 @@ fun Sidebar(state: AppState) {
                     trailing = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             var showHeaderMenu by remember { mutableStateOf(false) }
-                            IconButton(
+                            IconButtonWithTooltip(
                                 onClick = {
                                     val created = state.createNewCollection()
                                     inlineRenamingId = created.id
@@ -610,16 +610,18 @@ fun Sidebar(state: AppState) {
                                     }
                                     persistWorkspaceAsync()
                                 },
+                                tooltip = Strings.addCollection,
                                 modifier = Modifier.size(24.dp).testTag("sidebar-add-collection-button"),
                             ) {
                                 Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = Strings.addCollection, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
                             }
                             Box {
-                                IconButton(
+                                IconButtonWithTooltip(
                                     onClick = { showHeaderMenu = true },
+                                    tooltip = Strings.folderActions,
                                     modifier = Modifier.size(24.dp).testTag("sidebar-collections-menu-button"),
                                 ) {
-                                    Icon(painter = painterResource(Res.drawable.ic_more_vert), contentDescription = "More", tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
+                                    Icon(painter = painterResource(Res.drawable.ic_more_vert), contentDescription = Strings.folderActions, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
                                 }
                                 DropdownMenu(
                                     expanded = showHeaderMenu,
@@ -1038,7 +1040,7 @@ fun Sidebar(state: AppState) {
                     },
                     trailing = {
                         Row {
-                            IconButton(
+                            IconButtonWithTooltip(
                                 onClick = {
                                     pickFileForImport { content ->
                                         scope.launch {
@@ -1052,6 +1054,7 @@ fun Sidebar(state: AppState) {
                                         }
                                     }
                                 },
+                                tooltip = Strings.t("import_environment"),
                                 modifier = Modifier.size(24.dp).testTag("environment-import-button"),
                             ) {
                                 Icon(painter = painterResource(Res.drawable.ic_input),
@@ -1060,12 +1063,13 @@ fun Sidebar(state: AppState) {
                                     modifier = Modifier.size(14.dp).testTag("environment-import-icon"),
                                 )
                             }
-                            IconButton(
+                            IconButtonWithTooltip(
                                 onClick = {
                                     createEnvironmentValue = ""
                                     showCreateEnvironmentDialog = true
                                 },
-                                modifier = Modifier.size(24.dp),
+                                tooltip = Strings.t("new_environment"),
+                                modifier = Modifier.size(24.dp).testTag("sidebar-new-environment-button"),
                             ) {
                                 Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = Strings.t("new_environment"), tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
                             }
@@ -1326,14 +1330,18 @@ private fun SearchBar(query: String, onQueryChanged: (String) -> Unit, modifier:
         )
         if (query.isNotEmpty()) {
             Spacer(Modifier.width(4.dp))
-            Icon(painter = painterResource(Res.drawable.ic_close),
-                contentDescription = "Clear search",
-                tint = ClapiColors.OnSurfaceDim,
-                modifier = Modifier
-                    .size(14.dp)
-                    .clickable(onClick = { onQueryChanged("") })
-                    .testTag("sidebar-search-clear"),
-            )
+            HoverTooltip(
+                tooltip = Strings.t("clear_search"),
+            ) {
+                Icon(painter = painterResource(Res.drawable.ic_close),
+                    contentDescription = Strings.t("clear_search"),
+                    tint = ClapiColors.OnSurfaceDim,
+                    modifier = Modifier
+                        .size(14.dp)
+                        .clickable(onClick = { onQueryChanged("") })
+                        .testTag("sidebar-search-clear"),
+                )
+            }
         }
     }
 }
@@ -1452,8 +1460,9 @@ private fun HistoryRow(state: AppState, item: HistoryItem, onClick: () -> Unit) 
             fontSize = 10.sp,
         )
         Box {
-            IconButton(
+            IconButtonWithTooltip(
                 onClick = { showMenu = true },
+                tooltip = Strings.t("history_actions"),
                 modifier = Modifier.size(20.dp).testTag("history-actions-${item.requestId}"),
             ) {
                 Icon(painter = painterResource(Res.drawable.ic_more_vert),
@@ -2063,8 +2072,9 @@ private fun CollectionTreeNode(
             ) {
             if (isFolderNode) {
                 Box {
-                    IconButton(
+                    IconButtonWithTooltip(
                         onClick = { showAddMenu = true },
+                        tooltip = Strings.t("add_request"),
                         modifier = Modifier.size(20.dp).testTag("collection-add-${node.id}"),
                     ) {
                         Icon(painter = painterResource(Res.drawable.ic_add),
@@ -2126,13 +2136,15 @@ private fun CollectionTreeNode(
                     }
                 }
             }
+            val actionsTooltip = if (isCollectionRoot) Strings.folderActions else Strings.t("request_actions")
             Box {
-                IconButton(
+                IconButtonWithTooltip(
                     onClick = { showMenu = true },
+                    tooltip = actionsTooltip,
                     modifier = Modifier.size(20.dp).testTag("collection-actions-${node.id}"),
                 ) {
                     Icon(painter = painterResource(Res.drawable.ic_more_vert),
-                        contentDescription = if (isCollectionRoot) Strings.folderActions else Strings.t("request_actions"),
+                        contentDescription = actionsTooltip,
                         tint = ClapiColors.OnSurfaceDim,
                         modifier = Modifier.size(14.dp),
                     )
@@ -2481,49 +2493,67 @@ private fun EnvironmentRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f).testTag("env-name-text-$envName"),
         )
-        Box(modifier = Modifier.width(24.dp)) {
-            IconButton(
-                onClick = { showMenu = true },
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            IconButtonWithTooltip(
+                onClick = onEdit,
+                tooltip = Strings.t("edit_environment"),
                 modifier = Modifier
                     .size(24.dp)
                     .alpha(if (isHovered || active || showMenu) 1f else 0f)
-                    .testTag("env-actions-$envName"),
+                    .testTag("env-edit-$envName"),
             ) {
-                Icon(painter = painterResource(Res.drawable.ic_more_vert),
-                    contentDescription = Strings.t("environment_actions"),
+                Icon(
+                    painter = painterResource(Res.drawable.ic_edit),
+                    contentDescription = Strings.t("edit_environment"),
                     tint = ClapiColors.OnSurfaceDim,
                     modifier = Modifier.size(14.dp),
                 )
             }
-            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                DropdownMenuItem(
-                    text = { Text(Strings.t("edit_environment")) },
-                    leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_edit), contentDescription = null, modifier = Modifier.size(16.dp)) },
-                    onClick = {
-                    showMenu = false
-                    onEdit()
-                })
-                DropdownMenuItem(
-                    text = { Text(Strings.t("duplicate_environment")) },
-                    leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_content_copy), contentDescription = null, modifier = Modifier.size(16.dp)) },
-                    onClick = {
-                    showMenu = false
-                    onDuplicate()
-                })
-                DropdownMenuItem(
-                    text = { Text(Strings.t("rename_environment")) },
-                    leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_edit), contentDescription = null, modifier = Modifier.size(16.dp)) },
-                    onClick = {
-                    showMenu = false
-                    onRename()
-                })
-                DropdownMenuItem(
-                    text = { Text(Strings.t("delete_environment")) },
-                    leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_delete), contentDescription = null, modifier = Modifier.size(16.dp)) },
-                    onClick = {
-                    showMenu = false
-                    onDelete()
-                })
+            Box(modifier = Modifier.width(24.dp)) {
+                IconButtonWithTooltip(
+                    onClick = { showMenu = true },
+                    tooltip = Strings.t("environment_actions"),
+                    modifier = Modifier
+                        .size(24.dp)
+                        .alpha(if (isHovered || active || showMenu) 1f else 0f)
+                        .testTag("env-actions-$envName"),
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_more_vert),
+                        contentDescription = Strings.t("environment_actions"),
+                        tint = ClapiColors.OnSurfaceDim,
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
+                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                    DropdownMenuItem(
+                        text = { Text(Strings.t("duplicate_environment")) },
+                        leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_content_copy), contentDescription = null, modifier = Modifier.size(16.dp)) },
+                        onClick = {
+                            showMenu = false
+                            onDuplicate()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(Strings.t("rename_environment")) },
+                        leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_edit), contentDescription = null, modifier = Modifier.size(16.dp)) },
+                        onClick = {
+                            showMenu = false
+                            onRename()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(Strings.t("delete_environment")) },
+                        leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_delete), contentDescription = null, modifier = Modifier.size(16.dp)) },
+                        onClick = {
+                            showMenu = false
+                            onDelete()
+                        }
+                    )
+                }
             }
         }
     }

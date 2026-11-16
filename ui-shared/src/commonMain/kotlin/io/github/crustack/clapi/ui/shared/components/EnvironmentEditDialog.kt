@@ -484,7 +484,8 @@ fun EnvironmentEditDialog(state: AppState) {
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.weight(1f),
                         )
-                        IconButton(
+                        val maxTooltip = if (isMaximized) Strings.restoreDialog else Strings.maximizeDialog
+                        IconButtonWithTooltip(
                             onClick = {
                                 if (isMaximized) {
                                     isMaximized = false
@@ -500,11 +501,12 @@ fun EnvironmentEditDialog(state: AppState) {
                                     geometry = EnvironmentDialogGeometry(maxDialogWidthDp, maxDialogHeightDp)
                                 }
                             },
+                            tooltip = maxTooltip,
                             modifier = Modifier.size(28.dp).testTag("env-dialog-maximize"),
                         ) {
                             Icon(
                                 if (isMaximized) painterResource(Res.drawable.ic_close_fullscreen) else painterResource(Res.drawable.ic_open_in_full),
-                                contentDescription = if (isMaximized) Strings.restoreDialog else Strings.maximizeDialog,
+                                contentDescription = maxTooltip,
                                 tint = ClapiColors.OnSurfaceDim,
                                 modifier = Modifier.size(16.dp),
                             )
@@ -1062,10 +1064,15 @@ private fun EnvVariableRow(
 
         // Reveal / hide value for secrets
         if (kv.secret) {
-            IconButton(onClick = { showValue = !showValue }, modifier = Modifier.size(24.dp)) {
+            val toggleTooltip = if (showValue) "Hide value" else "Show value"
+            IconButtonWithTooltip(
+                onClick = { showValue = !showValue },
+                tooltip = toggleTooltip,
+                modifier = Modifier.size(24.dp),
+            ) {
                 Icon(
                     if (showValue) painterResource(Res.drawable.ic_visibility_off) else painterResource(Res.drawable.ic_visibility),
-                    contentDescription = null,
+                    contentDescription = toggleTooltip,
                     tint = ClapiColors.OnSurfaceDim,
                     modifier = Modifier.size(14.dp),
                 )
@@ -1075,7 +1082,11 @@ private fun EnvVariableRow(
         }
 
         // Delete
-        IconButton(onClick = onDelete, modifier = Modifier.size(24.dp).testTag("env-var-delete-$index")) {
+        IconButtonWithTooltip(
+            onClick = onDelete,
+            tooltip = Strings.delete,
+            modifier = Modifier.size(24.dp).testTag("env-var-delete-$index"),
+        ) {
             Icon(painter = painterResource(Res.drawable.ic_delete), contentDescription = Strings.delete, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
         }
     }

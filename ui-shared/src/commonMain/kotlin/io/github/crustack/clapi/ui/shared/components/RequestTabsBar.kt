@@ -146,8 +146,9 @@ fun RequestTabsBar(
             }
 
             // New-tab button
-            IconButton(
+            IconButtonWithTooltip(
                 onClick = { state.addTabInSelectedCollection() },
+                tooltip = Strings.t("new_tab"),
                 modifier = Modifier.size(28.dp).padding(end = 4.dp),
             ) {
                 Icon(painter = painterResource(Res.drawable.ic_add),
@@ -299,14 +300,18 @@ private fun RequestTabChip(
                 )
             }
             if (showClose && (isActive || isHovered)) {
-                Icon(painter = painterResource(Res.drawable.ic_close),
-                    contentDescription = Strings.t("close_tab"),
-                    tint = ClapiColors.OnSurfaceDim,
-                    modifier = Modifier
-                        .size(14.dp)
-                        .clickable(onClick = onClose)
-                        .testTag("tab-close-${tab.id}"),
-                )
+                HoverTooltip(
+                    tooltip = Strings.t("close_tab"),
+                ) {
+                    Icon(painter = painterResource(Res.drawable.ic_close),
+                        contentDescription = Strings.t("close_tab"),
+                        tint = ClapiColors.OnSurfaceDim,
+                        modifier = Modifier
+                            .size(14.dp)
+                            .clickable(onClick = onClose)
+                            .testTag("tab-close-${tab.id}"),
+                    )
+                }
             }
         }
 

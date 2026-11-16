@@ -64,4 +64,21 @@ class ToolbarTooltipUiTest {
 
         composeRule.onNodeWithTag("global-variables-dialog", useUnmergedTree = true).assertIsDisplayed()
     }
+
+    @Test
+    fun toggle_sidebar_tooltip_is_visible_on_hover() {
+        composeRule.setContent { MainScreen(AppState()) }
+        composeRule.waitForIdle()
+
+        composeRule
+            .onNodeWithTag("toolbar-toggle-sidebar-button", useUnmergedTree = true)
+            .performMouseInput { moveTo(Offset(10f, 10f)) }
+
+        composeRule.mainClock.advanceTimeBy(250L)
+        composeRule.waitForIdle()
+
+        composeRule
+            .onNodeWithTag("toolbar-tooltip-toggle-sidebar", useUnmergedTree = true)
+            .assertIsDisplayed()
+    }
 }

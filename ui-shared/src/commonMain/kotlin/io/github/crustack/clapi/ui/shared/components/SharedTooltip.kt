@@ -2,17 +2,24 @@ package io.github.crustack.clapi.ui.shared.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonColors
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,6 +28,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
 import io.github.crustack.clapi.ui.shared.platform.currentTimeMillis
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
@@ -144,6 +153,135 @@ fun SidebarTooltipOverlay(state: TooltipState = sharedSidebarTooltipState) {
                 fontSize = 12.sp,
                 maxLines = 1,
             )
+        }
+    }
+}
+
+/**
+ * A standard IconButton that displays a hover hint (tooltip) with its content description/action.
+ */
+@Composable
+fun IconButtonWithTooltip(
+    onClick: () -> Unit,
+    tooltip: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    tooltipTag: String? = null,
+    delayMillis: Long = 200L,
+    alignment: Alignment = Alignment.BottomCenter,
+    offset: IntOffset = IntOffset(0, 26),
+    colors: IconButtonColors = IconButtonDefaults.iconButtonColors(),
+    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
+    content: @Composable () -> Unit,
+) {
+    val isHovered by interactionSource.collectIsHoveredAsState()
+    var tooltipVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isHovered, enabled, tooltip) {
+        if (isHovered && enabled && tooltip.isNotBlank()) {
+            delay(delayMillis)
+            tooltipVisible = true
+        } else {
+            tooltipVisible = false
+        }
+    }
+
+    Box {
+        IconButton(
+            onClick = {
+                tooltipVisible = false
+                onClick()
+            },
+            enabled = enabled,
+            colors = colors,
+            interactionSource = interactionSource,
+            modifier = modifier.hoverable(interactionSource),
+        ) {
+            content()
+        }
+
+        if (tooltipVisible && tooltip.isNotBlank()) {
+            Popup(
+                alignment = alignment,
+                offset = offset,
+                properties = PopupProperties(focusable = false),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(ClapiColors.SurfaceHigh)
+                        .border(1.dp, ClapiColors.Border, RoundedCornerShape(5.dp))
+                        .padding(horizontal = 8.dp, vertical = 5.dp)
+                        .then(if (tooltipTag != null) Modifier.testTag(tooltipTag) else Modifier),
+                ) {
+                    Text(
+                        text = tooltip,
+                        color = ClapiColors.OnSurface,
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Displays a hover hint (tooltip) over any composable (e.g. icon-only clickable items).
+ */
+@Composable
+fun HoverTooltip(
+    tooltip: String,
+    modifier: Modifier = Modifier,
+    tooltipTag: String? = null,
+    delayMillis: Long = 200L,
+    alignment: Alignment = Alignment.BottomCenter,
+    offset: IntOffset = IntOffset(0, 24),
+    content: @Composable () -> Unit,
+) {
+    if (tooltip.isBlank()) {
+        Box(modifier) { content() }
+        return
+    }
+
+    val interactionSource = remember { MutableInteractionSource() }
+    val isHovered by interactionSource.collectIsHoveredAsState()
+    var tooltipVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isHovered, tooltip) {
+        if (isHovered && tooltip.isNotBlank()) {
+            delay(delayMillis)
+            tooltipVisible = true
+        } else {
+            tooltipVisible = false
+        }
+    }
+
+    Box(modifier = modifier.hoverable(interactionSource)) {
+        content()
+
+        if (tooltipVisible && tooltip.isNotBlank()) {
+            Popup(
+                alignment = alignment,
+                offset = offset,
+                properties = PopupProperties(focusable = false),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(ClapiColors.SurfaceHigh)
+                        .border(1.dp, ClapiColors.Border, RoundedCornerShape(5.dp))
+                        .padding(horizontal = 8.dp, vertical = 5.dp)
+                        .then(if (tooltipTag != null) Modifier.testTag(tooltipTag) else Modifier),
+                ) {
+                    Text(
+                        text = tooltip,
+                        color = ClapiColors.OnSurface,
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                    )
+                }
+            }
         }
     }
 }
