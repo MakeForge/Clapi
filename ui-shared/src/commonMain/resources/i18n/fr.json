@@ -424,5 +424,13 @@
   "no_output_yet": "Cliquez sur Exécuter le test pour lancer le script et prévisualiser la sortie.",
   "script_error": "Erreur de script",
   "dynamic_script_context_hint": "Les scripts peuvent accéder aux infos de la requête via context.request (url, method, headers, name) et aux paramètres via args.",
-  "dynamic_variables_docs": "Documentation des variables dynamiques"
+  "dynamic_variables_docs": "Documentation des variables dynamiques",
+  "regular": "Régulière",
+  "kind_upper": "GENRE",
+  "return_type": "Type de retour",
+  "type_string": "String",
+  "type_number": "Number",
+  "type_boolean": "Booléen",
+  "type_object": "Objet",
+  "read_only": "Lecture seule"
 }

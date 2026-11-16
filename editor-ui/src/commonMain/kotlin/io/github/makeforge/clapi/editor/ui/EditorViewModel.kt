@@ -1,5 +1,6 @@
 package io.github.makeforge.clapi.editor.ui
 
+import io.github.makeforge.clapi.core.model.opencollection.VariableType
 import io.github.makeforge.clapi.editor.core.DisplayLineMap
 import io.github.makeforge.clapi.editor.core.DocumentModel
 import io.github.makeforge.clapi.editor.core.EditorDocument
@@ -101,6 +102,18 @@ class EditorViewModel(
     @kotlin.concurrent.Volatile
     var foldRegions: List<FoldRegion> = emptyList()
         private set
+
+    @kotlin.concurrent.Volatile
+    var variableTypes: Map<String, VariableType> = emptyMap()
+        private set
+
+    fun updateVariableTypes(newTypes: Map<String, VariableType>) {
+        if (newTypes == variableTypes) return
+        variableTypes = newTypes
+        if (lastExternalText.contains("{{")) {
+            scheduleDiagnostics()
+        }
+    }
 
     init {
         styleFirstPaint()
@@ -967,7 +980,7 @@ class EditorViewModel(
             if (editSequence != seq) return@launch
             val text = lastExternalText
             if (editSequence != seq) return@launch
-            val errors = provider.validate(text)
+            val errors = provider.validate(text, variableTypes)
             // Json.parseToJsonElement is not coroutine-cancellable; guard against the
             // stale-result race by checking the sequence AFTER the potentially-long parse.
             if (editSequence == seq) {

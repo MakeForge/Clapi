@@ -73,6 +73,7 @@ data class VariableSourceInfo(
     val folderValue: String?,
     val hasFolderValue: Boolean,
     val currentResolvedValue: String?,
+    val isDynamic: Boolean = false,
 )
 
 fun resolveVariableSourceInfo(
@@ -148,6 +149,13 @@ fun resolveVariableSourceInfo(
             ?: VariableResolver.resolveDynamicToken(rawCleanName)
     }
 
+    val isDynamic = (envVar != null && envVar.isDynamic) ||
+        (hasFolderValue && folderValue == "[Dynamic Script]") ||
+        state.activeDynamicVariables(targetTab).any { it.name == cleanName } ||
+        VariableResolver.isDynamicToken(cleanName) ||
+        VariableResolver.isDynamicToken(rawCleanName) ||
+        currentResolvedValue == "[Dynamic Script]"
+
     return VariableSourceInfo(
         cleanName = cleanName,
         environmentName = envName,
@@ -157,6 +165,7 @@ fun resolveVariableSourceInfo(
         folderValue = folderValue,
         hasFolderValue = hasFolderValue,
         currentResolvedValue = currentResolvedValue,
+        isDynamic = isDynamic,
     )
 }
 
@@ -181,17 +190,28 @@ fun VariableEditorPopup(
     val info = resolveVariableSourceInfo(cleanName, state, tab)
     val env = state.selectedEnvironment
 
-    var editValue by remember(cleanName) {
-        mutableStateOf(TextFieldValue(info.environmentValue ?: info.folderValue ?: ""))
+    var editValue by remember(cleanName, info.isDynamic) {
+        val initial = if (info.isDynamic) {
+            info.currentResolvedValue ?: "[Dynamic Script]"
+        } else {
+            info.environmentValue ?: info.folderValue ?: ""
+        }
+        mutableStateOf(TextFieldValue(initial))
     }
-    var baselineValue by remember(cleanName) {
+    var baselineValue by remember(cleanName, info.isDynamic) {
         mutableStateOf(editValue.text)
     }
     var showUnsavedConfirm by remember { mutableStateOf(false) }
 
-    fun isDirty(): Boolean = editValue.text != baselineValue
+    fun isDirty(): Boolean = !info.isDynamic && editValue.text != baselineValue
 
     fun handleSave(closeDialog: Boolean = false) {
+        if (info.isDynamic) {
+            if (closeDialog) {
+                onDismiss()
+            }
+            return
+        }
         val targetEnv = env ?: run {
             val newEnv = EnvState("Default")
             state.environments.add(newEnv)
@@ -276,7 +296,9 @@ fun VariableEditorPopup(
                     .pointerInput(Unit) { detectTapGestures { } }
                     .hotkeys {
                         on(AppHotkeys.Save) {
-                            handleSave(closeDialog = false)
+                            if (!info.isDynamic) {
+                                handleSave(closeDialog = false)
+                            }
                         }
                         on(AppHotkeys.Escape) {
                             requestDismiss()
@@ -441,30 +463,31 @@ fun VariableEditorPopup(
                                 fontWeight = FontWeight.Medium,
                             )
                             Text(
-                                text = "Sets in environment",
+                                text = if (info.isDynamic) "${Strings.t("dynamic")} (${Strings.t("read_only")})" else "Sets in environment",
                                 fontSize = 10.sp,
                                 color = ClapiColors.OnSurfaceDim,
                             )
                         }
                         VariableAwareTextField(
                             value = editValue.text,
-                            onValueChange = { editValue = TextFieldValue(it) },
+                            onValueChange = { if (!info.isDynamic) editValue = TextFieldValue(it) },
+                            readOnly = info.isDynamic,
                             singleLine = true,
                             placeholder = Strings.t("enter_value"),
                             textStyle = TextStyle(
-                                color = ClapiColors.OnSurface,
+                                color = if (info.isDynamic) ClapiColors.OnSurfaceDim else ClapiColors.OnSurface,
                                 fontSize = 13.sp,
                                 fontFamily = CodeFontFamily,
                             ),
                             state = state,
                             tab = tab,
                             excludeVariables = setOf(cleanName),
-                            selectAllOnStart = true,
+                            selectAllOnStart = !info.isDynamic,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .autoFocus()
+                                .then(if (!info.isDynamic) Modifier.autoFocus() else Modifier)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(ClapiColors.SurfaceContainer)
+                                .background(if (info.isDynamic) ClapiColors.SurfaceContainer.copy(alpha = 0.5f) else ClapiColors.SurfaceContainer)
                                 .border(1.dp, ClapiColors.BorderLight, RoundedCornerShape(8.dp))
                                 .padding(horizontal = 10.dp, vertical = 8.dp)
                                 .testTag("variable-popup-value-input"),
@@ -495,36 +518,38 @@ fun VariableEditorPopup(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(ClapiColors.SurfaceContainer)
-                                .border(1.dp, ClapiColors.Border, RoundedCornerShape(8.dp))
+                                .background(if (info.isDynamic) ClapiColors.Primary else ClapiColors.SurfaceContainer)
+                                .border(1.dp, if (info.isDynamic) Color.Transparent else ClapiColors.Border, RoundedCornerShape(8.dp))
                                 .clickable(onClick = onDismiss)
                                 .padding(horizontal = 14.dp, vertical = 8.dp)
                                 .testTag("variable-popup-cancel"),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
-                                text = "Cancel",
+                                text = if (info.isDynamic) Strings.t("close") else Strings.t("cancel"),
                                 fontSize = 12.sp,
-                                color = ClapiColors.OnSurface,
-                                fontWeight = FontWeight.Medium,
+                                color = if (info.isDynamic) ClapiColors.OnPrimary else ClapiColors.OnSurface,
+                                fontWeight = if (info.isDynamic) FontWeight.SemiBold else FontWeight.Medium,
                             )
                         }
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(ClapiColors.Primary)
-                                .clickable { handleSave(closeDialog = true) }
-                                .padding(horizontal = 14.dp, vertical = 8.dp)
-                                .testTag("variable-popup-save"),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                text = "Save",
-                                fontSize = 12.sp,
-                                color = ClapiColors.OnPrimary,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1,
-                            )
+                        if (!info.isDynamic) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(ClapiColors.Primary)
+                                    .clickable { handleSave(closeDialog = true) }
+                                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                                    .testTag("variable-popup-save"),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = Strings.t("save"),
+                                    fontSize = 12.sp,
+                                    color = ClapiColors.OnPrimary,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                )
+                            }
                         }
                     }
                 }

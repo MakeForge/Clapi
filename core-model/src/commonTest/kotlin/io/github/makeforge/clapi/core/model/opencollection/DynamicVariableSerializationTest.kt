@@ -3,6 +3,7 @@ package io.github.makeforge.clapi.core.model.opencollection
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -16,17 +17,26 @@ class DynamicVariableSerializationTest {
     }
 
     @Test
-    fun variableType_fromValue_resolves_dynamic() {
-        assertEquals(VariableType.DYNAMIC, VariableType.fromValue("dynamic"))
-        assertEquals(VariableType.DYNAMIC, VariableType.fromValue("DYNAMIC"))
-        assertEquals("dynamic", VariableType.DYNAMIC.toString())
+    fun variableType_and_variableKind_resolve_distinctly() {
+        assertEquals(VariableType.STRING, VariableType.fromValue("string"))
+        assertEquals(VariableType.NUMBER, VariableType.fromValue("number"))
+        assertEquals(VariableType.BOOLEAN, VariableType.fromValue("boolean"))
+        assertEquals(VariableType.OBJECT, VariableType.fromValue("object"))
+        assertEquals(VariableType.NULL, VariableType.fromValue("null"))
+        assertNull(VariableType.fromValue("dynamic"))
+
+        assertEquals(VariableKind.REGULAR, VariableKind.fromValue("regular"))
+        assertEquals(VariableKind.SECRET, VariableKind.fromValue("secret"))
+        assertEquals(VariableKind.DYNAMIC, VariableKind.fromValue("dynamic"))
+        assertEquals(VariableKind.DYNAMIC, VariableKind.fromValue("DYNAMIC"))
     }
 
     @Test
-    fun dynamicVariable_serializes_and_deserializes_roundtrip() {
+    fun dynamicVariable_serializes_and_deserializes_roundtrip_with_data_type() {
         val dynamicVar = DynamicVariable(
             name = "secondsFromNow",
-            script = "const offset = Number(args.seconds || 0);\nreturn new Date(Date.now() + offset * 1000).toISOString();",
+            type = VariableType.NUMBER,
+            script = "const offset = Number(args.seconds || 0);\nreturn 1700000000 + offset;",
             parameters = listOf(
                 DynamicVariableParameter(
                     name = "seconds",
@@ -34,26 +44,26 @@ class DynamicVariableSerializationTest {
                     defaultValue = "0",
                 )
             ),
-            description = Description("ISO timestamp offset from now"),
+            description = Description("Epoch timestamp offset from now"),
             disabled = false,
         )
 
         val encoded = json.encodeToString(VariableEntrySerializer, dynamicVar)
         val jsonObj = json.parseToJsonElement(encoded).jsonObject
-        assertEquals("dynamic", jsonObj["type"]?.jsonPrimitive?.content)
+        assertEquals("number", jsonObj["type"]?.jsonPrimitive?.content)
         assertTrue(encoded.contains("\"secondsFromNow\""))
         assertTrue(encoded.contains("\"script\""))
 
         val decoded = json.decodeFromString(VariableEntrySerializer, encoded)
         assertIs<DynamicVariable>(decoded)
         assertEquals("secondsFromNow", decoded.name)
-        assertEquals(VariableType.DYNAMIC, decoded.type)
+        assertEquals(VariableType.NUMBER, decoded.type)
         assertEquals(dynamicVar.script, decoded.script)
         assertEquals(1, decoded.parameters.size)
         assertEquals("seconds", decoded.parameters[0].name)
         assertEquals("Offset in seconds", decoded.parameters[0].description)
         assertEquals("0", decoded.parameters[0].defaultValue)
-        assertEquals("ISO timestamp offset from now", decoded.description?.content)
+        assertEquals("Epoch timestamp offset from now", decoded.description?.content)
         assertEquals(false, decoded.disabled)
     }
 
@@ -69,12 +79,13 @@ class DynamicVariableSerializationTest {
                 },
                 {
                   "name": "apiKey",
-                  "secret": true
+                  "secret": true,
+                  "type": "string"
                 },
                 {
-                  "name": "nonce",
-                  "type": "dynamic",
-                  "script": "return Math.random().toString(36).substring(2);",
+                  "name": "orderCount",
+                  "type": "number",
+                  "script": "return 42;",
                   "parameters": [
                     { "name": "prefix", "defaultValue": "req_" }
                   ]
@@ -88,18 +99,20 @@ class DynamicVariableSerializationTest {
         assertIs<RegularVariable>(env.variables[0])
         assertIs<SecretVariable>(env.variables[1])
         val dyn = assertIs<DynamicVariable>(env.variables[2])
-        assertEquals("nonce", dyn.name)
-        assertEquals("return Math.random().toString(36).substring(2);", dyn.script)
+        assertEquals("orderCount", dyn.name)
+        assertEquals(VariableType.NUMBER, dyn.type)
+        assertEquals("return 42;", dyn.script)
         assertEquals(1, dyn.parameters.size)
         assertEquals("prefix", dyn.parameters[0].name)
         assertEquals("req_", dyn.parameters[0].defaultValue)
     }
 
     @Test
-    fun dynamicVariable_deserializes_when_only_script_property_present() {
+    fun dynamicVariable_deserializes_when_only_script_or_legacy_dynamic_type_present() {
         val rawJson = """
             {
               "name": "legacyDynamic",
+              "type": "dynamic",
               "script": "return 42;"
             }
         """.trimIndent()
@@ -108,6 +121,6 @@ class DynamicVariableSerializationTest {
         val dyn = assertIs<DynamicVariable>(decoded)
         assertEquals("legacyDynamic", dyn.name)
         assertEquals("return 42;", dyn.script)
-        assertEquals(VariableType.DYNAMIC, dyn.type)
+        assertEquals(VariableType.STRING, dyn.type)
     }
 }

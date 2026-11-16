@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -40,7 +41,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.makeforge.clapi.core.model.opencollection.VariableKind
 import io.github.makeforge.clapi.ui.shared.components.dialogs.dynamicvar.DynamicVariableEditorDialog
+import io.github.makeforge.clapi.ui.shared.components.dialogs.env.VariableKindSelector
+import io.github.makeforge.clapi.ui.shared.components.dialogs.env.VariableTypeSelector
 import io.github.makeforge.clapi.ui.shared.generated.resources.Res
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_add
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_code
@@ -255,75 +259,56 @@ private fun KeyValueRow(
         }
 
         if (showTypeColumn) {
-            Row(
-                modifier = Modifier.size(70.dp, 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                when {
-                    isSystemHeader -> {
-                        Icon(painter = painterResource(Res.drawable.ic_lock), contentDescription = Strings.t("system_header"), tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(12.dp))
-                        Text(Strings.t("system"), fontSize = 11.sp, color = ClapiColors.OnSurfaceDim)
-                    }
-                    isInherited -> {
-                        Text(
-                            text = Strings.inherited,
-                            fontSize = 11.sp,
-                            color = ClapiColors.Tertiary,
-                            modifier = Modifier.testTag("$testTag-type-inherited"),
-                        )
-                    }
-                    isVariableEditor -> {
-                        val typeLabel = when {
-                            kv.isDynamic -> Strings.dynamic
-                            kv.secret -> Strings.t("secret")
-                            else -> Strings.t("normal")
-                        }
-                        val typeColor = when {
-                            kv.isDynamic -> ClapiColors.Primary
-                            kv.secret -> ClapiColors.Tertiary
-                            else -> ClapiColors.OnSurfaceDim
-                        }
-                        val typeBg = when {
-                            kv.isDynamic -> ClapiColors.Primary.copy(alpha = 0.12f)
-                            kv.secret -> ClapiColors.Tertiary.copy(alpha = 0.1f)
-                            else -> Color.Transparent
-                        }
-                        Text(
-                            text = typeLabel,
-                            fontSize = 11.sp,
-                            color = typeColor,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(typeBg)
-                                .clickable {
-                                    when {
-                                        !kv.secret && !kv.isDynamic -> {
-                                            kv.secret = true
-                                            kv.isDynamic = false
-                                            kv.value = ""
-                                        }
-                                        kv.secret -> {
-                                            kv.secret = false
-                                            kv.isDynamic = true
-                                            if (kv.dynamicScript.isBlank()) {
-                                                kv.dynamicScript = "return new Date().toISOString();"
-                                            }
-                                        }
-                                        else -> {
-                                            kv.isDynamic = false
-                                            kv.secret = false
-                                        }
-                                    }
-                                    onDirty()
+            if (isVariableEditor && !isInherited && !isSystemHeader) {
+                VariableKindSelector(
+                    selectedKind = kv.variableKind,
+                    onKindSelected = { newKind ->
+                        kv.variableKind = newKind
+                        when (newKind) {
+                            VariableKind.SECRET -> kv.value = ""
+                            VariableKind.DYNAMIC -> {
+                                if (kv.dynamicScript.isBlank()) {
+                                    kv.dynamicScript = "return new Date().toISOString();"
                                 }
-                                .pointerHoverIcon(PointerIcon.Hand)
-                                .padding(horizontal = 4.dp, vertical = 2.dp)
-                                .testTag("$testTag-type-toggle"),
-                        )
-                    }
-                    else -> {
-                        Text(Strings.t("user"), fontSize = 11.sp, color = ClapiColors.OnSurfaceDim)
+                            }
+                            VariableKind.REGULAR -> Unit
+                        }
+                        onDirty()
+                    },
+                    tag = "$testTag-type-toggle",
+                    modifier = Modifier.width(84.dp),
+                )
+                VariableTypeSelector(
+                    selectedType = kv.variableType,
+                    onTypeSelected = {
+                        kv.variableType = it
+                        onDirty()
+                    },
+                    tag = "$testTag-datatype",
+                    modifier = Modifier.width(84.dp),
+                )
+            } else {
+                Row(
+                    modifier = Modifier.size(70.dp, 20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    when {
+                        isSystemHeader -> {
+                            Icon(painter = painterResource(Res.drawable.ic_lock), contentDescription = Strings.t("system_header"), tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(12.dp))
+                            Text(Strings.t("system"), fontSize = 11.sp, color = ClapiColors.OnSurfaceDim)
+                        }
+                        isInherited -> {
+                            Text(
+                                text = Strings.inherited,
+                                fontSize = 11.sp,
+                                color = ClapiColors.Tertiary,
+                                modifier = Modifier.testTag("$testTag-type-inherited"),
+                            )
+                        }
+                        else -> {
+                            Text(Strings.t("user"), fontSize = 11.sp, color = ClapiColors.OnSurfaceDim)
+                        }
                     }
                 }
             }

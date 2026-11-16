@@ -778,7 +778,7 @@ private fun GrpcMessageEditor(
     state: AppState,
     onDirty: () -> Unit,
 ) {
-    val definedVarNames: Set<String> = state.activeVariableLayers(tab).flatMap { it.keys }.toSet()
+    val definedVarNames: Set<String> = state.allDefinedVariableNames(tab)
     var popupVariable by remember { mutableStateOf<String?>(null) }
     val allowJson5 = state.settings.allowJson5InJsonBodies
     val bodyViewModel = remember(tab, allowJson5) {
@@ -810,7 +810,7 @@ private fun GrpcMessageEditor(
             placeholder = "{\n  \"key\": \"value\"\n}",
             testTagPrefix = "grpc-message-editor",
             onCursorTap = { offset ->
-                popupVariable = variableNameAtOffset(tab.grpcMessageBody, offset)
+                popupVariable = if (offset >= 0) variableNameAtOffset(tab.grpcMessageBody, offset) else null
             },
             lineVariableSpans = { lineText, _ ->
                 variableRangesForLine(lineText, definedVarNames)

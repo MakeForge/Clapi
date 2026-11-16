@@ -353,6 +353,58 @@ class GeneralImprovementsUiTest {
         composeRule.onNodeWithTag("variable-dropdown-item-apiKey", useUnmergedTree = true).assertIsDisplayed()
     }
 
+    @Test
+    fun ctrl_space_filters_by_word_being_typed_and_updates_as_typing_continues() {
+        var textValue by mutableStateOf("https://example.com/api?user=")
+        val state = AppState(openDefaultTab = false).apply {
+            environments.add(EnvState("Dev").apply {
+                variables.add(MutableKeyValue("token", "secret123"))
+                variables.add(MutableKeyValue("host", "api.example.com"))
+                variables.add(MutableKeyValue("theme", "dark"))
+            })
+            selectedEnvIndex = 0
+        }
+        val focusRequester = FocusRequester()
+
+        composeRule.setContent {
+            VariableAwareTextField(
+                value = textValue,
+                onValueChange = { textValue = it },
+                modifier = Modifier.focusRequester(focusRequester).testTag("filter-input"),
+                state = state,
+            )
+        }
+        composeRule.waitForIdle()
+        composeRule.runOnUiThread { focusRequester.requestFocus() }
+        composeRule.waitForIdle()
+
+        val input = composeRule.onNodeWithTag("filter-input")
+        input.performTextInput("th")
+        composeRule.waitForIdle()
+
+        input.performKeyPress(
+            KeyEvent(key = Key.Spacebar, type = KeyEventType.KeyDown, isCtrlPressed = true)
+        )
+        input.performKeyPress(
+            KeyEvent(key = Key.Spacebar, type = KeyEventType.KeyUp, isCtrlPressed = true)
+        )
+        composeRule.waitForIdle()
+
+        // Dropdown should appear showing only matching "theme", NOT "token" or "host"
+        composeRule.onNodeWithTag("variable-dropdown", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("variable-dropdown-item-theme", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onAllNodesWithTag("variable-dropdown-item-token").assertCountEquals(0)
+        composeRule.onAllNodesWithTag("variable-dropdown-item-host").assertCountEquals(0)
+
+        // Select the "theme" item
+        composeRule.onNodeWithTag("variable-dropdown-item-theme", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        // Dropdown dismisses and "th" was replaced with "{{theme}}"
+        composeRule.onAllNodesWithTag("variable-dropdown").assertCountEquals(0)
+        assertEquals("https://example.com/api?user={{theme}}", textValue)
+    }
+
     // ── 4. Deleting a folder in sidebar closes tabs for folder and nested requests ──
 
     @Test

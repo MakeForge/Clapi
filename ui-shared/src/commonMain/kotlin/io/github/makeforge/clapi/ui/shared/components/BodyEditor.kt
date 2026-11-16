@@ -282,14 +282,12 @@ fun BodyEditor(
                 // syntax highlighting, code folding, search, and format
                 val language = bodyTypeToLanguage(tab.bodyType)
                 var bodyPopupVariable by remember { mutableStateOf<String?>(null) }
-                // Compute the set of all defined variable names from all active layers
-                // (env → collection → globals). Used to colour tokens orange (resolved)
+                // Compute the set of all defined variable names across all active layers & dynamic variables
+                // (env → collection → globals + dynamic variables + secrets). Used to colour tokens orange (resolved)
                 // vs red (unresolved) inside the code editor.
                 val definedVarNames: Set<String> by remember(state, tab) {
                     derivedStateOf {
-                        state.activeVariableLayers(tab)
-                            .flatMap { it.keys }
-                            .toSet()
+                        state.allDefinedVariableNames(tab)
                     }
                 }
                 val availableVars = remember(state, tab, definedVarNames) {
@@ -349,10 +347,11 @@ fun BodyEditor(
                             },
                             testTagPrefix = "body-editor",
                             onCursorTap = { offset ->
-                                bodyPopupVariable = variableNameAtOffset(tab.bodyContent, offset)
+                                bodyPopupVariable = if (offset >= 0) variableNameAtOffset(tab.bodyContent, offset) else null
                             },
                             lineVariableSpans = variableHighlightProvider,
                             availableVariables = availableVars,
+                            variableTypes = state.activeVariableTypes(tab),
                             externalViewModel = bodyViewModel,
                         )
 

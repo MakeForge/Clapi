@@ -57,15 +57,17 @@ When built-in generators are not enough—such as computing a future expiration 
 
 1. Open the **Environment Editor** (or the **Variables** tab of a Collection or Folder).
 2. Add a variable row and enter its name (for example, `secondsFromNow`).
-3. Click the **Type** badge in the row to cycle from `Normal` → `Secret` → **`Dynamic`**.
-4. When `Dynamic` is selected, the static value field is replaced by an **Edit Script** button.
-5. Click **Edit Script** to open the two-pane **Dynamic Variable Script Editor**.
+3. In the **Kind** dropdown selection box, choose **`Dynamic`** (options: `Regular`, `Secret`, `Dynamic`).
+4. In the **Type** dropdown selection box, select the variable's return data type (**`String`**, **`Number`**, **`Boolean`**, or **`Object`**). For example, if your script returns a number (e.g. `42`), select **`Number`** so request body editors accept unquoted tokens without syntax errors.
+5. When `Dynamic` is selected, the static value field is replaced by an **Edit Script** button.
+6. Click **Edit Script** to open the two-pane **Dynamic Variable Script Editor**.
 
 ### 2. Script Editor & Interactive Test Runner
 
 The **Dynamic Variable Script Editor** is split into two panes:
 
 - **Left Pane — Parameters & JavaScript Editor**:
+  - **Return Type Selector**: Choose the variable's return data type (`String`, `Number`, `Boolean`, `Object`). Below the selector, an interactive JSON preview displays the recommended syntax (e.g., `{ "count": {{var}} }` for numbers/booleans/objects vs. `{ "key": "{{var}}" }` for strings).
   - **Parameters**: Add optional named parameters with default values (for example, parameter `seconds` with default value `10`). The header live-updates the invocation preview (e.g., <code v-pre>{{secondsFromNow(seconds)}}</code>).
   - **JavaScript Code Editor**: Write standard JavaScript (`return ...;` or a bare expression) executed in an isolated V8 sandbox.
 - **Right Pane — Interactive Test Execution**:
@@ -74,6 +76,7 @@ The **Dynamic Variable Script Editor** is split into two panes:
   - Click **Run Test** to immediately execute the script in V8 and inspect:
     - **Status & Execution Time** (e.g., `Success · 4 ms`)
     - **Return Value** (with one-click copy)
+    - **Return Type Mismatch Warning**: Displays a warning if the script evaluates to a type that doesn't match the selected Return Type (e.g., script returned non-numeric string while `Number` was declared).
     - **Console Output** (`console.log`, `console.warn`, `console.error`)
     - **Script Error Details** if the script throws a syntax/runtime error or exceeds the 2,000 ms timeout.
 
@@ -131,6 +134,27 @@ console.log("Signing request:", method, url);
 return btoa(method + ":" + url + ":" + Date.now());
 ```
 
+## JSON Request Body Quoting Rules
+
+When authoring JSON request bodies in Clapi's code editor, quoting depends on the variable's configured **Type**:
+
+- **Numbers, Booleans, and Objects/Arrays**: Use **unquoted** syntax:
+  ```json
+  {
+    "count": {{totalCount}},
+    "active": {{isPublished}},
+    "metadata": {{metaInfo}}
+  }
+  ```
+  Clapi's editor validates this template natively without reporting false-positive `"Expected property name at offset..."` syntax errors, and sends genuine JSON number, boolean, or object values across the wire.
+- **Strings**: Use **double-quoted** syntax:
+  ```json
+  {
+    "username": "{{userToken}}"
+  }
+  ```
+  If an unquoted string variable is used in a JSON value position (`{"username": {{userToken}}}`), the editor linter emits a warning advising you to wrap the token in quotes: `"{{userToken}}"`.
+
 ## Scope Precedence & Import / Export
 
 ### Resolution Precedence
@@ -145,14 +169,14 @@ If an active environment defines a dynamic variable with the same name as a coll
 
 ### OpenCollection JSON & YAML Format
 
-Dynamic variables are persisted natively in OpenCollection JSON and YAML files with `"type": "dynamic"`, making them first-class citizens in [Git Sync Collaboration](/collaboration/git-sync-overview) and workspace exports:
+Dynamic variables are persisted natively in OpenCollection JSON and YAML files with their return data type (`type: string | number | boolean | object`) and `script`, making them first-class citizens in [Git Sync Collaboration](/collaboration/git-sync-overview) and workspace exports:
 
 ```yaml
 environments:
   - name: Production
     variables:
       - name: secondsFromNow
-        type: dynamic
+        type: string
         description: ISO timestamp offset in seconds from current time
         script: |
           const offsetSeconds = Number(args.seconds ?? 0);
@@ -161,7 +185,14 @@ environments:
           - name: seconds
             defaultValue: "10"
             description: Offset in seconds
+      - name: orderCount
+        type: number
+        script: |
+          return 42;
 ```
+
+> [!NOTE]
+> Backward compatibility: OpenCollection files containing legacy `"type": "dynamic"` entries are automatically imported as dynamic variables with data type `string`.
 
 ## Error Handling & Execution Guardrails
 

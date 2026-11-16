@@ -2,6 +2,7 @@ package io.github.makeforge.clapi.editor.core
 
 import io.github.makeforge.clapi.core.model.json.Json5
 import io.github.makeforge.clapi.core.model.json.Json5ParseException
+import io.github.makeforge.clapi.core.model.opencollection.VariableType
 
 /**
  * JSON5 editor adapter. Used only when the JSON5 setting is on.
@@ -80,6 +81,15 @@ object Json5EditorSupport : LanguageModeProvider {
                         i = line.length
                     }
                 }
+                c == '{' && i + 1 < line.length && line[i + 1] == '{' -> {
+                    val closeIdx = JsonTemplateMasker.findTemplateTokenEnd(line, i + 2)
+                    if (closeIdx > i + 2) {
+                        tokens.add(Token(i, closeIdx + 2, TokenType.VALUE))
+                        i = closeIdx + 2
+                    } else {
+                        tokens.add(Token(i, i + 1, TokenType.PUNCTUATION)); i++
+                    }
+                }
                 c == ':' || c == ',' || c == '{' || c == '}' || c == '[' || c == ']' -> {
                     tokens.add(Token(i, i + 1, TokenType.PUNCTUATION)); i++
                 }
@@ -148,6 +158,14 @@ object Json5EditorSupport : LanguageModeProvider {
                 ch == '/' && i + 1 < text.length && text[i + 1] == '/' -> { inLineComment = true; i += 2 }
                 ch == '/' && i + 1 < text.length && text[i + 1] == '*' -> { inBlockComment = true; i += 2 }
                 ch == '"' || ch == '\'' -> { inStr = ch; i++ }
+                ch == '{' && i + 1 < text.length && text[i + 1] == '{' -> {
+                    val closeIdx = JsonTemplateMasker.findTemplateTokenEnd(text, i + 2)
+                    if (closeIdx > i + 2) {
+                        i = closeIdx + 2
+                    } else {
+                        stack.addLast(line); i++
+                    }
+                }
                 ch == '{' || ch == '[' -> { stack.addLast(line); i++ }
                 ch == '}' || ch == ']' -> {
                     if (stack.isNotEmpty()) {
@@ -163,9 +181,13 @@ object Json5EditorSupport : LanguageModeProvider {
         return regions.sortedBy { it.startLine }
     }
 
-    override fun validate(text: String): List<InlineEditorError> {
+    override fun validate(text: String): List<InlineEditorError> =
+        validate(text, emptyMap())
+
+    override fun validate(text: String, variableTypes: Map<String, VariableType>): List<InlineEditorError> {
         if (text.isBlank()) return emptyList()
-        return Json5.parseToJsonElement(text).fold(
+        val masked = JsonTemplateMasker.maskAndCheckVariables(text, allowJson5 = true, variableTypes = variableTypes)
+        val parseErrors = Json5.parseToJsonElement(masked.maskedText).fold(
             onSuccess = { emptyList() },
             onFailure = { e ->
                 val offset = (e as? Json5ParseException)?.offset
@@ -175,6 +197,7 @@ object Json5EditorSupport : LanguageModeProvider {
                 listOf(InlineEditorError(pos.first, pos.second, e.message ?: "Invalid JSON5"))
             },
         )
+        return parseErrors + masked.templateDiagnostics
     }
 
     override fun format(text: String): String {

@@ -610,6 +610,21 @@ fun Application.dummyApiModule(
             })
         }
 
+        post("/echo-json") {
+            requestLogger(call.logRequest())
+            val body = call.receiveText()
+            val ct = call.request.contentType().toString()
+            val parsedElement = try { Json.parseToJsonElement(body) } catch (_: Exception) { null }
+            call.respond(buildJsonObject {
+                put("contentType", ct)
+                put("bodyLength", body.length)
+                put("rawBody", body)
+                if (parsedElement != null) {
+                    put("parsed", parsedElement)
+                }
+            })
+        }
+
         post("/echo-form-data") {
             requestLogger(call.logRequest())
             val fields = mutableMapOf<String, String>()

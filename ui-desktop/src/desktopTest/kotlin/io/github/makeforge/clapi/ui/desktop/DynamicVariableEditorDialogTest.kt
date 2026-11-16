@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
 import io.github.makeforge.clapi.core.model.opencollection.DynamicVariableParameter
+import io.github.makeforge.clapi.core.model.opencollection.VariableType
 import io.github.makeforge.clapi.ui.shared.MainScreen
 import io.github.makeforge.clapi.ui.shared.components.dialogs.dynamicvar.DynamicVariableEditorDialog
 import io.github.makeforge.clapi.ui.shared.platform.DocsLinks
@@ -42,10 +43,10 @@ class DynamicVariableEditorDialogTest {
         // Initially Normal: value field exists
         composeRule.onNodeWithTag("env-var-value-0").assertIsDisplayed()
 
-        // Click type toggle twice: Normal -> Secret -> Dynamic
+        // Open Kind dropdown and select Dynamic
         composeRule.onNodeWithTag("env-var-type-toggle-0").performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("env-var-type-toggle-0").performClick()
+        composeRule.onNodeWithTag("env-var-type-toggle-0-option-dynamic").performClick()
         composeRule.waitForIdle()
 
         // Value field is replaced by Edit Script button
@@ -58,6 +59,12 @@ class DynamicVariableEditorDialogTest {
 
         composeRule.onNodeWithTag("dynamic-var-editor-dialog").assertIsDisplayed()
 
+        // Select Return Type = Number
+        composeRule.onNodeWithTag("dynamic-var-return-type-select").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("dynamic-var-return-type-select-option-number").performClick()
+        composeRule.waitForIdle()
+
         // Add a parameter "seconds" with default "10"
         composeRule.onNodeWithTag("dynamic-var-add-param-button").performClick()
         composeRule.waitForIdle()
@@ -66,9 +73,11 @@ class DynamicVariableEditorDialogTest {
         composeRule.onNodeWithTag("dynamic-var-param-default-0").performTextReplacement("10")
         composeRule.waitForIdle()
 
-        // Signature preview should show {{secondsFromNow(seconds)}}
+        // Signature preview should show {{secondsFromNow(seconds)}} and unquoted JSON preview
         composeRule.onNodeWithTag("dynamic-var-signature-preview")
             .assert(hasText("{{secondsFromNow(seconds)}}", substring = true))
+        composeRule.onNodeWithTag("dynamic-var-json-preview")
+            .assert(hasText("{ \"key\": {{secondsFromNow(seconds)}} }", substring = true))
 
         // Save the dynamic variable subdialog
         composeRule.onNodeWithTag("dynamic-var-save-button").performClick()
@@ -81,6 +90,7 @@ class DynamicVariableEditorDialogTest {
         val savedVar = state.environments.first().variables.first()
         assertTrue(savedVar.isDynamic)
         assertEquals("secondsFromNow", savedVar.key)
+        assertEquals(VariableType.NUMBER, savedVar.variableType)
         assertEquals(1, savedVar.dynamicParameters.size)
         assertEquals("seconds", savedVar.dynamicParameters.first().name)
         assertEquals("10", savedVar.dynamicParameters.first().defaultValue)

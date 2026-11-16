@@ -38,6 +38,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.makeforge.clapi.core.model.opencollection.VariableKind
+import io.github.makeforge.clapi.core.model.opencollection.VariableType
 import io.github.makeforge.clapi.core.network.keepassxc.createKeePassXcClient
 import io.github.makeforge.clapi.core.network.keeper.createKeeperClient
 import io.github.makeforge.clapi.ui.shared.components.VariableAwareTextField
@@ -222,60 +224,35 @@ internal fun EnvVariableRow(
             )
         }
 
-        // Type toggle (Normal / Secret / Dynamic)
-        Row(
-            modifier = Modifier.width(90.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            val typeLabel = when {
-                kv.isDynamic -> Strings.dynamic
-                kv.secret -> Strings.t("secret")
-                else -> Strings.t("normal")
-            }
-            val typeColor = when {
-                kv.isDynamic -> ClapiColors.Primary
-                kv.secret -> ClapiColors.Tertiary
-                else -> ClapiColors.OnSurfaceDim
-            }
-            val typeBg = when {
-                kv.isDynamic -> ClapiColors.Primary.copy(alpha = 0.12f)
-                kv.secret -> ClapiColors.Tertiary.copy(alpha = 0.1f)
-                else -> Color.Transparent
-            }
-            Text(
-                typeLabel,
-                fontSize = 11.sp,
-                color = typeColor,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(typeBg)
-                    .clickable {
-                        when {
-                            !kv.secret && !kv.isDynamic -> {
-                                kv.secret = true
-                                kv.isDynamic = false
-                                showValue = false
-                                kv.value = ""
-                            }
-                            kv.secret -> {
-                                kv.secret = false
-                                kv.isDynamic = true
-                                if (kv.dynamicScript.isBlank()) {
-                                    kv.dynamicScript = "return new Date().toISOString();"
-                                }
-                            }
-                            else -> {
-                                kv.isDynamic = false
-                                kv.secret = false
-                            }
+        // Kind selector (Regular / Secret / Dynamic)
+        VariableKindSelector(
+            selectedKind = kv.variableKind,
+            onKindSelected = { newKind ->
+                kv.variableKind = newKind
+                when (newKind) {
+                    VariableKind.SECRET -> {
+                        showValue = false
+                        kv.value = ""
+                    }
+                    VariableKind.DYNAMIC -> {
+                        if (kv.dynamicScript.isBlank()) {
+                            kv.dynamicScript = "return new Date().toISOString();"
                         }
                     }
-                    .pointerHoverIcon(PointerIcon.Hand)
-                    .padding(horizontal = 4.dp, vertical = 2.dp)
-                    .testTag("env-var-type-toggle-$index"),
-            )
-        }
+                    VariableKind.REGULAR -> Unit
+                }
+            },
+            tag = "env-var-type-toggle-$index",
+            modifier = Modifier.width(88.dp),
+        )
+
+        // Data Type selector (String / Number / Boolean / Object)
+        VariableTypeSelector(
+            selectedType = kv.variableType,
+            onTypeSelected = { kv.variableType = it },
+            tag = "env-var-datatype-$index",
+            modifier = Modifier.width(88.dp),
+        )
 
         // Reveal / hide value for secrets
         if (kv.secret && !kv.isDynamic) {
@@ -311,6 +288,182 @@ internal fun EnvVariableRow(
             kv = kv,
             onDismiss = { showDynamicEditor = false },
         )
+    }
+}
+
+val SelectableVariableTypes = listOf(
+    VariableType.STRING,
+    VariableType.NUMBER,
+    VariableType.BOOLEAN,
+    VariableType.OBJECT,
+)
+
+@Composable
+fun variableKindDisplayLabel(kind: VariableKind): String = when (kind) {
+    VariableKind.REGULAR -> Strings.t("normal")
+    VariableKind.SECRET -> Strings.t("secret")
+    VariableKind.DYNAMIC -> Strings.dynamic
+}
+
+@Composable
+fun variableTypeDisplayLabel(type: VariableType): String = when (type) {
+    VariableType.STRING -> Strings.typeString
+    VariableType.NUMBER -> Strings.typeNumber
+    VariableType.BOOLEAN -> Strings.typeBoolean
+    VariableType.OBJECT -> Strings.typeObject
+    VariableType.NULL -> "Null"
+}
+
+@Composable
+fun VariableKindSelector(
+    selectedKind: VariableKind,
+    onKindSelected: (VariableKind) -> Unit,
+    tag: String = "",
+    allowedKinds: List<VariableKind> = VariableKind.entries,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val label = variableKindDisplayLabel(selectedKind)
+    val textColor = when (selectedKind) {
+        VariableKind.DYNAMIC -> ClapiColors.Primary
+        VariableKind.SECRET -> ClapiColors.Tertiary
+        VariableKind.REGULAR -> ClapiColors.OnSurface
+    }
+    val bgColor = when (selectedKind) {
+        VariableKind.DYNAMIC -> ClapiColors.Primary.copy(alpha = 0.12f)
+        VariableKind.SECRET -> ClapiColors.Tertiary.copy(alpha = 0.1f)
+        VariableKind.REGULAR -> ClapiColors.SurfaceContainer
+    }
+    val borderColor = when (selectedKind) {
+        VariableKind.DYNAMIC -> ClapiColors.Primary.copy(alpha = 0.35f)
+        VariableKind.SECRET -> ClapiColors.Tertiary.copy(alpha = 0.35f)
+        VariableKind.REGULAR -> ClapiColors.Border
+    }
+
+    Box(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(28.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(bgColor)
+                .border(1.dp, borderColor, RoundedCornerShape(4.dp))
+                .clickable { expanded = true }
+                .pointerHoverIcon(PointerIcon.Hand)
+                .padding(horizontal = 6.dp)
+                .let { if (tag.isNotBlank()) it.testTag(tag) else it },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = label,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = textColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Icon(
+                painter = painterResource(Res.drawable.ic_keyboard_arrow_down),
+                contentDescription = null,
+                tint = textColor,
+                modifier = Modifier.size(13.dp),
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(ClapiColors.SurfaceHigh).border(1.dp, ClapiColors.Border),
+        ) {
+            allowedKinds.forEach { kindOption ->
+                val optionLabel = variableKindDisplayLabel(kindOption)
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = optionLabel,
+                            fontSize = 12.sp,
+                            color = if (kindOption == selectedKind) ClapiColors.Primary else ClapiColors.OnSurface,
+                            fontWeight = if (kindOption == selectedKind) FontWeight.SemiBold else FontWeight.Normal,
+                        )
+                    },
+                    onClick = {
+                        expanded = false
+                        onKindSelected(kindOption)
+                    },
+                    modifier = if (tag.isNotBlank()) Modifier.testTag("$tag-option-${kindOption.value}") else Modifier,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun VariableTypeSelector(
+    selectedType: VariableType,
+    onTypeSelected: (VariableType) -> Unit,
+    tag: String = "",
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val label = variableTypeDisplayLabel(selectedType)
+
+    Box(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(28.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(ClapiColors.SurfaceContainer)
+                .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
+                .clickable { expanded = true }
+                .pointerHoverIcon(PointerIcon.Hand)
+                .padding(horizontal = 6.dp)
+                .let { if (tag.isNotBlank()) it.testTag(tag) else it },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = label,
+                fontSize = 11.sp,
+                fontFamily = CodeFontFamily,
+                color = ClapiColors.OnSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Icon(
+                painter = painterResource(Res.drawable.ic_keyboard_arrow_down),
+                contentDescription = null,
+                tint = ClapiColors.OnSurfaceDim,
+                modifier = Modifier.size(13.dp),
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(ClapiColors.SurfaceHigh).border(1.dp, ClapiColors.Border),
+        ) {
+            SelectableVariableTypes.forEach { typeOption ->
+                val optionLabel = variableTypeDisplayLabel(typeOption)
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = optionLabel,
+                            fontSize = 12.sp,
+                            fontFamily = CodeFontFamily,
+                            color = if (typeOption == selectedType) ClapiColors.Primary else ClapiColors.OnSurface,
+                            fontWeight = if (typeOption == selectedType) FontWeight.SemiBold else FontWeight.Normal,
+                        )
+                    },
+                    onClick = {
+                        expanded = false
+                        onTypeSelected(typeOption)
+                    },
+                    modifier = if (tag.isNotBlank()) Modifier.testTag("$tag-option-${typeOption.value}") else Modifier,
+                )
+            }
+        }
     }
 }
 

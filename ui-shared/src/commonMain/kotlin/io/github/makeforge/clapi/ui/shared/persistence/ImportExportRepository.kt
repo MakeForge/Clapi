@@ -1,6 +1,7 @@
 package io.github.makeforge.clapi.ui.shared.persistence
 
 import io.github.makeforge.clapi.core.model.opencollection.Environment
+import io.github.makeforge.clapi.core.model.opencollection.ExternalSecretType
 import io.github.makeforge.clapi.core.model.opencollection.OpenCollectionDocument
 import io.github.makeforge.clapi.core.storage.exporters.OpenApiExporter
 import io.github.makeforge.clapi.core.storage.importers.InsomniaImporter
@@ -241,135 +242,138 @@ object ImportExportRepository {
                 }
             }
         }
-        val isKeePassXc = environment.externalSecretsProvider.equals("keepassxc", ignoreCase = true)
-        val isAws = environment.externalSecretsProvider.equals("aws-secrets-manager", ignoreCase = true)
-        val isAzure = environment.externalSecretsProvider.equals("azure-key-vault", ignoreCase = true)
-        val isGcp = environment.externalSecretsProvider.equals("gcp-secrets-manager", ignoreCase = true)
-        val isKeeper = environment.externalSecretsProvider.equals("keeper-security-cloud", ignoreCase = true)
+        val providerType = ExternalSecretType.fromValue(environment.externalSecretsProvider)
         val extSecretsJson = if (environment.externalSecrets.isNotEmpty()) {
             buildJsonObject {
                 put("type", environment.externalSecretsProvider.ifBlank { "hashicorp-vault-server" })
                 put("variables", buildJsonArray {
                     environment.externalSecrets.forEach { sec ->
-                        if (isKeePassXc) {
-                            if (sec.name.isNotBlank() && sec.url.isNotBlank()) {
-                                add(buildJsonObject {
-                                    put("name", sec.name.trim())
-                                    put("url", sec.url.trim())
-                                    put("targetField", sec.targetField.ifBlank { "password" }.trim())
-                                    if (sec.customFilters.isNotEmpty()) {
-                                        put("customFilters", buildJsonObject {
-                                            sec.customFilters.forEach { (k, v) -> put(k, v) }
-                                        })
-                                    }
-                                    if (sec.description.isNotBlank()) {
-                                        put("description", sec.description.trim())
-                                    }
-                                    if (!sec.enabled) {
-                                        put("disabled", true)
-                                    }
-                                })
+                        when (providerType) {
+                            ExternalSecretType.KEEPASSXC -> {
+                                if (sec.name.isNotBlank() && sec.url.isNotBlank()) {
+                                    add(buildJsonObject {
+                                        put("name", sec.name.trim())
+                                        put("url", sec.url.trim())
+                                        put("targetField", sec.targetField.ifBlank { "password" }.trim())
+                                        if (sec.customFilters.isNotEmpty()) {
+                                            put("customFilters", buildJsonObject {
+                                                sec.customFilters.forEach { (k, v) -> put(k, v) }
+                                            })
+                                        }
+                                        if (sec.description.isNotBlank()) {
+                                            put("description", sec.description.trim())
+                                        }
+                                        if (!sec.enabled) {
+                                            put("disabled", true)
+                                        }
+                                    })
+                                }
                             }
-                        } else if (isAws) {
-                            if (sec.name.isNotBlank() && (sec.path.isNotBlank() || sec.url.isNotBlank())) {
-                                add(buildJsonObject {
-                                    put("name", sec.name.trim())
-                                    put("secretName", sec.path.trim().ifBlank { sec.url.trim() })
-                                    if (sec.targetField.isNotBlank()) {
-                                        put("targetField", sec.targetField.trim())
-                                    }
-                                    if (sec.customFilters.isNotEmpty()) {
-                                        put("customFilters", buildJsonObject {
-                                            sec.customFilters.forEach { (k, v) -> put(k, v) }
-                                        })
-                                    }
-                                    if (sec.description.isNotBlank()) {
-                                        put("description", sec.description.trim())
-                                    }
-                                    if (!sec.enabled) {
-                                        put("disabled", true)
-                                    }
-                                })
+                            ExternalSecretType.AWS_SECRETS_MANAGER -> {
+                                if (sec.name.isNotBlank() && (sec.path.isNotBlank() || sec.url.isNotBlank())) {
+                                    add(buildJsonObject {
+                                        put("name", sec.name.trim())
+                                        put("secretName", sec.path.trim().ifBlank { sec.url.trim() })
+                                        if (sec.targetField.isNotBlank()) {
+                                            put("targetField", sec.targetField.trim())
+                                        }
+                                        if (sec.customFilters.isNotEmpty()) {
+                                            put("customFilters", buildJsonObject {
+                                                sec.customFilters.forEach { (k, v) -> put(k, v) }
+                                            })
+                                        }
+                                        if (sec.description.isNotBlank()) {
+                                            put("description", sec.description.trim())
+                                        }
+                                        if (!sec.enabled) {
+                                            put("disabled", true)
+                                        }
+                                    })
+                                }
                             }
-                        } else if (isAzure) {
-                            if (sec.name.isNotBlank() && (sec.path.isNotBlank() || sec.url.isNotBlank())) {
-                                add(buildJsonObject {
-                                    put("name", sec.name.trim())
-                                    put("secretName", sec.path.trim())
-                                    if (sec.url.isNotBlank()) {
-                                        put("vaultName", sec.url.trim())
-                                    }
-                                    if (sec.targetField.isNotBlank()) {
-                                        put("targetField", sec.targetField.trim())
-                                    }
-                                    if (sec.customFilters.isNotEmpty()) {
-                                        put("customFilters", buildJsonObject {
-                                            sec.customFilters.forEach { (k, v) -> put(k, v) }
-                                        })
-                                    }
-                                    if (sec.description.isNotBlank()) {
-                                        put("description", sec.description.trim())
-                                    }
-                                    if (!sec.enabled) {
-                                        put("disabled", true)
-                                    }
-                                })
+                            ExternalSecretType.AZURE_KEY_VAULT -> {
+                                if (sec.name.isNotBlank() && (sec.path.isNotBlank() || sec.url.isNotBlank())) {
+                                    add(buildJsonObject {
+                                        put("name", sec.name.trim())
+                                        put("secretName", sec.path.trim())
+                                        if (sec.url.isNotBlank()) {
+                                            put("vaultName", sec.url.trim())
+                                        }
+                                        if (sec.targetField.isNotBlank()) {
+                                            put("targetField", sec.targetField.trim())
+                                        }
+                                        if (sec.customFilters.isNotEmpty()) {
+                                            put("customFilters", buildJsonObject {
+                                                sec.customFilters.forEach { (k, v) -> put(k, v) }
+                                            })
+                                        }
+                                        if (sec.description.isNotBlank()) {
+                                            put("description", sec.description.trim())
+                                        }
+                                        if (!sec.enabled) {
+                                            put("disabled", true)
+                                        }
+                                    })
+                                }
                             }
-                        } else if (isGcp) {
-                            if (sec.name.isNotBlank() && sec.path.isNotBlank()) {
-                                add(buildJsonObject {
-                                    put("name", sec.name.trim())
-                                    put("secretId", sec.path.trim())
-                                    if (sec.targetField.isNotBlank()) {
-                                        put("targetField", sec.targetField.trim())
-                                    }
-                                    if (sec.url.isNotBlank()) {
-                                        put("projectId", sec.url.trim())
-                                    }
-                                    if (sec.customFilters.isNotEmpty()) {
-                                        put("customFilters", buildJsonObject {
-                                            sec.customFilters.forEach { (k, v) -> put(k, v) }
-                                        })
-                                    }
-                                    if (sec.description.isNotBlank()) {
-                                        put("description", sec.description.trim())
-                                    }
-                                    if (!sec.enabled) {
-                                        put("disabled", true)
-                                    }
-                                })
+                            ExternalSecretType.GCP_SECRETS_MANAGER -> {
+                                if (sec.name.isNotBlank() && sec.path.isNotBlank()) {
+                                    add(buildJsonObject {
+                                        put("name", sec.name.trim())
+                                        put("secretId", sec.path.trim())
+                                        if (sec.targetField.isNotBlank()) {
+                                            put("targetField", sec.targetField.trim())
+                                        }
+                                        if (sec.url.isNotBlank()) {
+                                            put("projectId", sec.url.trim())
+                                        }
+                                        if (sec.customFilters.isNotEmpty()) {
+                                            put("customFilters", buildJsonObject {
+                                                sec.customFilters.forEach { (k, v) -> put(k, v) }
+                                            })
+                                        }
+                                        if (sec.description.isNotBlank()) {
+                                            put("description", sec.description.trim())
+                                        }
+                                        if (!sec.enabled) {
+                                            put("disabled", true)
+                                        }
+                                    })
+                                }
                             }
-                        } else if (isKeeper) {
-                            if (sec.name.isNotBlank() && sec.path.isNotBlank()) {
-                                add(buildJsonObject {
-                                    put("name", sec.name.trim())
-                                    put("recordTitle", sec.path.trim())
-                                    put("targetField", sec.targetField.ifBlank { "password" }.trim())
-                                    if (sec.customFilters.isNotEmpty()) {
-                                        put("customFilters", buildJsonObject {
-                                            sec.customFilters.forEach { (k, v) -> put(k, v) }
-                                        })
-                                    }
-                                    if (sec.description.isNotBlank()) {
-                                        put("description", sec.description.trim())
-                                    }
-                                    if (!sec.enabled) {
-                                        put("disabled", true)
-                                    }
-                                })
+                            ExternalSecretType.KEEPER_SECURITY_CLOUD -> {
+                                if (sec.name.isNotBlank() && sec.path.isNotBlank()) {
+                                    add(buildJsonObject {
+                                        put("name", sec.name.trim())
+                                        put("recordTitle", sec.path.trim())
+                                        put("targetField", sec.targetField.ifBlank { "password" }.trim())
+                                        if (sec.customFilters.isNotEmpty()) {
+                                            put("customFilters", buildJsonObject {
+                                                sec.customFilters.forEach { (k, v) -> put(k, v) }
+                                            })
+                                        }
+                                        if (sec.description.isNotBlank()) {
+                                            put("description", sec.description.trim())
+                                        }
+                                        if (!sec.enabled) {
+                                            put("disabled", true)
+                                        }
+                                    })
+                                }
                             }
-                        } else {
-                            if (sec.name.isNotBlank() && sec.path.isNotBlank()) {
-                                add(buildJsonObject {
-                                    put("name", sec.name.trim())
-                                    put("path", sec.path.trim())
-                                    if (sec.description.isNotBlank()) {
-                                        put("description", sec.description.trim())
-                                    }
-                                    if (!sec.enabled) {
-                                        put("disabled", true)
-                                    }
-                                })
+                            else -> {
+                                if (sec.name.isNotBlank() && sec.path.isNotBlank()) {
+                                    add(buildJsonObject {
+                                        put("name", sec.name.trim())
+                                        put("path", sec.path.trim())
+                                        if (sec.description.isNotBlank()) {
+                                            put("description", sec.description.trim())
+                                        }
+                                        if (!sec.enabled) {
+                                            put("disabled", true)
+                                        }
+                                    })
+                                }
                             }
                         }
                     }

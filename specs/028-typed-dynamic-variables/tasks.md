@@ -18,7 +18,7 @@
 
 **Purpose**: Verify clean build and test baseline before making changes
 
-- [ ] T001 Verify project baseline and test suite passing via `rtk gradlew :core-model:desktopTest :editor-core:desktopTest :ui-shared:desktopTest`
+- [X] T001 Verify project baseline and test suite passing via `rtk gradlew :core-model:desktopTest :editor-core:desktopTest :ui-shared:desktopTest`
 
 ---
 
@@ -26,12 +26,12 @@
 
 **Purpose**: Core data model and serialization contracts in `:core-model` that MUST be complete before UI and editor features can be implemented.
 
-- [ ] T002 Refactor `VariableType` enum in `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/OpenCollectionEnvironment.kt` to contain only primitive data types (`STRING("string")`, `NUMBER("number")`, `BOOLEAN("boolean")`, `NULL("null")`, `OBJECT("object")`) and remove `DYNAMIC("dynamic")`.
-- [ ] T003 Create `VariableKind` enum (`REGULAR("regular")`, `SECRET("secret")`, `DYNAMIC("dynamic")`) in `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`.
-- [ ] T004 Update `DynamicVariable` (`val type: VariableType = VariableType.STRING`), `RegularVariable` (`val type: VariableType = VariableType.STRING`), and `SecretVariable` (`val type: VariableType = VariableType.STRING`) in `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/OpenCollectionEnvironment.kt` per `contracts/variable-data-model-contract.md`.
-- [ ] T005 Update `VariableEntrySerializer` in `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/OpenCollectionEnvironment.kt` to polymorphically deserialize based on `secret == true`, presence of `script` or legacy `type == "dynamic"`, and map legacy `type == "dynamic"` to `VariableType.STRING`.
-- [ ] T006 [P] Update model serialization tests in `core-model/src/commonTest/kotlin/io/github/makeforge/clapi/core/model/opencollection/DynamicVariableSerializationTest.kt` to assert `DynamicVariable` serializes with `type: VariableType` (number, boolean, object, string) and deserializes legacy `"type": "dynamic"` losslessly.
-- [ ] T007 [P] Update `OpenCollectionModelTest.kt` in `core-model/src/commonTest/kotlin/io/github/makeforge/clapi/core/model/opencollection/OpenCollectionModelTest.kt` and `DynamicVariableStorageTest.kt` in `core-storage/src/commonTest/kotlin/io/github/makeforge/clapi/core/storage/DynamicVariableStorageTest.kt` to match updated `VariableType` entries.
+- [X] T002 Refactor `VariableType` enum in `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/OpenCollectionEnvironment.kt` to contain only primitive data types (`STRING("string")`, `NUMBER("number")`, `BOOLEAN("boolean")`, `NULL("null")`, `OBJECT("object")`) and remove `DYNAMIC("dynamic")`.
+- [X] T003 Create `VariableKind` enum (`REGULAR("regular")`, `SECRET("secret")`, `DYNAMIC("dynamic")`) in `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/OpenCollectionEnvironment.kt`.
+- [X] T004 Update `DynamicVariable` (`val type: VariableType = VariableType.STRING`), `RegularVariable` (`val type: VariableType = VariableType.STRING`), and `SecretVariable` (`val type: VariableType = VariableType.STRING`) in `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/OpenCollectionEnvironment.kt` per `contracts/variable-data-model-contract.md`.
+- [X] T005 Update `VariableEntrySerializer` in `core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/OpenCollectionEnvironment.kt` to polymorphically deserialize based on `secret == true`, presence of `script` or legacy `type == "dynamic"`, and map legacy `type == "dynamic"` to `VariableType.STRING`.
+- [X] T006 [P] Update model serialization tests in `core-model/src/commonTest/kotlin/io/github/makeforge/clapi/core/model/opencollection/DynamicVariableSerializationTest.kt` to assert `DynamicVariable` serializes with `type: VariableType` (number, boolean, object, string) and deserializes legacy `"type": "dynamic"` losslessly.
+- [X] T007 [P] Update `OpenCollectionModelTest.kt` in `core-model/src/commonTest/kotlin/io/github/makeforge/clapi/core/model/opencollection/OpenCollectionModelTest.kt` and `DynamicVariableStorageTest.kt` in `core-storage/src/commonTest/kotlin/io/github/makeforge/clapi/core/storage/DynamicVariableStorageTest.kt` to match updated `VariableType` entries.
 
 **Checkpoint**: Core data model and OpenCollection serialization clean. Foundational phase complete.
 
@@ -45,12 +45,12 @@
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Update `MutableKeyValue` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/EditorRowModels.kt` to add `var type: VariableType by mutableStateOf(VariableType.STRING)` and `var kind: VariableKind` getter/setter mapping to `secret` and `isDynamic`.
-- [ ] T009 [US1] Update `toDynamicVariable()`, `toKeyValueEntry()`, and mapping functions in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to map `type` between `DynamicVariable`, `RegularVariable`, `SecretVariable`, and `MutableKeyValue`.
-- [ ] T010 [US1] Refactor `EnvVariableTable.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvVariableTable.kt` to replace the cycling badge with two explicit selection dropdowns: Variable Kind (`Regular`, `Secret`, `Dynamic`) and Variable Type (`String`, `Number`, `Boolean`, `Object`) per `contracts/variable-editor-ui-contract.md`.
-- [ ] T011 [US1] Update `DynamicVariableEditorDialog.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/dynamicvar/DynamicVariableEditorDialog.kt` to include a Return Type dropdown selector (`String`, `Number`, `Boolean`, `Object`), dynamic template preview banner (`{ "key": {{var}} }` vs `{ "key": "{{var}}" }`), and test run result type mismatch warning.
-- [ ] T012 [P] [US1] Add string resources in `ui-shared/src/commonMain/resources/i18n/` (`en.json`, `de.json`, `es.json`, `fr.json`) for variable kind labels (`regular`, `secret`, `dynamic`) and data type labels (`type_string`, `type_number`, `type_boolean`, `type_object`).
-- [ ] T013 [P] [US1] Update UI tests in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/DynamicVariableEditorDialogTest.kt` to verify return type selection, persistence into `MutableKeyValue`, and template preview updates.
+- [X] T008 [US1] Update `MutableKeyValue` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/EditorRowModels.kt` to add `var type: VariableType by mutableStateOf(VariableType.STRING)` and `var kind: VariableKind` getter/setter mapping to `secret` and `isDynamic`.
+- [X] T009 [US1] Update `toDynamicVariable()`, `toKeyValueEntry()`, and mapping functions in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to map `type` between `DynamicVariable`, `RegularVariable`, `SecretVariable`, and `MutableKeyValue`.
+- [X] T010 [US1] Refactor `EnvVariableTable.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/env/EnvVariableTable.kt` to replace the cycling badge with two explicit selection dropdowns: Variable Kind (`Regular`, `Secret`, `Dynamic`) and Variable Type (`String`, `Number`, `Boolean`, `Object`) per `contracts/variable-editor-ui-contract.md`.
+- [X] T011 [US1] Update `DynamicVariableEditorDialog.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/dynamicvar/DynamicVariableEditorDialog.kt` to include a Return Type dropdown selector (`String`, `Number`, `Boolean`, `Object`), dynamic template preview banner (`{ "key": {{var}} }` vs `{ "key": "{{var}}" }`), and test run result type mismatch warning.
+- [X] T012 [P] [US1] Add string resources in `ui-shared/src/commonMain/resources/i18n/` (`en.json`, `de.json`, `es.json`, `fr.json`) for variable kind labels (`regular`, `secret`, `dynamic`) and data type labels (`type_string`, `type_number`, `type_boolean`, `type_object`).
+- [X] T013 [P] [US1] Update UI tests in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/DynamicVariableEditorDialogTest.kt` to verify return type selection, persistence into `MutableKeyValue`, and template preview updates.
 
 **Checkpoint**: At this point, User Story 1 is fully functional and testable independently.
 
@@ -64,18 +64,18 @@
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] Implement offset-preserving template masking algorithm in `editor-core/src/commonMain/kotlin/io/github/makeforge/clapi/editor/core/Json5EditorSupport.kt` per `contracts/editor-template-validation-contract.md`, replacing unquoted `{{...}}` tokens in value positions with whitespace-padded dummy JSON literals (`"0".padEnd(len, ' ')`) before passing to `Json5.parseToJsonElement`.
-- [ ] T015 [US2] Implement offset-preserving template masking algorithm in `editor-core/src/commonMain/kotlin/io/github/makeforge/clapi/editor/core/JsonMode.kt` for strict JSON mode validation.
-- [ ] T016 [US2] Enhance `editor-core/src/commonMain/kotlin/io/github/makeforge/clapi/editor/core/LanguageMode.kt` and `EditorEngine.kt` to accept optional variable definitions or variable type resolver callback during document validation.
-- [ ] T017 [US2] Add diagnostic check in `editor-core/src/commonMain/kotlin/io/github/makeforge/clapi/editor/core/Json5EditorSupport.kt` and `JsonMode.kt` to detect unquoted variable tokens whose resolved type is `VariableType.STRING`, emitting an `InlineEditorError` at the exact token offset advising double quotes.
-- [ ] T018 [US2] Wire active variable layers and dynamic variable types from `RequestTabState` into `EditorViewModel.kt` in `editor-ui/src/commonMain/kotlin/io/github/makeforge/clapi/editor/ui/EditorViewModel.kt` during background diagnostics scheduling.
-- [ ] T019 [P] [US2] Create unit tests in `editor-core/src/commonTest/kotlin/io/github/makeforge/clapi/editor/core/Json5EditorSupportTest.kt` and `editor-core/src/commonTest/kotlin/io/github/makeforge/clapi/editor/core/JsonModeTest.kt` verifying:
+- [X] T014 [US2] Implement offset-preserving template masking algorithm in `editor-core/src/commonMain/kotlin/io/github/makeforge/clapi/editor/core/Json5EditorSupport.kt` per `contracts/editor-template-validation-contract.md`, replacing unquoted `{{...}}` tokens in value positions with whitespace-padded dummy JSON literals (`"0".padEnd(len, ' ')`) before passing to `Json5.parseToJsonElement`.
+- [X] T015 [US2] Implement offset-preserving template masking algorithm in `editor-core/src/commonMain/kotlin/io/github/makeforge/clapi/editor/core/JsonMode.kt` for strict JSON mode validation.
+- [X] T016 [US2] Enhance `editor-core/src/commonMain/kotlin/io/github/makeforge/clapi/editor/core/LanguageMode.kt` and `EditorEngine.kt` to accept optional variable definitions or variable type resolver callback during document validation.
+- [X] T017 [US2] Add diagnostic check in `editor-core/src/commonMain/kotlin/io/github/makeforge/clapi/editor/core/Json5EditorSupport.kt` and `JsonMode.kt` to detect unquoted variable tokens whose resolved type is `VariableType.STRING`, emitting an `InlineEditorError` at the exact token offset advising double quotes.
+- [X] T018 [US2] Wire active variable layers and dynamic variable types from `RequestTabState` into `EditorViewModel.kt` in `editor-ui/src/commonMain/kotlin/io/github/makeforge/clapi/editor/ui/EditorViewModel.kt` during background diagnostics scheduling.
+- [X] T019 [P] [US2] Create unit tests in `editor-core/src/commonTest/kotlin/io/github/makeforge/clapi/editor/core/Json5EditorSupportTest.kt` and `editor-core/src/commonTest/kotlin/io/github/makeforge/clapi/editor/core/JsonModeTest.kt` verifying:
   - `{"x": {{num}} }` reports 0 syntax errors
   - `{"ts": {{$timestamp}} }` reports 0 syntax errors
   - `{"b": {{active}}, "obj": {{meta}} }` reports 0 syntax errors
   - `{"s": {{unquotedString}} }` reports diagnostic recommending double quotes
   - Genuine JSON syntax errors (unclosed brace, missing colon) still report at exact line and column.
-- [ ] T020 [P] [US2] Update `EditorEngineIntegrationTest.kt` in `ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/components/EditorEngineIntegrationTest.kt` to verify template-aware validation across body editor tabs.
+- [X] T020 [P] [US2] Update `EditorEngineIntegrationTest.kt` in `ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/components/EditorEngineIntegrationTest.kt` to verify template-aware validation across body editor tabs.
 
 **Checkpoint**: At this point, User Stories 1 AND 2 are complete. Editor syntax error on unquoted numeric/boolean variables is completely resolved.
 
@@ -89,10 +89,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T021 [US3] Add execution-time type validation in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/dynamicvar/UserScriptDynamicVariableProvider.kt` ensuring script return values match `dynamicVar.type` (`Number`, `Boolean`, `Object`) or throw `DynamicVariableResolutionException`.
-- [ ] T022 [US3] Verify `VariableResolver.kt` in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/VariableResolver.kt` correctly interpolates unquoted user-defined and built-in dynamic variables into request bodies.
-- [ ] T023 [P] [US3] Add unit tests in `core-network/src/commonTest/kotlin/io/github/makeforge/clapi/core/network/DynamicVariableExecutionTest.kt` verifying type enforcement on dynamic script evaluation (valid numbers pass, invalid non-numbers throw descriptive errors).
-- [ ] T024 [P] [US3] Add end-to-end integration test in `qa-tests/src/test/kotlin/io/github/makeforge/clapi/qa/DynamicVariablesE2ETest.kt` executing an HTTP request with unquoted dynamic number, boolean, and object variables against `DummyApiServer`, asserting the received wire body contains native JSON types.
+- [X] T021 [US3] Add execution-time type validation in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/dynamicvar/UserScriptDynamicVariableProvider.kt` ensuring script return values match `dynamicVar.type` (`Number`, `Boolean`, `Object`) or throw `DynamicVariableResolutionException`.
+- [X] T022 [US3] Verify `VariableResolver.kt` in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/VariableResolver.kt` correctly interpolates unquoted user-defined and built-in dynamic variables into request bodies.
+- [X] T023 [P] [US3] Add unit tests in `core-network/src/commonTest/kotlin/io/github/makeforge/clapi/core/network/DynamicVariableExecutionTest.kt` verifying type enforcement on dynamic script evaluation (valid numbers pass, invalid non-numbers throw descriptive errors).
+- [X] T024 [P] [US3] Add end-to-end integration test in `qa-tests/src/test/kotlin/io/github/makeforge/clapi/qa/DynamicVariablesE2ETest.kt` executing an HTTP request with unquoted dynamic number, boolean, and object variables against `DummyApiServer`, asserting the received wire body contains native JSON types.
 
 **Checkpoint**: At this point, end-to-end execution of typed variables is verified.
 
@@ -106,8 +106,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T025 [P] [US4] Update `docs/features/dynamic-variables.md` to document the Kind selection box (`Regular`, `Secret`, `Dynamic`), Type selection box (`String`, `Number`, `Boolean`, `Object`), OpenCollection schema updates, and JSON body quoting rules (when to quote vs unquote).
-- [ ] T026 [P] [US4] Update `docs/environments/dynamic-variables.md` and related environment documentation pages with updated table column guides and template syntax examples.
+- [X] T025 [P] [US4] Update `docs/features/dynamic-variables.md` to document the Kind selection box (`Regular`, `Secret`, `Dynamic`), Type selection box (`String`, `Number`, `Boolean`, `Object`), OpenCollection schema updates, and JSON body quoting rules (when to quote vs unquote).
+- [X] T026 [P] [US4] Update `docs/environments/dynamic-variables.md` and related environment documentation pages with updated table column guides and template syntax examples.
 
 ---
 
@@ -115,9 +115,9 @@
 
 **Purpose**: Verification, cleanup, and quality gates across all modules
 
-- [ ] T027 [P] Execute full unit and integration test suite across all modules: `rtk gradlew test desktopTest`
-- [ ] T028 [P] Run quickstart validation scenarios defined in `specs/028-typed-dynamic-variables/quickstart.md`
-- [ ] T029 Clean up any unused imports or obsolete comments
+- [X] T027 [P] Execute full unit and integration test suite across all modules: `rtk gradlew test desktopTest`
+- [X] T028 [P] Run quickstart validation scenarios defined in `specs/028-typed-dynamic-variables/quickstart.md`
+- [X] T029 Clean up any unused imports or obsolete comments
 
 ---
 

@@ -45,6 +45,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
@@ -57,11 +58,15 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.onPointerEvent
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -138,16 +143,145 @@ fun parseVariableNames(text: String): List<String> =
 
 /** Returns the variable name under [offset], if the cursor is inside `{{...}}`. */
 fun variableNameAtOffset(text: String, offset: Int): String? {
-    if (offset < 0 || offset > text.length) return null
+    if (offset < 0 || offset >= text.length) return null
     for (match in VARIABLE_REGEX.findAll(text)) {
         val start = match.range.first
         val endExclusive = match.range.last + 1
-        if (offset in start..endExclusive) {
+        if (offset in start until endExclusive) {
             val name = normalizeVariableDisplayName(match.groupValues[1])
             if (name.isNotEmpty()) return name
         }
     }
     return null
+}
+
+/**
+ * Returns the variable name under the local pointer position [pos], or null if
+ * the position is not directly on a `{{variable}}` token's text.
+ */
+fun findVariableAtPoint(
+    pos: Offset,
+    layout: TextLayoutResult?,
+    annotated: AnnotatedString,
+): String? {
+    if (layout == null || annotated.isEmpty()) return null
+    val annotations = annotated.getStringAnnotations(VARIABLE_TAG, 0, annotated.length)
+    if (annotations.isEmpty()) return null
+
+    val line = if (layout.lineCount <= 1) {
+        0
+    } else {
+        val clampedY = pos.y.coerceIn(0f, layout.size.height.toFloat() - 1f)
+        val l = layout.getLineForVerticalPosition(clampedY)
+        val lineTop = layout.getLineTop(l)
+        val lineBottom = layout.getLineBottom(l)
+        if (pos.y < lineTop || pos.y > lineBottom) return null
+        l
+    }
+
+    val lineLeft = layout.getLineLeft(line)
+    val lineRight = layout.getLineRight(line)
+    if (pos.x < lineLeft || pos.x > lineRight) return null
+
+    for (ann in annotations) {
+        if (ann.start >= ann.end) continue
+        val startChar = ann.start.coerceIn(0, annotated.length - 1)
+        val endChar = (ann.end - 1).coerceIn(0, annotated.length - 1)
+
+        val startLine = layout.getLineForOffset(startChar)
+        val endLine = layout.getLineForOffset(endChar)
+
+        if (line in startLine..endLine) {
+            val spanLeft = if (line == startLine) layout.getBoundingBox(startChar).left else lineLeft
+            val spanRight = if (line == endLine) layout.getBoundingBox(endChar).right else lineRight
+            if (pos.x in spanLeft..spanRight) {
+                return ann.item
+            }
+        }
+    }
+    return null
+}
+
+data class VariablePrefixContext(
+    val prefix: String,
+    val replaceStart: Int,
+    val replaceEnd: Int,
+)
+
+/**
+ * Extracts the current word prefix being typed immediately before [cursor] in [text],
+ * along with the character range [replaceStart, replaceEnd] to be replaced when a suggestion
+ * is chosen.
+ */
+fun extractVariablePrefixContext(text: String, cursor: Int): VariablePrefixContext {
+    val clampedCursor = cursor.coerceIn(0, text.length)
+    val textBefore = text.substring(0, clampedCursor)
+    val lastOpen = textBefore.lastIndexOf("{{")
+    val lastClose = textBefore.lastIndexOf("}}")
+
+    if (lastOpen != -1 && lastOpen > lastClose) {
+        val prefix = textBefore.substring(lastOpen + 2).trimStart()
+        val textAfter = text.substring(clampedCursor)
+        val closeAfter = textAfter.indexOf("}}")
+        val newlineAfter = textAfter.indexOfAny(charArrayOf('\r', '\n'))
+        val replaceEnd = if (closeAfter != -1 && (newlineAfter == -1 || closeAfter < newlineAfter)) {
+            clampedCursor + closeAfter + 2
+        } else {
+            clampedCursor
+        }
+        return VariablePrefixContext(
+            prefix = prefix,
+            replaceStart = lastOpen,
+            replaceEnd = replaceEnd,
+        )
+    }
+
+    var start = clampedCursor - 1
+    while (start >= 0) {
+        val ch = textBefore[start]
+        if (ch.isLetterOrDigit() || ch == '_' || ch == '-' || ch == '.' || ch == '$') {
+            start--
+        } else {
+            break
+        }
+    }
+    val wordStart = start + 1
+    val prefix = textBefore.substring(wordStart)
+    return VariablePrefixContext(
+        prefix = prefix,
+        replaceStart = wordStart,
+        replaceEnd = clampedCursor,
+    )
+}
+
+/**
+ * Filters and prioritizes available variables based on the typed [prefix].
+ * If [prefix] is blank, all variables are returned in their original order.
+ * Otherwise, items are filtered by case-insensitive containment and sorted
+ * so exact and prefix matches appear first.
+ */
+fun filterVariables(
+    variables: List<Pair<String, String>>,
+    prefix: String,
+): List<Pair<String, String>> {
+    val trimmed = prefix.trim()
+    if (trimmed.isEmpty()) return variables
+    val lowerPrefix = trimmed.lowercase()
+    return variables
+        .filter { (name, _) ->
+            val lowerName = name.lowercase()
+            val cleanName = lowerName.removePrefix("_secret.").removePrefix("_auth.").removePrefix("$")
+            lowerName.contains(lowerPrefix) || cleanName.contains(lowerPrefix)
+        }
+        .sortedWith(compareBy(
+            { (name, _) -> if (name.equals(trimmed, ignoreCase = true)) 0 else 1 },
+            { (name, _) -> if (name.startsWith(trimmed, ignoreCase = true)) 0 else 1 },
+            { (name, _) ->
+                val clean = name.lowercase().removePrefix("_secret.").removePrefix("_auth.").removePrefix("$")
+                if (clean.startsWith(lowerPrefix)) 0 else 1
+            },
+            { (name, _) -> name.lowercase() }
+        ))
 }
 
 /**
@@ -161,8 +295,9 @@ internal fun isVariableTokenDefined(rawName: String, definedNames: Set<String>):
     val name = normalizeVariableDisplayName(rawName)
     if (name.isEmpty()) return false
     if (name in definedNames) return true
+    if (VariableResolver.isDynamicToken(name)) return true
     val parsedName = VariableResolver.parseVariableToken(name).name
-    return parsedName in definedNames
+    return parsedName in definedNames || VariableResolver.isDynamicToken(parsedName)
 }
 
 fun variableRangesForLine(
@@ -253,6 +388,7 @@ fun highlightVariablesWithStatus(text: String, definedNames: Set<String>): Annot
  * When [state] is `null` the component degrades gracefully to a plain text
  * field with no highlighting or popup.
  */
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
 fun VariableAwareTextField(
     value: String,
@@ -297,30 +433,7 @@ fun VariableAwareTextField(
         derivedStateOf {
             if (state != null || extraVariables.isNotEmpty()) {
                 val vars = if (state != null) {
-                    val set = state.activeVariableLayers(currentTab).flatMap { it.keys }.toMutableSet()
-                    state.selectedEnvironment?.externalSecrets?.filter { it.enabled && it.name.isNotBlank() }?.forEach {
-                        set.add("_secret.${it.name.trim()}")
-                    }
-                    val effectiveAuthType = if (currentTab != null) {
-                        if (currentTab.authType == AuthType.INHERIT) {
-                            state.resolveInheritedAuth(currentTab)?.authType ?: AuthType.NONE
-                        } else {
-                            currentTab.authType
-                        }
-                    } else {
-                        AuthType.NONE
-                    }
-                    if (effectiveAuthType == AuthType.OAUTH2) {
-                        set.add("_auth.oauth2.accessToken")
-                    }
-                    VariableResolver.dynamicVariables.forEach { dv ->
-                        set.add(dv.name)
-                        set.add(dv.name.removePrefix("$"))
-                    }
-                    state.activeDynamicVariables(currentTab).forEach { dv ->
-                        set.add(dv.name)
-                    }
-                    set
+                    state.allDefinedVariableNames(currentTab).toMutableSet()
                 } else {
                     mutableSetOf()
                 }
@@ -345,7 +458,7 @@ fun VariableAwareTextField(
         mutableStateOf(
             TextFieldValue(
                 annotatedString = annotated,
-                selection = if (selectAllOnStart && value.isNotEmpty()) TextRange(0, value.length) else TextRange.Zero,
+                selection = if (selectAllOnStart && value.isNotEmpty()) TextRange(0, value.length) else TextRange(value.length),
             ),
         )
     }
@@ -380,17 +493,35 @@ fun VariableAwareTextField(
         }
     }
 
+    val currentCursor = fieldValue.selection.min
+    val prefixContext = remember(fieldValue.text, currentCursor, showVariableDropdown) {
+        if (showVariableDropdown) {
+            extractVariablePrefixContext(fieldValue.text, currentCursor)
+        } else {
+            null
+        }
+    }
+    val filteredVariables = remember(availableVariables, prefixContext) {
+        if (prefixContext != null) {
+            filterVariables(availableVariables, prefixContext.prefix)
+        } else {
+            availableVariables
+        }
+    }
+
+    LaunchedEffect(filteredVariables) {
+        if (selectedVariableIndex !in filteredVariables.indices) {
+            selectedVariableIndex = 0
+        }
+    }
+
     val insertVariableAtCursor: (String) -> Unit = { varName ->
         val token = "{{$varName}}"
         val currentText = fieldValue.text
-        val selStart = fieldValue.selection.min.coerceIn(0, currentText.length)
-        val selEnd = fieldValue.selection.max.coerceIn(0, currentText.length)
-        val textBefore = currentText.substring(0, selStart)
-        val lastOpen = textBefore.lastIndexOf("{{")
-        val lastClose = textBefore.lastIndexOf("}}")
-        val replaceStart = if (lastOpen != -1 && lastOpen > lastClose) lastOpen else selStart
-        val newText = currentText.replaceRange(replaceStart, selEnd, token)
-        val newCursor = replaceStart + token.length
+        val cursor = fieldValue.selection.min.coerceIn(0, currentText.length)
+        val ctx = prefixContext ?: extractVariablePrefixContext(currentText, cursor)
+        val newText = currentText.replaceRange(ctx.replaceStart, ctx.replaceEnd, token)
+        val newCursor = ctx.replaceStart + token.length
         val annotated = if (state != null || extraVariables.isNotEmpty()) highlightVariablesWithStatus(newText, definedNames)
                         else AnnotatedString(newText)
         if (undoStack != null) {
@@ -405,6 +536,9 @@ fun VariableAwareTextField(
     // Using a plain object (not mutableStateOf) ensures setting it never
     // triggers an unnecessary recomposition.
     val pendingClickRef = remember { object { var value = false } }
+    val lastPressPosition = remember { object { var value: Offset? = null } }
+    var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+    var isHoveringVariable by remember { mutableStateOf(false) }
 
     // Sync when the external text value changes (e.g. params table updates the URL).
     // Use cursor-at-end rather than copy(annotatedString) to avoid a stale selection
@@ -440,6 +574,7 @@ fun VariableAwareTextField(
         BasicTextField(
             value = fieldValue,
             readOnly = readOnly,
+            onTextLayout = { textLayoutResult = it },
             onValueChange = { new ->
                 // If Ctrl+Space was triggered and a whitespace was typed, suppress the whitespace.
                 if (isRecentCtrlSpaceTriggered() && new.text.length == fieldValue.text.length + 1) {
@@ -474,13 +609,18 @@ fun VariableAwareTextField(
                 // this branch — they cannot open the popup (fixes Issues 1 & 4).
                 if (pendingClickRef.value) {
                     pendingClickRef.value = false
+                    val pressPos = lastPressPosition.value
+                    lastPressPosition.value = null
                     if (state != null && new.selection.collapsed) {
-                        val cursor = new.selection.start
-                        val found = annotated
-                            .getStringAnnotations(VARIABLE_TAG, cursor, cursor)
-                            .firstOrNull()
+                        val varAtPoint = if (pressPos != null && textLayoutResult != null) {
+                            findVariableAtPoint(pressPos, textLayoutResult, annotated)
+                        } else {
+                            val cursor = new.selection.start
+                            val annotations = annotated.getStringAnnotations(VARIABLE_TAG, 0, annotated.length)
+                            annotations.firstOrNull { cursor >= it.start && cursor < it.end }?.item
+                        }
                         // null → close any open popup (click outside a token)
-                        popupVariable = found?.item
+                        popupVariable = varAtPoint
                     } else {
                         popupVariable = null
                     }
@@ -503,25 +643,20 @@ fun VariableAwareTextField(
                         return@onPreviewKeyEvent true
                     }
                     if (event.type == KeyEventType.KeyDown) {
-                        if (showVariableDropdown) {
+                        if (showVariableDropdown && filteredVariables.isNotEmpty()) {
                             when (event.key) {
                                 Key.DirectionDown -> {
-                                    if (availableVariables.isNotEmpty()) {
-                                        selectedVariableIndex = (selectedVariableIndex + 1).coerceAtMost(availableVariables.size - 1)
-                                    }
+                                    selectedVariableIndex = (selectedVariableIndex + 1).coerceAtMost(filteredVariables.size - 1)
                                     return@onPreviewKeyEvent true
                                 }
                                 Key.DirectionUp -> {
-                                    if (availableVariables.isNotEmpty()) {
-                                        selectedVariableIndex = (selectedVariableIndex - 1).coerceAtLeast(0)
-                                    }
+                                    selectedVariableIndex = (selectedVariableIndex - 1).coerceAtLeast(0)
                                     return@onPreviewKeyEvent true
                                 }
-                                Key.Enter, Key.NumPadEnter -> {
-                                    if (availableVariables.isNotEmpty() && selectedVariableIndex in availableVariables.indices) {
-                                        insertVariableAtCursor(availableVariables[selectedVariableIndex].first)
-                                        showVariableDropdown = false
-                                    }
+                                Key.Enter, Key.NumPadEnter, Key.Tab -> {
+                                    val idx = selectedVariableIndex.coerceIn(0, filteredVariables.size - 1)
+                                    insertVariableAtCursor(filteredVariables[idx].first)
+                                    showVariableDropdown = false
                                     return@onPreviewKeyEvent true
                                 }
                                 Key.Escape -> {
@@ -544,12 +679,30 @@ fun VariableAwareTextField(
                         false
                     }
                 }
+                .pointerHoverIcon(if (isHoveringVariable) PointerIcon.Hand else if (readOnly) PointerIcon.Default else PointerIcon.Text)
+                .onPointerEvent(PointerEventType.Move) { event ->
+                    val pos = event.changes.firstOrNull()?.position
+                    val hoveredVar = if (pos != null && textLayoutResult != null) {
+                        findVariableAtPoint(pos, textLayoutResult, fieldValue.annotatedString)
+                    } else null
+                    val shouldHover = hoveredVar != null
+                    if (isHoveringVariable != shouldHover) {
+                        isHoveringVariable = shouldHover
+                    }
+                }
+                .onPointerEvent(PointerEventType.Exit) {
+                    if (isHoveringVariable) {
+                        isHoveringVariable = false
+                    }
+                }
                 .pointerInput(state != null) {
                     if (state == null) return@pointerInput
                     awaitPointerEventScope {
                         while (true) {
                             val event = awaitPointerEvent(PointerEventPass.Initial)
                             if (event.type == PointerEventType.Press) {
+                                val pos = event.changes.firstOrNull()?.position
+                                lastPressPosition.value = pos
                                 pendingClickRef.value = true
                             }
                         }
@@ -580,7 +733,7 @@ fun VariableAwareTextField(
             }
         }
 
-        if (showVariableDropdown && availableVariables.isNotEmpty()) {
+        if (showVariableDropdown && filteredVariables.isNotEmpty()) {
             Popup(
                 alignment = Alignment.TopStart,
                 offset = IntOffset(0, 36),
@@ -588,8 +741,8 @@ fun VariableAwareTextField(
                 onDismissRequest = { showVariableDropdown = false },
             ) {
                 VariableDropdownList(
-                    variables = availableVariables,
-                    selectedIndex = selectedVariableIndex,
+                    variables = filteredVariables,
+                    selectedIndex = selectedVariableIndex.coerceIn(0, filteredVariables.size - 1),
                     onSelect = { varName ->
                         insertVariableAtCursor(varName)
                         showVariableDropdown = false

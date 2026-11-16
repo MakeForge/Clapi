@@ -245,6 +245,13 @@ object Strings {
     val scriptError: String @Composable @ReadOnlyComposable get() = t("script_error")
     val dynamicScriptContextHint: String @Composable @ReadOnlyComposable get() = t("dynamic_script_context_hint")
     val dynamicVariablesDocs: String @Composable @ReadOnlyComposable get() = t("dynamic_variables_docs")
+    val regular: String @Composable @ReadOnlyComposable get() = t("regular")
+    val returnType: String @Composable @ReadOnlyComposable get() = t("return_type")
+    val typeString: String @Composable @ReadOnlyComposable get() = t("type_string")
+    val typeNumber: String @Composable @ReadOnlyComposable get() = t("type_number")
+    val typeBoolean: String @Composable @ReadOnlyComposable get() = t("type_boolean")
+    val typeObject: String @Composable @ReadOnlyComposable get() = t("type_object")
+    val readOnly: String @Composable @ReadOnlyComposable get() = t("read_only")
 
     @Composable
     @ReadOnlyComposable

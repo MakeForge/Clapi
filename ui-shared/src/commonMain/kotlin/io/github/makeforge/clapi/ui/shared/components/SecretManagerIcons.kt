@@ -14,15 +14,8 @@ fun externalSecretIcon(type: ExternalSecretType?): DrawableResource = when (type
     else -> Res.drawable.ic_key
 }
 
-fun externalSecretIconByProvider(provider: String?): DrawableResource = when (provider) {
-    "hashicorp-vault-server", "hashicorp-vault-cloud" -> Res.drawable.hashicorp
-    "keepassxc" -> Res.drawable.keepassxc
-    "aws-secrets-manager" -> Res.drawable.awssecrets
-    "azure-key-vault" -> Res.drawable.azurevault
-    "gcp-secrets-manager" -> Res.drawable.gcpsecretmanager
-    "keeper-security-cloud" -> Res.drawable.keepersecurity
-    else -> Res.drawable.ic_key
-}
+fun externalSecretIconByProvider(provider: String?): DrawableResource =
+    externalSecretIcon(ExternalSecretType.fromValue(provider))
 
 fun externalSecretSetupUrl(type: ExternalSecretType?): String? = when (type) {
     ExternalSecretType.KEEPER_SECURITY_CLOUD -> "https://docs.keeper.io/keeperpam/secrets-manager/quick-start-guide#setup-secrets-manager"
@@ -34,12 +27,12 @@ fun externalSecretSetupUrl(type: ExternalSecretType?): String? = when (type) {
     else -> null
 }
 
-fun externalSecretHelpUrl(provider: String?): String? = when (provider) {
-    "keeper-security-cloud" -> "https://docs.keeper.io/keeperpam/secrets-manager/quick-start-guide#setup-secrets-manager"
-    "aws-secrets-manager" -> "https://docs.aws.amazon.com/secretsmanager/latest/userguide/create_secret.html"
-    "azure-key-vault" -> "https://learn.microsoft.com/en-us/azure/key-vault/secrets/quick-create-portal"
-    "gcp-secrets-manager" -> "https://docs.cloud.google.com/secret-manager/docs/create-secret-quickstart"
-    "hashicorp-vault-server", "hashicorp-vault-cloud" -> "https://developer.hashicorp.com/vault/tutorials/get-started-hcp-vault-dedicated/create-secret"
-    "keepassxc" -> "https://keepassxc.org/docs/KeePassXC_GettingStarted"
+fun externalSecretHelpUrl(provider: String?): String? = when (ExternalSecretType.fromValue(provider)) {
+    ExternalSecretType.KEEPER_SECURITY_CLOUD -> "https://docs.keeper.io/keeperpam/secrets-manager/quick-start-guide#setup-secrets-manager"
+    ExternalSecretType.AWS_SECRETS_MANAGER -> "https://docs.aws.amazon.com/secretsmanager/latest/userguide/create_secret.html"
+    ExternalSecretType.AZURE_KEY_VAULT -> "https://learn.microsoft.com/en-us/azure/key-vault/secrets/quick-create-portal"
+    ExternalSecretType.GCP_SECRETS_MANAGER -> "https://docs.cloud.google.com/secret-manager/docs/create-secret-quickstart"
+    ExternalSecretType.HASHICORP_VAULT_SERVER, ExternalSecretType.HASHICORP_VAULT_CLOUD -> "https://developer.hashicorp.com/vault/tutorials/get-started-hcp-vault-dedicated/create-secret"
+    ExternalSecretType.KEEPASSXC -> "https://keepassxc.org/docs/KeePassXC_GettingStarted"
     else -> null
 }
