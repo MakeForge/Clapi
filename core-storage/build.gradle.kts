@@ -15,6 +15,7 @@ kotlin {
         }
         val desktopMain by getting {
             dependencies {
+                implementation(project.dependencies.platform(libs.jackson.bom))
                 implementation(libs.sqldelight.runtime)
                 implementation(libs.sqldelight.coroutines)
                 implementation(libs.networknt.json.schema)
