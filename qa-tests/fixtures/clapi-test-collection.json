@@ -105,6 +105,45 @@
             }
           ]
         }
+      },
+      {
+        "name": "GCP Staging",
+        "variables": [
+          {
+            "name": "baseUrl",
+            "value": "http://localhost:8080"
+          },
+          {
+            "name": "wsBaseUrl",
+            "value": "ws://localhost:8080"
+          }
+        ],
+        "externalSecrets": {
+          "type": "gcp-secrets-manager",
+          "variables": [
+            {
+              "name": "client_id",
+              "secretId": "payment-foo",
+              "targetField": "client_id",
+              "version": "latest",
+              "description": "GCP Gateway Client ID",
+              "disabled": false
+            },
+            {
+              "name": "client_secret",
+              "secretId": "payment-foo",
+              "targetField": "client_secret",
+              "version": "latest",
+              "description": "GCP Gateway Secret"
+            },
+            {
+              "name": "plain_token",
+              "secretId": "plain-token",
+              "version": "latest",
+              "description": "GCP Plaintext Secret"
+            }
+          ]
+        }
       }
     ]
   },

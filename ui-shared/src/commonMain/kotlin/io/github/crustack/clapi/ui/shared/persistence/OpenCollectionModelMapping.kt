@@ -41,6 +41,7 @@ import io.github.crustack.clapi.core.model.opencollection.HashicorpVaultExternal
 import io.github.crustack.clapi.core.model.opencollection.KeePassXcExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.AwsSecretsManagerExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.AzureKeyVaultExternalSecret
+import io.github.crustack.clapi.core.model.opencollection.GcpSecretsManagerExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestBody
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestDetails
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestHeader
@@ -356,6 +357,15 @@ fun Environment.toEnvState(): EnvState {
                 targetField = v.targetField,
                 customFilters = v.customFilters,
             )
+            is GcpSecretsManagerExternalSecret -> MutableExternalSecret(
+                name = v.name,
+                path = v.secretId,
+                url = v.projectId,
+                description = v.description?.content ?: "",
+                enabled = v.disabled != true,
+                targetField = v.targetField,
+                customFilters = v.customFilters,
+            )
         }
     } ?: emptyList()
 
@@ -376,6 +386,7 @@ fun EnvState.toOpenCollectionEnvironment(): Environment {
     val isKeePassXc = externalSecretsProvider.equals("keepassxc", ignoreCase = true)
     val isAws = externalSecretsProvider.equals("aws-secrets-manager", ignoreCase = true)
     val isAzure = externalSecretsProvider.equals("azure-key-vault", ignoreCase = true)
+    val isGcp = externalSecretsProvider.equals("gcp-secrets-manager", ignoreCase = true)
     val extSecretList: List<ExternalSecretVariable> = when {
         isKeePassXc -> {
             externalSecrets
@@ -414,6 +425,22 @@ fun EnvState.toOpenCollectionEnvironment(): Environment {
                         secretName = it.path.trim(),
                         vaultName = it.url.trim(),
                         targetField = it.targetField.trim(),
+                        customFilters = it.customFilters.toMap(),
+                        description = if (it.description.isNotBlank()) Description(content = it.description.trim()) else null,
+                        disabled = if (!it.enabled) true else null,
+                    )
+                }
+        }
+        isGcp -> {
+            externalSecrets
+                .filter { it.name.trim().isNotEmpty() && it.path.trim().isNotEmpty() }
+                .map {
+                    GcpSecretsManagerExternalSecret(
+                        name = it.name.trim(),
+                        secretId = it.path.trim(),
+                        version = "latest",
+                        targetField = it.targetField.trim(),
+                        projectId = it.url.trim(),
                         customFilters = it.customFilters.toMap(),
                         description = if (it.description.isNotBlank()) Description(content = it.description.trim()) else null,
                         disabled = if (!it.enabled) true else null,
@@ -577,6 +604,22 @@ fun EnvState.mergeFrom(incoming: Environment) {
                                 name = sec.name,
                                 path = sec.secretName,
                                 url = sec.vaultName,
+                                description = sec.description?.content.orEmpty(),
+                                enabled = sec.disabled != true,
+                                targetField = sec.targetField,
+                                customFilters = sec.customFilters,
+                            )
+                        )
+                        existingSecretNames.add(sec.name)
+                    }
+                }
+                is GcpSecretsManagerExternalSecret -> {
+                    if (sec.name.isNotBlank() && sec.name !in existingSecretNames) {
+                        externalSecrets.add(
+                            MutableExternalSecret(
+                                name = sec.name,
+                                path = sec.secretId,
+                                url = sec.projectId,
                                 description = sec.description?.content.orEmpty(),
                                 enabled = sec.disabled != true,
                                 targetField = sec.targetField,

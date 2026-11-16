@@ -4,6 +4,7 @@ import io.github.crustack.clapi.core.model.RequestBody
 import io.github.crustack.clapi.core.model.RequestDefinition
 import io.github.crustack.clapi.core.model.opencollection.AwsSecretsManagerExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.AzureKeyVaultExternalSecret
+import io.github.crustack.clapi.core.model.opencollection.GcpSecretsManagerExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.ExternalSecretVariable
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
 import io.github.crustack.clapi.core.model.opencollection.GraphQLRequestItem
@@ -18,6 +19,7 @@ import io.github.crustack.clapi.core.network.ApiClient
 import io.github.crustack.clapi.core.network.NetworkEvent
 import io.github.crustack.clapi.core.network.VariableResolver
 import io.github.crustack.clapi.core.network.azure.AzureKeyVaultClient
+import io.github.crustack.clapi.core.network.gcp.GcpSecretManagerClient
 import io.github.crustack.clapi.core.network.getEnvironmentVariable
 import io.github.crustack.clapi.core.network.grpc.DynamicGrpcClient
 import io.github.crustack.clapi.core.network.grpc.GrpcCallRequest
@@ -56,6 +58,10 @@ class RequestExecutionService(
         azureAuthorityHost: String = "https://login.microsoftonline.com",
         azureApiVersion: String = "7.4",
         azureClient: AzureKeyVaultClient? = null,
+        gcpProjectId: String = "",
+        gcpAccessToken: String = "",
+        gcpEndpointUrl: String = "https://secretmanager.googleapis.com",
+        gcpClient: GcpSecretManagerClient? = null,
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
     ): Map<String, String> {
         val declarations = externalSecrets.mapNotNull { sec ->
@@ -83,6 +89,17 @@ class RequestExecutionService(
                     customFilters = sec.customFilters,
                     enabled = sec.disabled != true,
                     providerType = "azure-key-vault",
+                )
+                is GcpSecretsManagerExternalSecret -> SecretDeclaration(
+                    name = sec.name,
+                    path = sec.secretId,
+                    secretId = sec.secretId,
+                    url = sec.projectId,
+                    targetField = sec.targetField,
+                    customFilters = sec.customFilters,
+                    enabled = sec.disabled != true,
+                    providerType = "gcp-secrets-manager",
+                    version = sec.version,
                 )
                 else -> null
             }
@@ -112,6 +129,10 @@ class RequestExecutionService(
             azureAuthorityHost = azureAuthorityHost,
             azureApiVersion = azureApiVersion,
             azureClient = azureClient,
+            gcpProjectId = gcpProjectId,
+            gcpAccessToken = gcpAccessToken,
+            gcpEndpointUrl = gcpEndpointUrl,
+            gcpClient = gcpClient,
             processEnvProvider = processEnvProvider,
         )
     }
@@ -138,6 +159,10 @@ class RequestExecutionService(
         azureAuthorityHost: String = "https://login.microsoftonline.com",
         azureApiVersion: String = "7.4",
         azureClient: AzureKeyVaultClient? = null,
+        gcpProjectId: String = "",
+        gcpAccessToken: String = "",
+        gcpEndpointUrl: String = "https://secretmanager.googleapis.com",
+        gcpClient: GcpSecretManagerClient? = null,
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
     ): Flow<NetworkEvent> {
         val textsToScan = mutableListOf<String>()
@@ -166,6 +191,10 @@ class RequestExecutionService(
             azureAuthorityHost = azureAuthorityHost,
             azureApiVersion = azureApiVersion,
             azureClient = azureClient,
+            gcpProjectId = gcpProjectId,
+            gcpAccessToken = gcpAccessToken,
+            gcpEndpointUrl = gcpEndpointUrl,
+            gcpClient = gcpClient,
             processEnvProvider = processEnvProvider,
         )
         val effectiveLayers = if (secretMap.isNotEmpty()) listOf(secretMap) + variableLayers else variableLayers
@@ -195,6 +224,10 @@ class RequestExecutionService(
         azureAuthorityHost: String = "https://login.microsoftonline.com",
         azureApiVersion: String = "7.4",
         azureClient: AzureKeyVaultClient? = null,
+        gcpProjectId: String = "",
+        gcpAccessToken: String = "",
+        gcpEndpointUrl: String = "https://secretmanager.googleapis.com",
+        gcpClient: GcpSecretManagerClient? = null,
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
         includePaths: List<String> = emptyList(),
     ): GrpcCallResponse {
@@ -223,6 +256,10 @@ class RequestExecutionService(
             azureAuthorityHost = azureAuthorityHost,
             azureApiVersion = azureApiVersion,
             azureClient = azureClient,
+            gcpProjectId = gcpProjectId,
+            gcpAccessToken = gcpAccessToken,
+            gcpEndpointUrl = gcpEndpointUrl,
+            gcpClient = gcpClient,
             processEnvProvider = processEnvProvider,
         )
         val effectiveLayers = if (secretMap.isNotEmpty()) listOf(secretMap) + variableLayers else variableLayers

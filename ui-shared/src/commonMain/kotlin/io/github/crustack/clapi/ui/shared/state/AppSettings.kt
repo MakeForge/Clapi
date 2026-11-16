@@ -78,4 +78,9 @@ class AppSettings {
     var azureClientSecret  by mutableStateOf("")
     var azureAuthorityHost by mutableStateOf("https://login.microsoftonline.com")
     var azureApiVersion    by mutableStateOf("7.4")
+
+    // Secrets Manager (GCP)
+    var gcpProjectId       by mutableStateOf("")
+    var gcpAccessToken     by mutableStateOf("")
+    var gcpEndpointUrl     by mutableStateOf("https://secretmanager.googleapis.com")
 }

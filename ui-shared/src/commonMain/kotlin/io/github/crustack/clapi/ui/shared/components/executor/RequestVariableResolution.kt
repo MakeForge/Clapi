@@ -3,6 +3,7 @@ package io.github.crustack.clapi.ui.shared.components.executor
 import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.core.network.aws.AwsSecretsManagerClient
 import io.github.crustack.clapi.core.network.azure.AzureKeyVaultClient
+import io.github.crustack.clapi.core.network.gcp.GcpSecretManagerClient
 import io.github.crustack.clapi.core.network.dynamicvar.DynamicVariableContext
 import io.github.crustack.clapi.core.network.dynamicvar.DynamicVariableRegistry
 import io.github.crustack.clapi.core.network.dynamicvar.OAuth2ResolvedConfig
@@ -26,6 +27,7 @@ internal suspend fun resolveExternalSecretsForTab(
     keepassClient: KeePassXcClient? = null,
     awsClient: AwsSecretsManagerClient? = null,
     azureClient: AzureKeyVaultClient? = null,
+    gcpClient: GcpSecretManagerClient? = null,
     processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
 ): Map<String, String>? {
     val secretVariableNames = state.selectedEnvironment?.variables
@@ -37,7 +39,7 @@ internal suspend fun resolveExternalSecretsForTab(
     val provider = state.selectedEnvironment?.externalSecretsProvider?.ifBlank { "hashicorp-vault-server" } ?: "hashicorp-vault-server"
 
     val declarations = state.selectedEnvironment?.externalSecrets?.map {
-        val defaultTarget = if (provider.equals("aws-secrets-manager", ignoreCase = true) || provider.equals("azure-key-vault", ignoreCase = true)) "" else "password"
+        val defaultTarget = if (provider.equals("aws-secrets-manager", ignoreCase = true) || provider.equals("azure-key-vault", ignoreCase = true) || provider.equals("gcp-secrets-manager", ignoreCase = true)) "" else "password"
         SecretDeclaration(
             name = it.name.trim(),
             path = it.path.trim(),
@@ -64,6 +66,9 @@ internal suspend fun resolveExternalSecretsForTab(
         }
         val azureClientSecret = state.settings.azureClientSecret.ifBlank {
             PlatformStorage.getSecretString("settings.azureClientSecret").orEmpty()
+        }
+        val gcpAccessToken = state.settings.gcpAccessToken.ifBlank {
+            PlatformStorage.getSecretString("settings.gcpAccessToken").orEmpty()
         }
 
         secretResolutionService.resolveAllSecrets(
@@ -92,6 +97,10 @@ internal suspend fun resolveExternalSecretsForTab(
             azureAuthorityHost = state.settings.azureAuthorityHost,
             azureApiVersion = state.settings.azureApiVersion,
             azureClient = azureClient,
+            gcpProjectId = state.settings.gcpProjectId,
+            gcpAccessToken = gcpAccessToken,
+            gcpEndpointUrl = state.settings.gcpEndpointUrl,
+            gcpClient = gcpClient,
             processEnvProvider = processEnvProvider,
         )
     } catch (e: Exception) {

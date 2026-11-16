@@ -330,14 +330,33 @@ data class AzureKeyVaultExternalSecret(
     override val disabled: Boolean? = null,
 ) : ExternalSecretVariable
 
+@Serializable
+data class GcpSecretsManagerExternalSecret(
+    override val name: String,
+    val secretId: String,
+    val version: String = "latest",
+    val targetField: String = "",
+    val projectId: String = "",
+    val customFilters: Map<String, String> = emptyMap(),
+    override val description: Description? = null,
+    override val disabled: Boolean? = null,
+) : ExternalSecretVariable
+
 object ExternalSecretVariableSerializer :
     JsonContentPolymorphicSerializer<ExternalSecretVariable>(ExternalSecretVariable::class) {
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<ExternalSecretVariable> {
         val obj = element.jsonObject
         return when {
-            obj.containsKey("vaultName") || obj["type"]?.jsonPrimitive?.contentOrNull == "azure-key-vault" -> AzureKeyVaultExternalSecret.serializer()
-            obj.containsKey("secretName") || obj.containsKey("secretId") -> AwsSecretsManagerExternalSecret.serializer()
-            obj.containsKey("url") || (obj.containsKey("targetField") && !obj.containsKey("path")) -> KeePassXcExternalSecret.serializer()
+            obj["type"]?.jsonPrimitive?.contentOrNull == "gcp-secrets-manager" ||
+                obj.containsKey("projectId") ||
+                (obj.containsKey("secretId") && !obj.containsKey("secretName") && !obj.containsKey("vaultName")) ->
+                GcpSecretsManagerExternalSecret.serializer()
+            obj.containsKey("vaultName") || obj["type"]?.jsonPrimitive?.contentOrNull == "azure-key-vault" ->
+                AzureKeyVaultExternalSecret.serializer()
+            obj.containsKey("secretName") || obj["type"]?.jsonPrimitive?.contentOrNull == "aws-secrets-manager" || obj.containsKey("secretId") ->
+                AwsSecretsManagerExternalSecret.serializer()
+            obj.containsKey("url") || (obj.containsKey("targetField") && !obj.containsKey("path")) ->
+                KeePassXcExternalSecret.serializer()
             else -> HashicorpVaultExternalSecret.serializer()
         }
     }
