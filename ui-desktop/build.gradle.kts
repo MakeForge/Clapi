@@ -317,3 +317,115 @@ tasks.withType<JavaExec>().configureEach {
         )
     }
 }
+
+tasks.register("analyzeReleaseSize") {
+    group = "verification"
+    description = "Analyzes desktopRuntimeClasspath dependencies, fat JAR contents, and native distribution sizes."
+
+    dependsOn("packageClapiJar")
+    notCompatibleWithConfigurationCache("Inspects runtime artifacts and archive files directly")
+
+    val runtimeConfig = configurations.named("desktopRuntimeClasspath")
+    val buildDirProvider = layout.buildDirectory
+    val versionStr = project.version.toString()
+
+    doLast {
+        val buildDir = buildDirProvider.get().asFile
+        val resolvedArtifacts = runtimeConfig.get().resolvedConfiguration.resolvedArtifacts
+
+        val dependencySizes = resolvedArtifacts.map { artifact ->
+            val id = artifact.moduleVersion.id
+            "${id.group}:${id.name}:${id.version}" to artifact.file.length()
+        }.sortedByDescending { it.second }
+
+        val totalDepsBytes = dependencySizes.sumOf { it.second }
+
+        println("\n=====================================================================")
+        println(" 1. DESKTOP RUNTIME DEPENDENCIES (${dependencySizes.size} artifacts)")
+        println("=====================================================================")
+        println(String.format("Total Input JARs Size: %.2f MB\n", totalDepsBytes / (1024.0 * 1024.0)))
+
+        dependencySizes.take(25).forEachIndexed { index, (name, bytes) ->
+            val mb = bytes / (1024.0 * 1024.0)
+            val pct = if (totalDepsBytes > 0) (bytes.toDouble() / totalDepsBytes) * 100 else 0.0
+            println(String.format("%2d. %6.2f MB (%5.1f%%)  %s", index + 1, mb, pct, name))
+        }
+
+        val fatJar = File(buildDir, "distribute/Clapi-$versionStr.jar")
+        if (fatJar.exists()) {
+            println("\n=====================================================================")
+            println(" 2. FINAL FAT JAR ANALYSIS: ${fatJar.name}")
+            println("=====================================================================")
+            println(String.format("Compressed File Size on Disk: %.2f MB", fatJar.length() / (1024.0 * 1024.0)))
+
+            val packageCompressed = mutableMapOf<String, Long>()
+            val packageUncompressed = mutableMapOf<String, Long>()
+            val largestEntries = mutableListOf<Triple<String, Long, Long>>()
+
+            ZipFile(fatJar).use { zip ->
+                val entries = zip.entries()
+                while (entries.hasMoreElements()) {
+                    val entry = entries.nextElement()
+                    if (entry.isDirectory) continue
+
+                    val comp = entry.compressedSize.coerceAtLeast(0L)
+                    val uncomp = entry.size.coerceAtLeast(0L)
+                    largestEntries.add(Triple(entry.name, comp, uncomp))
+
+                    val parts = entry.name.split("/")
+                    val groupKey = when {
+                        parts.size >= 4 -> parts.take(3).joinToString(".")
+                        parts.size > 1 -> parts.dropLast(1).joinToString("/")
+                        else -> "(root)"
+                    }
+                    packageCompressed[groupKey] = (packageCompressed[groupKey] ?: 0L) + comp
+                    packageUncompressed[groupKey] = (packageUncompressed[groupKey] ?: 0L) + uncomp
+                }
+            }
+
+            println("\nTop 15 Packages / Directories inside Fat JAR (Compressed / Uncompressed):")
+            packageCompressed.entries.sortedByDescending { it.value }.take(15).forEachIndexed { idx, (pkg, compBytes) ->
+                val uncompBytes = packageUncompressed[pkg] ?: 0L
+                println(
+                    String.format(
+                        "%2d. %6.2f MB comp  |  %6.2f MB raw  -  %s",
+                        idx + 1,
+                        compBytes / (1024.0 * 1024.0),
+                        uncompBytes / (1024.0 * 1024.0),
+                        pkg
+                    )
+                )
+            }
+
+            println("\nTop 10 Largest Single Files inside Fat JAR:")
+            largestEntries.sortedByDescending { it.second }.take(10).forEachIndexed { idx, (name, comp, uncomp) ->
+                println(
+                    String.format(
+                        "%2d. %6.2f MB comp  |  %6.2f MB raw  -  %s",
+                        idx + 1,
+                        comp / (1024.0 * 1024.0),
+                        uncomp / (1024.0 * 1024.0),
+                        name
+                    )
+                )
+            }
+        }
+
+        val binariesDir = File(buildDir, "compose/binaries")
+        if (binariesDir.exists()) {
+            val installers = binariesDir.walkTopDown()
+                .filter { it.isFile && it.extension.lowercase() in setOf("dmg", "msi", "deb", "rpm", "exe") }
+                .toList()
+
+            if (installers.isNotEmpty()) {
+                println("\n=====================================================================")
+                println(" 3. NATIVE DISTRIBUTIONS (compose/binaries)")
+                println("=====================================================================")
+                installers.forEach { file ->
+                    println(String.format(" - %6.2f MB  %s", file.length() / (1024.0 * 1024.0), file.relativeTo(buildDir)))
+                }
+            }
+        }
+        println("\n=====================================================================\n")
+    }
+}
