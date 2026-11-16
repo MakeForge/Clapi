@@ -6,6 +6,12 @@ import io.github.makeforge.clapi.core.model.BodyType
 import io.github.makeforge.clapi.core.model.HttpMethodType
 import io.github.makeforge.clapi.core.model.KeyValueEntry
 import io.github.makeforge.clapi.core.model.McpConnectionConfig
+import io.github.makeforge.clapi.core.model.McpConnectionState
+import io.github.makeforge.clapi.core.model.McpImplementation
+import io.github.makeforge.clapi.core.model.McpInitializeResult
+import io.github.makeforge.clapi.core.model.McpServerCapabilities
+import io.github.makeforge.clapi.core.model.McpTool
+import io.github.makeforge.clapi.core.model.McpToolsCapability
 import io.github.makeforge.clapi.core.model.McpTransportType
 import io.github.makeforge.clapi.core.model.MessageDirection
 import io.github.makeforge.clapi.core.model.RequestKind
@@ -19,7 +25,12 @@ import io.github.makeforge.clapi.core.model.opencollection.WebSocketMessageType
 import io.github.makeforge.clapi.core.model.opencollection.WebSocketMessageVariant
 import io.github.makeforge.clapi.core.network.ConnectionState
 import io.github.makeforge.clapi.core.network.grpc.ProtoMethodInfo
+import io.github.makeforge.clapi.ui.shared.mcp.McpOperationResult
 import io.github.makeforge.clapi.ui.shared.platform.currentTimeMillis
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /**
  * Pre-filled [AppState] instances and data fixtures for UI desktop previews, screenshots, and tests.
@@ -450,6 +461,7 @@ object AppStateExamples {
         state.collectionExpandedState["f-ws"] = true
         state.collectionExpandedState["f-gql"] = false
         state.collectionExpandedState["c2"] = false
+        state.requestResponseSplit = 100f
 
         state.ensureRequestRefsInitialized()
         state.syncHistoryWithCollections()
@@ -484,7 +496,12 @@ object AppStateExamples {
                         selected = true,
                         message = WebSocketMessage(
                             type = WebSocketMessageType.JSON,
-                            data = """{"action": "subscribe", "channel": "deployments", "auth": "{{authToken}}"}""",
+                            data = """
+                                |{
+                                    |"action": "subscribe",
+                                    |"channel": "deployments",
+                                    |"auth": "{{authToken}}"
+                                |}""".trimMargin(),
                         ),
                     ),
                     WebSocketMessageVariant(
@@ -664,6 +681,7 @@ object AppStateExamples {
         state.collections.addAll(richExampleCollections())
         state.collectionExpandedState["c1"] = true
         state.collectionExpandedState["c2"] = false
+        state.requestResponseSplit = 60f
 
         state.ensureRequestRefsInitialized()
         state.syncHistoryWithCollections()
@@ -690,9 +708,123 @@ object AppStateExamples {
             markSaved()
         }
 
+        val exampleTools = listOf(
+            McpTool(
+                name = "execute_sql_query",
+                description = "Execute a read-only SQL query against the local database and return rows as JSON.",
+                inputSchema = buildJsonObject {
+                    put("type", "object")
+                    put(
+                        "properties",
+                        buildJsonObject {
+                            put(
+                                "query",
+                                buildJsonObject {
+                                    put("type", "string")
+                                    put("description", "SQL statement to run")
+                                },
+                            )
+                        },
+                    )
+                    put(
+                        "required",
+                        buildJsonArray {
+                            add("query")
+                        },
+                    )
+                },
+            ),
+            McpTool(
+                name = "fetch_weather_forecast",
+                description = "Retrieve current conditions and forecast for given coordinates.",
+                inputSchema = buildJsonObject {
+                    put("type", "object")
+                    put(
+                        "properties",
+                        buildJsonObject {
+                            put("latitude", buildJsonObject { put("type", "number") })
+                            put("longitude", buildJsonObject { put("type", "number") })
+                        },
+                    )
+                    put(
+                        "required",
+                        buildJsonArray {
+                            add("latitude")
+                            add("longitude")
+                        },
+                    )
+                },
+            ),
+            McpTool(
+                name = "list_directory_contents",
+                description = "List files and subdirectories within a permitted filesystem path.",
+                inputSchema = buildJsonObject {
+                    put("type", "object")
+                    put(
+                        "properties",
+                        buildJsonObject {
+                            put("path", buildJsonObject { put("type", "string") })
+                        },
+                    )
+                },
+            ),
+        )
+
+        val successOperation = McpOperationResult(
+            kind = "tools/call",
+            label = "execute_sql_query",
+            bodyJson = """
+                {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "[\n  {\"id\": 1, \"name\": \"Antigravity Core\", \"status\": \"ACTIVE\", \"count\": 42},\n  {\"id\": 2, \"name\": \"Clapi MCP Hub\", \"status\": \"CONNECTED\", \"count\": 128}\n]"
+                    }
+                  ],
+                  "isError": false
+                }
+            """.trimIndent(),
+            isError = false,
+            headers = listOf(
+                KeyValueEntry("Content-Type", "application/json"),
+                KeyValueEntry("X-MCP-Tool", "execute_sql_query"),
+            ),
+            elapsedMs = 45L,
+            sizeBytes = 214L,
+            timestampMs = now,
+        )
+
+        val session = state.getOrCreateMcpSession(mcpTab.id)
+        session.configureForPreview(
+            connectionState = McpConnectionState.CONNECTED,
+            tools = exampleTools,
+            lastOperation = successOperation,
+            initializeResult = McpInitializeResult(
+                protocolVersion = "2024-11-05",
+                capabilities = McpServerCapabilities(
+                    tools = McpToolsCapability(listChanged = true),
+                ),
+                serverInfo = McpImplementation(
+                    name = "sqlite-mcp-server",
+                    version = "1.2.0",
+                ),
+            ),
+        )
+
+        mcpTab.response = successOperation.toResponseDefinition(
+            requestId = mcpTab.id,
+            okStatusText = "Success",
+            errorStatusText = "Error",
+        )
+        mcpTab.responseTab = ResponseTab.BODY
+
         state.openTabs.addAll(listOf(httpTab, mcpTab))
         state.activeTabIndex = 1
         state.selectedCollectionId = "c1"
+        state.selectedRequestId = "r-mcp-1"
+        state.selectedRequestIds.clear()
+        state.selectedRequestIds.add("r-mcp-1")
+        state.lastSelectedSidebarItemId = "r-mcp-1"
 
         return state
     }
