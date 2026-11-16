@@ -1,0 +1,84 @@
+{
+  "opencollection": "1.0.0",
+  "info": {
+    "name": "GraphQL Test Suite",
+    "version": "1.0"
+  },
+  "bundled": true,
+  "config": {
+    "environments": [
+      {
+        "name": "Local Dev",
+        "variables": [
+          {
+            "name": "baseUrl",
+            "value": "http://localhost:8080"
+          }
+        ]
+      }
+    ]
+  },
+  "items": [
+    {
+      "info": {
+        "name": "Single Body GraphQL Query",
+        "type": "graphql"
+      },
+      "graphql": {
+        "method": "POST",
+        "url": "{{baseUrl}}/graphql",
+        "headers": [
+          {
+            "name": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "params": [],
+        "body": {
+          "query": "query GetUser($id: ID!) {\n  user(id: $id) {\n    id\n    name\n  }\n}",
+          "variables": "{\n  \"id\": \"123\"\n}"
+        },
+        "auth": {
+          "type": "bearer",
+          "token": "secret-token"
+        }
+      },
+      "runtime": {
+        "variables": [],
+        "scripts": []
+      },
+      "settings": {
+        "timeout": 5000,
+        "followRedirects": true
+      },
+      "docs": "# User Details Query\nFetches user details by ID."
+    },
+    {
+      "info": {
+        "name": "Multi Variant GraphQL Operations",
+        "type": "graphql"
+      },
+      "graphql": {
+        "method": "POST",
+        "url": "{{baseUrl}}/graphql",
+        "body": [
+          {
+            "title": "All Users",
+            "selected": true,
+            "body": {
+              "query": "query { users { id name } }"
+            }
+          },
+          {
+            "title": "User by ID",
+            "selected": false,
+            "body": {
+              "query": "query GetUser($id: ID!) { user(id: $id) { id name } }",
+              "variables": "{\"id\": \"1\"}"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

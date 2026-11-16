@@ -219,6 +219,8 @@ private fun RequestTabChip(
                 GrpcBadge(compact = true, modifier = Modifier.testTag("tab-grpc-badge-${tab.id}"))
             } else if (tab.kind == RequestKind.WEBSOCKET) {
                 WebSocketBadge(compact = true, modifier = Modifier.testTag("tab-websocket-badge-${tab.id}"))
+            } else if (tab.kind == RequestKind.GRAPHQL) {
+                GraphQLBadge(compact = true, modifier = Modifier.testTag("tab-graphql-badge-${tab.id}"))
             } else if (tab.kind == RequestKind.FOLDER) {
                 Icon(painter = painterResource(Res.drawable.ic_folder),
                     contentDescription = null,

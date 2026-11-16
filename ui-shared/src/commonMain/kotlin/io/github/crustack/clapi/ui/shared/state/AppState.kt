@@ -52,6 +52,7 @@ import io.github.crustack.clapi.core.model.opencollection.WebSocketMessage
 import io.github.crustack.clapi.ui.shared.persistence.ImportExportNaming
 
 import io.github.crustack.clapi.ui.shared.i18n.AppLanguage
+import kotlinx.serialization.json.JsonPrimitive
 
 // ── Enumerations ────────────────────────────────────────────────
 
@@ -72,6 +73,16 @@ enum class WebSocketEditorTab(val label: String) {
     SETTINGS("Settings"),
     SCRIPTS("Scripts"),
     VARIABLES("Variables"),
+    DOCS("Docs")
+}
+
+enum class GraphQLEditorTab(val label: String) {
+    BODY("Body"),
+    HEADERS("Headers"),
+    PARAMS("Params"),
+    AUTH("Auth"),
+    SCRIPTS("Scripts"),
+    SETTINGS("Settings"),
     DOCS("Docs")
 }
 
@@ -201,6 +212,9 @@ data class CollectionNode(
     val webSocketKeepAliveInterval: String? = null,
     val webSocketDocs: String? = null,
     val webSocketMessageFormat: WebSocketMessageType? = null,
+    val graphQlVariants: List<io.github.crustack.clapi.core.model.opencollection.GraphQLBodyVariant> = emptyList(),
+    val graphQlSettings: io.github.crustack.clapi.core.model.opencollection.GraphQLRequestSettings? = null,
+    val graphQlDocs: String? = null,
 ) {
     val isCollection: Boolean get() = kind == RequestKind.COLLECTION
     val storageType: StorageType get() = storageExtension?.type ?: StorageType.LOCAL
@@ -560,6 +574,49 @@ class RequestTabState(
     var webSocketMessageFormat by mutableStateOf(WebSocketMessageType.TEXT)
     var webSocketOutgoingPayload by mutableStateOf("")
 
+    // ── GraphQL state ────────────────────────────────────────────────────────
+    var selectedGraphQLTab by mutableStateOf(GraphQLEditorTab.BODY)
+    var graphQlMethod by mutableStateOf("POST")
+    var graphQlQuery by mutableStateOf("query {\n  \n}")
+    var graphQlVariables by mutableStateOf("{\n  \n}")
+    val graphQlVariants = mutableStateListOf<io.github.crustack.clapi.core.model.opencollection.GraphQLBodyVariant>()
+    var activeGraphQLVariantIndex by mutableStateOf(0)
+    var graphQlDocs by mutableStateOf("")
+    var graphQlTimeout by mutableStateOf<String?>("inherit")
+    var graphQlEncodeUrl by mutableStateOf<String?>("inherit")
+    var graphQlFollowRedirects by mutableStateOf<String?>("inherit")
+    var graphQlForwardAuthHeader by mutableStateOf<String?>("inherit")
+    var graphQlMaxRedirects by mutableStateOf<String?>("inherit")
+
+    val activeGraphQLVariant: io.github.crustack.clapi.core.model.opencollection.GraphQLBodyVariant?
+        get() = graphQlVariants.getOrNull(activeGraphQLVariantIndex)
+
+    var effectiveGraphQlQuery: String
+        get() = activeGraphQLVariant?.body?.query ?: graphQlQuery
+        set(value) {
+            val variant = activeGraphQLVariant
+            if (variant != null && activeGraphQLVariantIndex in graphQlVariants.indices) {
+                graphQlVariants[activeGraphQLVariantIndex] = variant.copy(
+                    body = variant.body.copy(query = value)
+                )
+            } else {
+                graphQlQuery = value
+            }
+        }
+
+    var effectiveGraphQlVariables: String
+        get() = activeGraphQLVariant?.body?.variables ?: graphQlVariables
+        set(value) {
+            val variant = activeGraphQLVariant
+            if (variant != null && activeGraphQLVariantIndex in graphQlVariants.indices) {
+                graphQlVariants[activeGraphQLVariantIndex] = variant.copy(
+                    body = variant.body.copy(variables = value)
+                )
+            } else {
+                graphQlVariables = value
+            }
+        }
+
     val activeWebSocketVariant: WebSocketMessageVariant?
         get() = webSocketMessageVariants.getOrNull(activeWebSocketVariantIndex)
 
@@ -678,6 +735,11 @@ class RequestTabState(
             if (this.url.isBlank()) {
                 this.url = "ws://"
             }
+        } else if (kind == RequestKind.GRAPHQL) {
+            headers.clear()
+            if (this.url.isBlank()) {
+                this.url = "https://"
+            }
         }
         savedSnapshot = currentSnapshotForDirtyTracking()
     }
@@ -769,6 +831,16 @@ class RequestTabState(
             webSocketOutgoingPayload,
             webSocketMessageFormat.value,
             webSocketVariantsSnapshot,
+            graphQlMethod,
+            effectiveGraphQlQuery,
+            effectiveGraphQlVariables,
+            graphQlVariants.joinToString(";") { "${it.title}|${it.selected}|${it.body.query}|${it.body.variables}" },
+            graphQlTimeout.orEmpty(),
+            graphQlEncodeUrl.orEmpty(),
+            graphQlFollowRedirects.orEmpty(),
+            graphQlForwardAuthHeader.orEmpty(),
+            graphQlMaxRedirects.orEmpty(),
+            graphQlDocs,
         ).joinToString("#")
     }
 
@@ -932,7 +1004,7 @@ class RequestTabState(
     }
 
     fun syncSystemHeaders() {
-        if (kind == RequestKind.FOLDER || kind == RequestKind.GRPC || kind == RequestKind.COLLECTION) return
+        if (kind == RequestKind.FOLDER || kind == RequestKind.GRPC || kind == RequestKind.COLLECTION || kind == RequestKind.WEBSOCKET || kind == RequestKind.GRAPHQL) return
         // Content-Type always reflects the current body type (derived value).
         upsertSystemHeader(SystemHeaderRules.CONTENT_TYPE, SystemHeaderRules.defaultContentTypeFor(bodyType), overwriteIfExists = true)
         // Accept and User-Agent are only inserted when missing so that user
@@ -1593,6 +1665,30 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
             node?.webSocketMessageFormat?.let { tab.webSocketMessageFormat = it }
             if (node?.bodyContent != null && tab.webSocketMessageVariants.isEmpty()) {
                 tab.webSocketOutgoingPayload = node.bodyContent
+            }
+        }
+        if (tab.kind == RequestKind.GRAPHQL) {
+            tab.headers.clear()
+            node?.headerEntries?.let { entries ->
+                tab.headers.addAll(entries.map { MutableKeyValue(it.key, it.value, it.enabled, it.secret, kind = HeaderKind.USER) })
+            } ?: node?.userHeaders?.forEach { (k, v) ->
+                tab.headers.add(MutableKeyValue(k, v, kind = HeaderKind.USER))
+            }
+            if (!node?.graphQlVariants.isNullOrEmpty()) {
+                tab.graphQlVariants.clear()
+                tab.graphQlVariants.addAll(node!!.graphQlVariants)
+                val sel = tab.graphQlVariants.indexOfFirst { it.selected == true }
+                tab.activeGraphQLVariantIndex = if (sel >= 0) sel else 0
+            }
+            node?.bodyContent?.let { tab.graphQlQuery = it }
+            node?.graphQlDocs?.let { tab.graphQlDocs = it }
+            node?.method?.name?.let { tab.graphQlMethod = it }
+            node?.graphQlSettings?.let { s ->
+                (s.timeout as? JsonPrimitive)?.content?.let { tab.graphQlTimeout = it }
+                (s.encodeUrl as? JsonPrimitive)?.content?.let { tab.graphQlEncodeUrl = it }
+                (s.followRedirects as? JsonPrimitive)?.content?.let { tab.graphQlFollowRedirects = it }
+                (s.forwardAuthorizationHeader as? JsonPrimitive)?.content?.let { tab.graphQlForwardAuthHeader = it }
+                (s.maxRedirects as? JsonPrimitive)?.content?.let { tab.graphQlMaxRedirects = it }
             }
         }
         if (tab.kind != RequestKind.FOLDER && tab.kind != RequestKind.GRPC && tab.kind != RequestKind.WEBSOCKET) {
@@ -2380,6 +2476,28 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         addTab(requestId = requestId, name = name, method = HttpMethodType.GET, url = "ws://")
     }
 
+    /** Add a new GraphQL request node inside the given collection (folder). Opens it as a tab. */
+    fun addGraphQLRequestToCollection(collectionId: String) {
+        val folder = findFolder(collectionId) ?: return
+        val siblingNames = folder.children.map { it.name }.toSet()
+        val name = generateUniqueName("New Request", siblingNames)
+        val requestId = generateUuid()
+        val node = CollectionNode(
+            id = requestId,
+            requestRef = generateUuid(),
+            name = name,
+            isFolder = false,
+            method = HttpMethodType.POST,
+            url = "https://",
+            kind = RequestKind.GRAPHQL,
+        )
+        folder.children.add(node)
+        notifyCollectionsChanged()
+        selectedCollectionId = rootCollectionIdContaining(collectionId) ?: collectionId
+        selectedRequestId = requestId
+        addTab(requestId = requestId, name = name, method = HttpMethodType.POST, url = "https://")
+    }
+
     fun addMcpConnectionToCollection(collectionId: String) {
         val folder = findFolder(collectionId) ?: return
         val siblingNames = folder.children.map { it.name }.toSet()
@@ -2919,10 +3037,12 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                 nodes[index] = node.copy(
                     requestRef = node.requestRef ?: tab.requestRef ?: generateUuid(),
                     name   = tab.name,
-                    method = tab.method,
+                    method = if (tab.kind == RequestKind.GRAPHQL) {
+                        HttpMethodType.entries.firstOrNull { it.name.equals(tab.graphQlMethod, ignoreCase = true) } ?: HttpMethodType.POST
+                    } else tab.method,
                     url    = tab.url,
-                    bodyType           = if (tab.kind == RequestKind.GRPC) BodyType.JSON else tab.bodyType.takeIf { it != BodyType.NONE },
-                    bodyContent        = if (tab.kind == RequestKind.GRPC) tab.grpcMessageBody.ifBlank { null } else tab.bodyContent.ifBlank { null },
+                    bodyType           = if (tab.kind == RequestKind.GRPC) BodyType.JSON else if (tab.kind == RequestKind.GRAPHQL) BodyType.GRAPHQL else tab.bodyType.takeIf { it != BodyType.NONE },
+                    bodyContent        = if (tab.kind == RequestKind.GRPC) tab.grpcMessageBody.ifBlank { null } else if (tab.kind == RequestKind.GRAPHQL) tab.effectiveGraphQlQuery.ifBlank { null } else tab.bodyContent.ifBlank { null },
                     bodyContents       = bodyContentsSnapshot,
                     formDataEntries    = formEntriesSnapshot,
                     urlencodedEntries  = urlencodedSnapshot,
@@ -2962,6 +3082,17 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                     webSocketKeepAliveInterval = if (tab.kind == RequestKind.WEBSOCKET) tab.webSocketKeepAliveInterval else null,
                     webSocketDocs      = if (tab.kind == RequestKind.WEBSOCKET) tab.webSocketDocs.ifBlank { null } else null,
                     webSocketMessageFormat = if (tab.kind == RequestKind.WEBSOCKET) tab.effectiveWebSocketFormat else null,
+                    graphQlVariants    = if (tab.kind == RequestKind.GRAPHQL) tab.graphQlVariants.toList() else emptyList(),
+                    graphQlDocs        = if (tab.kind == RequestKind.GRAPHQL) tab.graphQlDocs.ifBlank { null } else null,
+                    graphQlSettings    = if (tab.kind == RequestKind.GRAPHQL) {
+                        io.github.crustack.clapi.core.model.opencollection.GraphQLRequestSettings(
+                            timeout = tab.graphQlTimeout?.let { if (it == "inherit") JsonPrimitive("inherit") else it.toLongOrNull()?.let { l -> JsonPrimitive(l) } ?: JsonPrimitive(it) },
+                            encodeUrl = tab.graphQlEncodeUrl?.let { if (it == "inherit") JsonPrimitive("inherit") else it.toBooleanStrictOrNull()?.let { b -> JsonPrimitive(b) } ?: JsonPrimitive(it) },
+                            followRedirects = tab.graphQlFollowRedirects?.let { if (it == "inherit") JsonPrimitive("inherit") else it.toBooleanStrictOrNull()?.let { b -> JsonPrimitive(b) } ?: JsonPrimitive(it) },
+                            forwardAuthorizationHeader = tab.graphQlForwardAuthHeader?.let { if (it == "inherit") JsonPrimitive("inherit") else it.toBooleanStrictOrNull()?.let { b -> JsonPrimitive(b) } ?: JsonPrimitive(it) },
+                            maxRedirects = tab.graphQlMaxRedirects?.let { if (it == "inherit") JsonPrimitive("inherit") else it.toIntOrNull()?.let { i -> JsonPrimitive(i) } ?: JsonPrimitive(it) },
+                        )
+                    } else null,
                 )
                 return true
             }

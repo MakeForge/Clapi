@@ -819,7 +819,7 @@ private fun GraphQLResponseViewer(
 // ── Helpers ─────────────────────────────────────────────────────
 
 /** Best-effort JSON pretty-print. Returns original on failure. */
-private fun formatJsonSafe(text: String): String {
+internal fun formatJsonSafe(text: String): String {
     return try {
         val element = Json.parseToJsonElement(text)
         prettyJson.encodeToString(kotlinx.serialization.json.JsonElement.serializer(), element)
@@ -829,7 +829,7 @@ private fun formatJsonSafe(text: String): String {
 }
 
 /** Simple GraphQL formatter — normalises indentation. */
-private fun formatGraphQL(query: String): String {
+internal fun formatGraphQL(query: String): String {
     val sb = StringBuilder()
     var indent = 0
     val tokens = query.replace("{", " {\n").replace("}", "\n}\n")

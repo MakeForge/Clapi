@@ -464,6 +464,28 @@ fun Application.dummyApiModule(
             )
         }
 
+        get("/graphql") {
+            requestLogger(call.logRequest())
+            val query = call.request.queryParameters["query"].orEmpty()
+            call.respond(
+                buildJsonObject {
+                    putJsonObject("data") {
+                        put("echo", query)
+                        putJsonArray("users") {
+                            users.values.sortedBy { it.id }.forEach { user ->
+                                add(
+                                    buildJsonObject {
+                                        put("id", user.id)
+                                        put("name", user.name)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            )
+        }
+
         post("/upload") {
             requestLogger(call.logRequest())
             var fileCount = 0

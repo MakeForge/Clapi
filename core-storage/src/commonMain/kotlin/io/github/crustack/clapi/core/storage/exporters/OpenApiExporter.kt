@@ -167,6 +167,9 @@ object OpenApiExporter {
                 is io.github.crustack.clapi.core.model.opencollection.WebSocketRequestItem -> {
                     // OpenAPI 3.0 export only covers HTTP requests
                 }
+                is io.github.crustack.clapi.core.model.opencollection.GraphQLRequestItem -> {
+                    // OpenAPI 3.0 export only covers HTTP requests
+                }
             }
         }
     }
