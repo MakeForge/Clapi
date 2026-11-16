@@ -550,7 +550,8 @@ fun getAvailableVariables(state: AppState?, tab: RequestTabState?): List<Pair<St
             if (secret.enabled && secret.name.isNotBlank()) {
                 val secretKey = "_secret.${secret.name.trim()}"
                 if (!secretMap.containsKey(secretKey)) {
-                    secretMap[secretKey] = secret.path.trim()
+                    val detail = if (secret.url.isNotBlank()) secret.url.trim() else secret.path.trim()
+                    secretMap[secretKey] = detail
                 }
             }
         }

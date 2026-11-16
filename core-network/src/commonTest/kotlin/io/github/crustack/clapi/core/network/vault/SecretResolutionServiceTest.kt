@@ -1,5 +1,8 @@
 package io.github.crustack.clapi.core.network.vault
 
+import io.github.crustack.clapi.core.network.keepassxc.KeePassXcClient
+import io.github.crustack.clapi.core.network.keepassxc.KeePassXcEntry
+import io.github.crustack.clapi.core.network.keepassxc.KeePassXcStatus
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -339,5 +342,165 @@ class SecretResolutionServiceTest {
         assertEquals("key_val", resolved["api_key"])
         assertEquals("wh_val", resolved["_secret.webhook_secret"])
         assertEquals(listOf("payment/stripe"), fakeClient.calls, "Should query path only once")
+    }
+
+    private class FakeKeePassXcClient(
+        private val entriesByUrl: Map<String, List<KeePassXcEntry>> = emptyMap(),
+        private val status: KeePassXcStatus = KeePassXcStatus.Connected,
+    ) : KeePassXcClient {
+        val queryCalls = mutableListOf<String>()
+
+        override suspend fun checkStatus(): KeePassXcStatus = status
+
+        override suspend fun queryLogins(
+            url: String,
+            customFilters: Map<String, String>,
+        ): List<KeePassXcEntry> {
+            queryCalls.add(url)
+            return entriesByUrl[url] ?: emptyList()
+        }
+
+        override suspend fun countMatchingLogins(
+            url: String,
+            customFilters: Map<String, String>,
+        ): Int = queryLogins(url, customFilters).size
+
+        override suspend fun disconnect() {}
+    }
+
+    @Test
+    fun resolveKeePassXcSecrets_resolves_password_by_url() = runTest {
+        val fakeKpa = FakeKeePassXcClient(
+            entriesByUrl = mapOf(
+                "https://api.gateway.internal" to listOf(
+                    KeePassXcEntry(
+                        name = "Gateway",
+                        login = "service_acc",
+                        password = "super-secret-pwd",
+                        uuid = "uuid-1",
+                    )
+                )
+            )
+        )
+        val service = SecretResolutionService()
+        val declarations = listOf(
+            SecretDeclaration(
+                name = "gateway_token",
+                providerType = "keepassxc",
+                url = "https://api.gateway.internal",
+                targetField = "password",
+                enabled = true,
+            )
+        )
+
+        val resolved = service.resolveKeePassXcSecrets(
+            requiredSecretNames = setOf("gateway_token"),
+            declarations = declarations,
+            client = fakeKpa,
+        )
+
+        assertEquals("super-secret-pwd", resolved["_secret.gateway_token"])
+        assertEquals(listOf("https://api.gateway.internal"), fakeKpa.queryCalls)
+    }
+
+    @Test
+    fun resolveKeePassXcSecrets_resolves_custom_target_field_and_interpolates_filter_variables() = runTest {
+        val fakeKpa = FakeKeePassXcClient(
+            entriesByUrl = mapOf(
+                "https://api.gateway.internal" to listOf(
+                    KeePassXcEntry(
+                        name = "Staging Gateway",
+                        login = "stage_acc",
+                        password = "stage-secret-pwd",
+                        uuid = "uuid-stage",
+                        stringFields = mapOf("tier" to "staging", "api_key" to "key-staging-777"),
+                    ),
+                    KeePassXcEntry(
+                        name = "Prod Gateway",
+                        login = "prod_acc",
+                        password = "prod-secret-pwd",
+                        uuid = "uuid-prod",
+                        stringFields = mapOf("tier" to "prod", "api_key" to "key-prod-999"),
+                    )
+                )
+            )
+        )
+        val service = SecretResolutionService()
+        val declarations = listOf(
+            SecretDeclaration(
+                name = "prod_api_key",
+                providerType = "keepassxc",
+                url = "https://api.gateway.internal",
+                targetField = "api_key",
+                customFilters = mapOf("tier" to "{{env_tier}}"),
+                enabled = true,
+            )
+        )
+
+        val resolved = service.resolveKeePassXcSecrets(
+            requiredSecretNames = setOf("prod_api_key"),
+            declarations = declarations,
+            variableValues = mapOf("env_tier" to "prod"),
+            client = fakeKpa,
+        )
+
+        assertEquals("key-prod-999", resolved["_secret.prod_api_key"])
+    }
+
+    @Test
+    fun resolveKeePassXcSecrets_throws_on_locked_database() = runTest {
+        val fakeKpa = FakeKeePassXcClient(status = KeePassXcStatus.DatabaseLocked)
+        val service = SecretResolutionService()
+        val declarations = listOf(
+            SecretDeclaration(
+                name = "token",
+                providerType = "keepassxc",
+                url = "https://api.example.com",
+                enabled = true,
+            )
+        )
+
+        val ex = assertFailsWith<IllegalStateException> {
+            service.resolveKeePassXcSecrets(
+                requiredSecretNames = setOf("token"),
+                declarations = declarations,
+                client = fakeKpa,
+            )
+        }
+        assertTrue(ex.message!!.contains("locked", ignoreCase = true))
+    }
+
+    @Test
+    fun resolveAllSecrets_resolves_keepassxc_secrets_via_direct_and_secret_variable() = runTest {
+        val fakeKpa = FakeKeePassXcClient(
+            entriesByUrl = mapOf(
+                "https://api.keepass.com" to listOf(
+                    KeePassXcEntry(
+                        name = "KP Entry",
+                        login = "kp_user",
+                        password = "kp_secret_password",
+                        uuid = "kp-uuid",
+                    )
+                )
+            )
+        )
+        val service = SecretResolutionService()
+        val declarations = listOf(
+            SecretDeclaration(
+                name = "my_secret",
+                providerType = "keepassxc",
+                url = "https://api.keepass.com",
+                targetField = "password",
+                enabled = true,
+            )
+        )
+
+        val resolved = service.resolveAllSecrets(
+            texts = listOf("Bearer {{_secret.my_secret}}"),
+            declarations = declarations,
+            keepassClient = fakeKpa,
+        )
+
+        assertEquals("kp_secret_password", resolved["_secret.my_secret"])
     }
 }

@@ -260,7 +260,9 @@ enum class ExternalSecretType(val value: String) {
     @SerialName("gcp-secrets-manager")
     GCP_SECRETS_MANAGER("gcp-secrets-manager"),
     @SerialName("one-password")
-    ONE_PASSWORD("one-password");
+    ONE_PASSWORD("one-password"),
+    @SerialName("keepassxc")
+    KEEPASSXC("keepassxc");
 
     override fun toString(): String = value
 
@@ -296,8 +298,24 @@ data class HashicorpVaultExternalSecret(
     override val disabled: Boolean? = null,
 ) : ExternalSecretVariable
 
+@Serializable
+data class KeePassXcExternalSecret(
+    override val name: String,
+    val url: String,
+    val targetField: String = "password",
+    val customFilters: Map<String, String> = emptyMap(),
+    override val description: Description? = null,
+    override val disabled: Boolean? = null,
+) : ExternalSecretVariable
+
 object ExternalSecretVariableSerializer :
     JsonContentPolymorphicSerializer<ExternalSecretVariable>(ExternalSecretVariable::class) {
-    override fun selectDeserializer(element: JsonElement): DeserializationStrategy<ExternalSecretVariable> =
-        HashicorpVaultExternalSecret.serializer()
+    override fun selectDeserializer(element: JsonElement): DeserializationStrategy<ExternalSecretVariable> {
+        val obj = element.jsonObject
+        return if (obj.containsKey("url") || obj.containsKey("targetField") || obj.containsKey("customFilters")) {
+            KeePassXcExternalSecret.serializer()
+        } else {
+            HashicorpVaultExternalSecret.serializer()
+        }
+    }
 }

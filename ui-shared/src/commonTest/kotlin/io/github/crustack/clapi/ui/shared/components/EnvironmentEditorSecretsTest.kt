@@ -5,6 +5,7 @@ import io.github.crustack.clapi.core.model.opencollection.Environment
 import io.github.crustack.clapi.core.model.opencollection.ExternalSecretType
 import io.github.crustack.clapi.core.model.opencollection.ExternalSecrets
 import io.github.crustack.clapi.core.model.opencollection.HashicorpVaultExternalSecret
+import io.github.crustack.clapi.core.model.opencollection.KeePassXcExternalSecret
 import io.github.crustack.clapi.ui.shared.persistence.toEnvState
 import io.github.crustack.clapi.ui.shared.persistence.toOpenCollectionEnvironment
 import io.github.crustack.clapi.ui.shared.state.EnvState
@@ -151,5 +152,69 @@ class EnvironmentEditorSecretsTest {
         assertEquals("token", v.name)
         assertEquals("app/tokens", v.path)
         assertEquals("App token", v.description?.content)
+    }
+
+    @Test
+    fun keepassxc_external_secrets_maps_to_and_from_env_state() {
+        val original = Environment(
+            name = "KeePassEnv",
+            externalSecrets = ExternalSecrets(
+                type = "keepassxc",
+                variables = listOf(
+                    KeePassXcExternalSecret(
+                        name = "api_key",
+                        url = "https://api.gateway.internal",
+                        targetField = "password",
+                        customFilters = mapOf("login" to "admin_user", "env" to "prod"),
+                        description = Description("Admin Gateway Secret"),
+                        disabled = false,
+                    ),
+                    KeePassXcExternalSecret(
+                        name = "db_user",
+                        url = "https://db.internal",
+                        targetField = "login",
+                        disabled = true,
+                    ),
+                ),
+            ),
+        )
+
+        val envState = original.toEnvState()
+        assertEquals("keepassxc", envState.externalSecretsProvider)
+        assertEquals(2, envState.externalSecrets.size)
+
+        val first = envState.externalSecrets[0]
+        assertEquals("api_key", first.name)
+        assertEquals("https://api.gateway.internal", first.url)
+        assertEquals("password", first.targetField)
+        assertEquals("admin_user", first.customFilters["login"])
+        assertEquals("prod", first.customFilters["env"])
+        assertEquals("Admin Gateway Secret", first.description)
+        assertTrue(first.enabled)
+
+        val second = envState.externalSecrets[1]
+        assertEquals("db_user", second.name)
+        assertEquals("https://db.internal", second.url)
+        assertEquals("login", second.targetField)
+        assertFalse(second.enabled)
+
+        // Roundtrip back to Environment
+        val mappedBack = envState.toOpenCollectionEnvironment()
+        assertNotNull(mappedBack.externalSecrets)
+        assertEquals(ExternalSecretType.KEEPASSXC, mappedBack.externalSecrets?.type)
+        assertEquals(2, mappedBack.externalSecrets?.variables?.size)
+
+        val k1 = mappedBack.externalSecrets!!.variables[0] as KeePassXcExternalSecret
+        assertEquals("api_key", k1.name)
+        assertEquals("https://api.gateway.internal", k1.url)
+        assertEquals("password", k1.targetField)
+        assertEquals("admin_user", k1.customFilters["login"])
+        assertNull(k1.disabled)
+
+        val k2 = mappedBack.externalSecrets!!.variables[1] as KeePassXcExternalSecret
+        assertEquals("db_user", k2.name)
+        assertEquals("https://db.internal", k2.url)
+        assertEquals("login", k2.targetField)
+        assertEquals(true, k2.disabled)
     }
 }
