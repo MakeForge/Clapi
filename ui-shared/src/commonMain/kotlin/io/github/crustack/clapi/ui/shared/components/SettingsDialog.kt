@@ -25,6 +25,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -58,6 +60,7 @@ import androidx.compose.ui.window.Dialog
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_dark_mode
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_data_object
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_format_align_left
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_keyboard_arrow_down
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_key
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_language
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_light_mode
@@ -142,7 +145,7 @@ fun SettingsDialog(state: AppState) {
             modifier = Modifier
                 .offset { IntOffset(settingsOffsetX.roundToInt(), settingsOffsetY.roundToInt()) }
                 .widthIn(min = 680.dp, max = 860.dp)
-                .height(520.dp)
+                .height(660.dp)
                 .onSizeChanged { settingsCardSize = it }
                 .clip(RoundedCornerShape(12.dp))
                 .background(ClapiColors.Surface)
@@ -421,13 +424,14 @@ private fun ProxySettings(s: AppSettings) {
 
 @Composable
 private fun SecretsSettings(s: AppSettings) {
-    SettingChoice(
+    SettingDropdown(
         label = Strings.t("secret_provider"),
         description = Strings.t("secret_provider_desc"),
         options = listOf(
             "hashicorp-vault-server" to "HashiCorp Vault (Server)",
             "keepassxc" to "KeePassXC",
             "aws-secrets-manager" to "AWS Secrets Manager",
+            "azure-key-vault" to "Azure Key Vault",
         ),
         selected = s.vaultProviderType,
         onSelected = { s.vaultProviderType = it },
@@ -438,8 +442,60 @@ private fun SecretsSettings(s: AppSettings) {
     when (s.vaultProviderType) {
         "keepassxc" -> KeePassXcSettings()
         "aws-secrets-manager" -> AwsSecretsSettings(s)
+        "azure-key-vault" -> AzureKeyVaultSettings(s)
         else -> VaultSettings(s)
     }
+}
+
+@Composable
+private fun AzureKeyVaultSettings(s: AppSettings) {
+    SettingTextField(
+        label = Strings.t("azure_vault_name"),
+        value = s.azureVaultName,
+        onValueChange = { s.azureVaultName = it },
+        placeholder = "https://my-vault.vault.azure.net",
+        tag = "azure-vault-name",
+    )
+    SettingsDivider()
+    SettingTextField(
+        label = Strings.t("azure_tenant_id"),
+        value = s.azureTenantId,
+        onValueChange = { s.azureTenantId = it },
+        placeholder = "00000000-0000-0000-0000-000000000000",
+        tag = "azure-tenant-id",
+    )
+    SettingsDivider()
+    SettingTextField(
+        label = Strings.t("azure_client_id"),
+        value = s.azureClientId,
+        onValueChange = { s.azureClientId = it },
+        placeholder = "Client (Application) ID",
+        tag = "azure-client-id",
+    )
+    SettingsDivider()
+    SettingPasswordField(
+        label = Strings.t("azure_client_secret"),
+        value = s.azureClientSecret,
+        onValueChange = { s.azureClientSecret = it },
+        placeholder = "••••••••••••••••",
+        tag = "azure-client-secret",
+    )
+    SettingsDivider()
+    SettingTextField(
+        label = Strings.t("azure_authority_host"),
+        value = s.azureAuthorityHost,
+        onValueChange = { s.azureAuthorityHost = it },
+        placeholder = "https://login.microsoftonline.com",
+        tag = "azure-authority-host",
+    )
+    SettingsDivider()
+    SettingTextField(
+        label = Strings.t("azure_api_version"),
+        value = s.azureApiVersion,
+        onValueChange = { s.azureApiVersion = it },
+        placeholder = "7.4",
+        tag = "azure-api-version",
+    )
 }
 
 @Composable
@@ -903,6 +959,81 @@ private fun DataSettings(state: AppState) {
         tag = "clear-console",
     ) {
         state.consoleLogs.clear()
+    }
+}
+
+@Composable
+private fun <T> SettingDropdown(
+    label: String,
+    description: String = "",
+    options: List<Pair<T, String>>,
+    selected: T,
+    onSelected: (T) -> Unit,
+    tagPrefix: String = "setting-dropdown",
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedText = options.firstOrNull { it.first == selected }?.second ?: selected.toString()
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(label, fontSize = 13.sp, color = ClapiColors.OnSurface)
+        if (description.isNotEmpty()) {
+            Text(description, fontSize = 11.sp, color = ClapiColors.OnSurfaceDim)
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(6.dp))
+                .background(ClapiColors.SurfaceContainer)
+                .border(1.dp, ClapiColors.Border, RoundedCornerShape(6.dp))
+                .clickable { expanded = true }
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .testTag("$tagPrefix-selector"),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = selectedText,
+                    color = ClapiColors.OnSurface,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.testTag("$tagPrefix-selected-text"),
+                )
+                Icon(
+                    painter = painterResource(Res.drawable.ic_keyboard_arrow_down),
+                    contentDescription = null,
+                    tint = ClapiColors.OnSurfaceDim,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.testTag("$tagPrefix-menu"),
+            ) {
+                options.forEach { (value, text) ->
+                    val isSelected = value == selected
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = text,
+                                color = if (isSelected) ClapiColors.Primary else ClapiColors.OnSurface,
+                                fontSize = 13.sp,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            )
+                        },
+                        onClick = {
+                            onSelected(value)
+                            expanded = false
+                        },
+                        modifier = Modifier
+                            .testTag("$tagPrefix-option-${value.toString().lowercase().replace(" ", "-")}"),
+                    )
+                }
+            }
+        }
     }
 }
 

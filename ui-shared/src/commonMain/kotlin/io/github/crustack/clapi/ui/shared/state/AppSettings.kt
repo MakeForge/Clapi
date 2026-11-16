@@ -69,4 +69,12 @@ class AppSettings {
     var awsSessionToken    by mutableStateOf("")
     var awsEndpointUrl     by mutableStateOf("")
     var awsVersionStage    by mutableStateOf("AWSCURRENT")
+
+    // Secrets Manager (Azure Key Vault)
+    var azureVaultName     by mutableStateOf("")
+    var azureTenantId      by mutableStateOf("")
+    var azureClientId      by mutableStateOf("")
+    var azureClientSecret  by mutableStateOf("")
+    var azureAuthorityHost by mutableStateOf("https://login.microsoftonline.com")
+    var azureApiVersion    by mutableStateOf("7.4")
 }

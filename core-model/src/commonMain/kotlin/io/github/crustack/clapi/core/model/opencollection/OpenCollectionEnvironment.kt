@@ -16,6 +16,7 @@ import kotlinx.serialization.json.JsonEncoder
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -318,11 +319,23 @@ data class AwsSecretsManagerExternalSecret(
     override val disabled: Boolean? = null,
 ) : ExternalSecretVariable
 
+@Serializable
+data class AzureKeyVaultExternalSecret(
+    override val name: String,
+    val secretName: String,
+    val vaultName: String = "",
+    val targetField: String = "",
+    val customFilters: Map<String, String> = emptyMap(),
+    override val description: Description? = null,
+    override val disabled: Boolean? = null,
+) : ExternalSecretVariable
+
 object ExternalSecretVariableSerializer :
     JsonContentPolymorphicSerializer<ExternalSecretVariable>(ExternalSecretVariable::class) {
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<ExternalSecretVariable> {
         val obj = element.jsonObject
         return when {
+            obj.containsKey("vaultName") || obj["type"]?.jsonPrimitive?.contentOrNull == "azure-key-vault" -> AzureKeyVaultExternalSecret.serializer()
             obj.containsKey("secretName") || obj.containsKey("secretId") -> AwsSecretsManagerExternalSecret.serializer()
             obj.containsKey("url") || (obj.containsKey("targetField") && !obj.containsKey("path")) -> KeePassXcExternalSecret.serializer()
             else -> HashicorpVaultExternalSecret.serializer()

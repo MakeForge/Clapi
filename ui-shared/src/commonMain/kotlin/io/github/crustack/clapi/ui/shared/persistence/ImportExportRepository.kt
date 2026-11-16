@@ -304,7 +304,9 @@ object ImportExportRepository {
                 ?: obj["secretName"]?.jsonPrimitive?.contentOrNull
                 ?: obj["secretId"]?.jsonPrimitive?.contentOrNull
                 ?: ""
-            val url = obj["url"]?.jsonPrimitive?.contentOrNull.orEmpty()
+            val url = obj["url"]?.jsonPrimitive?.contentOrNull
+                ?: obj["vaultName"]?.jsonPrimitive?.contentOrNull
+                ?: ""
             val targetField = obj["targetField"]?.jsonPrimitive?.contentOrNull.orEmpty()
             val customFiltersObj = obj["customFilters"]?.jsonObject
             val customFilters = customFiltersObj?.mapValues { it.value.jsonPrimitive.contentOrNull.orEmpty() } ?: emptyMap()
