@@ -295,7 +295,7 @@ fun EnvironmentEditDialog(state: AppState) {
 
     fun dismissDialog() {
         persistManualSize()
-        state.showEnvEditDialog = false
+        state.dialogs.dismissEnvironmentEdit()
     }
 
     val captureSnapshot: () -> List<Any?> = {
