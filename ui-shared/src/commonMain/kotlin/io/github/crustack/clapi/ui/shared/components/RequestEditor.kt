@@ -117,11 +117,11 @@ fun RequestEditor(
 
         Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(1.dp)) {
             when (tab.selectedEditorTab) {
-                RequestEditorTab.PARAMS      -> KeyValueEditor(tab.params, "param", state = state) {
+                RequestEditorTab.PARAMS      -> KeyValueEditor(tab.params, "param", state = state, tab = tab) {
                     syncUrlFromParams(tab)
                     markDirty()
                 }
-                RequestEditorTab.HEADERS     -> KeyValueEditor(tab.headers, "header", state = state) { markDirty() }
+                RequestEditorTab.HEADERS     -> KeyValueEditor(tab.headers, "header", state = state, tab = tab) { markDirty() }
                 RequestEditorTab.BODY        -> BodyEditor(tab, state) { markDirty() }
                 RequestEditorTab.AUTH        -> AuthEditor(tab, state) { markDirty() }
                 RequestEditorTab.PRE_REQUEST -> ScriptEditor(
@@ -129,12 +129,14 @@ fun RequestEditor(
                     onScriptChanged = { tab.preRequestScript = it; markDirty() },
                     title           = "Pre-request Script",
                     showCursorPosition = state.settings.showEditorPositionIndicator,
+                    availableVariables = getAvailableVariables(state, tab),
                 )
                 RequestEditorTab.TESTS       -> ScriptEditor(
                     script          = tab.testScript,
                     onScriptChanged = { tab.testScript = it; markDirty() },
                     title           = "Post-request Script",
                     showCursorPosition = state.settings.showEditorPositionIndicator,
+                    availableVariables = getAvailableVariables(state, tab),
                 )
                 RequestEditorTab.VARIABLES   -> Unit
             }

@@ -2,8 +2,13 @@
 Various ideas for new features
 
 ## Agent Readiness
-- Setup MCP so any AI Agents can execute requests, imports, etc.
+Status: TODO
+- Allow to enable a custom MCP so any AI Agents can execute requests, imports, etc.
 
+## Secrets
+- check OpenCollection Schem
+- support system wallets?
+- Support keepassxc, HashiCorp Vault, Keeper
 ## gRPC Support
 - import .proto files
 - json payload

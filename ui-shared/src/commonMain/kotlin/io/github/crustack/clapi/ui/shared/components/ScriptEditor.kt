@@ -27,6 +27,7 @@ fun ScriptEditor(
     onScriptChanged: (String) -> Unit,
     title: String,
     showCursorPosition: Boolean = true,
+    availableVariables: List<Pair<String, String>> = emptyList(),
 ) {
     Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
         Text(
@@ -49,6 +50,7 @@ fun ScriptEditor(
             enableCopy = true,
             enableDownload = false,
             showCursorPosition = showCursorPosition,
+            availableVariables = availableVariables,
             placeholder = if (title.contains("Pre-request", ignoreCase = true))
                 PRE_REQUEST_HINT else TEST_HINT,
             testTagPrefix = "script-editor",

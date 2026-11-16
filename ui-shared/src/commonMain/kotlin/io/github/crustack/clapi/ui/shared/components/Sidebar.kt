@@ -35,6 +35,16 @@ import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -133,6 +143,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import io.github.crustack.clapi.ui.shared.platform.pickFileForImport
 import io.github.crustack.clapi.ui.shared.platform.saveFileForExport
+import io.github.crustack.clapi.ui.shared.platform.isPointerDoubleClick
 import io.github.crustack.clapi.ui.shared.platform.generateUuid
 
 private data class TreeNodeHitArea(
@@ -293,6 +304,7 @@ fun Sidebar(state: AppState) {
 
     var renameCollectionTarget by remember { mutableStateOf<CollectionNode?>(null) }
     var renameCollectionValue by remember { mutableStateOf("") }
+    var inlineRenamingId by remember { mutableStateOf<String?>(null) }
     var addFolderTarget by remember { mutableStateOf<CollectionNode?>(null) }
     var addFolderValue by remember { mutableStateOf("") }
 
@@ -332,6 +344,33 @@ fun Sidebar(state: AppState) {
         scope.launch(ioDispatcher) {
             WorkspaceRepository.save(state)
         }
+    }
+
+    val onCommitInlineRename: (CollectionNode, String) -> Unit = { target, newName ->
+        val trimmed = newName.trim()
+        if (trimmed.isNotEmpty() && trimmed != target.name) {
+            if (target.isFolder) {
+                val oldName = target.name
+                val isRootCollection = state.collections.any { it.id == target.id }
+                val renamed = renameFolderInCollections(state.collections, target.id, trimmed)
+                if (renamed) {
+                    val actualNewName = state.findFolder(target.id)?.name ?: trimmed
+                    state.openTabs.filter { it.id == target.id && it.isFolderTab }.forEach { tab ->
+                        tab.name = actualNewName
+                        tab.reanchorSavedSnapshotAfterRename(oldName)
+                    }
+                    if (isRootCollection) {
+                        state.updateTabsCollectionName(oldName, actualNewName)
+                    }
+                    state.notifyCollectionsChanged()
+                    persistWorkspaceAsync()
+                }
+            } else {
+                state.renameRequestEverywhere(target.id, trimmed)
+                persistWorkspaceAsync()
+            }
+        }
+        inlineRenamingId = null
     }
 
     LaunchedEffect(
@@ -684,8 +723,7 @@ fun Sidebar(state: AppState) {
                                 state.log("Collection duplicated: $newName", LogLevel.SUCCESS)
                             },
                             onRenameCollection = { target ->
-                                renameCollectionTarget = target
-                                renameCollectionValue = target.name
+                                inlineRenamingId = target.id
                             },
                             onDuplicateRequest = { target ->
                                 val duplicatedName = duplicateRequestInCollections(state.collections, target.id)
@@ -745,8 +783,7 @@ fun Sidebar(state: AppState) {
                                 persistWorkspaceAsync()
                             },
                             onRenameRequest = { target ->
-                                renameRequestTarget = target
-                                renameRequestValue = target.name
+                                inlineRenamingId = target.id
                             },
                             onDeleteRequest = { target ->
                                 val action = {
@@ -924,6 +961,10 @@ fun Sidebar(state: AppState) {
                                 dropCollectionTargetId = null
                                 dropCollectionInsertAfter = false
                             },
+                            inlineRenamingId = inlineRenamingId,
+                            onStartInlineRename = { inlineRenamingId = it },
+                            onCommitInlineRename = onCommitInlineRename,
+                            onCancelInlineRename = { inlineRenamingId = null },
                         )
                     }
                 }
@@ -1082,9 +1123,13 @@ fun Sidebar(state: AppState) {
                     val isRootCollection = state.collections.any { it.id == target.id }
                     val renamed = renameFolderInCollections(state.collections, target.id, trimmed)
                     if (renamed) {
+                        val actualNewName = state.findFolder(target.id)?.name ?: trimmed
+                        state.openTabs.filter { it.id == target.id && it.isFolderTab }.forEach { tab ->
+                            tab.name = actualNewName
+                            tab.reanchorSavedSnapshotAfterRename(oldName)
+                        }
                         if (isRootCollection) {
-                            val actualNewName = state.collections.firstOrNull { it.id == target.id }?.name
-                            if (actualNewName != null) state.updateTabsCollectionName(oldName, actualNewName)
+                            state.updateTabsCollectionName(oldName, actualNewName)
                         }
                         state.notifyCollectionsChanged()
                         persistWorkspaceAsync()
@@ -1481,6 +1526,10 @@ private fun CollectionTreeNode(
     onCollectionDragDelta: (String, Float) -> Unit = { _, _ -> },
     onCollectionHitAreaPositioned: (TreeNodeHitArea) -> Unit = {},
     onCollectionDragEnd: () -> Unit = {},
+    inlineRenamingId: String? = null,
+    onStartInlineRename: (String) -> Unit = {},
+    onCommitInlineRename: (CollectionNode, String) -> Unit = { _, _ -> },
+    onCancelInlineRename: () -> Unit = {},
 ) {
     // Read from the session-persistent map rather than a local remember so that
     // Collapse All / Expand All and cross-recomposition state changes take effect.
@@ -1668,11 +1717,17 @@ private fun CollectionTreeNode(
                         )
                     }
                 }
+                .onPointerEvent(PointerEventType.Press) {
+                    if (it.buttons.isPrimaryPressed && isPointerDoubleClick(node.id, it)) {
+                        onStartInlineRename(node.id)
+                    }
+                }
                 .clickable {
                     if (modifierHeldOnPress) {
                         modifierHeldOnPress = false
                         return@clickable
                     }
+                    if (inlineRenamingId == node.id) return@clickable
                     if (node.isFolder) {
                         state.selectSidebarFolder(
                             folderId = node.id,
@@ -1765,40 +1820,113 @@ private fun CollectionTreeNode(
                     modifier = if (sse) Modifier.testTag("sse-badge-${node.id}") else Modifier,
                 )
             }
-            Text(
-                text = node.name,
-                style = MaterialTheme.typography.bodySmall,
-                color = ClapiColors.OnSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .weight(1f)
-                    .then(
-                        if (node.isFolder) {
-                            Modifier
-                                .onPointerEvent(PointerEventType.Press) { handleRowPointerPress(it) }
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                    onClick = {
-                                        if (modifierHeldOnPress) {
-                                            modifierHeldOnPress = false
-                                            return@clickable
-                                        }
-                                        state.selectSidebarFolder(
-                                            folderId = node.id,
-                                            isCtrlPressed = false,
-                                            isShiftPressed = false,
-                                        )
-                                        state.openFolder(node.id)
-                                    },
-                                )
-                                .testTag("folder-name-${node.id}")
-                        } else {
-                            Modifier
-                        }
+            if (inlineRenamingId == node.id) {
+                var renameText by remember(node.id) {
+                    mutableStateOf(TextFieldValue(node.name, TextRange(0, node.name.length)))
+                }
+                val focusRequester = remember { FocusRequester() }
+                var hadFocus by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    focusRequester.requestFocus()
+                }
+                BasicTextField(
+                    value = renameText,
+                    onValueChange = { renameText = it },
+                    singleLine = true,
+                    textStyle = TextStyle(
+                        color = ClapiColors.OnSurface,
+                        fontSize = 12.sp,
+                        fontFamily = CodeFontFamily,
                     ),
-            )
+                    cursorBrush = SolidColor(ClapiColors.Primary),
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(ClapiColors.SurfaceContainer, RoundedCornerShape(4.dp))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .focusRequester(focusRequester)
+                        .onFocusChanged { focusState ->
+                            if (focusState.isFocused) {
+                                hadFocus = true
+                            } else if (hadFocus && inlineRenamingId == node.id) {
+                                onCommitInlineRename(node, renameText.text)
+                            }
+                        }
+                        .onPreviewKeyEvent { keyEvent ->
+                            if (keyEvent.type == KeyEventType.KeyDown) {
+                                when (keyEvent.key) {
+                                    Key.Enter, Key.NumPadEnter -> {
+                                        onCommitInlineRename(node, renameText.text)
+                                        true
+                                    }
+                                    Key.Escape -> {
+                                        onCancelInlineRename()
+                                        true
+                                    }
+                                    else -> false
+                                }
+                            } else false
+                        }
+                        .testTag(if (node.isFolder) "folder-rename-input-${node.id}" else "request-rename-input-${node.id}"),
+                )
+            } else {
+                Text(
+                    text = node.name,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ClapiColors.OnSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f)
+                        .onPointerEvent(PointerEventType.Press) {
+                            handleRowPointerPress(it)
+                            if (it.buttons.isPrimaryPressed && isPointerDoubleClick(node.id, it)) {
+                                onStartInlineRename(node.id)
+                            }
+                        }
+                        .then(
+                            if (node.isFolder) {
+                                Modifier
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                        onClick = {
+                                            if (modifierHeldOnPress) {
+                                                modifierHeldOnPress = false
+                                                return@clickable
+                                            }
+                                            state.selectSidebarFolder(
+                                                folderId = node.id,
+                                                isCtrlPressed = false,
+                                                isShiftPressed = false,
+                                            )
+                                            state.collectionExpandedState[node.id] = true
+                                            state.openFolder(node.id)
+                                        },
+                                    )
+                                    .testTag("folder-name-${node.id}")
+                            } else {
+                                Modifier
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                        onClick = {
+                                            if (modifierHeldOnPress) {
+                                                modifierHeldOnPress = false
+                                                return@clickable
+                                            }
+                                            state.selectSidebarRequest(
+                                                requestId = node.id,
+                                                isCtrlPressed = false,
+                                                isShiftPressed = false,
+                                            )
+                                            state.openRequest(requestId = node.id, name = node.name, method = node.method ?: HttpMethodType.POST, url = node.url ?: "")
+                                        },
+                                    )
+                                    .testTag("request-name-${node.id}")
+                            }
+                        ),
+                )
+            }
             if (isSelectedRequest) {
                 Box(
                     modifier = Modifier
@@ -2105,6 +2233,10 @@ private fun CollectionTreeNode(
                         onCollectionDragDelta = onCollectionDragDelta,
                         onCollectionHitAreaPositioned = onCollectionHitAreaPositioned,
                         onCollectionDragEnd = onCollectionDragEnd,
+                        inlineRenamingId = inlineRenamingId,
+                        onStartInlineRename = onStartInlineRename,
+                        onCommitInlineRename = onCommitInlineRename,
+                        onCancelInlineRename = onCancelInlineRename,
                     )
                 }
             }
@@ -2529,10 +2661,11 @@ fun deleteFolderFromCollections(
     folderId: String,
 ): CollectionNode? = deleteFolderFromNodeList(collections, folderId)
 
-/** Recursively collects all request (non-folder) IDs from a [CollectionNode] subtree. */
+/** Recursively collects all node IDs (both folder and request) from a [CollectionNode] subtree. */
 fun collectAllRequestIds(node: CollectionNode): List<String> {
-    if (!node.isFolder) return listOf(node.id)
-    return node.children.flatMap { collectAllRequestIds(it) }
+    val result = mutableListOf(node.id)
+    node.children.forEach { result.addAll(collectAllRequestIds(it)) }
+    return result
 }
 
 private fun deleteFolderFromNodeList(

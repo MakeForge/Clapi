@@ -729,12 +729,13 @@ fun ImportTypeButton(
 ) {
     val contentColor =
         if (selected) ClapiColors.Primary.copy(alpha = 0.15f) else ClapiColors.SurfaceContainer
+    val buttonModifier = Modifier
+        .clip(RoundedCornerShape(6.dp))
+        .background(contentColor)
+        .let { if (testTag != null) it.testTag(testTag) else it }
     OutlinedButton(
         onClick =  onClick,
-        modifier = Modifier.clip(RoundedCornerShape(6.dp))
-            .background(contentColor).apply{
-                testTag?.let { testTag(it) }
-            },
+        modifier = buttonModifier,
         shape = RoundedCornerShape(6.dp),
         colors = ButtonDefaults.outlinedButtonColors(
             contentColor = contentColor,

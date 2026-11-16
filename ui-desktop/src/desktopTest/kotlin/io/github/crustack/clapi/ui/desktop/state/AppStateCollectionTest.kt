@@ -1083,6 +1083,34 @@ class AppStateCollectionTest {
         assertNull(state.activeTab)
     }
 
+    @Test
+    fun `selectNextTab advances to next tab and wraps around to first tab`() {
+        val state = AppState(openDefaultTab = false)
+        state.openRequest("r1", "Tab 1", HttpMethodType.GET, "/1")
+        state.openRequest("r2", "Tab 2", HttpMethodType.GET, "/2")
+        state.openRequest("r3", "Tab 3", HttpMethodType.GET, "/3")
+        assertEquals(3, state.openTabs.size)
+
+        // Set to first tab
+        state.activeTabIndex = 0
+        assertEquals("r1", state.activeTab?.id)
+
+        // Advance to second tab
+        state.selectNextTab()
+        assertEquals(1, state.activeTabIndex)
+        assertEquals("r2", state.activeTab?.id)
+
+        // Advance to third tab
+        state.selectNextTab()
+        assertEquals(2, state.activeTabIndex)
+        assertEquals("r3", state.activeTab?.id)
+
+        // Wrap around to first tab
+        state.selectNextTab()
+        assertEquals(0, state.activeTabIndex)
+        assertEquals("r1", state.activeTab?.id)
+    }
+
     // ─────────────────────────────────────────────────────────────
     // Bug #7: Rename collection root updates tab.collectionName
     //
