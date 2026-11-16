@@ -101,6 +101,7 @@ kotlin {
             api(project(":editor-ui"))
             api(project(":core-network"))
             api(project(":feature-requests"))
+            api(project(":core-storage"))
             implementation(project(":core-scripting"))
             implementation(libs.coroutines.core)
             implementation(libs.serialization.json)

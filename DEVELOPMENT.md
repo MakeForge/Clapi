@@ -71,6 +71,7 @@ If Android Kotlin compile fails (`compileDebugKotlinAndroid` / `CompilationServi
 ./gradlew kotlinStoreYarnLock
 ./gradlew build
 ```
+**FOR ALL GRADLE COMMANDS USE `rtk` as described in [copilot-instructions.md](./.github/copilot-instructions.md)**
 
 Compile only the shared UI module (fast check during development):
 
