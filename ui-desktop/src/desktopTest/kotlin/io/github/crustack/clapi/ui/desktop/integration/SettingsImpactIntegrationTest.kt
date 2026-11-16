@@ -5,7 +5,7 @@ import io.github.crustack.clapi.core.model.RequestDefinition
 import io.github.crustack.clapi.core.network.NetworkEvent
 import io.github.crustack.clapi.core.network.NoOpNetworkLogger
 import io.github.crustack.clapi.core.network.RetryPolicy
-import io.github.crustack.server.module
+import io.github.crustack.clapi.server.module
 import io.github.crustack.clapi.ui.shared.network.NetworkClientFactory
 import io.github.crustack.clapi.ui.shared.state.AppSettings
 import io.ktor.server.engine.embeddedServer

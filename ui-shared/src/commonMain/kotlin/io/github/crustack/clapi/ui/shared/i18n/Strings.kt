@@ -35,6 +35,7 @@ object Strings {
 
     val history: String @Composable @ReadOnlyComposable get() = t("history")
     val collections: String @Composable @ReadOnlyComposable get() = t("collections")
+    val folders: String @Composable @ReadOnlyComposable get() = t("folders")
     val environments: String @Composable @ReadOnlyComposable get() = t("environments")
     val searchRequests: String @Composable @ReadOnlyComposable get() = t("search_requests")
     val noHistory: String @Composable @ReadOnlyComposable get() = t("no_history")
@@ -57,6 +58,7 @@ object Strings {
 
     val params: String @Composable @ReadOnlyComposable get() = t("params")
     val headers: String @Composable @ReadOnlyComposable get() = t("headers")
+    val inherited: String @Composable @ReadOnlyComposable get() = t("inherited")
     val body: String @Composable @ReadOnlyComposable get() = t("body")
     val auth: String @Composable @ReadOnlyComposable get() = t("auth")
     val preRequest: String @Composable @ReadOnlyComposable get() = t("pre_request")
@@ -151,6 +153,11 @@ object Strings {
 
     val importCollection: String @Composable @ReadOnlyComposable get() = t("import_collection")
     val exportCollection: String @Composable @ReadOnlyComposable get() = t("export_collection")
+    val importFolder: String @Composable @ReadOnlyComposable get() = t("import_folder")
+    val exportFolder: String @Composable @ReadOnlyComposable get() = t("export_folder")
+    val duplicateFolder: String @Composable @ReadOnlyComposable get() = t("duplicate_folder")
+    val folderActions: String @Composable @ReadOnlyComposable get() = t("folder_actions")
+    val goToFolder: String @Composable @ReadOnlyComposable get() = t("go_to_folder")
     val importSuccess: String @Composable @ReadOnlyComposable get() = t("import_success")
     val exportSuccess: String @Composable @ReadOnlyComposable get() = t("export_success")
     val operationFailed: String @Composable @ReadOnlyComposable get() = t("operation_failed")

@@ -825,11 +825,11 @@ class EditorLineNumberAlignmentBugTest {
     fun baseline_all_gutter_labels_are_consecutive_for_flat_document() {
         // Use DisplayLineMap directly — no ViewModel background threads that
         // could race with our reads via scheduleInitialFolds() / reset().
-        val map = io.github.crustack.editor.core.DisplayLineMap(50)
+        val map = io.github.crustack.clapi.editor.core.DisplayLineMap(50)
 
         for (displayLine in 0 until 50) {
             val docLine = map.docFromDisplay(displayLine)
-            assertEquals(displayLine, docLine,
+            kotlin.test.assertEquals(displayLine, docLine,
                 "displayLineMap.docFromDisplay($displayLine) must equal $displayLine " +
                 "for a flat (no-fold) 50-line document.")
         }

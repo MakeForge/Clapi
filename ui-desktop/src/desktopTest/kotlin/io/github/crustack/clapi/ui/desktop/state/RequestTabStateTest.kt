@@ -1,8 +1,14 @@
 package io.github.crustack.clapi.ui.shared.state
 
+import androidx.compose.runtime.mutableStateListOf
+import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.core.model.BodyType
+import io.github.crustack.clapi.core.model.HttpMethodType
+import io.github.crustack.clapi.core.model.KeyValueEntry
 import io.github.crustack.clapi.editor.core.LanguageMode
 import io.github.crustack.clapi.editor.ui.EditorViewModel
+import io.github.crustack.clapi.ui.shared.components.buildAuthConfig
+import io.github.crustack.clapi.ui.shared.components.enabledHeadersForSend
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotSame
@@ -147,5 +153,177 @@ class RequestTabStateTest {
         val newTab = RequestTabState()
         val freshVm = newTab.getOrCreateBodyViewModel(BodyType.JSON, "{}", LanguageMode.JSON)
         assertNotSame(vm, freshVm, "After tab close, old VM must not be reused by a new tab")
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // US3: Inherited Settings Resolution & Wire Overrides
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun inherited_headers_display_with_HeaderKind_INHERITED_and_keyLocked() {
+        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val folder = CollectionNode(
+            id = "f-api",
+            name = "API Folder",
+            isFolder = true,
+            headerEntries = listOf(
+                KeyValueEntry("X-Api-Version", "v2", enabled = true),
+                KeyValueEntry("X-Shared-Secret", "xyz", enabled = true),
+            ),
+            children = mutableStateListOf(
+                CollectionNode(
+                    id = "r-child",
+                    name = "Get Item",
+                    isFolder = false,
+                    method = HttpMethodType.GET,
+                    url = "https://example.com/items",
+                ),
+            ),
+        )
+        state.collections.add(folder)
+
+        state.openRequest(requestId = "r-child", name = "Get Item", method = HttpMethodType.GET, url = "https://example.com/items")
+
+        val tab = state.openTabs.first { it.id == "r-child" }
+        val inheritedVersion = tab.headers.firstOrNull { it.key.equals("X-Api-Version", ignoreCase = true) }
+        val inheritedSecret = tab.headers.firstOrNull { it.key.equals("X-Shared-Secret", ignoreCase = true) }
+
+        assertTrue(inheritedVersion != null, "Inherited header X-Api-Version must be present")
+        assertEquals("v2", inheritedVersion.value)
+        assertEquals(HeaderKind.INHERITED, inheritedVersion.kind)
+        assertTrue(inheritedVersion.keyLocked)
+
+        assertTrue(inheritedSecret != null, "Inherited header X-Shared-Secret must be present")
+        assertEquals(HeaderKind.INHERITED, inheritedSecret.kind)
+        assertTrue(inheritedSecret.keyLocked)
+    }
+
+    @Test
+    fun inherited_headers_case_insensitive_override_during_send() {
+        val tab = RequestTabState(name = "Override Test")
+        // Folder inherited header
+        tab.headers.add(
+            MutableKeyValue(
+                key = "authorization",
+                value = "Bearer folder-token",
+                kind = HeaderKind.INHERITED,
+                keyLocked = true,
+            )
+        )
+        // User overrides it with different casing
+        tab.headers.add(
+            MutableKeyValue(
+                key = "Authorization",
+                value = "Bearer user-token",
+                kind = HeaderKind.USER,
+            )
+        )
+        tab.headers.add(
+            MutableKeyValue(
+                key = "X-Other",
+                value = "kept",
+                kind = HeaderKind.INHERITED,
+                keyLocked = true,
+            )
+        )
+
+        val wireHeaders = enabledHeadersForSend(tab)
+        val authHeaders = wireHeaders.filter { it.key.equals("authorization", ignoreCase = true) }
+
+        assertEquals(1, authHeaders.size, "User header must override inherited header case-insensitively")
+        assertEquals("Bearer user-token", authHeaders[0].value)
+        assertTrue(wireHeaders.any { it.key == "X-Other" && it.value == "kept" })
+    }
+
+    @Test
+    fun auth_inheritance_resolves_closest_ancestor() {
+        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val childFolder = CollectionNode(
+            id = "f-sub",
+            name = "Subfolder",
+            isFolder = true,
+            authType = AuthType.BEARER,
+            authToken = "child-token-123",
+            children = mutableStateListOf(
+                CollectionNode(
+                    id = "r-leaf",
+                    name = "Leaf Request",
+                    isFolder = false,
+                    method = HttpMethodType.GET,
+                    url = "https://example.com/leaf",
+                ),
+            ),
+        )
+        val rootFolder = CollectionNode(
+            id = "f-root",
+            name = "Root Collection",
+            isFolder = true,
+            authType = AuthType.BASIC,
+            authUsername = "rootUser",
+            authPassword = "rootPassword",
+            children = mutableStateListOf(childFolder),
+        )
+        state.collections.add(rootFolder)
+
+        state.openRequest(requestId = "r-leaf", name = "Leaf Request", method = HttpMethodType.GET, url = "https://example.com/leaf")
+        val tab = state.openTabs.first { it.id == "r-leaf" }
+        tab.authType = AuthType.INHERIT
+
+        val resolved = state.resolveInheritedAuth(tab)
+        assertTrue(resolved != null)
+        assertEquals("Subfolder", resolved.folderName)
+        assertEquals(AuthType.BEARER, resolved.authType)
+        assertEquals("child-token-123", resolved.token)
+
+        val config = buildAuthConfig(tab, state)
+        assertEquals(AuthType.BEARER, config.type)
+        assertEquals(mapOf("token" to "child-token-123"), config.params)
+    }
+
+    @Test
+    fun auth_inheritance_cascades_to_root_when_intermediate_has_no_auth() {
+        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val childFolder = CollectionNode(
+            id = "f-sub-no-auth",
+            name = "Subfolder No Auth",
+            isFolder = true,
+            authType = AuthType.NONE,
+            children = mutableStateListOf(
+                CollectionNode(
+                    id = "r-deep",
+                    name = "Deep Request",
+                    isFolder = false,
+                    method = HttpMethodType.GET,
+                    url = "https://example.com/deep",
+                ),
+            ),
+        )
+        val rootFolder = CollectionNode(
+            id = "f-root-auth",
+            name = "Root Auth Collection",
+            isFolder = true,
+            authType = AuthType.API_KEY,
+            authApiKey = "X-Api-Key",
+            authApiValue = "secret-key",
+            authApiPlacement = "header",
+            children = mutableStateListOf(childFolder),
+        )
+        state.collections.add(rootFolder)
+
+        state.openRequest(requestId = "r-deep", name = "Deep Request", method = HttpMethodType.GET, url = "https://example.com/deep")
+        val tab = state.openTabs.first { it.id == "r-deep" }
+        tab.authType = AuthType.INHERIT
+
+        val resolved = state.resolveInheritedAuth(tab)
+        assertTrue(resolved != null)
+        assertEquals("Root Auth Collection", resolved.folderName)
+        assertEquals(AuthType.API_KEY, resolved.authType)
+        assertEquals("X-Api-Key", resolved.apiKey)
+        assertEquals("secret-key", resolved.apiValue)
+
+        val config = buildAuthConfig(tab, state)
+        assertEquals(AuthType.API_KEY, config.type)
+        assertEquals(mapOf("key" to "X-Api-Key", "value" to "secret-key"), config.params)
+        assertEquals("header", config.placement)
     }
 }

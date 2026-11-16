@@ -239,6 +239,7 @@ fun VariableAwareTextField(
         fontFamily = CodeFontFamily,
     ),
     state: AppState? = null,
+    readOnly: Boolean = false,
 ) {
     // Resolved variable names from whatever environment/collection layers are active.
     // Reading mutableState properties of AppState inside the composable body automatically
@@ -295,6 +296,7 @@ fun VariableAwareTextField(
     Box {
         BasicTextField(
             value = fieldValue,
+            readOnly = readOnly,
             onValueChange = { new ->
                 val annotated = if (state != null) highlightVariablesWithStatus(new.text, definedNames)
                                 else AnnotatedString(new.text)

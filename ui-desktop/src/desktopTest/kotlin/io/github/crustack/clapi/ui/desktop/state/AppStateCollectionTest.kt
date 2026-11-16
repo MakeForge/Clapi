@@ -1,13 +1,20 @@
 package io.github.crustack.clapi.ui.shared.state
 
 import androidx.compose.runtime.mutableStateListOf
+import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.core.model.BodyType
 import io.github.crustack.clapi.core.model.HttpMethodType
+import io.github.crustack.clapi.core.model.KeyValueEntry
 import io.github.crustack.clapi.core.model.McpRoot
 import io.github.crustack.clapi.core.model.McpSamplingMode
 import io.github.crustack.clapi.core.model.RequestKind
+import io.github.crustack.clapi.ui.shared.components.enabledHeadersForSend
+import io.github.crustack.clapi.ui.shared.components.enabledQueryParamsForSend
 import io.github.crustack.clapi.ui.shared.components.moveRequestToCollection
+import io.github.crustack.clapi.ui.shared.components.prepareTabRequest
+import io.github.crustack.clapi.ui.shared.components.sendRequest
 import io.github.crustack.clapi.ui.shared.persistence.ImportExportRepository
+import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -1277,5 +1284,293 @@ class AppStateCollectionTest {
         val ok = state.revealRequestInSidebar("req1")
         assertTrue(ok)
         assertEquals("req1", state.selectedRequestId, "Stale collectionName must not block resolution when collectionId matches")
+    }
+
+    // ── US4: Nested Folder Request Defaults and Script Cascading ────────
+
+    @Test
+    fun nestedFolderInheritance_threeLevelCascadingHeadersAndParams() {
+        val state = AppState(openDefaultTab = false, withDemoData = false)
+
+        val leafRequest = CollectionNode(
+            id = "req-leaf-1",
+            name = "Leaf Request",
+            isFolder = false,
+            method = HttpMethodType.GET,
+            url = "https://api.example.com/items",
+        )
+
+        val grandchildFolder = CollectionNode(
+            id = "f-grandchild",
+            name = "Grandchild",
+            isFolder = true,
+            headerEntries = listOf(
+                KeyValueEntry("X-Api-Grandchild", "g1", enabled = true),
+            ),
+            queryEntries = listOf(
+                KeyValueEntry("trace", "true", enabled = true),
+            ),
+            authType = AuthType.INHERIT,
+            children = mutableStateListOf(leafRequest),
+        )
+
+        val childFolder = CollectionNode(
+            id = "f-child",
+            name = "Child",
+            isFolder = true,
+            headerEntries = listOf(
+                KeyValueEntry("X-Api-Child", "c1", enabled = true),
+                KeyValueEntry("X-Common", "child-common", enabled = true), // Overrides Root
+            ),
+            queryEntries = listOf(
+                KeyValueEntry("region", "eu-west", enabled = true), // Overrides Root
+            ),
+            authType = AuthType.INHERIT,
+            children = mutableStateListOf(grandchildFolder),
+        )
+
+        val rootFolder = CollectionNode(
+            id = "f-root",
+            name = "Root",
+            isFolder = true,
+            headerEntries = listOf(
+                KeyValueEntry("X-Api-Root", "r1", enabled = true),
+                KeyValueEntry("X-Common", "root-common", enabled = true),
+            ),
+            queryEntries = listOf(
+                KeyValueEntry("region", "us-east", enabled = true),
+                KeyValueEntry("version", "v1", enabled = true),
+            ),
+            authType = AuthType.BASIC,
+            authUsername = "root-admin",
+            authPassword = "root-secret",
+            children = mutableStateListOf(childFolder),
+        )
+        state.collections.add(rootFolder)
+
+        // Open the leaf request tab
+        state.openRequest(
+            requestId = "req-leaf-1",
+            name = "Leaf Request",
+            method = HttpMethodType.GET,
+            url = "https://api.example.com/items",
+        )
+
+        val tab = state.activeTab
+        assertNotNull(tab)
+        assertEquals("req-leaf-1", tab.id)
+
+        // Verify inherited headers in tab
+        val headerMap = tab.headers.associate { it.key to it.value }
+        assertEquals("r1", headerMap["X-Api-Root"])
+        assertEquals("c1", headerMap["X-Api-Child"])
+        assertEquals("g1", headerMap["X-Api-Grandchild"])
+        assertEquals("child-common", headerMap["X-Common"]) // Child overrides Root
+
+        // Verify inherited header row properties
+        val inheritedHeaders = tab.headers.filter { it.kind == HeaderKind.INHERITED }
+        assertEquals(4, inheritedHeaders.size)
+        assertTrue(inheritedHeaders.all { it.keyLocked })
+
+        // Verify inherited query parameters in tab
+        val paramMap = tab.params.associate { it.key to it.value }
+        assertEquals("v1", paramMap["version"])
+        assertEquals("eu-west", paramMap["region"]) // Child overrides Root
+        assertEquals("true", paramMap["trace"])
+
+        val inheritedParams = tab.params.filter { it.kind == HeaderKind.INHERITED }
+        assertEquals(3, inheritedParams.size)
+        assertTrue(inheritedParams.all { it.keyLocked })
+
+        // Verify auth inheritance resolves up through child and grandchild to root
+        tab.authType = AuthType.INHERIT
+        val resolvedAuth = state.resolveInheritedAuth(tab)
+        assertNotNull(resolvedAuth)
+        assertEquals("Root", resolvedAuth.folderName)
+        assertEquals(AuthType.BASIC, resolvedAuth.authType)
+        assertEquals("root-admin", resolvedAuth.username)
+        assertEquals("root-secret", resolvedAuth.password)
+
+        // Verify prepareTabRequest wire model resolves effective auth and headers
+        val prepared = prepareTabRequest(tab, state = state)
+        assertEquals(AuthType.BASIC, prepared.auth.type)
+        assertEquals("root-admin", prepared.auth.params["username"])
+        assertEquals("root-secret", prepared.auth.params["password"])
+    }
+
+    @Test
+    fun nestedFolderInheritance_childAuthOverridesRootAuth() {
+        val state = AppState(openDefaultTab = false, withDemoData = false)
+
+        val leafRequest = CollectionNode(
+            id = "req-leaf-2",
+            name = "Leaf Request 2",
+            isFolder = false,
+            method = HttpMethodType.GET,
+            url = "https://api.example.com/items",
+        )
+
+        val grandchildFolder = CollectionNode(
+            id = "f-grandchild-2",
+            name = "Grandchild 2",
+            isFolder = true,
+            authType = AuthType.INHERIT,
+            children = mutableStateListOf(leafRequest),
+        )
+
+        val childFolder = CollectionNode(
+            id = "f-child-2",
+            name = "Child 2",
+            isFolder = true,
+            authType = AuthType.BEARER,
+            authToken = "child-secret-bearer-token",
+            children = mutableStateListOf(grandchildFolder),
+        )
+
+        val rootFolder = CollectionNode(
+            id = "f-root-2",
+            name = "Root 2",
+            isFolder = true,
+            authType = AuthType.BASIC,
+            authUsername = "root-admin",
+            authPassword = "root-secret",
+            children = mutableStateListOf(childFolder),
+        )
+        state.collections.add(rootFolder)
+
+        state.openRequest(
+            requestId = "req-leaf-2",
+            name = "Leaf Request 2",
+            method = HttpMethodType.GET,
+            url = "https://api.example.com/items",
+        )
+
+        val tab = state.activeTab
+        assertNotNull(tab)
+        tab.authType = AuthType.INHERIT
+
+        val resolved = state.resolveInheritedAuth(tab)
+        assertNotNull(resolved)
+        assertEquals("Child 2", resolved.folderName)
+        assertEquals(AuthType.BEARER, resolved.authType)
+        assertEquals("child-secret-bearer-token", resolved.token)
+    }
+
+    @Test
+    fun nestedFolderInheritance_requestOverrideHeadersAndParamsOnWire() {
+        val state = AppState(openDefaultTab = false, withDemoData = false)
+
+        val leafRequest = CollectionNode(
+            id = "req-leaf-3",
+            name = "Leaf Request 3",
+            isFolder = false,
+            method = HttpMethodType.GET,
+            url = "https://api.example.com/items",
+        )
+
+        val childFolder = CollectionNode(
+            id = "f-child-3",
+            name = "Child 3",
+            isFolder = true,
+            headerEntries = listOf(
+                KeyValueEntry("X-Env", "staging", enabled = true),
+            ),
+            queryEntries = listOf(
+                KeyValueEntry("region", "eu-west", enabled = true),
+                KeyValueEntry("page", "1", enabled = true),
+            ),
+            children = mutableStateListOf(leafRequest),
+        )
+
+        val rootFolder = CollectionNode(
+            id = "f-root-3",
+            name = "Root 3",
+            isFolder = true,
+            headerEntries = listOf(
+                KeyValueEntry("X-Root-Version", "1.0", enabled = true),
+                KeyValueEntry("X-Env", "prod", enabled = true),
+            ),
+            children = mutableStateListOf(childFolder),
+        )
+        state.collections.add(rootFolder)
+
+        state.openRequest(
+            requestId = "req-leaf-3",
+            name = "Leaf Request 3",
+            method = HttpMethodType.GET,
+            url = "https://api.example.com/items",
+        )
+
+        val tab = state.activeTab
+        assertNotNull(tab)
+
+        // User overrides X-Env and region in the request tab
+        tab.headers.add(MutableKeyValue(key = "X-Env", value = "request-override", kind = HeaderKind.USER))
+        tab.params.add(MutableKeyValue(key = "region", value = "ap-south", kind = HeaderKind.USER))
+
+        // Check wire header resolution
+        val wireHeaders = enabledHeadersForSend(tab).associate { it.key to it.value }
+        assertEquals("request-override", wireHeaders["X-Env"])
+        assertEquals("1.0", wireHeaders["X-Root-Version"])
+
+        // Check wire param resolution
+        val wireParams = enabledQueryParamsForSend(tab).associate { it.key to it.value }
+        assertEquals("ap-south", wireParams["region"])
+        assertEquals("1", wireParams["page"])
+    }
+
+    @Test
+    fun nestedFolderScriptCascading_chainsAncestorPreRequestScripts() = runBlocking {
+        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val env = EnvState(name = "Test Env")
+        state.environments.add(env)
+        state.selectedEnvIndex = state.environments.size - 1
+
+        val leafRequest = CollectionNode(
+            id = "req-leaf-script",
+            name = "Leaf Request Script",
+            isFolder = false,
+            method = HttpMethodType.GET,
+            url = "https://api.example.com/items",
+            preRequestScript = "clapi.environment.set('trace', clapi.environment.get('trace') + '->leaf'); clapi.execution.skipRequest();",
+        )
+
+        val childFolder = CollectionNode(
+            id = "f-child-script",
+            name = "Child Script",
+            isFolder = true,
+            preRequestScript = "clapi.environment.set('trace', clapi.environment.get('trace') + '->child');",
+            children = mutableStateListOf(leafRequest),
+        )
+
+        val rootFolder = CollectionNode(
+            id = "f-root-script",
+            name = "Root Script",
+            isFolder = true,
+            preRequestScript = "clapi.environment.set('trace', 'root');",
+            children = mutableStateListOf(childFolder),
+        )
+        state.collections.add(rootFolder)
+
+        state.openRequest(
+            requestId = "req-leaf-script",
+            name = "Leaf Request Script",
+            method = HttpMethodType.GET,
+            url = "https://api.example.com/items",
+        )
+
+        val tab = state.activeTab
+        assertNotNull(tab)
+
+        // Execute request dispatch
+        sendRequest(this, state, tab)
+        tab.currentJob?.join()
+
+        // Verify that scripts chained root -> child -> leaf
+        val traceVar = env.variables.firstOrNull { it.key == "trace" }?.value
+        assertEquals("root->child->leaf", traceVar)
+
+        // Verify request was skipped by execution.skipRequest() in the leaf script
+        assertEquals(false, tab.isLoading)
     }
 }

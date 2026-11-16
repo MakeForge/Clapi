@@ -428,4 +428,96 @@ class TabManagementUiTest {
         // The selected indicator dot should be present for r1
         composeRule.onNodeWithTag("selected-request-indicator-r1", useUnmergedTree = true).assertExists()
     }
+
+    // ── US2: Folder settings tab opening, focusing, and saving ────
+
+    @Test
+    fun openFolder_creates_dedicated_folder_tab_with_folder_icon() {
+        val state = AppState(withDemoData = false, openDefaultTab = false)
+        val folder = io.github.crustack.clapi.ui.shared.state.CollectionNode(
+            id = "f1",
+            name = "Auth Settings",
+            isFolder = true,
+        )
+        state.collections.add(folder)
+        state.openFolder("f1")
+
+        composeRule.setContent { MainScreen(state) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("tab-chip-f1", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("tab-folder-icon-f1", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("folder-editor", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("folder-editor-title", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun clicking_folder_name_in_sidebar_opens_and_focuses_tab() {
+        val state = AppState(withDemoData = false, openDefaultTab = false).apply {
+            collectionsExpanded = true
+        }
+        val folder = io.github.crustack.clapi.ui.shared.state.CollectionNode(
+            id = "f-users",
+            name = "Users Collection",
+            isFolder = true,
+        )
+        state.collections.add(folder)
+
+        composeRule.setContent { MainScreen(state) }
+        composeRule.waitForIdle()
+
+        // Click folder name text in sidebar
+        composeRule.onNodeWithTag("folder-name-f-users", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(1, state.openTabs.size)
+        assertEquals("f-users", state.openTabs[0].id)
+        assertTrue(state.openTabs[0].isFolderTab)
+
+        // Add another tab to move active index
+        state.addTab(name = "Second Tab", method = HttpMethodType.GET)
+        assertEquals(1, state.activeTabIndex)
+
+        // Click folder name text again; should focus existing tab rather than duplicate
+        composeRule.onNodeWithTag("folder-name-f-users", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(2, state.openTabs.size)
+        assertEquals(0, state.activeTabIndex)
+    }
+
+    @Test
+    fun saving_folder_settings_persists_to_collection_node() {
+        val state = AppState(withDemoData = false, openDefaultTab = false)
+        val folder = io.github.crustack.clapi.ui.shared.state.CollectionNode(
+            id = "f-save",
+            name = "Settings Folder",
+            isFolder = true,
+        )
+        state.collections.add(folder)
+        state.openFolder("f-save")
+
+        val folderTab = state.activeTab!!
+        folderTab.headers.add(
+            io.github.crustack.clapi.ui.shared.state.MutableKeyValue(
+                key = "X-Folder-Token",
+                value = "tok-123",
+                kind = io.github.crustack.clapi.ui.shared.state.HeaderKind.USER,
+            )
+        )
+        folderTab.authType = io.github.crustack.clapi.core.model.AuthType.BEARER
+        folderTab.authToken = "bearer-secret"
+
+        composeRule.setContent { MainScreen(state) }
+        composeRule.waitForIdle()
+
+        // Click save button in FolderEditor
+        composeRule.onNodeWithTag("folder-save-button", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        val savedNode = state.collections.first { it.id == "f-save" }
+        assertEquals(io.github.crustack.clapi.core.model.AuthType.BEARER, savedNode.authType)
+        assertEquals("bearer-secret", savedNode.authToken)
+        assertTrue(savedNode.headerEntries?.any { it.key == "X-Folder-Token" && it.value == "tok-123" } == true)
+    }
 }

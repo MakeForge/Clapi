@@ -1,5 +1,6 @@
 package io.github.crustack.clapi.ui.desktop.integration
 
+import io.github.crustack.clapi.core.model.HttpMethodType
 import io.github.crustack.clapi.ui.shared.MainScreen
 
 import io.github.crustack.clapi.ui.shared.components.deleteRequestFromCollections

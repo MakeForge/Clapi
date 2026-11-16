@@ -214,7 +214,8 @@ class KtorApiClient(
     ) {
         val auth = request.auth
         when (auth.type) {
-            AuthType.NONE -> Unit
+            AuthType.NONE,
+            AuthType.INHERIT -> Unit
             AuthType.BASIC -> {
                 val username = VariableResolver.resolve(auth.params["username"].orEmpty(), variableLayers)
                 val password = VariableResolver.resolve(auth.params["password"].orEmpty(), variableLayers)

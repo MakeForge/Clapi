@@ -6,7 +6,7 @@ import io.github.crustack.clapi.core.model.McpCreateMessageResult
 import io.github.crustack.clapi.core.model.McpHttpMode
 import io.github.crustack.clapi.core.model.McpSamplingMode
 import io.github.crustack.clapi.core.network.mcp.McpClient
-import io.github.crustack.server.module
+import io.github.crustack.clapi.server.module
 import io.github.crustack.clapi.ui.shared.mcp.McpPendingSampling
 import io.github.crustack.clapi.ui.shared.mcp.McpSessionState
 import io.ktor.server.engine.EmbeddedServer

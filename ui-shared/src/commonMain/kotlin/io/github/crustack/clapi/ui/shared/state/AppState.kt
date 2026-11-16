@@ -61,7 +61,7 @@ enum class WorkspaceMode(val label: String) {
     GRAPHQL("GraphQL"),
 }
 
-enum class HeaderKind { SYSTEM, USER }
+enum class HeaderKind { SYSTEM, USER, INHERITED }
 
 fun normalizeApiKeyPlacement(value: String?): String =
     if (value.equals("query", ignoreCase = true)) "query" else "header"
@@ -75,6 +75,17 @@ data class ConsoleEntry(
 )
 
 data class TestResultEntry(val name: String, val passed: Boolean, val message: String = "")
+
+data class ResolvedFolderAuth(
+    val folderName: String,
+    val authType: AuthType,
+    val username: String? = null,
+    val password: String? = null,
+    val token: String? = null,
+    val apiKey: String? = null,
+    val apiValue: String? = null,
+    val apiPlacement: String? = null,
+)
 
 data class HistoryItem(
     val requestId: String,
@@ -290,6 +301,7 @@ class RequestTabState(
     collectionId: String? = null,
     folderPath: List<String> = emptyList(),
     requestRef: String? = null,
+    kind: RequestKind = RequestKind.HTTP,
 ) {
     val requestId: String get() = id
 
@@ -351,7 +363,8 @@ class RequestTabState(
 
     var preRequestScript by mutableStateOf("")
     var testScript       by mutableStateOf("")
-    var kind by mutableStateOf(RequestKind.HTTP)
+    var kind by mutableStateOf(kind)
+    val isFolderTab: Boolean get() = kind == RequestKind.FOLDER
     var mcpConfig by mutableStateOf(McpConnectionConfig())
 
     var retryEnabled by mutableStateOf(false)
@@ -424,14 +437,21 @@ class RequestTabState(
     var liveStreamText by mutableStateOf("")
 
     init {
+        if (kind == RequestKind.FOLDER) {
+            headers.clear()
+        }
         savedSnapshot = currentSnapshotForDirtyTracking()
     }
 
     private fun totalBodyLength(): Int = bodyContents.values.sumOf { it.length }
 
     private fun currentSnapshot(): String {
-        val paramsSnapshot = params.joinToString(";") { p -> "${p.key}|${p.value}|${p.enabled}|${p.secret}" }
-        val headersSnapshot = headers.joinToString(";") { h -> "${h.key}|${h.value}|${h.enabled}|${h.secret}|${h.kind}|${h.keyLocked}" }
+        val paramsSnapshot = params
+            .filter { it.kind != HeaderKind.INHERITED }
+            .joinToString(";") { p -> "${p.key}|${p.value}|${p.enabled}|${p.secret}" }
+        val headersSnapshot = headers
+            .filter { it.kind != HeaderKind.INHERITED }
+            .joinToString(";") { h -> "${h.key}|${h.value}|${h.enabled}|${h.secret}|${h.kind}|${h.keyLocked}" }
         val formRowsSnapshot = formRows.joinToString(";") { r -> "${r.key}|${r.type.name}|${r.value}|${r.description}|${r.enabled}|${r.bytesBase64}" }
         val urlencodedRowsSnapshot = urlencodedRows.joinToString(";") { r -> "${r.key}|${r.value}|${r.description}|${r.enabled}" }
         val allBodyContentsSnapshot = bodyContents.entries
@@ -623,6 +643,7 @@ class RequestTabState(
     }
 
     fun syncSystemHeaders() {
+        if (kind == RequestKind.FOLDER) return
         // Content-Type always reflects the current body type (derived value).
         upsertSystemHeader(SystemHeaderRules.CONTENT_TYPE, SystemHeaderRules.defaultContentTypeFor(bodyType), overwriteIfExists = true)
         // Accept and User-Agent are only inserted when missing so that user
@@ -992,6 +1013,9 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         if (tab.kind == RequestKind.MCP && tab.url.isBlank()) {
             tab.url = tab.mcpConfig.url
         }
+        if (tab.kind != RequestKind.FOLDER) {
+            applyInheritedDefaults(tab)
+        }
         // Re-anchor the saved snapshot after all fields (including system headers
         // injected by syncSystemHeaders above) have been populated. Without this,
         // the snapshot captured in RequestTabState.init{} pre-dates the system
@@ -1000,6 +1024,211 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         openTabs.add(tab)
         activeTabIndex = openTabs.size - 1
         selectedRequestId = requestId
+    }
+
+    /**
+     * Opens or focuses a dedicated settings tab for the folder with [folderId].
+     */
+    fun openFolder(folderId: String) {
+        val folderNode = findNodeById(collections, folderId) ?: return
+        if (!folderNode.isFolder) return
+
+        val existingIdx = openTabs.indexOfFirst { it.id == folderId && it.kind == RequestKind.FOLDER }
+        if (existingIdx >= 0) {
+            activeTabIndex = existingIdx
+            selectedCollectionId = folderId
+            return
+        }
+
+        var cName: String? = null
+        var cId: String? = null
+        val fPath = mutableListOf<String>()
+        var found = false
+        for (c in collections) {
+            if (findPathRecursive(c, folderId, fPath)) {
+                cName = c.name
+                cId = c.id
+                found = true
+                break
+            }
+        }
+        val pathWithoutNode = if (found && fPath.isNotEmpty()) fPath.dropLast(1) else emptyList()
+
+        val tab = RequestTabState(
+            id = folderId,
+            name = folderNode.name,
+            kind = RequestKind.FOLDER,
+            collectionName = cName,
+            collectionId = cId,
+            folderPath = pathWithoutNode,
+        )
+
+        folderNode.queryEntries?.let { entries ->
+            tab.params.clear()
+            tab.params.addAll(entries.map { MutableKeyValue(it.key, it.value, it.enabled, it.secret) })
+        }
+        folderNode.headerEntries?.let { entries ->
+            tab.headers.clear()
+            tab.headers.addAll(entries.map { MutableKeyValue(it.key, it.value, it.enabled, it.secret, kind = HeaderKind.USER) })
+        } ?: folderNode.userHeaders.forEach { (k, v) ->
+            tab.headers.add(MutableKeyValue(k, v, kind = HeaderKind.USER))
+        }
+        folderNode.authType?.let { tab.authType = it }
+        folderNode.authUsername?.takeIf { it.isNotBlank() }?.let { tab.authUsername = it }
+        folderNode.authPassword?.takeIf { it.isNotBlank() }?.let { tab.authPassword = it }
+        folderNode.authToken?.takeIf { it.isNotBlank() }?.let { tab.authToken = it }
+        folderNode.authApiKey?.takeIf { it.isNotBlank() }?.let { tab.authApiKey = it }
+        folderNode.authApiValue?.takeIf { it.isNotBlank() }?.let { tab.authApiValue = it }
+        tab.authApiPlacement = normalizeApiKeyPlacement(folderNode.authApiPlacement)
+        folderNode.preRequestScript?.takeIf { it.isNotBlank() }?.let { tab.preRequestScript = it }
+        folderNode.testScript?.takeIf { it.isNotBlank() }?.let { tab.testScript = it }
+
+        tab.restoreSavedSnapshot(null)
+        openTabs.add(tab)
+        activeTabIndex = openTabs.size - 1
+        selectedCollectionId = folderId
+    }
+
+    fun getAncestorFolders(tab: RequestTabState): List<CollectionNode> {
+        val chain = mutableListOf<CollectionNode>()
+        for (root in collections) {
+            if (findAncestorChain(root, tab.id, chain)) {
+                return chain
+            }
+        }
+        if (tab.collectionId != null || tab.collectionName != null) {
+            val root = collections.firstOrNull { it.id == tab.collectionId }
+                ?: collections.firstOrNull { it.name == tab.collectionName }
+            if (root != null) {
+                val fallbackChain = mutableListOf<CollectionNode>()
+                fallbackChain.add(root)
+                var cursor: CollectionNode = root
+                for (folderName in tab.folderPath) {
+                    val next = cursor.children.firstOrNull { it.isFolder && it.name == folderName } ?: break
+                    fallbackChain.add(next)
+                    cursor = next
+                }
+                return fallbackChain
+            }
+        }
+        return emptyList()
+    }
+
+    private fun findAncestorChain(
+        node: CollectionNode,
+        targetId: String,
+        currentChain: MutableList<CollectionNode>,
+    ): Boolean {
+        if (node.id == targetId) {
+            return true
+        }
+        if (node.isFolder) {
+            currentChain.add(node)
+            for (child in node.children) {
+                if (findAncestorChain(child, targetId, currentChain)) {
+                    return true
+                }
+            }
+            currentChain.removeAt(currentChain.size - 1)
+        }
+        return false
+    }
+
+    fun resolveInheritedAuth(tab: RequestTabState): ResolvedFolderAuth? {
+        val ancestors = getAncestorFolders(tab).asReversed()
+        if (ancestors.isEmpty() && tab.collectionName == null && tab.collectionId == null) {
+            return null
+        }
+        for (folder in ancestors) {
+            val type = folder.authType
+            if (type != null && type != AuthType.NONE && type != AuthType.INHERIT) {
+                return ResolvedFolderAuth(
+                    folderName = folder.name,
+                    authType = type,
+                    username = folder.authUsername,
+                    password = folder.authPassword,
+                    token = folder.authToken,
+                    apiKey = folder.authApiKey,
+                    apiValue = folder.authApiValue,
+                    apiPlacement = folder.authApiPlacement,
+                )
+            }
+        }
+        val directParentName = ancestors.firstOrNull()?.name ?: tab.collectionName.orEmpty()
+        return ResolvedFolderAuth(
+            folderName = directParentName,
+            authType = AuthType.NONE,
+        )
+    }
+
+    fun applyInheritedDefaults(tab: RequestTabState) {
+        if (tab.isFolderTab) return
+        val ancestors = getAncestorFolders(tab)
+        if (ancestors.isEmpty()) return
+
+        // 1. Cascade headers (root-to-leaf: closer ancestor overrides distant ancestor)
+        val resolvedHeaders = mutableMapOf<String, KeyValueEntry>()
+        for (folder in ancestors) {
+            val entries = folder.headerEntries ?: folder.userHeaders.map { KeyValueEntry(it.first, it.second) }
+            for (entry in entries) {
+                if (entry.enabled && entry.key.isNotBlank()) {
+                    resolvedHeaders[entry.key.lowercase()] = entry
+                }
+            }
+        }
+
+        tab.headers.removeAll { it.kind == HeaderKind.INHERITED }
+
+        for (entry in resolvedHeaders.values) {
+            val alreadyExists = tab.headers.any { it.key.equals(entry.key, ignoreCase = true) }
+            if (!alreadyExists) {
+                tab.headers.add(
+                    MutableKeyValue(
+                        key = entry.key,
+                        value = entry.value,
+                        enabled = true,
+                        kind = HeaderKind.INHERITED,
+                        keyLocked = true,
+                    )
+                )
+            }
+        }
+
+        // 2. Cascade query parameters (root-to-leaf: closer ancestor overrides distant ancestor)
+        val resolvedParams = mutableMapOf<String, KeyValueEntry>()
+        for (folder in ancestors) {
+            val entries = folder.queryEntries ?: emptyList()
+            for (entry in entries) {
+                if (entry.enabled && entry.key.isNotBlank()) {
+                    resolvedParams[entry.key.lowercase()] = entry
+                }
+            }
+        }
+
+        tab.params.removeAll { it.kind == HeaderKind.INHERITED }
+
+        for (entry in resolvedParams.values) {
+            val alreadyExists = tab.params.any { it.key.equals(entry.key, ignoreCase = true) }
+            if (!alreadyExists) {
+                tab.params.add(
+                    MutableKeyValue(
+                        key = entry.key,
+                        value = entry.value,
+                        enabled = true,
+                        kind = HeaderKind.INHERITED,
+                        keyLocked = true,
+                    )
+                )
+            }
+        }
+    }
+
+    fun refreshInheritedDefaultsForOpenTabs() {
+        for (openTab in openTabs) {
+            if (!openTab.isFolderTab) {
+                applyInheritedDefaults(openTab)
+            }
+        }
     }
 
     private fun findPathRecursive(node: CollectionNode, targetId: String, path: MutableList<String>): Boolean {
@@ -1392,16 +1621,18 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     fun revealRequestInSidebar(requestId: String): Boolean {
         val resolvedRequestId = resolveSidebarRequestId(requestId)
         val targetNode = findNodeById(collections, resolvedRequestId)
-        if (targetNode == null || targetNode.isFolder) {
-            showError("Request not found", "Request no longer exists in collections.")
+        if (targetNode == null) {
+            showError("Item not found", "Item no longer exists in collections.")
             return false
         }
         sidebarExpanded = true
         sidebarSearchQuery = ""
 
-        // Always select the request in the sidebar, even if it isn't
-        // currently visible inside a collection (Issue 2 fix).
-        selectedRequestId = resolvedRequestId
+        if (targetNode.isFolder) {
+            selectedCollectionId = targetNode.id
+        } else {
+            selectedRequestId = resolvedRequestId
+        }
 
         // Also switch the active tab to this request so the sidebar
         // selection stays in sync with the tab bar (the LaunchedEffect
@@ -1671,7 +1902,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     private fun renameRequestNodeById(nodes: MutableList<CollectionNode>, requestId: String, newName: String): Boolean {
         nodes.indices.forEach { index ->
             val node = nodes[index]
-            if (!node.isFolder && node.id == requestId) {
+            if (node.id == requestId) {
                 nodes[index] = node.copy(name = newName)
                 return true
             }
@@ -1691,7 +1922,12 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
      */
     fun syncTabToCollectionNode(tab: RequestTabState): Boolean {
         val updated = syncTabToNodeRecursive(collections, tab)
-        if (updated) notifyCollectionsChanged()
+        if (updated) {
+            notifyCollectionsChanged()
+            if (tab.isFolderTab) {
+                refreshInheritedDefaultsForOpenTabs()
+            }
+        }
         return updated
     }
 
@@ -1701,13 +1937,44 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     ): Boolean {
         nodes.indices.forEach { index ->
             val node = nodes[index]
+            if (node.isFolder && node.id == tab.id) {
+                val queryEntriesSnapshot = tab.params
+                    .filter { it.kind != HeaderKind.INHERITED }
+                    .map { KeyValueEntry(it.key, it.value, it.enabled, it.secret) }
+                val headerEntriesSnapshot = tab.headers
+                    .filter { it.kind != HeaderKind.SYSTEM && it.kind != HeaderKind.INHERITED }
+                    .map { KeyValueEntry(it.key, it.value, it.enabled, it.secret) }
+                val userHeadersSnapshot = tab.headers
+                    .filter { it.kind == HeaderKind.USER && it.enabled }
+                    .map { it.key to it.value }
+                nodes[index] = node.copy(
+                    name = tab.name,
+                    queryEntries = queryEntriesSnapshot,
+                    headerEntries = headerEntriesSnapshot,
+                    userHeaders = userHeadersSnapshot,
+                    authType = tab.authType.takeIf { it != AuthType.NONE },
+                    authUsername = tab.authUsername.ifBlank { null },
+                    authPassword = tab.authPassword.ifBlank { null },
+                    authToken = tab.authToken.ifBlank { null },
+                    authApiKey = tab.authApiKey.ifBlank { null },
+                    authApiValue = tab.authApiValue.ifBlank { null },
+                    authApiPlacement = normalizeApiKeyPlacement(tab.authApiPlacement),
+                    preRequestScript = tab.preRequestScript.ifBlank { null },
+                    testScript = tab.testScript.ifBlank { null },
+                )
+                return true
+            }
             if (!node.isFolder && node.id == tab.id) {
                 val userHeadersSnapshot = tab.headers
                     .filter { it.kind == HeaderKind.USER && it.enabled }
                     .map { it.key to it.value }
                     .toMutableList()
-                val queryEntriesSnapshot = tab.params.map { KeyValueEntry(it.key, it.value, it.enabled, it.secret) }
-                val headerEntriesSnapshot = tab.headers.map { KeyValueEntry(it.key, it.value, it.enabled, it.secret) }
+                val queryEntriesSnapshot = tab.params
+                    .filter { it.kind != HeaderKind.INHERITED }
+                    .map { KeyValueEntry(it.key, it.value, it.enabled, it.secret) }
+                val headerEntriesSnapshot = tab.headers
+                    .filter { it.kind != HeaderKind.INHERITED }
+                    .map { KeyValueEntry(it.key, it.value, it.enabled, it.secret) }
                 val sseAccept = tab.headers.firstOrNull { isSseAccept(it.key, it.value, it.enabled) }
                 if (sseAccept != null &&
                     userHeadersSnapshot.none { it.first.equals(SystemHeaderRules.ACCEPT, ignoreCase = true) }
@@ -1760,7 +2027,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
 
     private fun expandAncestorsForRequest(nodes: List<CollectionNode>, requestId: String): Boolean {
         for (node in nodes) {
-            if (!node.isFolder && node.id == requestId) return true
+            if (node.id == requestId) return true
             if (node.isFolder && node.children.isNotEmpty()) {
                 if (expandAncestorsForRequest(node.children, requestId)) {
                     collectionExpandedState[node.id] = true
