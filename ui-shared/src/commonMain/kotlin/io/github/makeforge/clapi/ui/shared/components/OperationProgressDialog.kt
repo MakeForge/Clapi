@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,7 +45,9 @@ fun OperationProgressDialog(
                 .testTag("operation-progress-dialog"),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(title, color = ClapiColors.OnSurface, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            SelectionContainer {
+                Text(title, color = ClapiColors.OnSurface, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -55,7 +58,9 @@ fun OperationProgressDialog(
                     color = ClapiColors.Primary,
                     strokeWidth = 2.5.dp,
                 )
-                Text(message, color = ClapiColors.OnSurfaceVariant, fontSize = 13.sp)
+                SelectionContainer {
+                    Text(message, color = ClapiColors.OnSurfaceVariant, fontSize = 13.sp)
+                }
             }
 
             Spacer(Modifier.height(4.dp))

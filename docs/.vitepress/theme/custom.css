@@ -352,3 +352,32 @@ html.dark .light-only,
 .VPFlyout.open .menu {
   transform: translateX(-50%) translateY(0) !important;
 }
+
+/** Display logo on right of hero name on index page*/
+.VPHero .name {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 16px;
+}
+
+.VPHero .name::after {
+  content: "";
+  display: inline-block;
+  width: 54px;
+  height: 54px;
+  flex-shrink: 0;
+  background-image: url('/logo.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+@media (max-width: 639px) {
+  .VPHero .name {
+    gap: 10px;
+  }
+  .VPHero .name::after {
+    width: 36px;
+    height: 36px;
+  }
+}

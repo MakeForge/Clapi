@@ -398,17 +398,7 @@ private fun GrpcRequestBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        // gRPC badge
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(ClapiColors.MethodPatch.copy(alpha = 0.14f))
-                .border(1.dp, ClapiColors.MethodPatch.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            GrpcBadge()
-        }
+        GrpcBadge()
 
         // URL input (variable-aware: highlights {{token}} in orange)
         Box(

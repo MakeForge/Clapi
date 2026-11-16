@@ -355,32 +355,34 @@ private fun TestResultsView(results: List<TestResultEntry>) {
                     .testTag("test-results"),
             ) {
                 itemsIndexed(results, key = { index, it -> "${it.name}_${it.passed}_$index" }) { _, result ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 2.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(
-                                if (result.passed) ClapiColors.Secondary.copy(alpha = 0.08f)
-                                else ClapiColors.Error.copy(alpha = 0.08f)
+                    SelectionContainer {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(
+                                    if (result.passed) ClapiColors.Secondary.copy(alpha = 0.08f)
+                                    else ClapiColors.Error.copy(alpha = 0.08f)
+                                )
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Icon(painter = painterResource(Res.drawable.ic_check_circle),
+                                contentDescription = null,
+                                tint = if (result.passed) ClapiColors.Secondary else ClapiColors.Error,
+                                modifier = Modifier.size(14.dp),
                             )
-                            .padding(horizontal = 8.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Icon(painter = painterResource(Res.drawable.ic_check_circle),
-                            contentDescription = null,
-                            tint = if (result.passed) ClapiColors.Secondary else ClapiColors.Error,
-                            modifier = Modifier.size(14.dp),
-                        )
-                        Text(
-                            result.name,
-                            color = ClapiColors.OnSurface,
-                            fontSize = 12.sp,
-                            modifier = Modifier.weight(1f),
-                        )
-                        if (result.message.isNotEmpty()) {
-                            Text(result.message, color = ClapiColors.OnSurfaceDim, fontSize = 11.sp)
+                            Text(
+                                result.name,
+                                color = ClapiColors.OnSurface,
+                                fontSize = 12.sp,
+                                modifier = Modifier.weight(1f),
+                            )
+                            if (result.message.isNotEmpty()) {
+                                Text(result.message, color = ClapiColors.OnSurfaceDim, fontSize = 11.sp)
+                            }
                         }
                     }
                 }

@@ -219,7 +219,11 @@ fun McpPanel(state: AppState, tab: RequestTabState) {
                     connectNow()
                 },
             )
-            error?.let { Text(it, color = ClapiColors.Error, fontSize = 12.sp, modifier = Modifier.testTag("mcp-error")) }
+            error?.let {
+                SelectionContainer {
+                    Text(it, color = ClapiColors.Error, fontSize = 12.sp, modifier = Modifier.testTag("mcp-error"))
+                }
+            }
         }
 
         val tabLabels = listOf(

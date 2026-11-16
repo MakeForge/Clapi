@@ -68,7 +68,7 @@ internal fun shouldPauseValidation(contentLength: Int): Boolean = contentLength 
 
 // ── Body categories (top-level chips) ──────────────────────────
 
-private enum class BodyCategory { NONE, RAW, FORM, URL_ENCODED, BINARY, GRAPHQL }
+internal enum class BodyCategory { NONE, RAW, FORM, URL_ENCODED, BINARY, GRAPHQL }
 
 private fun BodyType.category(): BodyCategory = when (this) {
     BodyType.NONE                  -> BodyCategory.NONE
@@ -96,13 +96,12 @@ private fun BodyType.rawLabel(): String = when (this) {
     else                -> name
 }
 
-private val CATEGORY_CHIPS = listOf(
+internal val CATEGORY_CHIPS = listOf(
     BodyCategory.NONE,
     BodyCategory.RAW,
     BodyCategory.FORM,
     BodyCategory.URL_ENCODED,
     BodyCategory.BINARY,
-    BodyCategory.GRAPHQL,
 )
 
 private fun BodyCategory.defaultType(): BodyType = when (this) {

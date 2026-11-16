@@ -400,12 +400,13 @@ internal fun KeeperSecretsSettings(s: AppSettings) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = "To get a one time token: Login to Keeper > Secrets Manager > Create Application > Generate Access Token (Read Only Record Permissions are enough)",
-                fontSize = 11.sp,
-                color = ClapiColors.OnSurfaceDim,
-                modifier = Modifier.weight(1f),
-            )
+            SelectionContainer(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "To get a one time token: Login to Keeper > Secrets Manager > Create Application > Generate Access Token (Read Only Record Permissions are enough)",
+                    fontSize = 11.sp,
+                    color = ClapiColors.OnSurfaceDim,
+                )
+            }
 
             DocsHelpButton(
                 url = "https://docs.keeper.io/keeperpam/secrets-manager/quick-start-guide#create-a-secrets-manager-application",
@@ -418,12 +419,14 @@ internal fun KeeperSecretsSettings(s: AppSettings) {
         }
 
         if (actionMessage != null) {
-            Text(
-                text = actionMessage.orEmpty(),
-                fontSize = 11.sp,
-                color = if (isError) ClapiColors.Error else ClapiColors.Primary,
-                modifier = Modifier.testTag("keeper-action-message"),
-            )
+            SelectionContainer {
+                Text(
+                    text = actionMessage.orEmpty(),
+                    fontSize = 11.sp,
+                    color = if (isError) ClapiColors.Error else ClapiColors.Primary,
+                    modifier = Modifier.testTag("keeper-action-message"),
+                )
+            }
         }
     }
 }

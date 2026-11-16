@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -357,21 +358,28 @@ internal fun ProtoFileRow(
             tint = ClapiColors.MethodPatch,
             modifier = Modifier.size(16.dp),
         )
-        Text(
-            text = item.fileName,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Medium,
-            color = ClapiColors.OnSurface,
-        )
-        Text(
-            text = item.path,
-            fontSize = 11.sp,
-            fontFamily = CodeFontFamily,
-            color = ClapiColors.OnSurfaceDim,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
+        SelectionContainer(modifier = Modifier.weight(1f)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = item.fileName,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = ClapiColors.OnSurface,
+                )
+                Text(
+                    text = item.path,
+                    fontSize = 11.sp,
+                    fontFamily = CodeFontFamily,
+                    color = ClapiColors.OnSurfaceDim,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
         if (isGitSyncEnabled) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -458,15 +466,16 @@ internal fun ProtoImportPathRow(
             tint = if (item.enabled) ClapiColors.Tertiary else ClapiColors.OnSurfaceDim,
             modifier = Modifier.size(16.dp),
         )
-        Text(
-            text = item.path,
-            fontSize = 12.sp,
-            fontFamily = CodeFontFamily,
-            color = if (item.enabled) ClapiColors.OnSurface else ClapiColors.OnSurfaceDim,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
+        SelectionContainer(modifier = Modifier.weight(1f)) {
+            Text(
+                text = item.path,
+                fontSize = 12.sp,
+                fontFamily = CodeFontFamily,
+                color = if (item.enabled) ClapiColors.OnSurface else ClapiColors.OnSurfaceDim,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
         if (isGitSyncEnabled) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,

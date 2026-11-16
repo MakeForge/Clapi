@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -258,12 +259,14 @@ fun CollectionStorageSettings(
                 }
 
                 item {
-                    Text(
-                        text = Strings.storageGitCredentialsNote,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = ClapiColors.OnSurfaceDim,
-                        modifier = Modifier.testTag("storage-git-credentials-note"),
-                    )
+                    SelectionContainer {
+                        Text(
+                            text = Strings.storageGitCredentialsNote,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = ClapiColors.OnSurfaceDim,
+                            modifier = Modifier.testTag("storage-git-credentials-note"),
+                        )
+                    }
                 }
             }
 
@@ -277,11 +280,13 @@ fun CollectionStorageSettings(
                             .padding(12.dp)
                             .testTag("storage-error-banner"),
                     ) {
-                        Text(
-                            text = tab.storageError!!,
-                            color = ClapiColors.Error,
-                            fontSize = 12.sp,
-                        )
+                        SelectionContainer {
+                            Text(
+                                text = tab.storageError!!,
+                                color = ClapiColors.Error,
+                                fontSize = 12.sp,
+                            )
+                        }
                     }
                 }
             }
@@ -296,11 +301,13 @@ fun CollectionStorageSettings(
                             .padding(12.dp)
                             .testTag("storage-saved-banner"),
                     ) {
-                        Text(
-                            text = savedBannerMessage!!,
-                            color = ClapiColors.Primary,
-                            fontSize = 12.sp,
-                        )
+                        SelectionContainer {
+                            Text(
+                                text = savedBannerMessage!!,
+                                color = ClapiColors.Primary,
+                                fontSize = 12.sp,
+                            )
+                        }
                     }
                 }
             }

@@ -122,8 +122,12 @@ internal fun ResourcesSection(
                         Modifier.fillMaxSize().padding(10.dp).verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        Text(res.name, color = ClapiColors.OnSurface, fontWeight = FontWeight.SemiBold)
-                        Text(res.uri, color = ClapiColors.OnSurfaceDim, fontSize = 11.sp, fontFamily = CodeFontFamily, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        SelectionContainer {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(res.name, color = ClapiColors.OnSurface, fontWeight = FontWeight.SemiBold)
+                                Text(res.uri, color = ClapiColors.OnSurfaceDim, fontSize = 11.sp, fontFamily = CodeFontFamily, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp),

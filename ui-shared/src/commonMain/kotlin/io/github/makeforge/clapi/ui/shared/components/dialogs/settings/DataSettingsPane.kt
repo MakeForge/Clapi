@@ -61,29 +61,33 @@ internal fun ScriptingSettings(s: AppSettings) {
     )
     SettingsDivider()
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            Strings.t("script_namespace_desc"),
-            color = ClapiColors.OnSurfaceVariant,
-            fontSize = 12.sp,
-        )
-        Text(
-            Strings.t("example_with_prefix") + " \"${s.scriptPrefix}\":",
-            color = ClapiColors.OnSurfaceDim,
-            fontSize = 12.sp,
-        )
-        Text(
-            "${s.scriptPrefix}.test(\"status\", () => {\n" +
-            "  ${s.scriptPrefix}.expect(${s.scriptPrefix}.response.code).to.equal(200)\n" +
-            "})",
-            color = ClapiColors.Primary,
-            fontSize = 11.sp,
-            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-        )
-        Text(
-            Strings.t("script_namespace_default_hint"),
-            color = ClapiColors.OnSurfaceDim,
-            fontSize = 11.sp,
-        )
+        SelectionContainer {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    Strings.t("script_namespace_desc"),
+                    color = ClapiColors.OnSurfaceVariant,
+                    fontSize = 12.sp,
+                )
+                Text(
+                    Strings.t("example_with_prefix") + " \"${s.scriptPrefix}\":",
+                    color = ClapiColors.OnSurfaceDim,
+                    fontSize = 12.sp,
+                )
+                Text(
+                    "${s.scriptPrefix}.test(\"status\", () => {\n" +
+                    "  ${s.scriptPrefix}.expect(${s.scriptPrefix}.response.code).to.equal(200)\n" +
+                    "})",
+                    color = ClapiColors.Primary,
+                    fontSize = 11.sp,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                )
+                Text(
+                    Strings.t("script_namespace_default_hint"),
+                    color = ClapiColors.OnSurfaceDim,
+                    fontSize = 11.sp,
+                )
+            }
+        }
     }
 }
 

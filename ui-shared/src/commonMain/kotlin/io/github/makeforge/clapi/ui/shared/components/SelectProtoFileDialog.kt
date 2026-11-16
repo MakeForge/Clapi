@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
@@ -290,21 +291,28 @@ fun SelectProtoFileDialog(
                                         tint = if (isSelected) ClapiColors.Primary else ClapiColors.OnSurfaceDim,
                                         modifier = Modifier.size(14.dp),
                                     )
-                                    Text(
-                                        text = fileName,
-                                        fontSize = 12.sp,
-                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                        color = if (isSelected) ClapiColors.Primary else ClapiColors.OnSurface,
-                                    )
-                                    Text(
-                                        text = path,
-                                        fontSize = 11.sp,
-                                        fontFamily = CodeFontFamily,
-                                        color = ClapiColors.OnSurfaceDim,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f),
-                                    )
+                                    SelectionContainer(modifier = Modifier.weight(1f)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        ) {
+                                            Text(
+                                                text = fileName,
+                                                fontSize = 12.sp,
+                                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                                color = if (isSelected) ClapiColors.Primary else ClapiColors.OnSurface,
+                                            )
+                                            Text(
+                                                text = path,
+                                                fontSize = 11.sp,
+                                                fontFamily = CodeFontFamily,
+                                                color = ClapiColors.OnSurfaceDim,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                                modifier = Modifier.weight(1f),
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -371,14 +379,16 @@ fun SelectProtoFileDialog(
                     }
 
                     if (!errorMessage.isNullOrBlank()) {
-                        Text(
-                            text = errorMessage,
-                            color = ClapiColors.Error,
-                            fontSize = 12.sp,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("proto-dialog-error"),
-                        )
+                        SelectionContainer {
+                            Text(
+                                text = errorMessage,
+                                color = ClapiColors.Error,
+                                fontSize = 12.sp,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("proto-dialog-error"),
+                            )
+                        }
                     }
 
                     // Built-in types hint

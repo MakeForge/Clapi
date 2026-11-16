@@ -74,16 +74,18 @@ fun ResponseViewer(
             ResponseStatusBar(response)
 
             if (!tab.lastError.isNullOrBlank()) {
-                Text(
-                    text = tab.lastError!!,
-                    color = ClapiColors.Error,
-                    fontSize = 12.sp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(ClapiColors.Error.copy(alpha = 0.08f))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                        .testTag("response-error-message"),
-                )
+                SelectionContainer {
+                    Text(
+                        text = tab.lastError!!,
+                        color = ClapiColors.Error,
+                        fontSize = 12.sp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(ClapiColors.Error.copy(alpha = 0.08f))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .testTag("response-error-message"),
+                    )
+                }
             }
 
             // ── Tabs ────────────────────────────────────────────
@@ -150,17 +152,19 @@ private fun EmptyResponseState(tab: RequestTabState) {
                     Spacer(Modifier.height(12.dp))
                     Text(Strings.requestFailed, color = ClapiColors.Error, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(6.dp))
-                    Text(
-                        error,
-                        color = ClapiColors.OnSurfaceDim,
-                        fontSize = 12.sp,
-                        modifier = Modifier
-                            .padding(horizontal = 32.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(ClapiColors.Error.copy(alpha = 0.08f))
-                            .padding(12.dp)
-                            .testTag("response-error-message"),
-                    )
+                    SelectionContainer {
+                        Text(
+                            error,
+                            color = ClapiColors.OnSurfaceDim,
+                            fontSize = 12.sp,
+                            modifier = Modifier
+                                .padding(horizontal = 32.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(ClapiColors.Error.copy(alpha = 0.08f))
+                                .padding(12.dp)
+                                .testTag("response-error-message"),
+                        )
+                    }
                 }
                 else -> {
                     Text(Strings.response, color = ClapiColors.OnSurfaceDim, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
@@ -180,45 +184,47 @@ private fun EmptyResponseState(tab: RequestTabState) {
 
 @Composable
 private fun ResponseStatusBar(response: ResponseDefinition) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(ClapiColors.Surface)
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-            .testTag("response-status-bar"),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        // Status code badge
-        val statusColor = statusCodeColor(response.statusCode)
+    SelectionContainer {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(ClapiColors.Surface)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .testTag("response-status-bar"),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(
-                text = "${response.statusCode}",
-                color = statusColor,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(statusColor.copy(alpha = 0.12f))
-                    .padding(horizontal = 8.dp, vertical = 2.dp),
-            )
-            Text(
-                text = response.statusText,
-                color = statusColor,
-                fontSize = 13.sp,
-            )
+            // Status code badge
+            val statusColor = statusCodeColor(response.statusCode)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "${response.statusCode}",
+                    color = statusColor,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(statusColor.copy(alpha = 0.12f))
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                )
+                Text(
+                    text = response.statusText,
+                    color = statusColor,
+                    fontSize = 13.sp,
+                )
+            }
+
+            // Response time
+            MetricChip("${response.metrics.responseTimeMs} ms", ClapiColors.Secondary)
+
+            // Response size
+            MetricChip(formatBytes(response.metrics.responseSizeBytes), ClapiColors.Tertiary)
+
+            Spacer(Modifier.weight(1f))
         }
-
-        // Response time
-        MetricChip("${response.metrics.responseTimeMs} ms", ClapiColors.Secondary)
-
-        // Response size
-        MetricChip(formatBytes(response.metrics.responseSizeBytes), ClapiColors.Tertiary)
-
-        Spacer(Modifier.weight(1f))
     }
 
     Box(Modifier.fillMaxWidth().height(1.dp).background(ClapiColors.Border))
@@ -479,14 +485,15 @@ private fun ResponseTimingView(response: ResponseDefinition) {
     val scrollState = rememberScrollState()
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(end = 16.dp, start = 16.dp, top = 16.dp, bottom = 16.dp)
-                .testTag("response-timing-view"),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
+        SelectionContainer {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(end = 16.dp, start = 16.dp, top = 16.dp, bottom = 16.dp)
+                    .testTag("response-timing-view"),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
         Text(
             "Request Timing Breakdown",
             color = ClapiColors.OnSurface,
@@ -545,6 +552,7 @@ private fun ResponseTimingView(response: ResponseDefinition) {
                 }
             }
         }
+            }
         }
         PlatformColumnVerticalScrollbar(
             scrollState = scrollState,

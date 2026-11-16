@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -403,11 +404,13 @@ fun ImportSpecificationDialog(
                                     modifier = Modifier.size(16.dp),
                                 )
                                 Spacer(Modifier.width(8.dp))
-                                Text(
-                                    scanErrorMessage ?: "",
-                                    color = ClapiColors.Error,
-                                    fontSize = 12.sp,
-                                )
+                                SelectionContainer {
+                                    Text(
+                                        scanErrorMessage ?: "",
+                                        color = ClapiColors.Error,
+                                        fontSize = 12.sp,
+                                    )
+                                }
                             }
                         }
                     }

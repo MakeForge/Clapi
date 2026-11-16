@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -88,17 +89,21 @@ fun DirtyMultiCloseDialog(
                 .testTag("dirty-multi-close-dialog"),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    text = "Unsaved Changes",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = ClapiColors.OnSurface,
-                )
-                Text(
-                    text = "$dirtyCount ${Strings.t("requests_unsaved_changes_suffix")}",
-                    fontSize = 13.sp,
-                    color = ClapiColors.OnSurfaceVariant,
-                )
+                SelectionContainer {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            text = "Unsaved Changes",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = ClapiColors.OnSurface,
+                        )
+                        Text(
+                            text = "$dirtyCount ${Strings.t("requests_unsaved_changes_suffix")}",
+                            fontSize = 13.sp,
+                            color = ClapiColors.OnSurfaceVariant,
+                        )
+                    }
+                }
 
                 Spacer(Modifier.height(4.dp))
 

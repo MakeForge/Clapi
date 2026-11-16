@@ -70,6 +70,94 @@ Compile only the shared UI module (fast check during development):
 ./gradlew :ui-shared:compileKotlinDesktop
 ```
 
+### Linux Target Packaging
+
+Clapi uses Compose Multiplatform's native distribution packaging to build Linux native installers (`.deb` for Debian/Ubuntu, `.rpm` for Fedora/RHEL) as well as unpacked standalone application binaries.
+
+Build Debian / Ubuntu package (`.deb`):
+
+```bash
+./gradlew :ui-desktop:packageDeb
+# Or for optimized release packaging:
+./gradlew :ui-desktop:packageReleaseDeb
+```
+
+Build Red Hat / Fedora package (`.rpm`):
+
+```bash
+./gradlew :ui-desktop:packageRpm
+# Or for release:
+./gradlew :ui-desktop:packageReleaseRpm
+```
+
+Build standalone unpacked application image (executable directory without creating installer):
+
+```bash
+./gradlew :ui-desktop:createDistributable
+# Or for release:
+./gradlew :ui-desktop:createReleaseDistributable
+```
+
+Build for the current host operating system automatically:
+
+```bash
+./gradlew :ui-desktop:packageDistributionForCurrentOS
+```
+
+#### Linux Artifact Locations
+
+| Artifact Type | Output Directory / Path |
+|---|---|
+| **Debian / Ubuntu (`.deb`)** | `ui-desktop/build/compose/binaries/main/deb/clapi_<version>_amd64.deb` |
+| **Release `.deb`** | `ui-desktop/build/compose/binaries/main-release/deb/clapi_<version>_amd64.deb` |
+| **Fedora / RHEL (`.rpm`)** | `ui-desktop/build/compose/binaries/main/rpm/clapi-<version>-1.x86_64.rpm` |
+| **Unpacked Application Directory** | `ui-desktop/build/compose/binaries/main/app/clapi/` (launcher: `bin/clapi`) |
+| **Universal Fat JAR** | `ui-desktop/build/distribute/Clapi-<version>.jar` |
+
+### Installing and Running on Ubuntu
+
+#### 1. Install via `apt` (Recommended)
+Using `apt` automatically installs the package and resolves any missing system dependencies:
+
+```bash
+sudo apt install ./ui-desktop/build/compose/binaries/main/deb/clapi_*.deb
+```
+
+#### 2. Install via `dpkg`
+Alternatively, use `dpkg`:
+
+```bash
+sudo dpkg -i ui-desktop/build/compose/binaries/main/deb/clapi_*.deb
+# If there are unresolved dependencies, run:
+sudo apt-get install -f
+```
+
+#### 3. Launching Clapi on Ubuntu
+- **From Terminal**:
+  ```bash
+  clapi
+  ```
+- **From Application Menu / Dash**:
+  Search for **Clapi** in the Ubuntu application launcher. The package installs standard `.desktop` integration under `/usr/share/applications/` and `/opt/clapi/`.
+
+#### 4. Running Without Installing
+To run the built native executable directly from the build directory without installing the `.deb`:
+
+```bash
+./ui-desktop/build/compose/binaries/main/app/clapi/bin/clapi
+# Or via Gradle:
+./gradlew :ui-desktop:runDistributable
+```
+
+#### 5. Uninstalling from Ubuntu
+To remove the application:
+
+```bash
+sudo apt remove clapi
+# Or to completely purge package files and configuration:
+sudo apt purge clapi
+```
+
 ## Branding Assets
 
 App icons are versioned in:
@@ -93,6 +181,16 @@ To run in the background (returns the prompt immediately):
 
 ```bash
 ./gradlew :ui-desktop:run &
+```
+
+### Development mode with isolated storage (`jvmDev` / `runDev`)
+
+Runs Clapi in development mode with persistent, isolated storage in `.clapi-dev/` rather than the system user preferences/storage:
+
+```bash
+./gradlew :ui-desktop:runDev
+# Or:
+./gradlew :ui-desktop:jvmDev
 ```
 
 ### Desktop jar artifact (fat jar)
@@ -214,7 +312,7 @@ How Clapi resolves a stdio command:
 | `trigger_elicitation` | Server requests `elicitation/create`; tool result is accept/decline |
 | `trigger_ping` | Server requests `ping`; tool result is the client’s empty ping result |
 
-Resources, prompts, and logging are also advertised so you can exercise those tabs. Product guide: [docs/mcp.md](docs/old/mcp.md).
+Resources, prompts, and logging are also advertised so you can exercise those tabs. Product guide: [docs/request-types/mcp/index.md](docs/request-types/mcp/index.md).
 
 ### MCP sample-server troubleshooting
 
@@ -253,17 +351,29 @@ Query string simulation modes:
 ### Run tests by module
 
 ```bash
-# Core protocol + network behaviour
+# Core protocol, network, gRPC, and OAuth behaviour
 ./gradlew :core-network:allTests
 
-# Storage persistence behaviour
+# Storage persistence and OpenCollection serialization
 ./gradlew :core-storage:allTests
 
-# JVM integration + end-to-end tests (requires no external server)
-./gradlew :qa-tests:jvmTest
+# Script engine (Javet V8) and test execution
+./gradlew :core-scripting:desktopTest
+
+# Editor core document model, lexer, fold map, and syntax highlighting
+./gradlew :editor-core:desktopTest
+
+# Editor UI rendering and interaction tests
+./gradlew :editor-ui:allTests
+
+# Shared Compose UI composables and state tests
+./gradlew :ui-shared:desktopTest
 
 # Compose Desktop UI smoke tests
 ./gradlew :ui-desktop:desktopTest
+
+# JVM integration + end-to-end tests (requires no external server)
+./gradlew :qa-tests:jvmTest
 ```
 
 ### Integration test bundle only
@@ -272,14 +382,44 @@ Query string simulation modes:
 ./gradlew :qa-tests:jvmTest :core-storage:allTests :ui-desktop:desktopTest
 ```
 
+### Compose UI Screenshot Testing (Roborazzi)
+
+Clapi uses Roborazzi for Compose Desktop preview screenshot testing:
+
+```bash
+# Record / update preview screenshots
+./gradlew :ui-desktop:recordRoborazziDesktop
+
+# Verify preview screenshots against golden baselines
+./gradlew :ui-desktop:verifyRoborazziDesktop
+
+# Copy verified screenshots to docs assets
+./gradlew :ui-desktop:copyScreenshots
+```
+
+### Packaging Verification & Diagnostics
+
+```bash
+# Execute the built fat JAR through a headless shutdown smoke test
+./gradlew :ui-desktop:verifyPackagedRuntime
+
+# Inspect dependency footprint, JAR structure, and installer sizes
+./gradlew :ui-desktop:analyzeReleaseSize
+```
+
 ### Test structure
 
 | Module | Scope |
 |---|---|
-| `core-network` | Unit tests: HTTP method support, auth, variable interpolation, retry, WebSocket |
-| `core-storage` | Unit tests: in-memory repository behaviour, serialization round-trips |
-| `qa-tests` | JVM integration and E2E tests running real requests against the embedded server |
-| `ui-desktop` | Compose Desktop smoke tests: layout, panel visibility, tab behaviour |
+| `core-model` | Unit tests: domain models, OpenCollection items, serialization |
+| `core-network` | Unit tests: HTTP method support, auth, variable interpolation, retry, WebSocket, gRPC, external secrets |
+| `core-storage` | Unit tests: in-memory repository behaviour, OpenCollection JSON/YAML serialization round-trips |
+| `core-scripting` | Unit tests: Javet V8 JavaScript execution, assertion libraries, request mutation |
+| `editor-core` | Unit tests: document model, text buffers, syntax highlighters, fold regions |
+| `editor-ui` | Unit tests: editor rendering, scrollbars, gutter diagnostics |
+| `ui-shared` | Unit tests: shared UI state, viewmodels, dialog logic |
+| `ui-desktop` | Compose Desktop smoke tests: window rendering, preview scanners |
+| `qa-tests` | JVM integration and E2E tests running real requests against the embedded sample server |
 
 ### CI
 
@@ -296,7 +436,7 @@ git push origin v1.19.0
 
 ## Project Architecture
 
-See [`docs/old/architecture.md`](docs/old/architecture.md) for a full write-up. Key rules:
+See [`docs/reference/architecture.md`](docs/reference/architecture.md) for a full write-up. Key rules:
 
 - The **UI launcher** (`ui-desktop`) depends on **ui-shared** only.
 - **ui-shared** depends on **feature modules** and **core modules**.
@@ -367,6 +507,28 @@ For authoring and evaluating Compose Multiplatform Desktop UI elements, refer to
 # List all available tasks for a module
 ./gradlew :ui-desktop:tasks --all
 
+# Run Clapi desktop in normal mode
+./gradlew :ui-desktop:run
+
+# Run Clapi desktop with isolated dev storage (.clapi-dev/)
+./gradlew :ui-desktop:runDev
+
+# Build Debian / Ubuntu package (.deb)
+./gradlew :ui-desktop:packageDeb
+./gradlew :ui-desktop:packageReleaseDeb
+
+# Build standalone unpacked native Linux executable directory
+./gradlew :ui-desktop:createDistributable
+
+# Package runnable fat JAR (build/distribute/Clapi-<version>.jar)
+./gradlew :ui-desktop:packageClapiJar
+
+# Verify fat JAR headless startup & shutdown
+./gradlew :ui-desktop:verifyPackagedRuntime
+
+# Analyze release artifact size & dependencies
+./gradlew :ui-desktop:analyzeReleaseSize
+
 # Force re-run tests (skip UP-TO-DATE cache)
 ./gradlew :ui-desktop:desktopTest --rerun-tasks
 
@@ -375,9 +537,6 @@ For authoring and evaluating Compose Multiplatform Desktop UI elements, refer to
 
 # Compile shared UI for desktop
 ./gradlew :ui-shared:compileKotlinDesktop
-
-# Run desktop
-./gradlew :ui-desktop:run
 ```
 
 

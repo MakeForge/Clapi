@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -70,12 +71,14 @@ fun HelpAboutDialog(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        text = "Help & About",
-                        color = ClapiColors.OnSurface,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                    )
+                    SelectionContainer {
+                        Text(
+                            text = "Help & About",
+                            color = ClapiColors.OnSurface,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                        )
+                    }
                     Spacer(Modifier.weight(1f))
                     DocsHelpButton(
                         url = DocsLinks.baseUrl,
@@ -100,13 +103,14 @@ fun HelpAboutDialog(
 
                 val scrollState = rememberScrollState()
                 Box(modifier = Modifier.fillMaxWidth().height(520.dp)) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(scrollState)
-                            .padding(end = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
-                    ) {
+                    SelectionContainer {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(scrollState)
+                                .padding(end = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                        ) {
                     HelpSection("About ${Strings.appName}", DocsLinks.baseUrl) {
                         HelpText("Clapi is a lightweight API client for HTTP workflows with local-first request editing, scripting, environments, and test assertions.")
                     }
@@ -169,6 +173,7 @@ fun HelpAboutDialog(
                         HelpText("Supported platforms: macOS, Windows, Linux")
                     }
                 }
+                    }
                 PlatformColumnVerticalScrollbar(
                     scrollState = scrollState,
                     modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),

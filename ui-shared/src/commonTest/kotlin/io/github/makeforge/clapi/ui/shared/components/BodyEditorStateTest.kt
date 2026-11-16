@@ -418,4 +418,19 @@ class BodyEditorStateTest {
         tab.bodyType = BodyType.GRAPHQL
         assertEquals("query { users { id } }", tab.bodyContent)
     }
+
+    @Test
+    fun category_chips_does_not_contain_graphql() {
+        assertFalse(CATEGORY_CHIPS.contains(BodyCategory.GRAPHQL))
+        assertEquals(
+            listOf(
+                BodyCategory.NONE,
+                BodyCategory.RAW,
+                BodyCategory.FORM,
+                BodyCategory.URL_ENCODED,
+                BodyCategory.BINARY,
+            ),
+            CATEGORY_CHIPS,
+        )
+    }
 }

@@ -15,7 +15,7 @@ export default defineConfig({
   themeConfig: {
     logo: '/logo.svg',
     siteTitle: 'Clapi',
-
+    appearance: 'dark',
     nav: [
       {
         text: 'Getting Started',
@@ -23,6 +23,7 @@ export default defineConfig({
           { text: 'Overview', link: '/guide/' },
           { text: 'Installation', link: '/guide/installation' },
           { text: 'Quickstart', link: '/guide/quickstart' },
+          { text: 'Migrating to Clapi', link: '/guide/migrate-to-clapi' },
           { text: 'Core Concepts', link: '/guide/core-concepts' }
         ],
         activeMatch: '/guide/'
@@ -90,6 +91,7 @@ export default defineConfig({
             { text: 'Overview', link: '/guide/' },
             { text: 'Installation', link: '/guide/installation' },
             { text: 'Quickstart', link: '/guide/quickstart' },
+            { text: 'Migrating to Clapi', link: '/guide/migrate-to-clapi' },
             { text: 'Core Concepts', link: '/guide/core-concepts' }
           ]
         }
