@@ -1,0 +1,342 @@
+/**
+ * Custom Material 3 Styling Tokens for Clapi Documentation
+ */
+
+:root {
+  --vp-c-brand-1: #6750a4;
+  --vp-c-brand-2: #7c67b8;
+  --vp-c-brand-3: #917ec7;
+  --vp-c-brand-soft: rgba(103, 80, 164, 0.14);
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(135deg, #6750a4 0%, #006874 100%);
+
+  --vp-badge-info-border: rgba(103, 80, 164, 0.3);
+  --vp-badge-info-text: #6750a4;
+  --vp-badge-info-bg: rgba(103, 80, 164, 0.1);
+}
+
+.dark {
+  --vp-c-brand-1: #d0bcff;
+  --vp-c-brand-2: #b69df8;
+  --vp-c-brand-3: #9d82ed;
+  --vp-c-brand-soft: rgba(208, 188, 255, 0.16);
+
+  --vp-home-hero-name-background: linear-gradient(135deg, #d0bcff 0%, #4fd8eb 100%);
+
+  --vp-badge-info-border: rgba(208, 188, 255, 0.3);
+  --vp-badge-info-text: #d0bcff;
+  --vp-badge-info-bg: rgba(208, 188, 255, 0.12);
+}
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.badge-protocol {
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
+  border: 1px solid var(--vp-c-brand-1);
+}
+
+.badge-version {
+  background: rgba(0, 104, 116, 0.12);
+  color: #006874;
+  border: 1px solid #006874;
+}
+
+.dark .badge-version {
+  background: rgba(79, 216, 235, 0.16);
+  color: #4fd8eb;
+  border: 1px solid #4fd8eb;
+}
+
+/* Git icon inside feature titles and bullet points to match emoji size */
+.git-feature-icon {
+  display: inline-block;
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.18em;
+  margin-right: 0.3em;
+}
+
+/* Images & Screenshots */
+.vp-doc img {
+  border-radius: 8px;
+  border: 1px solid var(--vp-c-divider);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.dark .vp-doc img {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* Theme-adaptive screenshots */
+html:not(.dark) .screenshot-dark,
+html:not(.dark) .dark-only,
+:root:not(.dark) .screenshot-dark,
+:root:not(.dark) .dark-only {
+  display: none !important;
+}
+
+.dark .screenshot-light,
+.dark .light-only,
+html.dark .screenshot-light,
+html.dark .light-only,
+:root.dark .screenshot-light,
+:root.dark .light-only {
+  display: none !important;
+}
+
+.themed-screenshot img,
+.themed-screenshot-frame img {
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.lightbox-content img {
+  border: none !important;
+  box-shadow: none !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Hero Screenshot Styling */
+.VPHero.has-image .container {
+  max-width: 1300px;
+}
+
+@media (min-width: 1280px) {
+  .VPHero.has-image .container {
+    max-width: 1480px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .VPHero.has-image .container {
+    max-width: 1450px;
+  }
+}
+
+.VPHero .image-bg {
+  display: none !important;
+}
+
+.VPHero .image-container {
+  width: 100% !important;
+  max-width: 700px !important;
+  height: auto !important;
+  min-height: unset !important;
+  transform: none !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  margin: 1.5rem auto !important;
+}
+
+.VPHero .image-src {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  width: 100% !important;
+  max-width: 700px !important;
+  max-height: 440px !important;
+  height: auto !important;
+  border-radius: 12px;
+  border: 1px solid var(--vp-c-divider);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.16);
+  object-fit: contain;
+}
+
+.dark .VPHero .image-src {
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+@media (min-width: 960px) {
+  .VPHero.has-image .container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 2.5rem;
+  }
+
+  .VPHero.has-image .main {
+    flex: 0 1 38% !important;
+    max-width: 480px !important;
+    padding-right: 0.5rem;
+  }
+
+  .VPHero.has-image .image {
+    flex: 1 1 62% !important;
+    max-width: 920px !important;
+    margin: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .VPHero .image-container {
+    max-width: 900px !important;
+    margin: 0 !important;
+  }
+
+  .VPHero .image-src {
+    max-width: 900px !important;
+    max-height: 560px !important;
+  }
+}
+
+@media (min-width: 1280px) {
+  .VPHero.has-image .main {
+    flex: 0 1 36% !important;
+    max-width: 500px !important;
+  }
+
+  .VPHero.has-image .image {
+    flex: 1 1 64% !important;
+    max-width: 1000px !important;
+  }
+
+  .VPHero .image-container {
+    max-width: 980px !important;
+  }
+
+  .VPHero .image-src {
+    max-width: 980px !important;
+    max-height: 620px !important;
+  }
+}
+
+@media (min-width: 1440px) {
+  .VPHero.has-image .main {
+    flex: 0 1 35% !important;
+    max-width: 520px !important;
+  }
+
+  .VPHero.has-image .image {
+    flex: 1 1 65% !important;
+    max-width: 1100px !important;
+  }
+
+  .VPHero .image-container {
+    max-width: 1060px !important;
+  }
+
+  .VPHero .image-src {
+    max-width: 1060px !important;
+    max-height: 680px !important;
+  }
+}
+
+/* Widen documentation content area to the right */
+.content-container {
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+
+.VPDoc.has-aside .content-container {
+  max-width: 860px !important;
+}
+
+.VPDoc:not(.has-aside) .content-container {
+  max-width: 960px !important;
+}
+
+@media (min-width: 1440px) {
+  .VPDoc.has-aside .content-container {
+    max-width: 960px !important;
+  }
+
+  .VPDoc:not(.has-aside) .content-container {
+    max-width: 1100px !important;
+  }
+}
+
+@media (min-width: 1600px) {
+  :root {
+    --vp-layout-max-width: 1600px;
+  }
+
+  .VPDoc.has-aside .content-container {
+    max-width: 1040px !important;
+  }
+
+  .VPDoc:not(.has-aside) .content-container {
+    max-width: 1200px !important;
+  }
+}
+
+/* Nav Bar Group Buttons as Clickable Links */
+.VPNavBarMenuGroup > .button {
+  cursor: pointer;
+}
+.nav-search-cta {
+  display: flex;
+  align-items: center;
+  margin-left: 16px;
+}
+
+/* Optional: adjust button height to match the search input box (36px) */
+.nav-search-cta .VPButton {
+  line-height: 34px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+/* Optional: hide on very small mobile screens where only the search icon shows */
+@media (max-width: 767px) {
+  .nav-search-cta {
+    display: none;
+  }
+}
+
+/* Keep search first (order: 0 by default) */
+.VPNavBarSearch {
+  order: 1;
+}
+
+/* Place your Download button immediately after Search */
+.nav-search-cta {
+  order: 2;
+  display: flex;
+  align-items: center;
+  margin-left: 16px;
+}
+
+/* Push the nav links and everything else after the button */
+.VPNavBarMenu,
+.VPNavBarTranslations,
+.VPNavBarAppearance,
+.VPNavBarSocialLinks,
+.VPNavBarExtra,
+.VPNavBarHamburger {
+  order: 3;
+}
+
+/* Center the flyout dropdown directly under its parent nav item */
+.VPNavBarMenuGroup .menu {
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+}
+
+/* Keep the hover/open transition centered without jumping */
+.VPFlyout:hover .menu,
+.VPFlyout.open .menu {
+  transform: translateX(-50%) translateY(0) !important;
+}

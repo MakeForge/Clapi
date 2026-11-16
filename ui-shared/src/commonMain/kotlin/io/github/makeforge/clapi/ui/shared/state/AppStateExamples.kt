@@ -223,25 +223,40 @@ object AppStateExamples {
         state.syncHistoryWithCollections()
 
         val httpTab = RequestTabState(
-            id = "r-http-1",
-            name = "Get User Profile",
+            id = "r-http-2",
+            name = "Create User",
             kind = RequestKind.HTTP,
         ).apply {
-            method = HttpMethodType.GET
-            url = "{{baseUrl}}/users/42"
+            method = HttpMethodType.POST
+            url = "{{baseUrl}}/users"
+            selectedEditorTab = RequestEditorTab.BODY
+            bodyType = BodyType.JSON
+            lastRawSubtype = BodyType.JSON
+            bodyContent = """{
+  "username": "alex_morgan",
+  "email": "alex.morgan@example.com",
+  "fullName": "Alex Morgan",
+  "role": "Staff Engineer",
+  "team": "Platform Core",
+  "preferences": {
+    "theme": "dark",
+    "notifications": true,
+    "locale": "en-US"
+  }
+}"""
             headers.clear()
+            headers.add(MutableKeyValue("Content-Type", "application/json"))
             headers.add(MutableKeyValue("Accept", "application/json"))
             headers.add(MutableKeyValue("Authorization", "Bearer {{authToken}}"))
             params.clear()
-            params.add(MutableKeyValue("include", "profile,settings"))
-            params.add(MutableKeyValue("locale", "en-US"))
             response = ResponseDefinition(
-                requestId = "r-http-1",
-                statusCode = 200,
-                statusText = "OK",
+                requestId = "r-http-2",
+                statusCode = 201,
+                statusText = "Created",
                 headers = listOf(
                     KeyValueEntry("content-type", "application/json; charset=utf-8"),
-                    KeyValueEntry("cache-control", "private, max-age=120"),
+                    KeyValueEntry("location", "/users/42"),
+                    KeyValueEntry("cache-control", "no-cache"),
                     KeyValueEntry("x-request-id", "req-c918f7a2"),
                     KeyValueEntry("server", "Ktor/3.1.2"),
                 ),
@@ -253,6 +268,7 @@ object AppStateExamples {
   "fullName": "Alex Morgan",
   "role": "Staff Engineer",
   "team": "Platform Core",
+  "status": "active",
   "preferences": {
     "theme": "dark",
     "notifications": true,
@@ -263,9 +279,9 @@ object AppStateExamples {
                 contentType = "application/json",
                 executedAtEpochMillis = now - 15_000,
                 metrics = ResponseMetrics(
-                    statusCode = 200,
-                    responseTimeMs = 48L,
-                    responseSizeBytes = 384L,
+                    statusCode = 201,
+                    responseTimeMs = 62L,
+                    responseSizeBytes = 412L,
                 ),
             )
             markSaved()
@@ -293,10 +309,10 @@ object AppStateExamples {
         state.openTabs.addAll(listOf(httpTab, grpcTab, gqlTab))
         state.activeTabIndex = 0
         state.selectedCollectionId = "c1"
-        state.selectedRequestId = "r-http-1"
+        state.selectedRequestId = "r-http-2"
         state.selectedRequestIds.clear()
-        state.selectedRequestIds.add("r-http-1")
-        state.lastSelectedSidebarItemId = "r-http-1"
+        state.selectedRequestIds.add("r-http-2")
+        state.lastSelectedSidebarItemId = "r-http-2"
 
         return state
     }

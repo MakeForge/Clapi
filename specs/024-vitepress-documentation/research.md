@@ -104,7 +104,7 @@ clapi/
 
 ### Rationale
 - Having `docs/` serve directly as the documentation root prevents folder nesting bloat (e.g. `docs/docs/` or `website/docs/`) and aligns with GitHub's default conventions.
-- Old disconnected files (`docs/mcp.md`, `docs/collections.md`, `docs/scripts.md`, etc.) are synthesized and upgraded into dedicated chapters, eliminating stale redundancy while preserving all architectural knowledge.
+- Old disconnected files (`../../docs/old/mcp.md`, `../../docs/old/collections.md`, `../../docs/old/scripts.md`, etc.) are synthesized and upgraded into dedicated chapters, eliminating stale redundancy while preserving all architectural knowledge.
 
 ---
 
