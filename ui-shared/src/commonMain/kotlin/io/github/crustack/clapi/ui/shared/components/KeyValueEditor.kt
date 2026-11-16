@@ -23,6 +23,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -100,6 +101,7 @@ fun KeyValueEditor(
                         state = state,
                         tab = tab,
                         testTag = "$tag-row-$idx",
+                        tag = tag,
                     )
                 }
             }
@@ -144,10 +146,23 @@ private fun KeyValueRow(
     state: AppState? = null,
     tab: RequestTabState? = null,
     testTag: String,
+    tag: String = "",
 ) {
     val isSystemHeader = isHeaderEditor &&
         (kv.kind == HeaderKind.SYSTEM || SystemHeaderRules.isSystemHeader(kv.key))
     val isInherited = kv.kind == HeaderKind.INHERITED
+
+    val initialKey = remember { kv.key }
+    val excludeVars = remember(kv.key, initialKey, tag) {
+        if (tag == "variable") {
+            val set = mutableSetOf<String>()
+            if (kv.key.isNotBlank()) set.add(kv.key.trim())
+            if (initialKey.isNotBlank()) set.add(initialKey.trim())
+            set
+        } else {
+            emptySet()
+        }
+    }
 
     Row(
         modifier = Modifier
@@ -177,6 +192,7 @@ private fun KeyValueRow(
             modifier = Modifier.weight(1f).testTag("$testTag-key"),
             state = state,
             tab = tab,
+            excludeVariables = excludeVars,
         )
         InlineTextField(
             value = kv.value,
@@ -186,6 +202,7 @@ private fun KeyValueRow(
             modifier = Modifier.weight(1f).testTag("$testTag-value"),
             state = state,
             tab = tab,
+            excludeVariables = excludeVars,
         )
 
         if (showTypeColumn) {
@@ -231,6 +248,7 @@ fun InlineTextField(
     state: AppState? = null,
     tab: RequestTabState? = null,
     readOnly: Boolean = false,
+    excludeVariables: Set<String> = emptySet(),
 ) {
     Box(
         modifier = modifier
@@ -252,6 +270,7 @@ fun InlineTextField(
                 state = state,
                 tab = tab,
                 readOnly = readOnly,
+                excludeVariables = excludeVariables,
                 modifier = Modifier.fillMaxWidth(),
             )
         } else {
