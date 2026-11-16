@@ -455,4 +455,177 @@ class SidebarCollectionHelpersTest {
         assertEquals("Duplicate Folder", i18n.get("duplicate_collection"))
         assertEquals("Duplicate Folder", i18n.get("duplicate_folder"))
     }
+
+    // ── Multi-item drag-to-reorder tests ──
+
+    @Test
+    fun moveRequestsBeforeRequest_multipleRequests_reordersInOrder() {
+        val collections = sampleCollections()
+        // c1 has r1, r2, r3. Move r2 and r3 before r1
+        val moved = moveRequestsBeforeRequest(collections, listOf("r2", "r3"), "r1")
+        assertTrue(moved)
+        assertEquals(listOf("r2", "r3", "r1"), collections[0].children.map { it.id })
+    }
+
+    @Test
+    fun moveRequestsAfterRequest_multipleRequests_reordersInOrder() {
+        val collections = sampleCollections()
+        // c1 has r1, r2, r3. Move r1 and r2 after r3
+        val moved = moveRequestsAfterRequest(collections, listOf("r1", "r2"), "r3")
+        assertTrue(moved)
+        assertEquals(listOf("r3", "r1", "r2"), collections[0].children.map { it.id })
+    }
+
+    @Test
+    fun moveRequestsToCollection_multipleRequests_movesAll() {
+        val collections = sampleCollections()
+        // Move r1 and r3 from c1 into c2
+        val moved = moveRequestsToCollection(collections, listOf("r1", "r3"), "c2")
+        assertTrue(moved)
+        assertEquals(listOf("r2"), collections[0].children.map { it.id })
+        assertEquals(listOf("r4", "r1", "r3"), collections[1].children.map { it.id })
+    }
+
+    @Test
+    fun moveRequests_returnsFalse_whenTargetIsInGroupOrEmpty() {
+        val collections = sampleCollections()
+        assertFalse(moveRequestsBeforeRequest(collections, listOf("r1", "r2"), "r1"))
+        assertFalse(moveRequestsAfterRequest(collections, listOf("r1", "r2"), "r2"))
+        assertFalse(moveRequestsBeforeRequest(collections, emptyList(), "r1"))
+        assertFalse(moveRequestsToCollection(collections, emptyList(), "c2"))
+    }
+
+    @Test
+    fun moveFoldersBeforeFolder_multipleFolders_reordersInOrder() {
+        val collections = threeCollections()
+        // c1, c2, c3. Move c2 and c3 before c1
+        val moved = moveFoldersBeforeFolder(collections, listOf("c2", "c3"), "c1")
+        assertTrue(moved)
+        assertEquals(listOf("c2", "c3", "c1"), collections.map { it.id })
+    }
+
+    @Test
+    fun moveFoldersAfterFolder_multipleFolders_reordersInOrder() {
+        val collections = threeCollections()
+        // c1, c2, c3. Move c1 and c2 after c3
+        val moved = moveFoldersAfterFolder(collections, listOf("c1", "c2"), "c3")
+        assertTrue(moved)
+        assertEquals(listOf("c3", "c1", "c2"), collections.map { it.id })
+    }
+
+    @Test
+    fun moveFolders_returnsFalse_whenTargetIsInGroupOrDescendant() {
+        val collections = sampleCollections()
+        val nested = addSubfolderInCollections(collections, "c1", "Nested") ?: error("Folder")
+        // Target is in group
+        assertFalse(moveFoldersBeforeFolder(collections, listOf("c1"), "c1"))
+        // Target is descendant of group
+        assertFalse(moveFoldersBeforeFolder(collections, listOf("c1"), nested.id))
+    }
+
+    @Test
+    fun duplicateFolderInCollections_duplicatesRootFolder() {
+        val collections = sampleCollections()
+        val duplicatedName = duplicateFolderInCollections(collections, "c1")
+        assertNotNull(duplicatedName)
+        assertEquals(3, collections.size)
+        assertEquals("c1", collections[0].id)
+        assertEquals(duplicatedName, collections[1].name)
+        assertEquals(3, collections[1].children.size)
+    }
+
+    @Test
+    fun duplicateFolderInCollections_duplicatesNestedFolder() {
+        val collections = sampleCollections()
+        val nested = addSubfolderInCollections(collections, "c1", "Sub") ?: error("Folder")
+        val duplicatedName = duplicateFolderInCollections(collections, nested.id)
+        assertNotNull(duplicatedName)
+        val c1Children = collections[0].children
+        assertEquals(5, c1Children.size) // r1, r2, r3, Sub, Sub (1)
+        assertEquals(duplicatedName, c1Children.last().name)
+    }
+
+    @Test
+    fun getVisibleSidebarNodes_respectsExpandedStateAndFilter() {
+        val collections = sampleCollections()
+        val expandedState = mapOf("c1" to true, "c2" to false)
+
+        val visibleNodes = getVisibleSidebarNodes(collections, expandedState)
+        val visibleIds = visibleNodes.map { it.id }
+
+        // c1 is expanded so c1, r1, r2, r3 are visible. c2 is collapsed so only c2 is visible.
+        assertTrue(visibleIds.contains("c1"))
+        assertTrue(visibleIds.contains("r1"))
+        assertTrue(visibleIds.contains("r2"))
+        assertTrue(visibleIds.contains("r3"))
+        assertTrue(visibleIds.contains("c2"))
+        assertFalse(visibleIds.contains("r4")) // in collapsed c2
+
+        val folderIds = getVisibleFolderIds(collections, expandedState)
+        assertEquals(listOf("c1", "c2"), folderIds)
+
+        val requestIds = getVisibleRequestIds(collections, expandedState)
+        assertEquals(listOf("r1", "r2", "r3"), requestIds)
+    }
+
+    @Test
+    fun selectSidebar_ctrlClick_togglesSelection() {
+        val state = io.github.crustack.clapi.ui.shared.state.AppState()
+        state.selectSidebarRequest("r1", isCtrlPressed = true)
+        assertEquals(listOf("r1"), state.selectedRequestIds)
+
+        state.selectSidebarRequest("r2", isCtrlPressed = true)
+        assertEquals(listOf("r1", "r2"), state.selectedRequestIds)
+
+        // Ctrl-clicking already selected item removes it
+        state.selectSidebarRequest("r1", isCtrlPressed = true)
+        assertEquals(listOf("r2"), state.selectedRequestIds)
+    }
+
+    @Test
+    fun selectSidebar_cannotSelectFoldersAndRequestsAtSameTime() {
+        val state = io.github.crustack.clapi.ui.shared.state.AppState()
+        state.selectSidebarRequest("r1", isCtrlPressed = true)
+        state.selectSidebarRequest("r2", isCtrlPressed = true)
+        assertEquals(listOf("r1", "r2"), state.selectedRequestIds)
+
+        // Selecting a folder clears request selection
+        state.selectSidebarFolder("c1", isCtrlPressed = true)
+        assertTrue(state.selectedRequestIds.isEmpty())
+        assertEquals(listOf("c1"), state.selectedFolderIds)
+
+        // Selecting a request clears folder selection
+        state.selectSidebarRequest("r3", isCtrlPressed = true)
+        assertTrue(state.selectedFolderIds.isEmpty())
+        assertEquals(listOf("r3"), state.selectedRequestIds)
+    }
+
+    @Test
+    fun selectSidebar_shiftClick_selectsRange() {
+        val state = io.github.crustack.clapi.ui.shared.state.AppState()
+        val visibleRequests = listOf("r1", "r2", "r3", "r4", "r5")
+
+        // First click without modifier sets anchor
+        state.selectSidebarRequest("r2", isCtrlPressed = false, isShiftPressed = false, visibleRequests = visibleRequests)
+        assertEquals(listOf("r2"), state.selectedRequestIds)
+
+        // Shift click on r4 selects r2, r3, r4
+        state.selectSidebarRequest("r4", isCtrlPressed = false, isShiftPressed = true, visibleRequests = visibleRequests)
+        assertEquals(listOf("r2", "r3", "r4"), state.selectedRequestIds)
+
+        // Shift click with no previous selection selects only the clicked item
+        state.clearSidebarSelection()
+        state.selectSidebarRequest("r3", isCtrlPressed = false, isShiftPressed = true, visibleRequests = visibleRequests)
+        assertEquals(listOf("r3"), state.selectedRequestIds)
+    }
+
+    @Test
+    fun selectSidebar_shiftClick_reverseRange() {
+        val state = io.github.crustack.clapi.ui.shared.state.AppState()
+        val visibleRequests = listOf("r1", "r2", "r3", "r4", "r5")
+
+        state.selectSidebarRequest("r4", isCtrlPressed = false, isShiftPressed = false, visibleRequests = visibleRequests)
+        state.selectSidebarRequest("r1", isCtrlPressed = false, isShiftPressed = true, visibleRequests = visibleRequests)
+        assertEquals(listOf("r1", "r2", "r3", "r4"), state.selectedRequestIds)
+    }
 }
