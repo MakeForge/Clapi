@@ -3,6 +3,32 @@ plugins {
     alias(libs.plugins.kotlinSerialization) apply false
     alias(libs.plugins.composeMultiplatform) apply false
     alias(libs.plugins.composeCompiler) apply false
+    alias(libs.plugins.cyclonedx.bom)
+}
+
+tasks.named<org.cyclonedx.gradle.CyclonedxAggregateTask>("cyclonedxBom") {
+    schemaVersion = org.cyclonedx.Version.VERSION_16
+    projectType = org.cyclonedx.model.Component.Type.APPLICATION
+    jsonOutput = layout.buildDirectory.file("reports/sbom/bom.json")
+}
+
+allprojects {
+    tasks.withType<org.cyclonedx.gradle.CyclonedxDirectTask>().configureEach {
+        if (project.name in listOf("qa-tests", "sample-server")) {
+            enabled = false
+        } else {
+            schemaVersion = org.cyclonedx.Version.VERSION_16
+            projectType = org.cyclonedx.model.Component.Type.APPLICATION
+            includeConfigs = listOf(
+                "runtimeClasspath",
+                "desktopRuntimeClasspath",
+                "jvmRuntimeClasspath"
+            )
+            skipConfigs = listOf(
+                "(?i).*test.*"
+            )
+        }
+    }
 }
 
 // ─── Centralized version ─────────────────────────────────────────────────────

@@ -52,3 +52,42 @@ clapi.test("Token extracted", function() {
 - The global (prefix-free) API (`test`, `expect`, `env.set`, …) is still supported for backward compatibility.
 - Change the namespace prefix in **Settings → Scripts** — any identifier works (e.g. `api`, `rl`).
 
+---
+
+## SBOM & Vulnerability Scanning (OSV-Scanner)
+
+Clapi integrates automated **CycloneDX SBOM generation** and **OpenSSF OSV-Scanner** vulnerability analysis to verify dependency security across all runtime Multiplatform packages.
+
+### What It's For
+
+- **Software Bill of Materials (SBOM):** Generates a comprehensive, standard CycloneDX v1.6 inventory (`bom.json`) capturing all direct and transitive runtime dependencies, cryptographic hashes, and licenses shipped with the desktop application while excluding test harness frameworks.
+- **OSV-Scanner:** Checks dependencies against the [OpenSSF OSV database](https://osv.dev) (aggregating CVEs, GitHub Security Advisories, and Maven advisories) using Package URL (`purl`) matching for accurate, low-noise vulnerability detection without requiring API keys or heavy database mirrors.
+
+### How to Generate and Scan
+
+1. **Generate the SBOM:**
+   ```bash
+   ./gradlew cyclonedxBom
+   ```
+   The aggregate JSON SBOM is written to:
+   ```
+   build/reports/sbom/bom.json
+   ```
+
+2. **Scan the SBOM Locally:**
+   Install the [OSV-Scanner CLI](https://github.com/google/osv-scanner) and run:
+   ```bash
+   # Terminal summary report
+   osv-scanner -L build/reports/sbom/bom.json
+
+   # Or export SARIF format for IDEs and static analysis tools
+   osv-scanner --format=sarif --output-file=osv-results.sarif -L build/reports/sbom/bom.json
+   ```
+
+3. **Suppress False Positives:**
+   Verified false positives or deferred advisories can be ignored in `osv-scanner.toml` located at the root of the repository.
+
+4. **Automated CI/CD Workflow:**
+   The `.github/workflows/security-sbom.yml` workflow automatically runs on pushes to `main`, daily schedules, and release tags (`v*`). It publishes SARIF results directly to the repository's **Security → Code scanning** tab and attaches `bom.json` to GitHub Releases.
+
+
