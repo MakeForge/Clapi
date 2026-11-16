@@ -5,9 +5,9 @@ import io.github.crustack.clapi.core.model.HttpMethodType
 import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.ui.shared.state.MutableFormDataRow
 import io.github.crustack.clapi.server.module
-import io.github.crustack.clapi.ui.shared.components.buildCurlCommand
-import io.github.crustack.clapi.ui.shared.components.buildPowerShellCommand
-import io.github.crustack.clapi.ui.shared.components.buildPythonCommand
+import io.github.crustack.clapi.ui.shared.components.executor.buildCurlCommand
+import io.github.crustack.clapi.ui.shared.components.executor.buildPowerShellCommand
+import io.github.crustack.clapi.ui.shared.components.executor.buildPythonCommand
 import io.github.crustack.clapi.ui.shared.state.MutableKeyValue
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
 import io.ktor.server.engine.embeddedServer

@@ -8,8 +8,8 @@ import io.github.crustack.clapi.core.network.NoOpNetworkLogger
 import io.github.crustack.clapi.core.network.RetryPolicy
 import io.github.crustack.clapi.server.module
 import io.github.crustack.clapi.core.storage.opencollection.DefaultCanonicalCollectionRepository
-import io.github.crustack.clapi.ui.shared.components.buildAuthConfig
-import io.github.crustack.clapi.ui.shared.components.buildRequestBody
+import io.github.crustack.clapi.ui.shared.components.executor.buildAuthConfig
+import io.github.crustack.clapi.ui.shared.components.executor.buildRequestBody
 import io.github.crustack.clapi.ui.shared.network.NetworkClientFactory
 import io.github.crustack.clapi.ui.shared.persistence.PrivateStateRepository
 import io.github.crustack.clapi.ui.shared.persistence.SettingsRepository

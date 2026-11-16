@@ -25,6 +25,10 @@ import androidx.compose.ui.unit.sp
 import io.github.crustack.clapi.core.model.BodyType
 import io.github.crustack.clapi.core.model.FormEntryType
 import io.github.crustack.clapi.core.model.RequestKind
+import io.github.crustack.clapi.ui.shared.components.executor.buildCurlCommand
+import io.github.crustack.clapi.ui.shared.components.executor.buildPowerShellCommand
+import io.github.crustack.clapi.ui.shared.components.executor.buildPythonCommand
+import io.github.crustack.clapi.ui.shared.components.executor.copyHeaderList
 import io.github.crustack.clapi.ui.shared.generated.resources.Res
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_check_circle
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_code

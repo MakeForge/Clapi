@@ -8,12 +8,12 @@ import io.github.crustack.clapi.core.model.KeyValueEntry
 import io.github.crustack.clapi.core.model.McpRoot
 import io.github.crustack.clapi.core.model.McpSamplingMode
 import io.github.crustack.clapi.core.model.RequestKind
-import io.github.crustack.clapi.ui.shared.components.enabledHeadersForSend
-import io.github.crustack.clapi.ui.shared.components.enabledQueryParamsForSend
+import io.github.crustack.clapi.ui.shared.components.executor.enabledHeadersForSend
+import io.github.crustack.clapi.ui.shared.components.executor.enabledQueryParamsForSend
 import io.github.crustack.clapi.ui.shared.components.sidebar.moveRequestToCollection
-import io.github.crustack.clapi.ui.shared.components.prepareTabRequest
+import io.github.crustack.clapi.ui.shared.components.executor.prepareTabRequest
 import io.github.crustack.clapi.ui.shared.components.resolveVariableSourceInfo
-import io.github.crustack.clapi.ui.shared.components.sendRequest
+import io.github.crustack.clapi.ui.shared.components.executor.sendRequest
 import io.github.crustack.clapi.ui.shared.persistence.ImportExportRepository
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
