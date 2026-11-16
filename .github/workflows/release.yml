@@ -49,7 +49,48 @@ jobs:
             :ui-desktop:desktopTest \
             :qa-tests:jvmTest \
             --no-parallel \
-            --no-daemon --stacktrace
+            --no-daemon \
+            --stacktrace \
+            --info \
+            --console=plain
+
+      - name: Diagnose Docker Compose failure
+        if: always()
+        shell: bash
+        run: |
+          echo "::group::Docker version"
+          docker version || true
+          docker compose version || true
+          echo "::endgroup::"
+
+          echo "::group::All containers"
+          docker ps -a
+          echo "::endgroup::"
+
+          echo "::group::Azure Vault health"
+          docker inspect local-azure-vault \
+            --format '{{json .State.Health}}' || true
+          echo "::endgroup::"
+
+          echo "::group::Azure Vault logs"
+          docker logs --timestamps --details local-azure-vault 2>&1 || true
+          echo "::endgroup::"
+
+          echo "::group::All container logs"
+          for id in $(docker ps -aq); do
+            name=$(docker inspect -f '{{.Name}}' "$id" 2>/dev/null || echo "$id")
+            echo "===== $name ====="
+            docker logs --timestamps --tail 300 "$id" 2>&1 || true
+          done
+          echo "::endgroup::"
+
+          echo "::group::Azure Vault endpoint"
+          curl -vk --connect-timeout 5 https://localhost:8443/ping || true
+          echo "::endgroup::"
+
+      - name: Stop Docker Compose services
+        if: always()
+        run: ./gradlew :qa-tests:dockerComposeDown --no-daemon --stacktrace
 
   build:
     name: Build (${{ matrix.platform }})
