@@ -3,6 +3,8 @@ package io.github.crustack.clapi.ui.shared.network
 import io.github.crustack.clapi.core.network.KtorApiClient
 import io.github.crustack.clapi.core.network.NetworkLogger
 import io.github.crustack.clapi.core.network.RetryPolicy
+import io.github.crustack.clapi.core.network.grpc.DynamicGrpcClient
+import io.github.crustack.clapi.core.network.grpc.ProtoParser
 import io.github.crustack.clapi.ui.shared.state.AppSettings
 
 /**
@@ -17,4 +19,8 @@ expect object NetworkClientFactory {
         logger: NetworkLogger,
         retryPolicy: RetryPolicy = RetryPolicy(),
     ): KtorApiClient
+
+    fun createProtoParser(): ProtoParser
+
+    fun buildGrpcClient(settings: AppSettings): DynamicGrpcClient
 }

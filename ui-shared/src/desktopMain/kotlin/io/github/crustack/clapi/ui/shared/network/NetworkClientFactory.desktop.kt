@@ -3,6 +3,10 @@ package io.github.crustack.clapi.ui.shared.network
 import io.github.crustack.clapi.core.network.KtorApiClient
 import io.github.crustack.clapi.core.network.NetworkLogger
 import io.github.crustack.clapi.core.network.RetryPolicy
+import io.github.crustack.clapi.core.network.grpc.DynamicGrpcClient
+import io.github.crustack.clapi.core.network.grpc.NettyDynamicGrpcClient
+import io.github.crustack.clapi.core.network.grpc.ProtoParser
+import io.github.crustack.clapi.core.network.grpc.ProtocJarParser
 import io.github.crustack.clapi.ui.shared.state.AppSettings
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.ProxyBuilder
@@ -67,6 +71,16 @@ actual object NetworkClientFactory {
             retryPolicy = retryPolicy,
             idleTimeoutMs = timeoutMs,
             allowJson5InJsonBodies = settings.allowJson5InJsonBodies,
+        )
+    }
+
+    actual fun createProtoParser(): ProtoParser = ProtocJarParser()
+
+    actual fun buildGrpcClient(settings: AppSettings): DynamicGrpcClient {
+        val timeoutMs = (settings.requestTimeoutSec.toLong() * 1_000L).coerceAtLeast(1_000L)
+        return NettyDynamicGrpcClient(
+            protoParser = ProtocJarParser(),
+            timeoutMs = timeoutMs,
         )
     }
 }

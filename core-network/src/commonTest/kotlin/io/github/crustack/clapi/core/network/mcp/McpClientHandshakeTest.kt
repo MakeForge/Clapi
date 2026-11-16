@@ -5,6 +5,7 @@ import io.github.crustack.clapi.core.model.McpConnectionConfig
 import io.github.crustack.clapi.core.model.McpContent
 import io.github.crustack.clapi.core.model.McpCreateMessageResult
 import io.github.crustack.clapi.core.model.McpElicitAction
+import io.github.crustack.clapi.core.model.McpElicitResult
 import io.github.crustack.clapi.core.model.McpHttpMode
 import io.github.crustack.clapi.core.model.McpImplementation
 import io.github.crustack.clapi.core.model.McpInitializeResult

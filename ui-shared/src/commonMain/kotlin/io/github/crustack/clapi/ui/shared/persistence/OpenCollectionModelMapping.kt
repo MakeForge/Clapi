@@ -115,6 +115,9 @@ private fun collectClapiMetadata(
             node.authApiPlacement?.let { put("authApiPlacement", it) }
             put("kind", node.kind.name)
             node.requestRef?.let { put("requestRef", it) }
+            node.protoFilePath?.let { put("protoFilePath", it) }
+            node.grpcMethod?.let { put("grpcMethod", it) }
+            node.grpcMethodType?.let { put("grpcMethodType", it) }
             node.mcpConfig?.let { mcp ->
                 put("mcpConfig", json.encodeToJsonElement(McpConnectionConfig.serializer(), mcp))
             }
@@ -444,6 +447,36 @@ fun CollectionNode.toOpenCollectionItem(): OpenCollectionItem {
         if (!testScript.isNullOrBlank()) {
             scripts.add(Script(type = "after-response", code = testScript))
         }
+
+        if (kind == RequestKind.GRPC) {
+            val effectiveMetadata = (headerEntries ?: userHeaders.map { KeyValueEntry(it.first, it.second) }).map {
+                io.github.crustack.clapi.core.model.opencollection.GrpcMetadata(
+                    name = it.key,
+                    value = it.value,
+                    disabled = if (it.enabled) null else true,
+                )
+            }
+            val grpcRuntime = if (scripts.isNotEmpty()) {
+                io.github.crustack.clapi.core.model.opencollection.GrpcRequestRuntime(scripts = scripts)
+            } else {
+                null
+            }
+            return io.github.crustack.clapi.core.model.opencollection.GrpcRequestItem(
+                info = io.github.crustack.clapi.core.model.opencollection.GrpcRequestInfo(name = name, type = "grpc"),
+                grpc = io.github.crustack.clapi.core.model.opencollection.GrpcRequestDetails(
+                    url = url ?: "",
+                    method = grpcMethod,
+                    methodType = grpcMethodType ?: "unary",
+                    protoFilePath = protoFilePath,
+                    metadata = effectiveMetadata,
+                    message = bodyContent ?: bodyContents[BodyType.JSON.name] ?: "",
+                    auth = auth,
+                ),
+                runtime = grpcRuntime,
+                extensions = ext,
+            )
+        }
+
         val runtime = if (scripts.isNotEmpty()) HttpRequestRuntime(scripts = scripts) else null
 
         HttpRequestItem(
@@ -760,6 +793,120 @@ fun OpenCollectionItem.toCollectionNode(
                 requestRef = reqRef ?: generateUuid(),
                 kind = requestKind,
                 mcpConfig = mcpConfig,
+            )
+        }
+        is io.github.crustack.clapi.core.model.opencollection.GrpcRequestItem -> {
+            val reqId = generateUuid()
+            var reqRef = (extensions["requestRef"] as? JsonPrimitive)?.content
+            var headerEntries: List<KeyValueEntry>? = grpc.metadata.map {
+                KeyValueEntry(key = it.name, value = it.value, enabled = it.disabled != true)
+            }
+            val userHeaders = grpc.metadata.map { it.name to it.value }
+            var bodyContent: String? = grpc.message
+            var bodyContents: Map<String, String> = if (!grpc.message.isNullOrBlank()) {
+                mapOf(BodyType.JSON.name to grpc.message!!)
+            } else {
+                emptyMap()
+            }
+
+            var authType: AuthType = AuthType.NONE
+            var authUsername: String? = null
+            var authPassword: String? = null
+            var authToken: String? = null
+            var authApiKey: String? = null
+            var authApiValue: String? = null
+            var authApiPlacement: String? = null
+
+            val clapiExt = extensions["clapi"] as? JsonObject
+            val isJwt = (clapiExt?.get("authType") as? JsonPrimitive)?.content == "jwt"
+
+            when (val a = grpc.auth) {
+                is AuthBasic -> {
+                    authType = AuthType.BASIC
+                    authUsername = a.username
+                    authPassword = a.password
+                }
+                is AuthBearer -> {
+                    authType = if (isJwt) AuthType.JWT else AuthType.BEARER
+                    authToken = a.token
+                }
+                is AuthApiKey -> {
+                    authType = AuthType.API_KEY
+                    authApiKey = a.key
+                    authApiValue = a.value
+                    authApiPlacement = a.placement
+                }
+                else -> {
+                    authType = AuthType.NONE
+                }
+            }
+
+            var resolvedProtoFilePath: String? = grpc.protoFilePath
+            var resolvedGrpcMethod: String? = grpc.method
+            var resolvedGrpcMethodType: String? = grpc.methodType ?: "unary"
+
+            val meta = (if (path.isNotEmpty()) clapiRequests?.get(path) as? JsonObject else null)
+                ?: clapiRequests?.get(info.name) as? JsonObject
+                ?: clapiRequests?.get(reqId) as? JsonObject
+            if (meta != null) {
+                meta["bodyContents"]?.jsonObject?.let { obj ->
+                    bodyContents = obj.mapValues { it.value.jsonPrimitive.content }
+                }
+                meta["headerEntries"]?.jsonArray?.let { arr ->
+                    headerEntries = arr.mapNotNull { it as? JsonObject }.map { entryObj ->
+                        KeyValueEntry(
+                            key = entryObj["key"]?.jsonPrimitive?.content ?: "",
+                            value = entryObj["value"]?.jsonPrimitive?.content ?: "",
+                            enabled = entryObj["enabled"]?.jsonPrimitive?.booleanOrNull ?: true,
+                            secret = entryObj["secret"]?.jsonPrimitive?.booleanOrNull ?: false,
+                        )
+                    }
+                }
+                meta["authApiPlacement"]?.jsonPrimitive?.contentOrNull?.let {
+                    authApiPlacement = it
+                }
+                meta["requestRef"]?.jsonPrimitive?.contentOrNull?.let {
+                    reqRef = it
+                }
+                if (resolvedProtoFilePath == null) {
+                    resolvedProtoFilePath = meta["protoFilePath"]?.jsonPrimitive?.contentOrNull
+                }
+                if (resolvedGrpcMethod == null) {
+                    resolvedGrpcMethod = meta["grpcMethod"]?.jsonPrimitive?.contentOrNull
+                }
+                meta["grpcMethodType"]?.jsonPrimitive?.contentOrNull?.let {
+                    resolvedGrpcMethodType = it
+                }
+            }
+
+            val preScript = runtime?.scripts?.firstOrNull { it.type == "before-request" }?.code
+            val postScript = runtime?.scripts?.firstOrNull { it.type == "after-response" || it.type == "tests" }?.code
+
+            CollectionNode(
+                id = reqId,
+                name = info.name,
+                isFolder = false,
+                method = HttpMethodType.POST,
+                url = grpc.url,
+                headerEntries = headerEntries,
+                userHeaders = userHeaders,
+                bodyType = BodyType.JSON,
+                bodyContent = bodyContent,
+                bodyContents = bodyContents,
+                authType = authType,
+                authUsername = authUsername,
+                authPassword = authPassword,
+                authToken = authToken,
+                authApiKey = authApiKey,
+                authApiValue = authApiValue,
+                authApiPlacement = authApiPlacement,
+                preRequestScript = preScript,
+                testScript = postScript,
+                requestRef = reqRef ?: generateUuid(),
+                kind = RequestKind.GRPC,
+                protoFilePath = resolvedProtoFilePath,
+                grpcMethod = resolvedGrpcMethod,
+                grpcMethodType = resolvedGrpcMethodType,
             )
         }
     }

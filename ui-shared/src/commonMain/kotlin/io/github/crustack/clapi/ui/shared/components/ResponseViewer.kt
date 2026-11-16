@@ -66,6 +66,19 @@ fun ResponseViewer(
             // ── Status bar ──────────────────────────────────────
             ResponseStatusBar(response)
 
+            if (!tab.lastError.isNullOrBlank()) {
+                Text(
+                    text = tab.lastError!!,
+                    color = ClapiColors.Error,
+                    fontSize = 12.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(ClapiColors.Error.copy(alpha = 0.08f))
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .testTag("response-error-message"),
+                )
+            }
+
             // ── Tabs ────────────────────────────────────────────
             val visibleTabs = responseTabsFor(tab)
             val selectedTab = if (tab.responseTab in visibleTabs) tab.responseTab else ResponseTab.BODY
@@ -222,7 +235,7 @@ private fun MetricChip(text: String, color: Color) {
 // ── Tab Bar ─────────────────────────────────────────────────────
 
 private fun responseTabsFor(tab: RequestTabState): List<ResponseTab> =
-    if (tab.kind == RequestKind.MCP) {
+    if (tab.kind == RequestKind.MCP || tab.kind == RequestKind.GRPC) {
         ResponseTab.entries.filter { it != ResponseTab.COOKIES }
     } else {
         ResponseTab.entries

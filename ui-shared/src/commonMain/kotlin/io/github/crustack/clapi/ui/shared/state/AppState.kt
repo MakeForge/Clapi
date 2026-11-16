@@ -14,6 +14,7 @@ import io.github.crustack.clapi.core.model.HttpMethodType
 import io.github.crustack.clapi.core.model.KeyValueEntry
 import io.github.crustack.clapi.core.model.McpConnectionConfig
 import io.github.crustack.clapi.core.model.RequestKind
+import io.github.crustack.clapi.core.network.grpc.ProtoMethodInfo
 import io.github.crustack.clapi.editor.core.Json5EditorSupport
 import io.github.crustack.clapi.editor.core.LanguageMode
 import io.github.crustack.clapi.editor.ui.EditorViewModel
@@ -40,6 +41,10 @@ enum class RequestEditorTab(val label: String) {
     PARAMS("Params"), HEADERS("Headers"), BODY("Body"),
     AUTH("Auth"), PRE_REQUEST("Pre-request"), TESTS("Post-request"),
     VARIABLES("Variables")
+}
+
+enum class GrpcEditorTab(val label: String) {
+    MESSAGE("Message"), HEADERS("Headers"), SCRIPTS("Scripts")
 }
 
 enum class ResponseTab(val label: String) {
@@ -132,6 +137,9 @@ data class CollectionNode(
     val kind: RequestKind = RequestKind.HTTP,
     val mcpConfig: McpConnectionConfig? = null,
     val variableEntries: List<KeyValueEntry>? = null,
+    val protoFilePath: String? = null,
+    val grpcMethod: String? = null,
+    val grpcMethodType: String? = "unary",
 )
 
 /**
@@ -370,6 +378,24 @@ class RequestTabState(
     val isFolderTab: Boolean get() = kind == RequestKind.FOLDER
     var mcpConfig by mutableStateOf(McpConnectionConfig())
 
+    // ── gRPC state ──────────────────────────────────────────────────────────
+    var protoFilePath by mutableStateOf<String?>(null)
+    var grpcMethod by mutableStateOf<String?>(null)
+    var grpcMethodType by mutableStateOf("unary")
+    var availableMethods by mutableStateOf<List<ProtoMethodInfo>>(emptyList())
+    var protoLoadError by mutableStateOf<String?>(null)
+    var isProtoLoading by mutableStateOf(false)
+    val grpcMetadata = mutableStateListOf<MutableKeyValue>()
+    var selectedGrpcTab by mutableStateOf(GrpcEditorTab.MESSAGE)
+
+    /** JSON message payload for gRPC requests, backed by bodyContents[BodyType.JSON]. */
+    var grpcMessageBody: String
+        get() = bodyContents[BodyType.JSON] ?: ""
+        set(value) {
+            bodyType = BodyType.JSON
+            bodyContents[BodyType.JSON] = value
+        }
+
     var retryEnabled by mutableStateOf(false)
     var retryCount by mutableStateOf(1)
     var retryDelayMs by mutableStateOf(250L)
@@ -443,6 +469,9 @@ class RequestTabState(
         if (kind == RequestKind.FOLDER) {
             headers.clear()
             selectedEditorTab = RequestEditorTab.VARIABLES
+        } else if (kind == RequestKind.GRPC) {
+            headers.clear()
+            bodyType = BodyType.JSON
         }
         savedSnapshot = currentSnapshotForDirtyTracking()
     }
@@ -461,6 +490,9 @@ class RequestTabState(
             .joinToString(";") { h -> "${h.key}|${h.value}|${h.enabled}|${h.secret}|${h.kind}|${h.keyLocked}" }
         val formRowsSnapshot = formRows.joinToString(";") { r -> "${r.key}|${r.type.name}|${r.value}|${r.description}|${r.enabled}|${r.bytesBase64}" }
         val urlencodedRowsSnapshot = urlencodedRows.joinToString(";") { r -> "${r.key}|${r.value}|${r.description}|${r.enabled}" }
+        val grpcMetadataSnapshot = grpcMetadata
+            .filter { it.kind != HeaderKind.INHERITED }
+            .joinToString(";") { m -> "${m.key}|${m.value}|${m.enabled}|${m.secret}" }
         val allBodyContentsSnapshot = bodyContents.entries
             .sortedBy { entry -> entry.key.name }
             .joinToString(";") { entry -> "${entry.key.name}=${entry.value}" }
@@ -490,6 +522,10 @@ class RequestTabState(
             urlencodedRowsSnapshot,
             kind.name,
             mcpClientFingerprint(),
+            protoFilePath.orEmpty(),
+            grpcMethod.orEmpty(),
+            grpcMethodType,
+            grpcMetadataSnapshot,
         ).joinToString("#")
     }
 
@@ -653,7 +689,7 @@ class RequestTabState(
     }
 
     fun syncSystemHeaders() {
-        if (kind == RequestKind.FOLDER) return
+        if (kind == RequestKind.FOLDER || kind == RequestKind.GRPC) return
         // Content-Type always reflects the current body type (derived value).
         upsertSystemHeader(SystemHeaderRules.CONTENT_TYPE, SystemHeaderRules.defaultContentTypeFor(bodyType), overwriteIfExists = true)
         // Accept and User-Agent are only inserted when missing so that user
@@ -1145,7 +1181,25 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         if (tab.kind == RequestKind.MCP && tab.url.isBlank()) {
             tab.url = tab.mcpConfig.url
         }
-        if (tab.kind != RequestKind.FOLDER) {
+        if (tab.kind == RequestKind.GRPC) {
+            tab.headers.clear()
+            tab.bodyType = BodyType.JSON
+            tab.protoFilePath = node?.protoFilePath
+            tab.grpcMethod = node?.grpcMethod
+            tab.grpcMethodType = node?.grpcMethodType ?: "unary"
+            node?.bodyContent?.takeIf { it.isNotBlank() }?.let { tab.grpcMessageBody = it }
+            tab.grpcMetadata.clear()
+            node?.headerEntries?.let { entries ->
+                tab.grpcMetadata.addAll(
+                    entries.map { entry ->
+                        MutableKeyValue(entry.key, entry.value, entry.enabled, entry.secret, kind = HeaderKind.USER)
+                    }
+                )
+            } ?: node?.userHeaders?.forEach { (k, v) ->
+                tab.grpcMetadata.add(MutableKeyValue(k, v, kind = HeaderKind.USER))
+            }
+        }
+        if (tab.kind != RequestKind.FOLDER && tab.kind != RequestKind.GRPC) {
             applyInheritedDefaults(tab)
         }
         // Re-anchor the saved snapshot after all fields (including system headers
@@ -1639,6 +1693,28 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         addTab(requestId = requestId, name = name, method = HttpMethodType.GET, url = "")
     }
 
+    /** Add a new gRPC request node inside the given collection (folder). Opens it as a tab. */
+    fun addGrpcRequestToCollection(collectionId: String) {
+        val folder = findFolder(collectionId) ?: return
+        val siblingNames = folder.children.map { it.name }.toSet()
+        val name = generateUniqueName("New Request", siblingNames)
+        val requestId = generateUuid()
+        val node = CollectionNode(
+            id = requestId,
+            requestRef = generateUuid(),
+            name = name,
+            isFolder = false,
+            method = HttpMethodType.POST,
+            url = "",
+            kind = RequestKind.GRPC,
+        )
+        folder.children.add(node)
+        notifyCollectionsChanged()
+        selectedCollectionId = rootCollectionIdContaining(collectionId) ?: collectionId
+        selectedRequestId = requestId
+        addTab(requestId = requestId, name = name, method = HttpMethodType.POST, url = "")
+    }
+
     fun addMcpConnectionToCollection(collectionId: String) {
         val folder = findFolder(collectionId) ?: return
         val siblingNames = folder.children.map { it.name }.toSet()
@@ -2074,14 +2150,15 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                 return true
             }
             if (!node.isFolder && node.id == tab.id) {
-                val userHeadersSnapshot = tab.headers
+                val effectiveHeaderSource = if (tab.kind == RequestKind.GRPC) tab.grpcMetadata else tab.headers
+                val userHeadersSnapshot = effectiveHeaderSource
                     .filter { it.kind == HeaderKind.USER && it.enabled }
                     .map { it.key to it.value }
                     .toMutableList()
                 val queryEntriesSnapshot = tab.params
                     .filter { it.kind != HeaderKind.INHERITED }
                     .map { KeyValueEntry(it.key, it.value, it.enabled, it.secret) }
-                val headerEntriesSnapshot = tab.headers
+                val headerEntriesSnapshot = effectiveHeaderSource
                     .filter { it.kind != HeaderKind.INHERITED }
                     .map { KeyValueEntry(it.key, it.value, it.enabled, it.secret) }
                 val sseAccept = tab.headers.firstOrNull { isSseAccept(it.key, it.value, it.enabled) }
@@ -2103,8 +2180,8 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                     name   = tab.name,
                     method = tab.method,
                     url    = tab.url,
-                    bodyType           = tab.bodyType.takeIf { it != BodyType.NONE },
-                    bodyContent        = tab.bodyContent.ifBlank { null },
+                    bodyType           = if (tab.kind == RequestKind.GRPC) BodyType.JSON else tab.bodyType.takeIf { it != BodyType.NONE },
+                    bodyContent        = if (tab.kind == RequestKind.GRPC) tab.grpcMessageBody.ifBlank { null } else tab.bodyContent.ifBlank { null },
                     bodyContents       = bodyContentsSnapshot,
                     formDataEntries    = formEntriesSnapshot,
                     urlencodedEntries  = urlencodedSnapshot,
@@ -2124,6 +2201,9 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                     mcpConfig          = tab.mcpConfig.copy(
                         url = tab.url.ifBlank { tab.mcpConfig.url },
                     ),
+                    protoFilePath      = tab.protoFilePath?.ifBlank { null },
+                    grpcMethod         = tab.grpcMethod?.ifBlank { null },
+                    grpcMethodType     = tab.grpcMethodType.ifBlank { "unary" },
                 )
                 return true
             }

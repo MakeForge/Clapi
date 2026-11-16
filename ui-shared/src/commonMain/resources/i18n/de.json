@@ -308,6 +308,8 @@
   "mcp_elicit_decline": "Ablehnen",
   "new_mcp_connection": "Neue MCP-Verbindung",
   "new_sse_request": "Neue SSE-Anfrage",
+  "new_http_request": "Neue HTTP-Anfrage",
+  "new_grpc_request": "Neue gRPC-Anfrage",
   "import_dialog_title": "OpenAPI / OpenCollection importieren",
   "import_tab_file": "Datei",
   "import_tab_clipboard": "Zwischenablage",

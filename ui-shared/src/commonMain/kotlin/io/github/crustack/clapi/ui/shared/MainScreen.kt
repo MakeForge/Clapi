@@ -30,12 +30,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isAltPressed
 import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.utf16CodePoint
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -210,12 +212,14 @@ fun MainScreen(state: AppState = remember { AppState() }) {
                         }
                         true
                     }
-                    isMeta && event.key == Key.LeftBracket && event.isShiftPressed -> {
+                    isMeta && event.key == Key.LeftBracket && event.isShiftPressed && !event.isAltPressed &&
+                        event.utf16CodePoint != '{'.code && event.utf16CodePoint != '['.code -> {
                         val from = state.activeTabIndex
                         if (from > 0) state.moveTab(from, from - 1)
                         true
                     }
-                    isMeta && event.key == Key.RightBracket && event.isShiftPressed -> {
+                    isMeta && event.key == Key.RightBracket && event.isShiftPressed && !event.isAltPressed &&
+                        event.utf16CodePoint != '}'.code && event.utf16CodePoint != ']'.code -> {
                         val from = state.activeTabIndex
                         if (from < state.openTabs.lastIndex) state.moveTab(from, from + 1)
                         true

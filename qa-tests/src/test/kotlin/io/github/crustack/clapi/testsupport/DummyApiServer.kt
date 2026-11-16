@@ -1,5 +1,24 @@
 package io.github.crustack.clapi.testsupport
 
+import com.google.protobuf.DescriptorProtos
+import com.google.protobuf.Descriptors
+import com.google.protobuf.DynamicMessage
+import io.github.crustack.clapi.core.network.grpc.ProtocJarParser
+import io.grpc.Context
+import io.grpc.Contexts
+import io.grpc.ForwardingServerCall
+import io.grpc.Metadata
+import io.grpc.MethodDescriptor
+import io.grpc.Server
+import io.grpc.ServerCall
+import io.grpc.ServerCallHandler
+import io.grpc.ServerInterceptor
+import io.grpc.ServerInterceptors
+import io.grpc.ServerServiceDefinition
+import io.grpc.Status
+import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder
+import io.grpc.protobuf.ProtoUtils
+import io.grpc.stub.ServerCalls
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -56,11 +75,14 @@ import java.util.concurrent.atomic.AtomicInteger
 
 class DummyApiServer(
     private val port: Int = 0,
+    private val grpcPort: Int = 0,
     private val validBearerToken: String = "dummy-token",
     private val validBasicToken: String = "dXNlcjpwYXNz",
     private val validApiKey: String = "test-api-key"
 ) {
     private var engine: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>? = null
+    private var grpcServer: Server? = null
+    private var tempProtoFile: java.io.File? = null
     private val idSequence = AtomicInteger(3)
     private val users = ConcurrentHashMap<Int, UserRecord>()
     private val _requestsLog = MutableStateFlow<List<LoggedRequest>>(emptyList())
@@ -86,15 +108,162 @@ class DummyApiServer(
             )
         }.start(wait = false)
         engine = started
+        if (grpcServer == null) {
+            startGrpc()
+        }
         return resolvedPort()
     }
 
+    fun startGrpc(): Int {
+        grpcServer?.let { return it.port }
+        val protoStream = DummyApiServer::class.java.getResourceAsStream("/greeter.proto")
+            ?: error("greeter.proto resource not found on test classpath")
+        val protoFile = java.io.File.createTempFile("dummy_greeter_", ".proto")
+        protoStream.use { input ->
+            protoFile.outputStream().use { output -> input.copyTo(output) }
+        }
+        tempProtoFile = protoFile
+
+        val parser = ProtocJarParser()
+        val schema = runBlocking { parser.parseProtoFile(protoFile) }
+        val fds = DescriptorProtos.FileDescriptorSet.parseFrom(
+            requireNotNull(schema.fileDescriptorBytes) { "Failed to compile greeter.proto" }
+        )
+        val fileDescriptors = ProtocJarParser.buildFileDescriptors(fds)
+        val serviceDesc = fileDescriptors.flatMap { it.services }.first { it.fullName == "helloworld.Greeter" }
+
+        val customMetaContextKey = Context.key<String>("x-custom-meta")
+        val authContextKey = Context.key<String>("authorization")
+
+        fun buildMethodHandler(
+            methodDesc: Descriptors.MethodDescriptor,
+            prefix: String,
+        ): Pair<MethodDescriptor<DynamicMessage, DynamicMessage>, ServerCallHandler<DynamicMessage, DynamicMessage>> {
+            val grpcMethod = MethodDescriptor.newBuilder<DynamicMessage, DynamicMessage>()
+                .setType(MethodDescriptor.MethodType.UNARY)
+                .setFullMethodName(MethodDescriptor.generateFullMethodName(serviceDesc.fullName, methodDesc.name))
+                .setRequestMarshaller(ProtoUtils.marshaller(DynamicMessage.getDefaultInstance(methodDesc.inputType)))
+                .setResponseMarshaller(ProtoUtils.marshaller(DynamicMessage.getDefaultInstance(methodDesc.outputType)))
+                .build()
+
+            val nameField = methodDesc.inputType.findFieldByName("name")!!
+            val messageField = methodDesc.outputType.findFieldByName("message")!!
+            val receivedMetaField = methodDesc.outputType.findFieldByName("received_meta")
+
+            val handler = ServerCalls.asyncUnaryCall<DynamicMessage, DynamicMessage> { req, observer ->
+                val name = req.getField(nameField)?.toString().orEmpty()
+                when (name) {
+                    "denied" -> {
+                        observer.onError(
+                            Status.PERMISSION_DENIED
+                                .withDescription("Access denied for $name")
+                                .asRuntimeException()
+                        )
+                    }
+                    "error" -> {
+                        observer.onError(
+                            Status.INTERNAL
+                                .withDescription("Simulated gRPC server error")
+                                .asRuntimeException()
+                        )
+                    }
+                    else -> {
+                        val customMeta = customMetaContextKey.get().orEmpty()
+                        val authMeta = authContextKey.get().orEmpty()
+                        val combinedMeta = listOfNotNull(
+                            customMeta.takeIf { it.isNotEmpty() },
+                            authMeta.takeIf { it.isNotEmpty() }
+                        ).joinToString(";")
+                        val replyBuilder = DynamicMessage.newBuilder(methodDesc.outputType)
+                            .setField(messageField, "$prefix, $name!")
+                        if (receivedMetaField != null && combinedMeta.isNotEmpty()) {
+                            replyBuilder.setField(receivedMetaField, combinedMeta)
+                        }
+                        observer.onNext(replyBuilder.build())
+                        observer.onCompleted()
+                    }
+                }
+            }
+            return grpcMethod to handler
+        }
+
+        val sayHelloMethod = serviceDesc.findMethodByName("SayHello")!!
+        val sayHelloAgainMethod = serviceDesc.findMethodByName("SayHelloAgain")!!
+        val (sayHelloDesc, sayHelloHandler) = buildMethodHandler(sayHelloMethod, "Hello")
+        val (sayHelloAgainDesc, sayHelloAgainHandler) = buildMethodHandler(sayHelloAgainMethod, "Hello again")
+
+        val serviceDef = ServerServiceDefinition.builder(serviceDesc.fullName)
+            .addMethod(sayHelloDesc, sayHelloHandler)
+            .addMethod(sayHelloAgainDesc, sayHelloAgainHandler)
+            .build()
+
+        val metadataEchoInterceptor = object : ServerInterceptor {
+            override fun <ReqT : Any?, RespT : Any?> interceptCall(
+                call: ServerCall<ReqT, RespT>,
+                headers: Metadata,
+                next: ServerCallHandler<ReqT, RespT>,
+            ): ServerCall.Listener<ReqT> {
+                val customMetaKey = Metadata.Key.of("x-custom-meta", Metadata.ASCII_STRING_MARSHALLER)
+                val authKey = Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER)
+                val customVal = headers.get(customMetaKey)
+                val authVal = headers.get(authKey)
+
+                val loggedHeaders = mutableMapOf<String, String>()
+                for (keyName in headers.keys()) {
+                    if (!keyName.endsWith(Metadata.BINARY_HEADER_SUFFIX)) {
+                        val k = Metadata.Key.of(keyName, Metadata.ASCII_STRING_MARSHALLER)
+                        headers.get(k)?.let { loggedHeaders[keyName] = it }
+                    }
+                }
+                _requestsLog.value = _requestsLog.value + LoggedRequest(
+                    method = "GRPC",
+                    path = call.methodDescriptor.fullMethodName,
+                    headers = loggedHeaders,
+                    epochMs = Clock.System.now().toEpochMilliseconds(),
+                )
+
+                val forwardingCall = object : ForwardingServerCall.SimpleForwardingServerCall<ReqT, RespT>(call) {
+                    override fun sendHeaders(responseHeaders: Metadata) {
+                        val serverKey = Metadata.Key.of("x-grpc-server", Metadata.ASCII_STRING_MARSHALLER)
+                        responseHeaders.put(serverKey, "DummyApiServer")
+                        if (customVal != null) {
+                            val echoKey = Metadata.Key.of("x-echo-custom-meta", Metadata.ASCII_STRING_MARSHALLER)
+                            responseHeaders.put(echoKey, customVal)
+                        }
+                        super.sendHeaders(responseHeaders)
+                    }
+                }
+                val ctx = Context.current()
+                    .withValue(customMetaContextKey, customVal)
+                    .withValue(authContextKey, authVal)
+                return Contexts.interceptCall(ctx, forwardingCall, headers, next)
+            }
+        }
+
+        val startedGrpc = NettyServerBuilder.forPort(grpcPort)
+            .addService(ServerInterceptors.intercept(serviceDef, metadataEchoInterceptor))
+            .build()
+            .start()
+        grpcServer = startedGrpc
+        return startedGrpc.port
+    }
+
     fun stop() {
+        grpcServer?.shutdownNow()
+        grpcServer = null
+        tempProtoFile?.delete()
+        tempProtoFile = null
         engine?.stop(gracePeriodMillis = 500, timeoutMillis = 2_000)
         engine = null
     }
 
     fun baseUrl(): String = "http://127.0.0.1:${resolvedPort()}"
+
+    fun grpcPort(): Int = requireNotNull(grpcServer) { "gRPC server not started" }.port
+
+    fun grpcEndpoint(): String = "127.0.0.1:${grpcPort()}"
+
+    fun protoFilePath(): String = requireNotNull(tempProtoFile) { "gRPC server not started" }.absolutePath
 
     private fun resolvedPort(): Int {
         val appEngine = requireNotNull(engine) { "Server not started" }
@@ -449,3 +618,13 @@ data class LoggedRequest(
     val headers: Map<String, String>,
     val epochMs: Long
 )
+
+fun main() {
+    val server = DummyApiServer()
+    val httpPort = server.start()
+    println("HTTP Port: $httpPort")
+    println("gRPC Port: ${server.grpcPort()}")
+    while (true) {
+        Thread.sleep(100)
+    }
+}

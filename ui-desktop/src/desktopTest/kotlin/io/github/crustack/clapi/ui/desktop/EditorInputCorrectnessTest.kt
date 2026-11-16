@@ -1,8 +1,13 @@
 package io.github.crustack.clapi.ui.desktop
 
+import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performKeyPress
 import androidx.compose.ui.test.performTextInput
 import io.github.crustack.clapi.core.model.BodyType
 import io.github.crustack.clapi.ui.shared.MainScreen
@@ -424,5 +429,70 @@ class EditorInputCorrectnessTest {
         assertTrue(content.contains("C"), "'C' must be present")
         assertEquals(beforeLines + 2, afterLines,
             "Two enters must add exactly 2 lines. Before=$beforeLines, After=$afterLines")
+    }
+
+    @OptIn(InternalComposeUiApi::class)
+    @Test
+    fun grpc_message_editor_accepts_curly_braces_including_altgr_key_events() {
+        val state = AppState()
+        composeRule.runOnUiThread {
+            state.activeTab?.kind = io.github.crustack.clapi.core.model.RequestKind.GRPC
+            state.activeTab?.grpcMessageBody = ""
+        }
+        composeRule.setContent { MainScreen(state) }
+        composeRule.waitForIdle()
+
+        val grpcEditorNode = composeRule.onNodeWithTag("grpc-message-editor-input", useUnmergedTree = true)
+        grpcEditorNode.performTextInput("{\"hello\":\"world\"}")
+        composeRule.waitForIdle()
+
+        assertEquals("{\"hello\":\"world\"}", state.activeTab?.grpcMessageBody)
+
+        // Also verify KeyEvents with Alt (Option / AltGr), Ctrl+Alt (AltGr), and Key.Unknown (Linux level-3 keysym)
+        // producing '{' and '}', while a bare AltGr key press (CHAR_UNDEFINED = 0xFFFF) does not insert anything.
+        val altGrKeyPress = KeyEvent(
+            key = Key.Unknown,
+            type = KeyEventType.KeyDown,
+            codePoint = 0xFFFF,
+            isAltPressed = true,
+        )
+        val openBraceAltGr = KeyEvent(
+            key = Key.Seven,
+            type = KeyEventType.KeyDown,
+            codePoint = '{'.code,
+            isAltPressed = true,
+        )
+        val closeBraceCtrlAlt = KeyEvent(
+            key = Key.Zero,
+            type = KeyEventType.KeyDown,
+            codePoint = '}'.code,
+            isCtrlPressed = true,
+            isAltPressed = true,
+        )
+        val openBraceUnknownKey = KeyEvent(
+            key = Key.Unknown,
+            type = KeyEventType.KeyDown,
+            codePoint = '{'.code,
+            isAltPressed = true,
+        )
+        val closeBraceShiftBracket = KeyEvent(
+            key = Key.RightBracket,
+            type = KeyEventType.KeyDown,
+            codePoint = '}'.code,
+            isShiftPressed = true,
+        )
+
+        composeRule.runOnUiThread {
+            state.activeTab?.grpcMessageBody = ""
+        }
+        composeRule.waitForIdle()
+        grpcEditorNode.performKeyPress(altGrKeyPress)
+        grpcEditorNode.performKeyPress(openBraceAltGr)
+        grpcEditorNode.performKeyPress(closeBraceCtrlAlt)
+        grpcEditorNode.performKeyPress(openBraceUnknownKey)
+        grpcEditorNode.performKeyPress(closeBraceShiftBracket)
+        composeRule.waitForIdle()
+
+        assertEquals("{}{}", state.activeTab?.grpcMessageBody)
     }
 }

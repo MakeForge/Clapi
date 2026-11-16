@@ -5,8 +5,8 @@
 <h1 align="center">Clapi</h1>
 
 <p align="center">
-  <strong>A desktop-first API client built with Kotlin and Compose Multiplatform.</strong><br/>
-  No accounts. No telemetry. No cloud lock-in. Just fast, scriptable HTTP.
+  <strong>A bullshit-free desktop-first API client built purely with Kotlin.</strong><br/>
+  No Electron. No accounts. No telemetry. No cloud lock-in. No bullshit. Completely free.
 </p>
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)

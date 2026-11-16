@@ -85,6 +85,8 @@ fun httpMethodColor(method: HttpMethodType): Color = when (method) {
 @Composable
 @ReadOnlyComposable
 fun statusCodeColor(code: Int): Color = when {
+    code == 0        -> ClapiColors.StatusSuccess
+    code in 1..16    -> ClapiColors.StatusServerError
     code in 200..299 -> ClapiColors.StatusSuccess
     code in 300..399 -> ClapiColors.StatusRedirect
     code in 400..499 -> ClapiColors.StatusClientError

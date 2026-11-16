@@ -159,6 +159,9 @@ object OpenApiExporter {
                     val tags = if (currentPath.isNotEmpty()) listOf(currentPath.last()) else listOf("Default")
                     out.add(OperationEntry(method = method, path = cleanPath, item = item, tags = tags))
                 }
+                is io.github.crustack.clapi.core.model.opencollection.GrpcRequestItem -> {
+                    // OpenAPI 3.0 export only covers HTTP requests
+                }
             }
         }
     }

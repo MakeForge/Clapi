@@ -83,6 +83,11 @@ fun pickFileForImport(onResult: (String) -> Unit) = pickFileForImport { _, conte
 expect fun pickBinaryFileForRequest(onResult: (PickedBinaryFile) -> Unit)
 
 /**
+ * Pick a `.proto` file from the filesystem and deliver its absolute file path to [onResult].
+ */
+expect fun pickProtoFile(onResult: (filePath: String) -> Unit)
+
+/**
  * Save [content] as a file with the given [defaultFilename].
  * On desktop this opens a save dialog; on web it triggers a browser download.
  */
