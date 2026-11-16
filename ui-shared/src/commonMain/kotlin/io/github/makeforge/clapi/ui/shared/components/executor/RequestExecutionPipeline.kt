@@ -278,7 +278,7 @@ internal suspend fun executePostRequestScriptChain(
             state.log("⚠ Post-request script error ($source): ${testResult.error}", LogLevel.ERROR)
         }
         testResult.assertions.forEach { a ->
-            state.testResults.add(TestResultEntry(a.name, a.passed, a.message ?: ""))
+            tab.testResults.add(TestResultEntry(a.name, a.passed, a.message ?: ""))
             state.log(
                 "${if (a.passed) "✓" else "✗"} ${a.name}" +
                     if (!a.passed && a.message != null) " — ${a.message}" else "",

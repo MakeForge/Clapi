@@ -39,6 +39,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -94,6 +95,7 @@ import io.github.makeforge.clapi.ui.shared.theme.LocalAppColors
 import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Pretty-print of read-only bodies larger than this is offloaded off the composition thread. */
@@ -266,16 +268,54 @@ fun CodeEditor(
     }
     val restoreEditorFocus: () -> Unit = { restoreFocusTick++ }
 
-    // ── Fold regions (synchronous, for toolbar display) ───────
-    val allLines = remember(displayText) { displayText.split('\n') }
-    val toolbarFoldRegions: List<FoldRegion> = remember(allLines, language) {
-        if (enableFolding) detectFoldRegions(allLines, language) else emptyList()
+    // ── Fold regions & search matches (offloaded for large payloads) ───────
+    val editorScope = rememberCoroutineScope()
+    val isLargeDisplay = shouldOffloadReadOnlyFormat(displayText.length)
+    var asyncLines by remember { mutableStateOf<List<String>>(emptyList()) }
+    var asyncFoldRegions by remember { mutableStateOf<List<FoldRegion>>(emptyList()) }
+    var asyncSearchMatches by remember { mutableStateOf<List<SearchMatch>>(emptyList()) }
+
+    LaunchedEffect(displayText, language, enableFolding, isLargeDisplay) {
+        if (!isLargeDisplay) {
+            asyncLines = emptyList()
+            asyncFoldRegions = emptyList()
+            return@LaunchedEffect
+        }
+        val (lines, regions) = withContext(Dispatchers.Default) {
+            val split = displayText.split('\n')
+            val folds = if (enableFolding) detectFoldRegions(split, language) else emptyList()
+            split to folds
+        }
+        asyncLines = lines
+        asyncFoldRegions = regions
     }
 
-    // ── Search matches (synchronous, for search bar match count) ─
-    val visibleTexts   = remember(allLines) { allLines }
-    val searchMatches  = remember(visibleTexts, searchQuery) {
-        findSearchMatches(visibleTexts, searchQuery)
+    val allLines = remember(displayText, isLargeDisplay, asyncLines) {
+        if (isLargeDisplay) asyncLines else displayText.split('\n')
+    }
+    val toolbarFoldRegions: List<FoldRegion> = remember(allLines, language, enableFolding, isLargeDisplay, asyncFoldRegions) {
+        if (!enableFolding) emptyList()
+        else if (isLargeDisplay) asyncFoldRegions
+        else detectFoldRegions(allLines, language)
+    }
+
+    LaunchedEffect(allLines, searchQuery, isLargeDisplay) {
+        if (!isLargeDisplay) {
+            asyncSearchMatches = emptyList()
+            return@LaunchedEffect
+        }
+        if (searchQuery.isEmpty() || allLines.isEmpty()) {
+            asyncSearchMatches = emptyList()
+            return@LaunchedEffect
+        }
+        asyncSearchMatches = withContext(Dispatchers.Default) {
+            findSearchMatches(allLines, searchQuery)
+        }
+    }
+
+    val visibleTexts = remember(allLines) { allLines }
+    val searchMatches = remember(visibleTexts, searchQuery, isLargeDisplay, asyncSearchMatches) {
+        if (isLargeDisplay) asyncSearchMatches else findSearchMatches(visibleTexts, searchQuery)
     }
     val searchMatchRangesByLine = remember(searchMatches) {
         searchMatches
@@ -412,8 +452,19 @@ fun CodeEditor(
                             isFormatted = !isFormatted
                         } else {
                             val current = viewModel.getFullText()
-                            val formatted = autoFormat(current, language, allowJson5)
-                            if (formatted != current) viewModel.replaceDocument(formatted)
+                            if (shouldOffloadReadOnlyFormat(current.length)) {
+                                editorScope.launch {
+                                    val formatted = withContext(Dispatchers.Default) {
+                                        autoFormat(current, language, allowJson5)
+                                    }
+                                    if (formatted != current && viewModel.getFullText() == current) {
+                                        viewModel.replaceDocument(formatted)
+                                    }
+                                }
+                            } else {
+                                val formatted = autoFormat(current, language, allowJson5)
+                                if (formatted != current) viewModel.replaceDocument(formatted)
+                            }
                         }
                         restoreEditorFocus()
                     }

@@ -209,10 +209,24 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     var selectedBottomTab    by mutableStateOf(BottomTab.CONSOLE)
     var bottomPanelExpanded  by mutableStateOf(false)
     var bottomPanelHeight    by mutableStateOf(200f)
-    val consoleLogs  = mutableStateListOf<ConsoleEntry>()
+    val diagnostics = DiagnosticsLogState()
+    val consoleLogs: androidx.compose.runtime.snapshots.SnapshotStateList<ConsoleEntry>
+        get() = diagnostics.consoleLogs
     /** Structured network-event log shown in the Logs tab (fixes M-3). */
-    val networkEventLogs = mutableStateListOf<ConsoleEntry>()
-    val testResults  = mutableStateListOf<TestResultEntry>()
+    val networkEventLogs: androidx.compose.runtime.snapshots.SnapshotStateList<ConsoleEntry>
+        get() = diagnostics.networkEventLogs
+    private val fallbackTestResults = mutableStateListOf<TestResultEntry>()
+    internal var standaloneTestResultsTab by mutableStateOf<RequestTabState?>(null)
+    val testResults: androidx.compose.runtime.snapshots.SnapshotStateList<TestResultEntry>
+        get() {
+            val active = activeTab
+            val standalone = standaloneTestResultsTab
+            return when {
+                standalone != null && standalone !in openTabs && (active == null || active.testResults.isEmpty()) -> standalone.testResults
+                active != null -> active.testResults
+                else -> fallbackTestResults
+            }
+        }
 
     // ── dialogs / overlays ──
     // State lives in [DialogState]; the boolean-style properties below are thin helpers over it.
@@ -1375,6 +1389,9 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     fun closeTab(index: Int) {
         if (index !in openTabs.indices) return
         val tab = openTabs[index]
+        tab.currentJob?.cancel()
+        tab.currentJob = null
+        tab.isLoading = false
         tab.disposeBodyViewModels()
         disposeMcpSession(tab.id)
         if (tab.kind == RequestKind.WEBSOCKET) {
@@ -1402,6 +1419,9 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
             .filter { openTabs[it].id in idSet }
             .forEach { idx ->
                 val tab = openTabs[idx]
+                tab.currentJob?.cancel()
+                tab.currentJob = null
+                tab.isLoading = false
                 tab.disposeBodyViewModels()
                 disposeMcpSession(tab.id)
                 if (tab.kind == RequestKind.WEBSOCKET) {
@@ -1445,7 +1465,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     }
 
     fun log(message: String, level: LogLevel = LogLevel.INFO) {
-        consoleLogs.add(0, ConsoleEntry(message, level))
+        diagnostics.log(message, level)
     }
 
     /**
@@ -1454,9 +1474,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
      * summaries pass false so Console stays for scripts and app messages.
      */
     fun logNetworkEvent(message: String, level: LogLevel = LogLevel.INFO, echoToConsole: Boolean = true) {
-        val entry = ConsoleEntry(message, level)
-        networkEventLogs.add(0, entry)
-        if (echoToConsole) consoleLogs.add(0, entry)
+        diagnostics.logNetworkEvent(message, level, echoToConsole)
     }
 
     fun notifyCollectionsChanged() {
@@ -1718,6 +1736,9 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
             collectionId = reference.collectionId,
             folderPath = reference.folderPath,
         )
+        if (historyItems.size >= DiagnosticsLogState.MAX_HISTORY_ITEMS) {
+            historyItems.removeRange(DiagnosticsLogState.MAX_HISTORY_ITEMS - 1, historyItems.size)
+        }
         historyItems.add(0, item)
         historyRevision++
     }

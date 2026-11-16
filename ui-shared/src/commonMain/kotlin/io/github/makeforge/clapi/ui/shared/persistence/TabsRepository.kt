@@ -45,105 +45,122 @@ object TabsRepository {
 
     // ── Save ───────────────────────────────────────────────────────────────
 
+    /**
+     * Captures a thread-safe [JsonObject] snapshot of all open tabs from [state].
+     * Should be called on the UI/Main thread when triggered from reactive flows before
+     * offloading serialization and disk I/O to a background dispatcher.
+     */
+    fun buildSnapshot(state: AppState): JsonObject {
+        val arr = buildJsonArray {
+            state.openTabs.forEach { tab ->
+                add(buildJsonObject {
+                    put("id",          tab.id)
+                    put("requestRef",  tab.requestRef ?: "")
+                    put("name",        tab.name)
+                    put("method",      tab.method.name)
+                    put("url",         tab.url)
+                    put("collectionName", tab.collectionName ?: "")
+                    put("collectionId", tab.collectionId ?: "")
+                    put("folderPath", buildJsonArray { tab.folderPath.forEach { add(JsonPrimitive(it)) } })
+                    put("bodyType",    tab.bodyType.name)
+                    put("lastRawSubtype", tab.lastRawSubtype.name)
+                    put("bodyContent", tab.bodyContent)
+                    put("bodyContents", buildJsonObject {
+                        tab.bodyContents.forEach { entry ->
+                            if (entry.value.isNotBlank()) put(entry.key.name, entry.value)
+                        }
+                    })
+                    put("authType",    tab.authType.name)
+                    put("authUsername", tab.authUsername)
+                    put("authPassword", tab.authPassword)
+                    put("authToken",    tab.authToken)
+                    put("authApiKey",   tab.authApiKey)
+                    put("authApiValue", tab.authApiValue)
+                    put("authApiPlacement", normalizeApiKeyPlacement(tab.authApiPlacement))
+                    put("preRequestScript", tab.preRequestScript)
+                    put("testScript", tab.testScript)
+                    put("retryEnabled", tab.retryEnabled)
+                    put("retryCount", tab.retryCount)
+                    put("retryDelayMs", tab.retryDelayMs)
+                    tab.lastSavedTimestamp?.let { put("lastSavedTimestamp", it) }
+                    put("savedSnapshot", tab.savedSnapshotForPersistence())
+                    put("snapshotFormat", 2)
+                    put("isDirty",     tab.isDirty)
+                    put("params",  kvListJson(tab.params))
+                    put("variables", kvListJson(tab.variables))
+                    put("headers", kvListJson(tab.headers))
+                    put("grpcMetadata", kvListJson(tab.grpcMetadata))
+                    put("protoFilePath", tab.protoFilePath ?: "")
+                    put("protoSyncToGit", tab.protoSyncToGit)
+                    put("grpcMethod", tab.grpcMethod ?: "")
+                    put("grpcMethodType", tab.grpcMethodType)
+                    put("formRows", formRowListJson(tab.formRows))
+                    put("urlencodedRows", formRowListJson(tab.urlencodedRows))
+                    put("kind", tab.kind.name)
+                    put("collectionSummary", tab.collectionSummary ?: "")
+                    put("collectionVersion", tab.collectionVersion ?: "")
+                    put("storageType", tab.storageType.name)
+                    put("gitRemoteUrl", tab.gitRemoteUrl)
+                    put("gitBranch", tab.gitBranch)
+                    put("webSocketTimeout", tab.webSocketTimeout ?: "inherit")
+                    put("webSocketKeepAliveInterval", tab.webSocketKeepAliveInterval ?: "inherit")
+                    put("webSocketDocs", tab.webSocketDocs)
+                    put("webSocketMessageFormat", tab.effectiveWebSocketFormat.value)
+                    put("webSocketOutgoingPayload", tab.webSocketOutgoingPayload)
+                    put("webSocketVariants", buildJsonArray {
+                        tab.webSocketMessageVariants.forEach { v ->
+                            add(buildJsonObject {
+                                put("title", v.title)
+                                put("selected", v.selected)
+                                put("type", v.message.type.value)
+                                put("data", v.message.data)
+                            })
+                        }
+                    })
+                    put("graphQlMethod", tab.graphQlMethod)
+                    put("graphQlQuery", tab.graphQlQuery)
+                    put("graphQlVariables", tab.graphQlVariables)
+                    put("graphQlDocs", tab.graphQlDocs)
+                    put("graphQlTimeout", tab.graphQlTimeout ?: "inherit")
+                    put("graphQlEncodeUrl", tab.graphQlEncodeUrl ?: "inherit")
+                    put("graphQlFollowRedirects", tab.graphQlFollowRedirects ?: "inherit")
+                    put("graphQlForwardAuthHeader", tab.graphQlForwardAuthHeader ?: "inherit")
+                    put("graphQlMaxRedirects", tab.graphQlMaxRedirects ?: "inherit")
+                    put("graphQlVariants", buildJsonArray {
+                        tab.graphQlVariants.forEach { v ->
+                            add(buildJsonObject {
+                                put("title", v.title)
+                                put("selected", v.selected)
+                                put("query", v.body.query)
+                                put("variables", v.body.variables ?: "")
+                            })
+                        }
+                    })
+                    put("mcp", json.parseToJsonElement(
+                        json.encodeToString(McpConnectionConfig.serializer(), tab.mcpConfig),
+                    ))
+                })
+            }
+        }
+        return buildJsonObject {
+            put("activeIndex", state.activeTabIndex)
+            put("tabs", arr)
+        }
+    }
+
+    /**
+     * Writes a previously captured [snapshot] to [PlatformStorage].
+     */
+    fun saveSnapshot(snapshot: JsonObject): Boolean =
+        runCatching {
+            PlatformStorage.putString(STORAGE_KEY, snapshot.toString())
+            true
+        }.getOrElse { false }
+
     fun save(state: AppState): Boolean {
         return runCatching {
-            val arr = buildJsonArray {
-                state.openTabs.forEach { tab ->
-                    add(buildJsonObject {
-                        put("id",          tab.id)
-                        put("requestRef",  tab.requestRef ?: "")
-                        put("name",        tab.name)
-                        put("method",      tab.method.name)
-                        put("url",         tab.url)
-                        put("collectionName", tab.collectionName ?: "")
-                        put("collectionId", tab.collectionId ?: "")
-                        put("folderPath", buildJsonArray { tab.folderPath.forEach { add(JsonPrimitive(it)) } })
-                        put("bodyType",    tab.bodyType.name)
-                        put("lastRawSubtype", tab.lastRawSubtype.name)
-                        put("bodyContent", tab.bodyContent)
-                        put("bodyContents", buildJsonObject {
-                            tab.bodyContents.forEach { entry ->
-                                if (entry.value.isNotBlank()) put(entry.key.name, entry.value)
-                            }
-                        })
-                        put("authType",    tab.authType.name)
-                        put("authUsername", tab.authUsername)
-                        put("authPassword", tab.authPassword)
-                        put("authToken",    tab.authToken)
-                        put("authApiKey",   tab.authApiKey)
-                        put("authApiValue", tab.authApiValue)
-                        put("authApiPlacement", normalizeApiKeyPlacement(tab.authApiPlacement))
-                        put("preRequestScript", tab.preRequestScript)
-                        put("testScript", tab.testScript)
-                        put("retryEnabled", tab.retryEnabled)
-                        put("retryCount", tab.retryCount)
-                        put("retryDelayMs", tab.retryDelayMs)
-                        tab.lastSavedTimestamp?.let { put("lastSavedTimestamp", it) }
-                        put("savedSnapshot", tab.savedSnapshotForPersistence())
-                        put("snapshotFormat", 2)
-                        put("isDirty",     tab.isDirty)
-                        put("params",  kvListJson(tab.params))
-                        put("variables", kvListJson(tab.variables))
-                        put("headers", kvListJson(tab.headers))
-                        put("grpcMetadata", kvListJson(tab.grpcMetadata))
-                        put("protoFilePath", tab.protoFilePath ?: "")
-                        put("protoSyncToGit", tab.protoSyncToGit)
-                        put("grpcMethod", tab.grpcMethod ?: "")
-                        put("grpcMethodType", tab.grpcMethodType)
-                        put("formRows", formRowListJson(tab.formRows))
-                        put("urlencodedRows", formRowListJson(tab.urlencodedRows))
-                        put("kind", tab.kind.name)
-                        put("collectionSummary", tab.collectionSummary ?: "")
-                        put("collectionVersion", tab.collectionVersion ?: "")
-                        put("storageType", tab.storageType.name)
-                        put("gitRemoteUrl", tab.gitRemoteUrl)
-                        put("gitBranch", tab.gitBranch)
-                        put("webSocketTimeout", tab.webSocketTimeout ?: "inherit")
-                        put("webSocketKeepAliveInterval", tab.webSocketKeepAliveInterval ?: "inherit")
-                        put("webSocketDocs", tab.webSocketDocs)
-                        put("webSocketMessageFormat", tab.effectiveWebSocketFormat.value)
-                        put("webSocketOutgoingPayload", tab.webSocketOutgoingPayload)
-                        put("webSocketVariants", buildJsonArray {
-                            tab.webSocketMessageVariants.forEach { v ->
-                                add(buildJsonObject {
-                                    put("title", v.title)
-                                    put("selected", v.selected)
-                                    put("type", v.message.type.value)
-                                    put("data", v.message.data)
-                                })
-                            }
-                        })
-                        put("graphQlMethod", tab.graphQlMethod)
-                        put("graphQlQuery", tab.graphQlQuery)
-                        put("graphQlVariables", tab.graphQlVariables)
-                        put("graphQlDocs", tab.graphQlDocs)
-                        put("graphQlTimeout", tab.graphQlTimeout ?: "inherit")
-                        put("graphQlEncodeUrl", tab.graphQlEncodeUrl ?: "inherit")
-                        put("graphQlFollowRedirects", tab.graphQlFollowRedirects ?: "inherit")
-                        put("graphQlForwardAuthHeader", tab.graphQlForwardAuthHeader ?: "inherit")
-                        put("graphQlMaxRedirects", tab.graphQlMaxRedirects ?: "inherit")
-                        put("graphQlVariants", buildJsonArray {
-                            tab.graphQlVariants.forEach { v ->
-                                add(buildJsonObject {
-                                    put("title", v.title)
-                                    put("selected", v.selected)
-                                    put("query", v.body.query)
-                                    put("variables", v.body.variables ?: "")
-                                })
-                            }
-                        })
-                        put("mcp", json.parseToJsonElement(
-                            json.encodeToString(McpConnectionConfig.serializer(), tab.mcpConfig),
-                        ))
-                    })
-                }
-            }
-            val root = buildJsonObject {
-                put("activeIndex", state.activeTabIndex)
-                put("tabs", arr)
-            }
-            PlatformStorage.putString(STORAGE_KEY, root.toString())
-            true
+            val root = buildSnapshot(state)
+            saveSnapshot(root)
         }.getOrElse { false }
     }
 

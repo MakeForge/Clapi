@@ -57,9 +57,14 @@ interface OAuth2TokenClient {
     ): Result<OAuth2TokenResponse>
 }
 
+private val sharedOAuth2HttpClient: HttpClient by lazy { createPlatformHttpClient() }
+
 class KtorOAuth2TokenClient(
-    private val httpClient: HttpClient = createPlatformHttpClient(),
+    private val httpClient: HttpClient = sharedOAuth2HttpClient,
 ) : OAuth2TokenClient {
+    companion object {
+        val Shared: KtorOAuth2TokenClient by lazy { KtorOAuth2TokenClient() }
+    }
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 

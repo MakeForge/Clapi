@@ -26,11 +26,11 @@ data class SecretDeclaration(
 )
 
 class SecretResolutionService(
-    private val vaultClient: HashiCorpVaultClient = KtorHashiCorpVaultClient(),
+    private val vaultClient: HashiCorpVaultClient = KtorHashiCorpVaultClient.Shared,
     private val keepassClientManager: KeePassXcClientManager = DefaultKeePassXcClientManager.Shared,
-    private val awsClient: AwsSecretsManagerClient = KtorAwsSecretsManagerClient(),
-    private val azureClient: AzureKeyVaultClient = KtorAzureKeyVaultClient(),
-    private val gcpClient: GcpSecretManagerClient = KtorGcpSecretManagerClient(),
+    private val awsClient: AwsSecretsManagerClient = KtorAwsSecretsManagerClient.Shared,
+    private val azureClient: AzureKeyVaultClient = KtorAzureKeyVaultClient.Shared,
+    private val gcpClient: GcpSecretManagerClient = KtorGcpSecretManagerClient.Shared,
     val providers: List<ExternalSecretProvider> = listOf(
         VaultSecretProvider(vaultClient),
         AwsSecretProvider(awsClient),
@@ -40,6 +40,9 @@ class SecretResolutionService(
         KeepassXcSecretProvider(keepassClientManager),
     ),
 ) {
+    companion object {
+        val Shared: SecretResolutionService by lazy { SecretResolutionService() }
+    }
     private val variablePattern = Regex("\\{\\{\\s*([^{}]+?)\\s*\\}\\}")
 
     private fun providerFor(providerType: String): ExternalSecretProvider {

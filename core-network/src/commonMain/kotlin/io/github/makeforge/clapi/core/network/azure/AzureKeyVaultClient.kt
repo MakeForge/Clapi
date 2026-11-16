@@ -64,19 +64,24 @@ private data class AzureSecretResponse(
     val contentType: String? = null,
 )
 
-private fun defaultAzureHttpClient(): HttpClient = createPlatformHttpClient {
-    install(ContentNegotiation) {
-        json(Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-        })
+private val sharedAzureHttpClient: HttpClient by lazy {
+    createPlatformHttpClient {
+        install(ContentNegotiation) {
+            json(Json {
+                ignoreUnknownKeys = true
+                isLenient = true
+            })
+        }
     }
 }
 
 class KtorAzureKeyVaultClient(
-    private val httpClient: HttpClient = defaultAzureHttpClient(),
+    private val httpClient: HttpClient = sharedAzureHttpClient,
     private val json: Json = Json { ignoreUnknownKeys = true },
 ) : AzureKeyVaultClient {
+    companion object {
+        val Shared: KtorAzureKeyVaultClient by lazy { KtorAzureKeyVaultClient() }
+    }
 
     override suspend fun fetchSecret(config: AzureKeyVaultConfig): Map<String, String> {
         return fetchSecret(

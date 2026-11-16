@@ -309,6 +309,28 @@ class RequestTabState(
     /** Concatenated LLM token text shown live while streaming. */
     var liveStreamText by mutableStateOf("")
 
+    /** Per-tab post-request script assertion results. */
+    val testResults = mutableStateListOf<TestResultEntry>()
+
+    fun appendStreamChunk(rawChunk: String) {
+        if (streamChunks.size >= MAX_STREAM_CHUNKS) {
+            streamChunks.removeRange(0, streamChunks.size - MAX_STREAM_CHUNKS + 1)
+        }
+        streamChunks.add(rawChunk)
+    }
+
+    fun appendWebSocketLogMessage(message: WebSocketLogMessage) {
+        if (webSocketLogMessages.size >= MAX_WEBSOCKET_LOGS) {
+            webSocketLogMessages.removeRange(0, webSocketLogMessages.size - MAX_WEBSOCKET_LOGS + 1)
+        }
+        webSocketLogMessages.add(message)
+    }
+
+    companion object {
+        const val MAX_WEBSOCKET_LOGS = 1_000
+        const val MAX_STREAM_CHUNKS = 5_000
+    }
+
     init {
         if (kind == RequestKind.FOLDER || kind == RequestKind.COLLECTION) {
             headers.clear()

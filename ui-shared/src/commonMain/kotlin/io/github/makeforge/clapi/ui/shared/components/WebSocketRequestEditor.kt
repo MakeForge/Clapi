@@ -124,10 +124,7 @@ fun WebSocketRequestEditor(
         }
         launch {
             WebSocketClientManager.default.messages(tab.id).collect { msg ->
-                if (tab.webSocketLogMessages.size >= 1000) {
-                    tab.webSocketLogMessages.removeAt(0)
-                }
-                tab.webSocketLogMessages.add(msg)
+                tab.appendWebSocketLogMessage(msg)
             }
         }
     }

@@ -27,7 +27,69 @@ class AppSettings {
 
     // Network
     var requestTimeoutSec    by mutableStateOf(30)
+    var requestTimeoutMsOverride: Long? = null
     var followRedirects      by mutableStateOf(true)
+    var maxRedirects         by mutableStateOf(20)
+
+    fun withNetworkOverrides(
+        timeoutMsOverride: Long? = null,
+        followRedirectsOverride: Boolean? = null,
+        maxRedirectsOverride: Int? = null,
+    ): AppSettings {
+        if (timeoutMsOverride == null && followRedirectsOverride == null && maxRedirectsOverride == null) {
+            return this
+        }
+        val base = this
+        return AppSettings().also { copy ->
+            copy.autoSaveRequests = base.autoSaveRequests
+            copy.confirmBeforeDelete = base.confirmBeforeDelete
+            copy.defaultTimeoutSec = base.defaultTimeoutSec
+            copy.responseLayout = base.responseLayout
+            copy.theme = base.theme
+            copy.language = base.language
+            copy.requestTimeoutSec = if (timeoutMsOverride != null) {
+                (timeoutMsOverride / 1_000L).toInt().coerceAtLeast(1)
+            } else {
+                base.requestTimeoutSec
+            }
+            copy.requestTimeoutMsOverride = timeoutMsOverride ?: base.requestTimeoutMsOverride
+            copy.followRedirects = followRedirectsOverride ?: base.followRedirects
+            copy.maxRedirects = maxRedirectsOverride ?: base.maxRedirects
+            copy.collectionsExpanded = base.collectionsExpanded
+            copy.environmentsExpanded = base.environmentsExpanded
+            copy.httpProxy = base.httpProxy
+            copy.httpsProxy = base.httpsProxy
+            copy.proxyEnabled = base.proxyEnabled
+            copy.scriptPrefix = base.scriptPrefix
+            copy.selectedEnvName = base.selectedEnvName
+            copy.allowJson5InJsonBodies = base.allowJson5InJsonBodies
+            copy.showEditorPositionIndicator = base.showEditorPositionIndicator
+            copy.environmentDialogWidthDp = base.environmentDialogWidthDp
+            copy.environmentDialogHeightDp = base.environmentDialogHeightDp
+            copy.vaultProviderType = base.vaultProviderType
+            copy.vaultServerUrl = base.vaultServerUrl
+            copy.vaultMountPath = base.vaultMountPath
+            copy.vaultNamespace = base.vaultNamespace
+            copy.vaultToken = base.vaultToken
+            copy.awsRegion = base.awsRegion
+            copy.awsAccessKeyId = base.awsAccessKeyId
+            copy.awsSecretAccessKey = base.awsSecretAccessKey
+            copy.awsSessionToken = base.awsSessionToken
+            copy.awsEndpointUrl = base.awsEndpointUrl
+            copy.awsVersionStage = base.awsVersionStage
+            copy.azureVaultName = base.azureVaultName
+            copy.azureTenantId = base.azureTenantId
+            copy.azureClientId = base.azureClientId
+            copy.azureClientSecret = base.azureClientSecret
+            copy.azureAuthorityHost = base.azureAuthorityHost
+            copy.azureApiVersion = base.azureApiVersion
+            copy.gcpProjectId = base.gcpProjectId
+            copy.gcpAccessToken = base.gcpAccessToken
+            copy.gcpEndpointUrl = base.gcpEndpointUrl
+            copy.keeperConfigJson = base.keeperConfigJson
+            copy.keeperConnectionStatus = base.keeperConnectionStatus
+        }
+    }
 
     // Sidebar
     var collectionsExpanded  by mutableStateOf(false)

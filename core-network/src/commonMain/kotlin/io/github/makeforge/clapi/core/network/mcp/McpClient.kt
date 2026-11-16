@@ -149,6 +149,9 @@ class McpClient(
             _state.value = McpConnectionState.CONNECTED
             log(McpLogEntryKind.STATE, "Connected ${result.serverInfo.name} ${result.protocolVersion}")
             return result
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            _state.value = McpConnectionState.DISCONNECTED
+            throw e
         } catch (e: McpUnauthorizedException) {
             val oauth = oauthClient
             val oauthConfig = config.oauth
@@ -164,6 +167,13 @@ class McpClient(
             _state.value = McpConnectionState.ERROR
             log(McpLogEntryKind.ERROR, e.message ?: e.toString())
             throw e
+        }
+    }
+
+    suspend fun close() {
+        disconnect()
+        if (httpClient !== sharedMcpHttpClient) {
+            runCatching { httpClient.close() }
         }
     }
 
@@ -434,6 +444,8 @@ class McpClient(
             val response = JsonRpcEnvelope(id = id, result = result)
             transport?.send(response)
             log(McpLogEntryKind.SENT, "result ${message.method}", mcpJson.encodeToString(JsonRpcEnvelope.serializer(), response), message.method, message.idKey())
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             sendError(id, JsonRpcError(JsonRpcErrorCodes.INTERNAL_ERROR, e.message ?: "internal error"))
         }
@@ -480,7 +492,9 @@ class McpClient(
     }
 }
 
-internal fun defaultMcpHttpClient(): HttpClient = mcpAuxHttpClient()
+private val sharedMcpHttpClient: HttpClient by lazy { mcpAuxHttpClient() }
+
+internal fun defaultMcpHttpClient(): HttpClient = sharedMcpHttpClient
 
 internal fun mcpAuxHttpClient(): HttpClient = createPlatformHttpClient {
     install(HttpTimeout) {

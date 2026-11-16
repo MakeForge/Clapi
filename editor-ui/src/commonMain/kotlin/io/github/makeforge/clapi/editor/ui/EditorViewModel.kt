@@ -28,8 +28,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+import androidx.compose.runtime.Immutable
+
 // ── Display state ────────────────────────────────────────────────
 
+@Immutable
 data class EditorDisplayState(
     val version: Int       = 0,
     val styleClock: Long   = 0L,

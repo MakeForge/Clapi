@@ -32,6 +32,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -280,40 +281,43 @@ fun VariableAwareTextField(
     }
 
     // Resolved variable names from whatever environment/folder/collection layers are active.
-    // Reading mutableState properties of AppState inside the composable body automatically
-    // registers this composable for recomposition when the environment changes.
+    // Memoized with derivedStateOf so typing inside the text field does not rebuild activeVariableLayers on every keystroke.
     val currentTab = tab ?: state?.activeTab
-    val definedNames: Set<String> = if (state != null || extraVariables.isNotEmpty()) {
-        val vars = if (state != null) {
-            val set = state.activeVariableLayers(currentTab).flatMap { it.keys }.toMutableSet()
-            state.selectedEnvironment?.externalSecrets?.filter { it.enabled && it.name.isNotBlank() }?.forEach {
-                set.add("_secret.${it.name.trim()}")
-            }
-            val effectiveAuthType = if (currentTab != null) {
-                if (currentTab.authType == AuthType.INHERIT) {
-                    state.resolveInheritedAuth(currentTab)?.authType ?: AuthType.NONE
+    val definedNames: Set<String> by remember(state, currentTab, extraVariables, normalizedExcludes) {
+        derivedStateOf {
+            if (state != null || extraVariables.isNotEmpty()) {
+                val vars = if (state != null) {
+                    val set = state.activeVariableLayers(currentTab).flatMap { it.keys }.toMutableSet()
+                    state.selectedEnvironment?.externalSecrets?.filter { it.enabled && it.name.isNotBlank() }?.forEach {
+                        set.add("_secret.${it.name.trim()}")
+                    }
+                    val effectiveAuthType = if (currentTab != null) {
+                        if (currentTab.authType == AuthType.INHERIT) {
+                            state.resolveInheritedAuth(currentTab)?.authType ?: AuthType.NONE
+                        } else {
+                            currentTab.authType
+                        }
+                    } else {
+                        AuthType.NONE
+                    }
+                    if (effectiveAuthType == AuthType.OAUTH2) {
+                        set.add("_auth.oauth2.accessToken")
+                    }
+                    set
                 } else {
-                    currentTab.authType
+                    mutableSetOf()
                 }
+                extraVariables.forEach { (k, _) ->
+                    if (k.isNotBlank()) vars.add(k.trim())
+                }
+                if (normalizedExcludes.isNotEmpty()) {
+                    vars.removeAll(normalizedExcludes)
+                }
+                vars.toSet()
             } else {
-                AuthType.NONE
+                emptySet()
             }
-            if (effectiveAuthType == AuthType.OAUTH2) {
-                set.add("_auth.oauth2.accessToken")
-            }
-            set
-        } else {
-            mutableSetOf()
         }
-        extraVariables.forEach { (k, _) ->
-            if (k.isNotBlank()) vars.add(k.trim())
-        }
-        if (normalizedExcludes.isNotEmpty()) {
-            vars.removeAll(normalizedExcludes)
-        }
-        vars
-    } else {
-        emptySet()
     }
 
     // Internal TextFieldValue that carries the highlighted AnnotatedString.

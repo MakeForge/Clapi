@@ -56,14 +56,14 @@ fun sendRequest(
     scope: CoroutineScope,
     state: AppState,
     tab: RequestTabState,
-    tokenClient: OAuth2TokenClient = KtorOAuth2TokenClient(),
+    tokenClient: OAuth2TokenClient = SharedExecutionClients.oauth2TokenClient,
     clientFactory: (AppSettings, NetworkLogger, RetryPolicy) -> ApiClient = { s, l, r ->
         NetworkClientFactory.build(s, l, r)
     },
     grpcClientFactory: (AppSettings) -> DynamicGrpcClient = { s ->
         NetworkClientFactory.buildGrpcClient(s)
     },
-    secretResolutionService: SecretResolutionService = SecretResolutionService(),
+    secretResolutionService: SecretResolutionService = SharedExecutionClients.secretResolutionService,
     processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
 ) {
     sendRequestInternal(
@@ -84,14 +84,14 @@ internal fun sendRequestInternal(
     state: AppState,
     tab: RequestTabState,
     chainDepth: Int,
-    tokenClient: OAuth2TokenClient = KtorOAuth2TokenClient(),
+    tokenClient: OAuth2TokenClient = SharedExecutionClients.oauth2TokenClient,
     clientFactory: (AppSettings, NetworkLogger, RetryPolicy) -> ApiClient = { s, l, r ->
         NetworkClientFactory.build(s, l, r)
     },
     grpcClientFactory: (AppSettings) -> DynamicGrpcClient = { s ->
         NetworkClientFactory.buildGrpcClient(s)
     },
-    secretResolutionService: SecretResolutionService = SecretResolutionService(),
+    secretResolutionService: SecretResolutionService = SharedExecutionClients.secretResolutionService,
     processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
 ) {
     if (tab.kind == RequestKind.GRPC) {
@@ -148,7 +148,10 @@ internal fun sendRequestInternal(
         tab.lastError = null
         tab.streamChunks.clear()
         tab.liveStreamText = ""
-        state.testResults.clear()
+        tab.testResults.clear()
+        if (tab !in state.openTabs) {
+            state.standaloneTestResultsTab = tab
+        }
 
         val urlParts = splitRequestUrl(tab.url.trim())
         var effectiveUrl = urlParts.base
@@ -334,7 +337,13 @@ internal fun sendRequestInternal(
         } else {
             resolvedBaseForLog
         }
-        state.logNetworkEvent("→ $effectiveMethod $effectiveUrlForLog")
+        val secretValuesForLog = SecretLogRedactor.collectSecretValues(
+            state = state,
+            tab = tab,
+            resolvedSecrets = resolvedSecrets,
+        )
+        val redactedUrlForLog = SecretLogRedactor.redact(effectiveUrlForLog, secretValuesForLog)
+        state.logNetworkEvent("→ $effectiveMethod $redactedUrlForLog")
 
         try {
             // Rebuild request after ensureValidOAuth2Token so any newly refreshed OAuth2 accessToken is included
@@ -382,8 +391,13 @@ internal fun sendRequestInternal(
                         )
                     }
                     is NetworkEvent.Chunk -> {
-                        tab.streamChunks.add(event.raw)
-                        tab.liveStreamText = LlmTextAssembler.assemble(tab.streamChunks.toList())
+                        tab.appendStreamChunk(event.raw)
+                        val delta = LlmTextAssembler.extractChunkDelta(event.raw)
+                        if (!delta.isNullOrEmpty()) {
+                            tab.liveStreamText += delta
+                        } else if (tab.liveStreamText.isEmpty()) {
+                            tab.liveStreamText = LlmTextAssembler.assemble(tab.streamChunks.toList())
+                        }
                     }
                     is NetworkEvent.Success -> {
                         tab.response  = event.response

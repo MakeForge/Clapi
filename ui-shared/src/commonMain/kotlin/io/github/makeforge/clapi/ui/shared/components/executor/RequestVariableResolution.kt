@@ -27,12 +27,13 @@ import io.github.makeforge.clapi.ui.shared.persistence.SettingsStorageKeys
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.state.LogLevel
 import io.github.makeforge.clapi.ui.shared.state.RequestTabState
+import kotlinx.coroutines.CancellationException
 
 internal suspend fun resolveExternalSecretsForTab(
     state: AppState,
     tab: RequestTabState,
     textsToScan: Iterable<String>,
-    secretResolutionService: SecretResolutionService = SecretResolutionService(),
+    secretResolutionService: SecretResolutionService = SharedExecutionClients.secretResolutionService,
     keepassClient: KeePassXcClient? = null,
     awsClient: AwsSecretsManagerClient? = null,
     azureClient: AzureKeyVaultClient? = null,
@@ -135,6 +136,8 @@ internal suspend fun resolveExternalSecretsForTab(
             texts = textsToScan,
             context = context,
         )
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         val errorMsg = e.message ?: "Failed to resolve external secrets"
         tab.lastError = errorMsg
@@ -149,7 +152,7 @@ internal fun buildDynamicVariableContext(
     state: AppState,
     tab: RequestTabState,
     variableLayers: List<Map<String, String>>,
-    tokenClient: OAuth2TokenClient = KtorOAuth2TokenClient(),
+    tokenClient: OAuth2TokenClient = SharedExecutionClients.oauth2TokenClient,
     tokenManager: OAuth2TokenManager = OAuth2TokenManager.Shared,
 ): DynamicVariableContext {
     val effectiveAuthType = if (tab.authType == AuthType.INHERIT) {
@@ -225,12 +228,14 @@ internal suspend fun resolveDynamicVariablesForTab(
     textsToScan: Iterable<String>,
     variableLayers: List<Map<String, String>>,
     registry: DynamicVariableRegistry = state.dynamicVariableRegistry,
-    tokenClient: OAuth2TokenClient = KtorOAuth2TokenClient(),
+    tokenClient: OAuth2TokenClient = SharedExecutionClients.oauth2TokenClient,
     tokenManager: OAuth2TokenManager = OAuth2TokenManager.Shared,
 ): Map<String, String>? {
     val context = buildDynamicVariableContext(state, tab, variableLayers, tokenClient, tokenManager)
     return try {
         registry.resolveDynamicVariables(textsToScan, context)
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         val errorMsg = e.message ?: "Failed to resolve dynamic variables"
         tab.lastError = errorMsg

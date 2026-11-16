@@ -34,18 +34,23 @@ interface HashiCorpVaultClient {
     ): Map<String, String>
 }
 
-private fun defaultVaultHttpClient(): HttpClient = createPlatformHttpClient {
-    install(ContentNegotiation) {
-        json(Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-        })
+private val sharedVaultHttpClient: HttpClient by lazy {
+    createPlatformHttpClient {
+        install(ContentNegotiation) {
+            json(Json {
+                ignoreUnknownKeys = true
+                isLenient = true
+            })
+        }
     }
 }
 
 class KtorHashiCorpVaultClient(
-    private val httpClient: HttpClient = defaultVaultHttpClient(),
+    private val httpClient: HttpClient = sharedVaultHttpClient,
 ) : HashiCorpVaultClient {
+    companion object {
+        val Shared: KtorHashiCorpVaultClient by lazy { KtorHashiCorpVaultClient() }
+    }
 
     override suspend fun fetchSecret(
         vaultUrl: String,

@@ -17,7 +17,9 @@ import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.state.CollectionNode
 import io.github.makeforge.clapi.ui.shared.state.ProtoFileItemState
 import io.github.makeforge.clapi.ui.shared.state.ProtoImportPathState
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 
@@ -39,6 +41,53 @@ object WorkspaceRepository {
     var privateStateRepository: PrivateStateRepository = PrivateStateRepository()
 
     private var lastReportedSaveError: String? = null
+
+    /**
+     * Captures the serializable workspace snapshot on the calling (UI/Main) thread, performs
+     * file/storage I/O on [ioDispatcher], and reports any error or git status refresh back on
+     * the calling thread.
+     */
+    suspend fun saveAsync(state: AppState, ioDispatcher: CoroutineDispatcher): Boolean {
+        return try {
+            val globalDoc = state.toGlobalOpenCollectionDocument()
+            val privateState = PrivateWorkspaceState(
+                globalVariables = state.globalVariables
+                    .filter { it.key.trim().isNotEmpty() }
+                    .map { it.toStoredVariable() },
+                history = state.historyItems.map { it.toStoredHistoryItem() },
+                expandedState = state.collectionExpandedState.toMap(),
+            )
+            val gitCollections = state.collections.filter {
+                it.isCollection && it.storageType == StorageType.GIT && it.gitRemoteUrl.isNotBlank()
+            }
+            val gitExports = gitCollections.map { col ->
+                val colDir = state.gitRepositoryManager.getCollectionDirectory(col.gitRemoteUrl, col.name)
+                val doc = col.toOpenCollectionDocumentForGitSync(colDir)
+                colDir to doc
+            }
+
+            withContext(ioDispatcher) {
+                canonicalRepository.saveGlobalCollection(globalDoc)
+                for ((colDir, doc) in gitExports) {
+                    runCatching {
+                        val yaml = OpenCollectionSerializer.serializeYaml(doc)
+                        writeTextFile("$colDir/collection.opencollection.yaml", yaml)
+                    }
+                }
+                privateStateRepository.save(privateState)
+            }
+            if (gitExports.isNotEmpty()) {
+                state.refreshAllGitStatusesAsync()
+            }
+            lastReportedSaveError = null
+            true
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (error: Throwable) {
+            reportSaveError(state, error)
+            false
+        }
+    }
 
     /**
      * Persists collections and environments to the single global OpenCollection document, and

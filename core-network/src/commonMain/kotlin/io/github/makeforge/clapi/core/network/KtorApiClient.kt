@@ -64,10 +64,13 @@ class KtorApiClient(
     },
     private val idleTimeoutMs: Long = 30_000L,
     private val allowJson5InJsonBodies: Boolean = true,
+    private val closeHttpClientOnClose: Boolean = true,
 ) : ApiClient {
 
     override fun close() {
-        runCatching { httpClient.close() }
+        if (closeHttpClientOnClose) {
+            runCatching { httpClient.close() }
+        }
     }
 
     override fun execute(
@@ -504,9 +507,12 @@ private suspend fun HttpResponse.toResponseDefinition(
     }
     val cookies = responseHeaders.filter { it.key.equals(HttpHeaders.SetCookie, ignoreCase = true) }
     val sizeFromHeader = headers[HttpHeaders.ContentLength]?.toLongOrNull() ?: -1L
-    val bodyBytes = bodyText.encodeToByteArray().size.toLong()
-    val responseSize = if (sizeFromHeader > 0) sizeFromHeader else bodyBytes
-    val assembled = LlmTextAssembler.assembleFromBody(bodyText)
+    val responseSize = if (sizeFromHeader > 0) sizeFromHeader else bodyText.utf8ByteLength()
+    val assembled = if (bodyText.length <= MAX_LLM_ASSEMBLE_BODY_CHARS && LlmTextAssembler.mayContainLlmEnvelope(bodyText)) {
+        LlmTextAssembler.assembleFromBody(bodyText)
+    } else {
+        ""
+    }
 
     return ResponseDefinition(
         requestId = requestId,
@@ -550,6 +556,35 @@ private fun defaultHttpClient(): HttpClient = createPlatformHttpClient {
     }
     install(WebSockets)
     expectSuccess = false
+}
+
+private const val MAX_LLM_ASSEMBLE_BODY_CHARS = 512_000
+
+/**
+ * Computes the exact UTF-8 byte length of [this] string without allocating a [ByteArray].
+ */
+internal fun String.utf8ByteLength(): Long {
+    var bytes = 0L
+    var i = 0
+    val len = length
+    while (i < len) {
+        val c = this[i].code
+        when {
+            c < 0x80 -> bytes += 1L
+            c < 0x800 -> bytes += 2L
+            c in 0xD800..0xDBFF -> {
+                if (i + 1 < len && this[i + 1].code in 0xDC00..0xDFFF) {
+                    bytes += 4L
+                    i++
+                } else {
+                    bytes += 3L
+                }
+            }
+            else -> bytes += 3L
+        }
+        i++
+    }
+    return bytes
 }
 
 private fun currentTimeMillis(): Long = Clock.System.now().toEpochMilliseconds()
