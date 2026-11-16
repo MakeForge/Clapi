@@ -35,10 +35,12 @@ import io.github.crustack.ui.shared.state.RequestTabState
 import io.github.crustack.core.model.BodyType
 import io.github.crustack.core.model.FormEntryType
 import io.github.crustack.ui.shared.theme.ClapiColors
+import io.github.crustack.ui.shared.theme.ClapiTheme
 import io.github.crustack.ui.shared.platform.copyToClipboard as platformCopyToClipboard
 import io.ktor.http.decodeURLQueryComponent
 import io.ktor.http.encodeURLParameter
 import kotlinx.serialization.ExperimentalSerializationApi
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * Top-level composable for a single request tab's editor area.
@@ -126,6 +128,14 @@ fun RequestEditor(
     }
 }
 
+@Preview
+@Composable
+private fun RequestEditorPreview(){
+    ClapiTheme(){
+        RequestEditor(tab = RequestTabState(), state = AppState(), {}, {}){
+        }
+    }
+}
 // ── URL ↔ Params two-way sync ───────────────────────────────────
 
 /**

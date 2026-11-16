@@ -24,7 +24,6 @@ feature-requests/    Request use-cases: ties core-model + core-network
 ui-shared/           Shared Compose UI (jvm + wasmJs) — all composables,
                      app state, persistence adapters, platform expect/actual
 ui-desktop/          Thin Compose Desktop launcher (~74 lines)
-ui-web/              Thin Compose/Wasm browser launcher (~30 lines)
 sample-server/       Standalone Ktor server for integration tests
 qa-tests/            JVM integration + end-to-end API tests
 buildSrc/            Shared Gradle build logic
@@ -44,7 +43,6 @@ buildSrc/            Shared Gradle build logic
 
 ```
 ui-desktop  ──▶  ui-shared
-ui-web      ──▶  ui-shared
                │
                ├──▶ editor-ui  ──▶  editor-core
                ├──▶ feature-requests
@@ -61,7 +59,7 @@ editor-ui         ──▶  editor-core  (+ Compose)
 
 Rules enforced at the module level:
 
-- UI launchers (`ui-desktop`, `ui-web`) depend on `ui-shared` only.
+- UI launchers (`ui-desktop`) depend on `ui-shared` only.
 - `ui-shared` depends on feature modules, core modules, and `editor-ui`.
 - Feature modules depend on core modules only.
 - Core and `editor-core` modules are leaf modules with no upward dependencies.
