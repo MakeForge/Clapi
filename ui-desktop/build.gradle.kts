@@ -1,13 +1,14 @@
+import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import java.io.FileOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
-import kotlin.text.Typography.copyright
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.roborazzi)
 }
 
 kotlin {
@@ -33,15 +34,29 @@ kotlin {
             dependencies {
                 implementation(libs.kotlin.test)
                 implementation(libs.junit4)
-                implementation("org.jetbrains.compose.ui:ui-test-junit4-desktop:1.8.1")
+                implementation(libs.compose.ui.test.junit4.desktop)
                 implementation(project(":sample-server"))
                 implementation(libs.ktor.server.core)
                 implementation(libs.ktor.server.netty)
                 implementation(libs.ktor.client.core)
                 implementation(libs.ktor.client.cio)
                 implementation(libs.serialization.json)
+                implementation(libs.compose.ui.tooling.preview)
+                implementation(libs.roborazzi.compose.desktop.preview.scanner.support)
+                implementation(libs.composable.preview.scanner.android)
             }
         }
+    }
+}
+
+roborazzi {
+    @OptIn(ExperimentalRoborazziApi::class)
+    generateComposePreviewDesktopTests {
+        enable = true
+        packages = listOf("io.github.makeforge.clapi.ui.desktop.preview")
+//        outputDir.set(
+//            rootProject.file("docs/screenshots")
+//        )
     }
 }
 

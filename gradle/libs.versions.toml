@@ -19,6 +19,9 @@ keepassxc-proxy-access = "1.2.9" # higher versions require java >=21
 cyclonedxBom = "3.5.1"
 jackson = "2.22.4"
 keeper-secrets-manager = "17.2.0"
+roborazzi = "1.70.0"
+composable-preview-scanner = "0.9.1"
+compose-ui-tooling-preview = "1.10.3"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -71,6 +74,10 @@ ksafe = { module = "eu.anifantakis:ksafe", version.ref = "ksafe" }
 keepassxc-proxy-access = { module = "org.purejava:keepassxc-proxy-access", version.ref = "keepassxc-proxy-access" }
 jackson-bom = { module = "com.fasterxml.jackson:jackson-bom", version.ref = "jackson" }
 keeper-secrets-manager-core = { module = "com.keepersecurity.secrets-manager:core", version.ref = "keeper-secrets-manager" }
+compose-ui-test-junit4-desktop = { module = "org.jetbrains.compose.ui:ui-test-junit4-desktop", version.ref = "compose" }
+compose-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "compose-ui-tooling-preview" }
+roborazzi-compose-desktop-preview-scanner-support = { module = "io.github.takahirom.roborazzi:roborazzi-compose-desktop-preview-scanner-support", version.ref = "roborazzi" }
+composable-preview-scanner-android = { module = "io.github.sergio-sastre.ComposablePreviewScanner:android", version.ref = "composable-preview-scanner" }
 
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
@@ -79,3 +86,4 @@ kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", versio
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 cyclonedx-bom = { id = "org.cyclonedx.bom", version.ref = "cyclonedxBom" }
+roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }

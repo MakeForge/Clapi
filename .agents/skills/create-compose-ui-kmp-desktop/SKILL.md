@@ -85,7 +85,7 @@ Clapi organizes Compose UI into four distinct architectural layers across module
 | **Workspace Panel** | Workspace-mode panels, tab content editors with scrollbars | `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/` | [`RequestEditor.kt`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/RequestEditor.kt), [`ResponseViewer.kt`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/ResponseViewer.kt) |
 | **Component** | Reusable leaf UI building block with hover & cursor styling | `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/` | [`KeyValueEditor.kt`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/KeyValueEditor.kt), [`SharedTooltip.kt`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/SharedTooltip.kt) |
 | **Dialog & Alert** | Modals managed via `AppState.dialogs` (`AppDialog` / `AppAlert`) | `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/` | [`ConfirmDeleteDialog.kt`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/ConfirmDeleteDialog.kt), [`SettingsDialog.kt`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/SettingsDialog.kt) |
-| **Previews** | Desktop tool preview functions (for sophisticated views only) | `ui-desktop/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/desktop/preview/` | [`MainScreenPreviews.kt`](/ui-desktop/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/desktop/preview/MainScreenPreviews.kt), [`SidebarPreviews.kt`](/ui-desktop/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/desktop/preview/SidebarPreviews.kt) |
+| **Previews** | Desktop tool preview functions (for sophisticated views only) | `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/preview` | [`MainScreenPreviews.kt`](/ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/preview/MainScreenPreviews.kt), [`SidebarPreviews.kt`](/ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/preview/SidebarPreviews.kt) |
 
 ---
 
@@ -96,7 +96,7 @@ When creating or modifying desktop UI elements in Clapi:
 ### Step 1: Determine Component Classification & Location
 - **Shared Composable UI**: 95%+ of UI belongs in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/` (or the root package for shell composables).
 - **Desktop Launcher**: `ui-desktop/src/desktopMain/kotlin/io/github/makeforge/ui/desktop/Main.kt` is a thin launcher that wires window chrome and invokes `MainScreen`.
-- **Previews**: **ONLY** created in `ui-desktop/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/desktop/preview/`. Never place `@Preview` annotations inside `ui-shared` (as `ui-shared` is a shared multiplatform module without desktop preview runner dependencies).
+- **Previews**: **ONLY** created in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/preview`. Never place `@Preview` annotations inside `ui-shared` (as `ui-shared` is a shared multiplatform module without desktop preview runner dependencies).
 - **File Splitting & Subpackages for Long Files/Composables**: If a composable or file gets too long, check if it can be meaningfully split without too much effort into multiple files (e.g., separating leaf views, tree node items, row items, modal dialogs, context menus, and data helpers into sibling files). When splitting, evaluate whether the files should be placed into a dedicated subpackage (e.g., `ui.shared.components.sidebar`, `ui.shared.components.dialogs`, etc.) to establish a cleaner hierarchy instead of cluttering a single flat package. Truly shared/reusable cross-cutting components (such as badges or generic inputs) should remain in the shared parent package or a dedicated common subpackage.
 
 ### Step 2: Design State & Event Interface (UDF)
@@ -193,7 +193,7 @@ Dialogs in Clapi follow the centralized [`DialogState`](/ui-shared/src/commonMai
 > **Do NOT create a preview for every composable.**
 > Small leaf elements, buttons, badges, and minor components do not need previews. Previews are reserved exclusively for **sophisticated views** (such as `MainScreen`, `RequestEditor`, `Sidebar`, or complex dialogs) to make them more easily maintainable and debuggable.
 >
-> **Previews MUST ONLY be placed in `ui-desktop/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/desktop/preview/`**, using:
+> **Previews MUST ONLY be placed in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/preview`**, using:
 > `import androidx.compose.desktop.ui.tooling.preview.Preview`
 > Never add `@Preview` in `ui-shared`.
 
@@ -421,7 +421,7 @@ fun DesktopCustomDialog(
 
 ### 4. Desktop Preview for Sophisticated Views (`ui-desktop`)
 
-*Place in `ui-desktop/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/desktop/preview/`.*
+*Place in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/preview`.*
 
 ```kotlin
 package io.github.makeforge.clapi.ui.desktop.preview
