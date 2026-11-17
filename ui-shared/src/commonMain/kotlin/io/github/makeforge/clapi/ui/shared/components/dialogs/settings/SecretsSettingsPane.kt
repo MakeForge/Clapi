@@ -303,26 +303,23 @@ internal fun KeeperSecretsSettings(s: AppSettings) {
         SettingsDivider()
 
         // One-time token input
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                Text(
-                    text = if (hasConfig) "Re-connect with New Token" else "One-Time Access Token",
-                    fontSize = 13.sp,
-                    color = ClapiColors.OnSurface,
-                )
-                Text(
-                    text = "One-time token is redeemed immediately to bind configuration and is never stored.",
-                    fontSize = 11.sp,
-                    color = ClapiColors.OnSurfaceDim,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
-            }
+            Text(
+                text = if (hasConfig) "Re-connect with New Token" else "One-Time Access Token",
+                fontSize = 13.sp,
+                color = ClapiColors.OnSurface,
+            )
+            Text(
+                text = "One-time token is redeemed immediately to bind configuration and is never stored.",
+                fontSize = 11.sp,
+                color = ClapiColors.OnSurfaceDim,
+            )
 
             Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -333,7 +330,7 @@ internal fun KeeperSecretsSettings(s: AppSettings) {
                     textStyle = MaterialTheme.typography.bodyMedium.copy(color = ClapiColors.OnSurface, fontSize = 12.sp),
                     cursorBrush = SolidColor(ClapiColors.Primary),
                     modifier = Modifier
-                        .width(220.dp)
+                        .weight(1f)
                         .clip(RoundedCornerShape(6.dp))
                         .background(ClapiColors.SurfaceContainer)
                         .border(1.dp, ClapiColors.Border, RoundedCornerShape(6.dp))
@@ -377,7 +374,7 @@ internal fun KeeperSecretsSettings(s: AppSettings) {
                                 }
                             }
                         }
-                        .padding(horizontal = 12.dp, vertical = 7.dp)
+                        .padding(horizontal = 14.dp, vertical = 7.dp)
                         .testTag("keeper-connect-btn"),
                 ) {
                     Text(

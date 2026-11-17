@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.makeforge.clapi.core.network.aws.KtorAwsSecretsManagerClient
 import io.github.makeforge.clapi.core.network.keepassxc.createKeePassXcClient
 import io.github.makeforge.clapi.core.network.keeper.createKeeperClient
 import io.github.makeforge.clapi.ui.shared.components.VariableAwareTextField
@@ -87,6 +88,77 @@ internal fun EnvAwsSecretRow(
     }
 
     var filtersExpanded by remember { mutableStateOf(false) }
+    var matchState by remember { mutableStateOf("—") }
+    var refreshTrigger by remember { mutableStateOf(0) }
+
+    val awsAccessKeyId = state?.settings?.awsAccessKeyId.orEmpty()
+    val awsSecretAccessKey = state?.settings?.awsSecretAccessKey.orEmpty()
+    val awsRegion = state?.settings?.awsRegion.orEmpty().ifBlank { "us-east-1" }
+    val awsSessionToken = state?.settings?.awsSessionToken
+    val awsEndpointUrl = state?.settings?.awsEndpointUrl
+    val awsVersionStage = state?.settings?.awsVersionStage.orEmpty().ifBlank { "AWSCURRENT" }
+
+    LaunchedEffect(
+        secret.path,
+        secret.targetField,
+        secret.customFilters.toMap(),
+        refreshTrigger,
+        awsAccessKeyId,
+        awsSecretAccessKey,
+        awsRegion,
+        awsEndpointUrl,
+    ) {
+        if (awsAccessKeyId.isBlank() || awsSecretAccessKey.isBlank()) {
+            matchState = "Not Connected"
+            return@LaunchedEffect
+        }
+        val trimmedPath = secret.path.trim()
+        if (trimmedPath.isBlank()) {
+            matchState = "—"
+            return@LaunchedEffect
+        }
+        matchState = "Checking..."
+        delay(350)
+        try {
+            val secretData = KtorAwsSecretsManagerClient.Shared.fetchSecret(
+                secretId = trimmedPath,
+                accessKey = awsAccessKeyId,
+                secretKey = awsSecretAccessKey,
+                region = awsRegion,
+                sessionToken = awsSessionToken?.ifBlank { null },
+                endpointUrl = awsEndpointUrl?.ifBlank { null },
+                versionStage = awsVersionStage,
+            )
+            val resolvedFilters = secret.customFilters.mapValues { (_, v) ->
+                var text = v
+                workingVars.forEach { kv ->
+                    if (kv.key.isNotBlank()) {
+                        text = text.replace("{{${kv.key.trim()}}}", kv.value)
+                    }
+                }
+                text
+            }
+            val filterMismatch = resolvedFilters.any { (k, v) -> secretData[k] != v }
+            if (filterMismatch) {
+                matchState = "✖ 0 found"
+            } else {
+                val target = secret.targetField.trim()
+                if (target.isNotBlank()) {
+                    val hasField = secretData.containsKey(target) || secretData.containsKey(target.lowercase())
+                    matchState = if (hasField) "✔ 1 match" else "✖ Field not found"
+                } else {
+                    matchState = "✔ 1 match"
+                }
+            }
+        } catch (e: Exception) {
+            val msg = e.message.orEmpty()
+            matchState = if (msg.contains("ResourceNotFound", ignoreCase = true) || msg.contains("404") || msg.contains("not found", ignoreCase = true)) {
+                "✖ 0 found"
+            } else {
+                "Error"
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -117,7 +189,7 @@ internal fun EnvAwsSecretRow(
                 onValueChange = { secret.name = it },
                 placeholder = "secret_name",
                 tag = "env-secret-row-$index-name",
-                modifier = Modifier.weight(1.1f),
+                modifier = Modifier.weight(1.0f),
                 state = state,
                 extraVariables = extraVars,
                 excludeVariables = excludeSecretVars,
@@ -128,7 +200,7 @@ internal fun EnvAwsSecretRow(
                 onValueChange = { secret.path = it },
                 placeholder = "secret-id or ARN",
                 tag = "env-secret-row-$index-path",
-                modifier = Modifier.weight(1.4f),
+                modifier = Modifier.weight(1.3f),
                 state = state,
                 extraVariables = extraVars,
                 excludeVariables = excludeSecretVars,
@@ -139,10 +211,18 @@ internal fun EnvAwsSecretRow(
                 onValueChange = { secret.targetField = it },
                 placeholder = "target key (e.g. client_id)",
                 tag = "env-secret-row-$index-target-field",
-                modifier = Modifier.weight(1.0f),
+                modifier = Modifier.weight(0.9f),
                 state = state,
                 extraVariables = extraVars,
                 excludeVariables = excludeSecretVars,
+            )
+
+            EnvSecretStatusCell(
+                status = matchState,
+                modifier = Modifier.weight(1.0f),
+                statusTag = "env-secret-row-$index-match-count",
+                refreshTag = "env-secret-row-$index-refresh-status",
+                onRefresh = { refreshTrigger++ },
             )
 
             Box(
@@ -187,7 +267,7 @@ internal fun EnvAwsSecretRow(
                 onValueChange = { secret.description = it },
                 placeholder = "Description (optional)",
                 tag = "env-secret-row-$index-desc",
-                modifier = Modifier.weight(1.1f),
+                modifier = Modifier.weight(1.0f),
                 state = state,
                 extraVariables = extraVars,
                 excludeVariables = excludeSecretVars,

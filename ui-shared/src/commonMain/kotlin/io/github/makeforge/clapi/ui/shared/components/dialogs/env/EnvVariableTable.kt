@@ -75,6 +75,50 @@ internal fun TableHeader(text: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
+internal fun EnvSecretStatusCell(
+    status: String,
+    modifier: Modifier = Modifier,
+    statusTag: String = "",
+    refreshTag: String = "",
+    onRefresh: (() -> Unit)? = null,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = status,
+            fontSize = 11.sp,
+            maxLines = 1,
+            color = when {
+                status.startsWith("✔") -> ClapiColors.Primary
+                status.startsWith("✖") -> ClapiColors.Error
+                status == "Error" || status == "Closed" || status == "Locked" || status == "Unassociated" -> ClapiColors.Error
+                status == "Checking..." -> ClapiColors.OnSurfaceDim
+                status == "Not Connected" -> Color(0xFFF59E0B)
+                else -> ClapiColors.OnSurfaceDim
+            },
+            modifier = if (statusTag.isNotEmpty()) Modifier.testTag(statusTag) else Modifier,
+        )
+
+        if (onRefresh != null) {
+            IconButton(
+                onClick = onRefresh,
+                modifier = Modifier.size(20.dp).then(if (refreshTag.isNotEmpty()) Modifier.testTag(refreshTag) else Modifier),
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.ic_refresh),
+                    contentDescription = "Refresh status",
+                    tint = ClapiColors.OnSurfaceDim,
+                    modifier = Modifier.size(12.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
 internal fun EnvVariableRow(
     kv: MutableKeyValue,
     index: Int,

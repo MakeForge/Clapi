@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.makeforge.clapi.core.network.keepassxc.createKeePassXcClient
 import io.github.makeforge.clapi.core.network.keeper.createKeeperClient
+import io.github.makeforge.clapi.core.network.vault.KtorHashiCorpVaultClient
 import io.github.makeforge.clapi.ui.shared.components.VariableAwareTextField
 import io.github.makeforge.clapi.ui.shared.components.handPointerHover
 import io.github.makeforge.clapi.ui.shared.generated.resources.*
@@ -86,6 +87,45 @@ internal fun EnvExternalSecretRow(
         set
     }
 
+    var matchState by remember { mutableStateOf("—") }
+    var refreshTrigger by remember { mutableStateOf(0) }
+
+    val vaultUrl = state?.settings?.vaultServerUrl.orEmpty()
+    val vaultToken = state?.settings?.vaultToken.orEmpty()
+    val vaultMountPath = state?.settings?.vaultMountPath.orEmpty().ifBlank { "secret" }
+    val vaultNamespace = state?.settings?.vaultNamespace
+
+    LaunchedEffect(secret.path, refreshTrigger, vaultUrl, vaultToken) {
+        if (vaultUrl.isBlank() || vaultToken.isBlank()) {
+            matchState = "Not Connected"
+            return@LaunchedEffect
+        }
+        val trimmedPath = secret.path.trim()
+        if (trimmedPath.isBlank()) {
+            matchState = "—"
+            return@LaunchedEffect
+        }
+        matchState = "Checking..."
+        delay(350)
+        try {
+            val secretData = KtorHashiCorpVaultClient.Shared.fetchSecret(
+                vaultUrl = vaultUrl,
+                token = vaultToken,
+                secretPath = trimmedPath,
+                mountPath = vaultMountPath,
+                namespace = vaultNamespace,
+            )
+            matchState = if (secretData.isNotEmpty()) "✔ 1 match" else "✖ 0 found"
+        } catch (e: Exception) {
+            val msg = e.message.orEmpty()
+            matchState = if (msg.contains("404") || msg.contains("not found", ignoreCase = true)) {
+                "✖ 0 found"
+            } else {
+                "Error"
+            }
+        }
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -111,7 +151,7 @@ internal fun EnvExternalSecretRow(
             onValueChange = { secret.name = it },
             placeholder = "client_id",
             tag = "env-secret-row-$index-name",
-            modifier = Modifier.weight(1.2f),
+            modifier = Modifier.weight(1.1f),
             state = state,
             extraVariables = extraVars,
             excludeVariables = excludeSecretVars,
@@ -122,10 +162,18 @@ internal fun EnvExternalSecretRow(
             onValueChange = { secret.path = it },
             placeholder = "payment/foo",
             tag = "env-secret-row-$index-path",
-            modifier = Modifier.weight(1.5f),
+            modifier = Modifier.weight(1.4f),
             state = state,
             extraVariables = extraVars,
             excludeVariables = excludeSecretVars,
+        )
+
+        EnvSecretStatusCell(
+            status = matchState,
+            modifier = Modifier.weight(1.0f),
+            statusTag = "env-secret-row-$index-match-count",
+            refreshTag = "env-secret-row-$index-refresh-status",
+            onRefresh = { refreshTrigger++ },
         )
 
         EnvTextField(
@@ -133,7 +181,7 @@ internal fun EnvExternalSecretRow(
             onValueChange = { secret.description = it },
             placeholder = "Description (optional)",
             tag = "env-secret-row-$index-desc",
-            modifier = Modifier.weight(1.5f),
+            modifier = Modifier.weight(1.3f),
             state = state,
             extraVariables = extraVars,
             excludeVariables = excludeSecretVars,

@@ -37,6 +37,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.makeforge.clapi.core.network.gcp.GcpSecretManagerConfig
+import io.github.makeforge.clapi.core.network.gcp.KtorGcpSecretManagerClient
 import io.github.makeforge.clapi.core.network.keepassxc.createKeePassXcClient
 import io.github.makeforge.clapi.core.network.keeper.createKeeperClient
 import io.github.makeforge.clapi.ui.shared.components.VariableAwareTextField
@@ -87,6 +89,74 @@ internal fun EnvGcpSecretRow(
     }
 
     var filtersExpanded by remember { mutableStateOf(false) }
+    var matchState by remember { mutableStateOf("—") }
+    var refreshTrigger by remember { mutableStateOf(0) }
+
+    val gcpProjectId = state?.settings?.gcpProjectId.orEmpty()
+    val gcpAccessToken = state?.settings?.gcpAccessToken.orEmpty()
+    val gcpEndpointUrl = state?.settings?.gcpEndpointUrl.orEmpty()
+
+    LaunchedEffect(
+        secret.path,
+        secret.url,
+        secret.targetField,
+        secret.customFilters.toMap(),
+        refreshTrigger,
+        gcpProjectId,
+        gcpAccessToken,
+        gcpEndpointUrl,
+    ) {
+        val effectiveProject = secret.url.ifBlank { gcpProjectId }.trim()
+        if (effectiveProject.isBlank() || gcpAccessToken.isBlank()) {
+            matchState = "Not Connected"
+            return@LaunchedEffect
+        }
+        val trimmedSecretId = secret.path.trim()
+        if (trimmedSecretId.isBlank()) {
+            matchState = "—"
+            return@LaunchedEffect
+        }
+        matchState = "Checking..."
+        delay(350)
+        try {
+            val config = GcpSecretManagerConfig(
+                projectId = effectiveProject,
+                secretId = trimmedSecretId,
+                version = "latest",
+                accessToken = gcpAccessToken,
+                endpointUrl = gcpEndpointUrl.ifBlank { "https://secretmanager.googleapis.com" },
+            )
+            val secretData = KtorGcpSecretManagerClient.Shared.fetchSecret(config)
+            val resolvedFilters = secret.customFilters.mapValues { (_, v) ->
+                var text = v
+                workingVars.forEach { kv ->
+                    if (kv.key.isNotBlank()) {
+                        text = text.replace("{{${kv.key.trim()}}}", kv.value)
+                    }
+                }
+                text
+            }
+            val filterMismatch = resolvedFilters.any { (k, v) -> secretData[k] != v }
+            if (filterMismatch) {
+                matchState = "✖ 0 found"
+            } else {
+                val target = secret.targetField.trim()
+                if (target.isNotBlank()) {
+                    val hasField = secretData.containsKey(target) || secretData.containsKey(target.lowercase())
+                    matchState = if (hasField) "✔ 1 match" else "✖ Field not found"
+                } else {
+                    matchState = "✔ 1 match"
+                }
+            }
+        } catch (e: Exception) {
+            val msg = e.message.orEmpty()
+            matchState = if (msg.contains("SecretNotFound", ignoreCase = true) || msg.contains("404") || msg.contains("not found", ignoreCase = true)) {
+                "✖ 0 found"
+            } else {
+                "Error"
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -139,7 +209,7 @@ internal fun EnvGcpSecretRow(
                 onValueChange = { secret.url = it },
                 placeholder = "project override (optional)",
                 tag = "env-secret-row-$index-project",
-                modifier = Modifier.weight(1.1f),
+                modifier = Modifier.weight(1.0f),
                 state = state,
                 extraVariables = extraVars,
                 excludeVariables = excludeSecretVars,
@@ -150,10 +220,18 @@ internal fun EnvGcpSecretRow(
                 onValueChange = { secret.targetField = it },
                 placeholder = "target key (optional)",
                 tag = "env-secret-row-$index-target-field",
-                modifier = Modifier.weight(0.9f),
+                modifier = Modifier.weight(0.8f),
                 state = state,
                 extraVariables = extraVars,
                 excludeVariables = excludeSecretVars,
+            )
+
+            EnvSecretStatusCell(
+                status = matchState,
+                modifier = Modifier.weight(0.9f),
+                statusTag = "env-secret-row-$index-match-count",
+                refreshTag = "env-secret-row-$index-refresh-status",
+                onRefresh = { refreshTrigger++ },
             )
 
             Box(
@@ -198,7 +276,7 @@ internal fun EnvGcpSecretRow(
                 onValueChange = { secret.description = it },
                 placeholder = "Description (optional)",
                 tag = "env-secret-row-$index-desc",
-                modifier = Modifier.weight(1.0f),
+                modifier = Modifier.weight(0.9f),
                 state = state,
                 extraVariables = extraVars,
                 excludeVariables = excludeSecretVars,

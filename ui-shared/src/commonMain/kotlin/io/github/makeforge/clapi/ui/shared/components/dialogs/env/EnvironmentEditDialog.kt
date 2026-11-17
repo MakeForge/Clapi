@@ -1,6 +1,15 @@
 package io.github.makeforge.clapi.ui.shared.components.dialogs.env
 
 import io.github.makeforge.clapi.core.model.opencollection.ExternalSecretType
+import io.github.makeforge.clapi.core.network.aws.KtorAwsSecretsManagerClient
+import io.github.makeforge.clapi.core.network.azure.AzureKeyVaultConfig
+import io.github.makeforge.clapi.core.network.azure.KtorAzureKeyVaultClient
+import io.github.makeforge.clapi.core.network.gcp.GcpSecretManagerConfig
+import io.github.makeforge.clapi.core.network.gcp.KtorGcpSecretManagerClient
+import io.github.makeforge.clapi.core.network.keepassxc.createKeePassXcClient
+import io.github.makeforge.clapi.core.network.keeper.KeeperRecordFilter
+import io.github.makeforge.clapi.core.network.keeper.createKeeperClient
+import io.github.makeforge.clapi.core.network.vault.KtorHashiCorpVaultClient
 import io.github.makeforge.clapi.ui.shared.components.externalSecretHelpUrl
 import io.github.makeforge.clapi.ui.shared.platform.openUrlInBrowser
 import io.github.makeforge.clapi.ui.shared.components.VariableAwareTextField
@@ -1014,33 +1023,262 @@ fun EnvironmentEditDialog(
                             }
                         }
 
+                        var quickAddMatchState by remember { mutableStateOf("—") }
+                        var quickAddRefreshTrigger by remember { mutableStateOf(0) }
+
+                        val s = state.settings
+                        LaunchedEffect(
+                            secretType,
+                            quickAddSecPath,
+                            quickAddSecVault,
+                            quickAddSecTargetField,
+                            quickAddRefreshTrigger,
+                            s.keeperConfigJson,
+                            s.awsAccessKeyId,
+                            s.awsSecretAccessKey,
+                            s.azureVaultName,
+                            s.azureTenantId,
+                            s.azureClientId,
+                            s.azureClientSecret,
+                            s.gcpProjectId,
+                            s.gcpAccessToken,
+                            s.vaultServerUrl,
+                            s.vaultToken,
+                        ) {
+                            val trimmedPath = quickAddSecPath.trim()
+                            val trimmedTarget = quickAddSecTargetField.trim()
+
+                            when (secretType) {
+                                ExternalSecretType.KEEPASSXC -> {
+                                    if (trimmedPath.isBlank()) {
+                                        quickAddMatchState = "—"
+                                        return@LaunchedEffect
+                                    }
+                                    quickAddMatchState = "Checking..."
+                                    delay(350)
+                                    try {
+                                        val client = createKeePassXcClient()
+                                        val count = client.countMatchingLogins(trimmedPath)
+                                        quickAddMatchState = when {
+                                            count == 0 -> "✖ 0 found"
+                                            count == 1 -> "✔ 1 match"
+                                            else -> "✔ $count matches"
+                                        }
+                                    } catch (e: Exception) {
+                                        val msg = e.message.orEmpty()
+                                        quickAddMatchState = when {
+                                            msg.contains("locked", ignoreCase = true) -> "Locked"
+                                            msg.contains("connect", ignoreCase = true) || msg.contains("proxy", ignoreCase = true) -> "Closed"
+                                            msg.contains("denied", ignoreCase = true) -> "Unassociated"
+                                            else -> "Error"
+                                        }
+                                    }
+                                }
+                                ExternalSecretType.KEEPER_SECURITY_CLOUD -> {
+                                    val configJson = s.keeperConfigJson
+                                    if (configJson.isBlank()) {
+                                        quickAddMatchState = "Not Connected"
+                                        return@LaunchedEffect
+                                    }
+                                    if (trimmedPath.isBlank()) {
+                                        quickAddMatchState = "—"
+                                        return@LaunchedEffect
+                                    }
+                                    quickAddMatchState = "Checking..."
+                                    delay(350)
+                                    try {
+                                        val client = createKeeperClient(configJson)
+                                        val records = client.getRecords()
+                                        val matched = KeeperRecordFilter.filterRecords(records, trimmedPath)
+                                        if (matched.isEmpty()) {
+                                            quickAddMatchState = "✖ 0 found"
+                                        } else {
+                                            val target = trimmedTarget.ifBlank { "password" }
+                                            val withField = matched.filter {
+                                                KeeperRecordFilter.extractTargetFieldValue(it, target) != null
+                                            }
+                                            quickAddMatchState = when {
+                                                withField.isEmpty() -> "✖ Field not found"
+                                                withField.size == 1 -> "✔ 1 match"
+                                                else -> "✔ ${withField.size} matches"
+                                            }
+                                        }
+                                    } catch (_: Exception) {
+                                        quickAddMatchState = "Error"
+                                    }
+                                }
+                                ExternalSecretType.AWS_SECRETS_MANAGER -> {
+                                    if (s.awsAccessKeyId.isBlank() || s.awsSecretAccessKey.isBlank()) {
+                                        quickAddMatchState = "Not Connected"
+                                        return@LaunchedEffect
+                                    }
+                                    if (trimmedPath.isBlank()) {
+                                        quickAddMatchState = "—"
+                                        return@LaunchedEffect
+                                    }
+                                    quickAddMatchState = "Checking..."
+                                    delay(350)
+                                    try {
+                                        val secretData = KtorAwsSecretsManagerClient.Shared.fetchSecret(
+                                            secretId = trimmedPath,
+                                            accessKey = s.awsAccessKeyId,
+                                            secretKey = s.awsSecretAccessKey,
+                                            region = s.awsRegion.ifBlank { "us-east-1" },
+                                            sessionToken = s.awsSessionToken.ifBlank { null },
+                                            endpointUrl = s.awsEndpointUrl.ifBlank { null },
+                                            versionStage = s.awsVersionStage.ifBlank { "AWSCURRENT" },
+                                        )
+                                        if (trimmedTarget.isNotBlank()) {
+                                            val hasField = secretData.containsKey(trimmedTarget) || secretData.containsKey(trimmedTarget.lowercase())
+                                            quickAddMatchState = if (hasField) "✔ 1 match" else "✖ Field not found"
+                                        } else {
+                                            quickAddMatchState = "✔ 1 match"
+                                        }
+                                    } catch (e: Exception) {
+                                        val msg = e.message.orEmpty()
+                                        quickAddMatchState = if (msg.contains("ResourceNotFound", ignoreCase = true) || msg.contains("404") || msg.contains("not found", ignoreCase = true)) {
+                                            "✖ 0 found"
+                                        } else {
+                                            "Error"
+                                        }
+                                    }
+                                }
+                                ExternalSecretType.AZURE_KEY_VAULT -> {
+                                    val effectiveVault = quickAddSecVault.ifBlank { s.azureVaultName }.trim()
+                                    if (effectiveVault.isBlank() || s.azureTenantId.isBlank() || s.azureClientId.isBlank() || s.azureClientSecret.isBlank()) {
+                                        quickAddMatchState = "Not Connected"
+                                        return@LaunchedEffect
+                                    }
+                                    if (trimmedPath.isBlank()) {
+                                        quickAddMatchState = "—"
+                                        return@LaunchedEffect
+                                    }
+                                    quickAddMatchState = "Checking..."
+                                    delay(350)
+                                    try {
+                                        val config = AzureKeyVaultConfig(
+                                            vaultName = effectiveVault,
+                                            secretName = trimmedPath,
+                                            tenantId = s.azureTenantId,
+                                            clientId = s.azureClientId,
+                                            clientSecret = s.azureClientSecret,
+                                            authorityHost = s.azureAuthorityHost.ifBlank { "https://login.microsoftonline.com" },
+                                            apiVersion = s.azureApiVersion.ifBlank { "7.4" },
+                                        )
+                                        val secretData = KtorAzureKeyVaultClient.Shared.fetchSecret(config)
+                                        if (trimmedTarget.isNotBlank()) {
+                                            val hasField = secretData.containsKey(trimmedTarget) || secretData.containsKey(trimmedTarget.lowercase())
+                                            quickAddMatchState = if (hasField) "✔ 1 match" else "✖ Field not found"
+                                        } else {
+                                            quickAddMatchState = "✔ 1 match"
+                                        }
+                                    } catch (e: Exception) {
+                                        val msg = e.message.orEmpty()
+                                        quickAddMatchState = if (msg.contains("SecretNotFound", ignoreCase = true) || msg.contains("404") || msg.contains("not found", ignoreCase = true)) {
+                                            "✖ 0 found"
+                                        } else {
+                                            "Error"
+                                        }
+                                    }
+                                }
+                                ExternalSecretType.GCP_SECRETS_MANAGER -> {
+                                    val effectiveProject = quickAddSecVault.ifBlank { s.gcpProjectId }.trim()
+                                    if (effectiveProject.isBlank() || s.gcpAccessToken.isBlank()) {
+                                        quickAddMatchState = "Not Connected"
+                                        return@LaunchedEffect
+                                    }
+                                    if (trimmedPath.isBlank()) {
+                                        quickAddMatchState = "—"
+                                        return@LaunchedEffect
+                                    }
+                                    quickAddMatchState = "Checking..."
+                                    delay(350)
+                                    try {
+                                        val config = GcpSecretManagerConfig(
+                                            projectId = effectiveProject,
+                                            secretId = trimmedPath,
+                                            version = "latest",
+                                            accessToken = s.gcpAccessToken,
+                                            endpointUrl = s.gcpEndpointUrl.ifBlank { "https://secretmanager.googleapis.com" },
+                                        )
+                                        val secretData = KtorGcpSecretManagerClient.Shared.fetchSecret(config)
+                                        if (trimmedTarget.isNotBlank()) {
+                                            val hasField = secretData.containsKey(trimmedTarget) || secretData.containsKey(trimmedTarget.lowercase())
+                                            quickAddMatchState = if (hasField) "✔ 1 match" else "✖ Field not found"
+                                        } else {
+                                            quickAddMatchState = "✔ 1 match"
+                                        }
+                                    } catch (e: Exception) {
+                                        val msg = e.message.orEmpty()
+                                        quickAddMatchState = if (msg.contains("SecretNotFound", ignoreCase = true) || msg.contains("404") || msg.contains("not found", ignoreCase = true)) {
+                                            "✖ 0 found"
+                                        } else {
+                                            "Error"
+                                        }
+                                    }
+                                }
+                                else -> {
+                                    if (s.vaultServerUrl.isBlank() || s.vaultToken.isBlank()) {
+                                        quickAddMatchState = "Not Connected"
+                                        return@LaunchedEffect
+                                    }
+                                    if (trimmedPath.isBlank()) {
+                                        quickAddMatchState = "—"
+                                        return@LaunchedEffect
+                                    }
+                                    quickAddMatchState = "Checking..."
+                                    delay(350)
+                                    try {
+                                        val secretData = KtorHashiCorpVaultClient.Shared.fetchSecret(
+                                            vaultUrl = s.vaultServerUrl,
+                                            token = s.vaultToken,
+                                            secretPath = trimmedPath,
+                                            mountPath = s.vaultMountPath.ifBlank { "secret" },
+                                            namespace = s.vaultNamespace,
+                                        )
+                                        quickAddMatchState = if (secretData.isNotEmpty()) "✔ 1 match" else "✖ 0 found"
+                                    } catch (e: Exception) {
+                                        val msg = e.message.orEmpty()
+                                        quickAddMatchState = if (msg.contains("404") || msg.contains("not found", ignoreCase = true)) {
+                                            "✖ 0 found"
+                                        } else {
+                                            "Error"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         fun addQuickSecret() {
                             val trimmedName = quickAddSecName.trim()
                             val trimmedPath = quickAddSecPath.trim()
                             val trimmedVault = quickAddSecVault.trim()
                             val trimmedDesc = quickAddSecDesc.trim()
-                            if (trimmedName.isNotEmpty()) {
+                            val effectiveName = trimmedName.ifBlank {
+                                trimmedPath.substringAfterLast('/').substringAfterLast(':').ifBlank { "secret" }
+                            }
+                            if (effectiveName.isNotEmpty() && trimmedPath.isNotEmpty()) {
                                 val defaultTarget = when (secretType) {
                                     ExternalSecretType.KEEPASSXC, ExternalSecretType.KEEPER_SECURITY_CLOUD -> "password"
                                     else -> ""
                                 }
                                 val sec = when (secretType) {
                                     ExternalSecretType.KEEPASSXC -> MutableExternalSecret(
-                                        name = trimmedName,
+                                        name = effectiveName,
                                         url = trimmedPath,
                                         path = trimmedPath,
                                         targetField = quickAddSecTargetField.trim().ifBlank { defaultTarget },
                                         description = trimmedDesc,
                                     )
                                     ExternalSecretType.AZURE_KEY_VAULT, ExternalSecretType.GCP_SECRETS_MANAGER -> MutableExternalSecret(
-                                        name = trimmedName,
+                                        name = effectiveName,
                                         path = trimmedPath,
                                         url = trimmedVault,
                                         targetField = quickAddSecTargetField.trim().ifBlank { defaultTarget },
                                         description = trimmedDesc,
                                     )
                                     else -> MutableExternalSecret(
-                                        name = trimmedName,
+                                        name = effectiveName,
                                         path = trimmedPath,
                                         targetField = quickAddSecTargetField.trim().ifBlank { defaultTarget },
                                         description = trimmedDesc,
@@ -1083,32 +1321,36 @@ fun EnvironmentEditDialog(
                                     TableHeader("DESCRIPTION", Modifier.weight(1.0f))
                                 }
                                 ExternalSecretType.AWS_SECRETS_MANAGER -> {
-                                    TableHeader(Strings.t("name"), Modifier.weight(1.1f))
-                                    TableHeader("SECRET ID / NAME", Modifier.weight(1.4f))
-                                    TableHeader("TARGET FIELD", Modifier.weight(1.0f))
+                                    TableHeader(Strings.t("name"), Modifier.weight(1.0f))
+                                    TableHeader("SECRET ID / NAME", Modifier.weight(1.3f))
+                                    TableHeader("TARGET FIELD", Modifier.weight(0.9f))
+                                    TableHeader("STATUS", Modifier.weight(1.0f))
                                     TableHeader("FILTERS", Modifier.weight(0.9f))
-                                    TableHeader("DESCRIPTION", Modifier.weight(1.1f))
+                                    TableHeader("DESCRIPTION", Modifier.weight(1.0f))
                                 }
                                 ExternalSecretType.AZURE_KEY_VAULT -> {
                                     TableHeader(Strings.t("name"), Modifier.weight(1.0f))
                                     TableHeader("SECRET NAME", Modifier.weight(1.2f))
-                                    TableHeader("VAULT OVERRIDE", Modifier.weight(1.1f))
-                                    TableHeader("TARGET FIELD", Modifier.weight(0.9f))
+                                    TableHeader("VAULT OVERRIDE", Modifier.weight(1.0f))
+                                    TableHeader("TARGET FIELD", Modifier.weight(0.8f))
+                                    TableHeader("STATUS", Modifier.weight(0.9f))
                                     TableHeader("FILTERS", Modifier.weight(0.8f))
-                                    TableHeader("DESCRIPTION", Modifier.weight(1.0f))
+                                    TableHeader("DESCRIPTION", Modifier.weight(0.9f))
                                 }
                                 ExternalSecretType.GCP_SECRETS_MANAGER -> {
                                     TableHeader(Strings.t("name"), Modifier.weight(1.0f))
                                     TableHeader("SECRET ID", Modifier.weight(1.2f))
-                                    TableHeader("PROJECT OVERRIDE", Modifier.weight(1.1f))
-                                    TableHeader("TARGET FIELD", Modifier.weight(0.9f))
+                                    TableHeader("PROJECT OVERRIDE", Modifier.weight(1.0f))
+                                    TableHeader("TARGET FIELD", Modifier.weight(0.8f))
+                                    TableHeader("STATUS", Modifier.weight(0.9f))
                                     TableHeader("FILTERS", Modifier.weight(0.8f))
-                                    TableHeader("DESCRIPTION", Modifier.weight(1.0f))
+                                    TableHeader("DESCRIPTION", Modifier.weight(0.9f))
                                 }
                                 else -> {
-                                    TableHeader(Strings.t("name"), Modifier.weight(1.2f))
-                                    TableHeader("PATH", Modifier.weight(1.5f))
-                                    TableHeader("DESCRIPTION", Modifier.weight(1.5f))
+                                    TableHeader(Strings.t("name"), Modifier.weight(1.1f))
+                                    TableHeader("PATH", Modifier.weight(1.4f))
+                                    TableHeader("STATUS", Modifier.weight(1.0f))
+                                    TableHeader("DESCRIPTION", Modifier.weight(1.3f))
                                 }
                             }
                             Spacer(Modifier.size(24.dp))
@@ -1152,7 +1394,13 @@ fun EnvironmentEditDialog(
                                         tag = "env-quick-add-secret-target",
                                         onEnter = { addQuickSecret() },
                                     )
-                                    Spacer(Modifier.weight(1.0f))
+                                    EnvSecretStatusCell(
+                                        status = quickAddMatchState,
+                                        modifier = Modifier.weight(1.0f),
+                                        statusTag = "env-quick-add-secret-status",
+                                        refreshTag = "env-quick-add-secret-refresh-status",
+                                        onRefresh = { quickAddRefreshTrigger++ },
+                                    )
                                     Spacer(Modifier.weight(0.9f))
                                     EnvQuickAddTextField(
                                         value = quickAddSecDesc,
@@ -1188,7 +1436,13 @@ fun EnvironmentEditDialog(
                                         tag = "env-quick-add-secret-target",
                                         onEnter = { addQuickSecret() },
                                     )
-                                    Spacer(Modifier.weight(1.0f))
+                                    EnvSecretStatusCell(
+                                        status = quickAddMatchState,
+                                        modifier = Modifier.weight(1.0f),
+                                        statusTag = "env-quick-add-secret-status",
+                                        refreshTag = "env-quick-add-secret-refresh-status",
+                                        onRefresh = { quickAddRefreshTrigger++ },
+                                    )
                                     Spacer(Modifier.weight(0.9f))
                                     EnvQuickAddTextField(
                                         value = quickAddSecDesc,
@@ -1204,7 +1458,7 @@ fun EnvironmentEditDialog(
                                         value = quickAddSecName,
                                         onValueChange = { quickAddSecName = it },
                                         placeholder = Strings.t("name"),
-                                        modifier = Modifier.weight(1.1f),
+                                        modifier = Modifier.weight(1.0f),
                                         tag = "env-quick-add-secret-name",
                                         onEnter = { addQuickSecret() },
                                     )
@@ -1212,7 +1466,7 @@ fun EnvironmentEditDialog(
                                         value = quickAddSecPath,
                                         onValueChange = { quickAddSecPath = it },
                                         placeholder = "Secret ID / Name",
-                                        modifier = Modifier.weight(1.4f),
+                                        modifier = Modifier.weight(1.3f),
                                         tag = "env-quick-add-secret-path",
                                         onEnter = { addQuickSecret() },
                                     )
@@ -1220,16 +1474,23 @@ fun EnvironmentEditDialog(
                                         value = quickAddSecTargetField,
                                         onValueChange = { quickAddSecTargetField = it },
                                         placeholder = "Target Field",
-                                        modifier = Modifier.weight(1.0f),
+                                        modifier = Modifier.weight(0.9f),
                                         tag = "env-quick-add-secret-target",
                                         onEnter = { addQuickSecret() },
+                                    )
+                                    EnvSecretStatusCell(
+                                        status = quickAddMatchState,
+                                        modifier = Modifier.weight(1.0f),
+                                        statusTag = "env-quick-add-secret-status",
+                                        refreshTag = "env-quick-add-secret-refresh-status",
+                                        onRefresh = { quickAddRefreshTrigger++ },
                                     )
                                     Spacer(Modifier.weight(0.9f))
                                     EnvQuickAddTextField(
                                         value = quickAddSecDesc,
                                         onValueChange = { quickAddSecDesc = it },
                                         placeholder = "Description (optional)",
-                                        modifier = Modifier.weight(1.1f),
+                                        modifier = Modifier.weight(1.0f),
                                         tag = "env-quick-add-secret-desc",
                                         onEnter = { addQuickSecret() },
                                     )
@@ -1255,7 +1516,7 @@ fun EnvironmentEditDialog(
                                         value = quickAddSecVault,
                                         onValueChange = { quickAddSecVault = it },
                                         placeholder = "Vault Override (optional)",
-                                        modifier = Modifier.weight(1.1f),
+                                        modifier = Modifier.weight(1.0f),
                                         tag = "env-quick-add-secret-vault",
                                         onEnter = { addQuickSecret() },
                                     )
@@ -1263,16 +1524,23 @@ fun EnvironmentEditDialog(
                                         value = quickAddSecTargetField,
                                         onValueChange = { quickAddSecTargetField = it },
                                         placeholder = "Target Field",
-                                        modifier = Modifier.weight(0.9f),
+                                        modifier = Modifier.weight(0.8f),
                                         tag = "env-quick-add-secret-target",
                                         onEnter = { addQuickSecret() },
+                                    )
+                                    EnvSecretStatusCell(
+                                        status = quickAddMatchState,
+                                        modifier = Modifier.weight(0.9f),
+                                        statusTag = "env-quick-add-secret-status",
+                                        refreshTag = "env-quick-add-secret-refresh-status",
+                                        onRefresh = { quickAddRefreshTrigger++ },
                                     )
                                     Spacer(Modifier.weight(0.8f))
                                     EnvQuickAddTextField(
                                         value = quickAddSecDesc,
                                         onValueChange = { quickAddSecDesc = it },
                                         placeholder = "Description (optional)",
-                                        modifier = Modifier.weight(1.0f),
+                                        modifier = Modifier.weight(0.9f),
                                         tag = "env-quick-add-secret-desc",
                                         onEnter = { addQuickSecret() },
                                     )
@@ -1298,7 +1566,7 @@ fun EnvironmentEditDialog(
                                         value = quickAddSecVault,
                                         onValueChange = { quickAddSecVault = it },
                                         placeholder = "Project Override (optional)",
-                                        modifier = Modifier.weight(1.1f),
+                                        modifier = Modifier.weight(1.0f),
                                         tag = "env-quick-add-secret-vault",
                                         onEnter = { addQuickSecret() },
                                     )
@@ -1306,16 +1574,23 @@ fun EnvironmentEditDialog(
                                         value = quickAddSecTargetField,
                                         onValueChange = { quickAddSecTargetField = it },
                                         placeholder = "Target Field",
-                                        modifier = Modifier.weight(0.9f),
+                                        modifier = Modifier.weight(0.8f),
                                         tag = "env-quick-add-secret-target",
                                         onEnter = { addQuickSecret() },
+                                    )
+                                    EnvSecretStatusCell(
+                                        status = quickAddMatchState,
+                                        modifier = Modifier.weight(0.9f),
+                                        statusTag = "env-quick-add-secret-status",
+                                        refreshTag = "env-quick-add-secret-refresh-status",
+                                        onRefresh = { quickAddRefreshTrigger++ },
                                     )
                                     Spacer(Modifier.weight(0.8f))
                                     EnvQuickAddTextField(
                                         value = quickAddSecDesc,
                                         onValueChange = { quickAddSecDesc = it },
                                         placeholder = "Description (optional)",
-                                        modifier = Modifier.weight(1.0f),
+                                        modifier = Modifier.weight(0.9f),
                                         tag = "env-quick-add-secret-desc",
                                         onEnter = { addQuickSecret() },
                                     )
@@ -1325,7 +1600,7 @@ fun EnvironmentEditDialog(
                                         value = quickAddSecName,
                                         onValueChange = { quickAddSecName = it },
                                         placeholder = Strings.t("name"),
-                                        modifier = Modifier.weight(1.2f),
+                                        modifier = Modifier.weight(1.1f),
                                         tag = "env-quick-add-secret-name",
                                         onEnter = { addQuickSecret() },
                                     )
@@ -1333,15 +1608,22 @@ fun EnvironmentEditDialog(
                                         value = quickAddSecPath,
                                         onValueChange = { quickAddSecPath = it },
                                         placeholder = "Path",
-                                        modifier = Modifier.weight(1.5f),
+                                        modifier = Modifier.weight(1.4f),
                                         tag = "env-quick-add-secret-path",
                                         onEnter = { addQuickSecret() },
+                                    )
+                                    EnvSecretStatusCell(
+                                        status = quickAddMatchState,
+                                        modifier = Modifier.weight(1.0f),
+                                        statusTag = "env-quick-add-secret-status",
+                                        refreshTag = "env-quick-add-secret-refresh-status",
+                                        onRefresh = { quickAddRefreshTrigger++ },
                                     )
                                     EnvQuickAddTextField(
                                         value = quickAddSecDesc,
                                         onValueChange = { quickAddSecDesc = it },
                                         placeholder = "Description (optional)",
-                                        modifier = Modifier.weight(1.5f),
+                                        modifier = Modifier.weight(1.3f),
                                         tag = "env-quick-add-secret-desc",
                                         onEnter = { addQuickSecret() },
                                     )
