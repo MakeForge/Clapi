@@ -70,6 +70,25 @@ Compile only the shared UI module (fast check during development):
 ./gradlew :ui-shared:compileKotlinDesktop
 ```
 
+### Build Linux Target and Install on Ubuntu
+
+To package and install Clapi on Ubuntu (Debian-based distributions):
+
+```bash
+# 1. Build the Debian / Ubuntu native .deb package
+./gradlew :ui-desktop:packageDeb
+# Or for optimized release packaging:
+# ./gradlew :ui-desktop:packageReleaseDeb
+
+# 2. Install the package via apt (automatically resolves system dependencies)
+sudo apt install ./ui-desktop/build/compose/binaries/main/deb/clapi_*.deb
+
+# 3. Launch Clapi
+clapi
+```
+
+> **Tip**: The package installs desktop integration under `/usr/share/applications/` and `/opt/clapi/` (search for **Clapi** in the Ubuntu Application Dash). To run without installing, execute `./ui-desktop/build/compose/binaries/main/app/clapi/bin/clapi`. To uninstall: `sudo apt remove clapi`.
+
 ### Linux Target Packaging
 
 Clapi uses Compose Multiplatform's native distribution packaging to build Linux native installers (`.deb` for Debian/Ubuntu, `.rpm` for Fedora/RHEL) as well as unpacked standalone application binaries.

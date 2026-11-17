@@ -34,10 +34,25 @@ allprojects {
 // ─── Centralized version ─────────────────────────────────────────────────────
 // Change the version only in gradle.properties: appVersion=x.y.z
 val appVersion: String by project
+val guavaVersion = libs.versions.guava.get()
+val jsonVersion = libs.versions.json.get()
 
 allprojects {
     group = "io.github.makeforge"
     version = appVersion
+
+    configurations.configureEach {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "com.google.guava" && requested.name == "guava") {
+                useVersion(guavaVersion)
+                because("Fix CVE-2026-102554")
+            }
+            if (requested.group == "org.json" && requested.name == "json") {
+                useVersion(jsonVersion)
+                because("Fix CVE-2026-59171")
+            }
+        }
+    }
 
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
         compilerOptions {
