@@ -477,10 +477,7 @@ private fun RetryControlsButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
     var showDialog by remember { mutableStateOf(false) }
-    var dialogOffsetX by remember { mutableStateOf(0f) }
-    var dialogOffsetY by remember { mutableStateOf(0f) }
-    var dialogViewportSize by remember { mutableStateOf(IntSize.Zero) }
-    var dialogCardSize by remember { mutableStateOf(IntSize.Zero) }
+    val dragState = rememberDraggableDialogState()
 
     var localRetryEnabled by remember(showDialog, retryEnabled) { mutableStateOf(retryEnabled) }
     var localRetryCount by remember(showDialog, retryCount) { mutableStateOf(retryCount.toString()) }
@@ -512,50 +509,33 @@ private fun RetryControlsButton(
         if (showDialog) {
             Dialog(onDismissRequest = { showDialog = false }) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .onSizeChanged { dialogViewportSize = it }
-                        .pointerInput(Unit) { detectTapGestures { showDialog = false } },
+                    modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = { showDialog = false }),
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(
                         modifier = Modifier
-                            .offset { IntOffset(dialogOffsetX.roundToInt(), dialogOffsetY.roundToInt()) }
+                            .draggableDialogCard(dragState, cornerRadius = 12.dp)
                             .widthIn(min = 420.dp, max = 560.dp)
-                            .onSizeChanged { dialogCardSize = it }
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(ClapiColors.Surface)
-                            .border(1.dp, ClapiColors.Border, RoundedCornerShape(12.dp))
-                            .draggableNoSlop { dx, dy ->
-                                val (cx, cy) = clampDialogOffsetFromCenter(
-                                    offsetX = dialogOffsetX + dx,
-                                    offsetY = dialogOffsetY + dy,
-                                    cardSize = dialogCardSize,
-                                    viewportSize = dialogViewportSize,
-                                )
-                                dialogOffsetX = cx
-                                dialogOffsetY = cy
-                            }
-                            .pointerInput(Unit) { detectTapGestures { } }
-                            .padding(20.dp)
                             .testTag("retry-config-dialog"),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Text(
-                            text = Strings.retry,
-                            color = ClapiColors.OnSurface,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 18.sp,
+                        DialogTitleBar(
+                            title = Strings.retry,
+                            onClose = { showDialog = false },
+                            onDrag = dragState::onDrag,
                         )
 
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = localRetryEnabled,
-                                onCheckedChange = { localRetryEnabled = it },
-                                modifier = Modifier.testTag("retry-enabled-checkbox"),
-                            )
-                            Text(Strings.t("retry_enable"), color = ClapiColors.OnSurface)
-                        }
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(
+                                    checked = localRetryEnabled,
+                                    onCheckedChange = { localRetryEnabled = it },
+                                    modifier = Modifier.testTag("retry-enabled-checkbox"),
+                                )
+                                Text(Strings.t("retry_enable"), color = ClapiColors.OnSurface)
+                            }
 
                         OutlinedTextField(
                             value = localRetryCount,
@@ -616,4 +596,5 @@ private fun RetryControlsButton(
             }
         }
     }
+}
 }

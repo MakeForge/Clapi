@@ -293,7 +293,6 @@ fun VariableEditorPopup(
                         popupOffsetX = cx
                         popupOffsetY = cy
                     }
-                    .draggableNoSlop(key = cleanName) { dx, dy -> movePopupBy(dx, dy) }
                     .pointerInput(Unit) { detectTapGestures { } }
                     .hotkeys {
                         on(AppHotkeys.Save) {
@@ -318,6 +317,7 @@ fun VariableEditorPopup(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
                             .background(ClapiColors.SurfaceContainer)
+                            .draggableNoSlop(key = cleanName) { dx, dy -> movePopupBy(dx, dy) }
                             .padding(horizontal = 10.dp, vertical = 8.dp)
                             .testTag("variable-popup-title-bar"),
                     ) {

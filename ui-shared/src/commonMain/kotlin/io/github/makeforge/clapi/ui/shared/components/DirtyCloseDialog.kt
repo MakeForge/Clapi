@@ -50,107 +50,83 @@ fun DirtyCloseDialog(
     title: String = "Unsaved Changes",
     message: String = Strings.t("request_unsaved_changes_message"),
 ) {
-    // M-2: Make the dialog draggable.
-    var offsetX by remember { mutableStateOf(0f) }
-    var offsetY by remember { mutableStateOf(0f) }
-    var viewportSize by remember { mutableStateOf(IntSize.Zero) }
-    var cardSize by remember { mutableStateOf(IntSize.Zero) }
+    val dragState = rememberDraggableDialogState()
 
     Dialog(onDismissRequest = onCancel) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .dialogEscape(onDismiss = onCancel)
-                .onSizeChanged { viewportSize = it }
-                .pointerInput(Unit) { detectTapGestures { onCancel() } },
+            modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = onCancel),
             contentAlignment = Alignment.Center,
         ) {
-        Box(
-            modifier = modifier
-                .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
-                .widthIn(min = 380.dp, max = 520.dp)
-                .onSizeChanged { cardSize = it }
-                .clip(RoundedCornerShape(12.dp))
-                .background(ClapiColors.Surface)
-                .border(1.dp, ClapiColors.Border, RoundedCornerShape(12.dp))
-                .draggableNoSlop { dx, dy ->
-                    val (cx, cy) = clampDialogOffsetFromCenter(
-                        offsetX = offsetX + dx,
-                        offsetY = offsetY + dy,
-                        cardSize = cardSize,
-                        viewportSize = viewportSize,
-                    )
-                    offsetX = cx
-                    offsetY = cy
-                }
-                .pointerInput(Unit) { detectTapGestures { } }
-                .hotkeys {
-                    on(AppHotkeys.Escape) { onCancel() }
-                    on(AppHotkeys.Save) { onSave() }
-                }
-                .padding(24.dp)
-                .testTag("dirty-close-dialog"),
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SelectionContainer {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(
-                            text = title,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = ClapiColors.OnSurface,
-                        )
+            Column(
+                modifier = modifier
+                    .draggableDialogCard(dragState)
+                    .widthIn(min = 380.dp, max = 520.dp)
+                    .hotkeys {
+                        on(AppHotkeys.Escape) { onCancel() }
+                        on(AppHotkeys.Save) { onSave() }
+                    }
+                    .testTag("dirty-close-dialog"),
+            ) {
+                DialogTitleBar(
+                    title = title,
+                    onClose = onCancel,
+                    closeButtonTag = "dirty-close-dialog-close",
+                    onDrag = dragState::onDrag,
+                )
+
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    SelectionContainer {
                         Text(
                             text = message,
                             fontSize = 13.sp,
                             color = ClapiColors.OnSurfaceVariant,
                         )
                     }
-                }
 
-                Spacer(Modifier.height(4.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(ClapiColors.SurfaceContainer)
-                            .border(1.dp, ClapiColors.Border, RoundedCornerShape(6.dp))
-                            .clickable(onClick = onCancel)
-                            .padding(horizontal = 14.dp, vertical = 8.dp)
-                            .testTag("dirty-close-cancel"),
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                     ) {
-                        Text(Strings.cancel, fontSize = 13.sp, color = ClapiColors.OnSurface)
-                    }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(ClapiColors.SurfaceContainer)
+                                .border(1.dp, ClapiColors.Border, RoundedCornerShape(6.dp))
+                                .clickable(onClick = onCancel)
+                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                                .testTag("dirty-close-cancel"),
+                        ) {
+                            Text(Strings.cancel, fontSize = 13.sp, color = ClapiColors.OnSurface)
+                        }
 
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(ClapiColors.Tertiary.copy(alpha = 0.14f))
-                            .border(1.dp, ClapiColors.Tertiary.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
-                            .clickable(onClick = onDiscard)
-                            .padding(horizontal = 14.dp, vertical = 8.dp)
-                            .testTag("dirty-close-discard"),
-                    ) {
-                        Text(Strings.t("discard"), fontSize = 13.sp, color = ClapiColors.Tertiary)
-                    }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(ClapiColors.Tertiary.copy(alpha = 0.14f))
+                                .border(1.dp, ClapiColors.Tertiary.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
+                                .clickable(onClick = onDiscard)
+                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                                .testTag("dirty-close-discard"),
+                        ) {
+                            Text(Strings.t("discard"), fontSize = 13.sp, color = ClapiColors.Tertiary)
+                        }
 
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(ClapiColors.Primary)
-                            .clickable(onClick = onSave)
-                            .padding(horizontal = 14.dp, vertical = 8.dp)
-                            .testTag("dirty-close-save"),
-                    ) {
-                        Text(Strings.save, fontSize = 13.sp, color = ClapiColors.OnPrimary, fontWeight = FontWeight.Medium)
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(ClapiColors.Primary)
+                                .clickable(onClick = onSave)
+                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                                .testTag("dirty-close-save"),
+                        ) {
+                            Text(Strings.save, fontSize = 13.sp, color = ClapiColors.OnPrimary, fontWeight = FontWeight.Medium)
+                        }
                     }
                 }
             }
-        }  // closes card Box
-        }  // closes backdrop Box
+        }
     }
 }

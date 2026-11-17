@@ -85,65 +85,43 @@ fun ExportCollectionsDialog(
         }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Column(
-            modifier = modifier
-                .dialogEscape(onDismiss = onDismiss)
-                .widthIn(min = 460.dp, max = 560.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(ClapiColors.Surface)
-                .border(1.dp, ClapiColors.Border, RoundedCornerShape(8.dp))
-                .padding(20.dp)
-                .testTag("export-collections-dialog"),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Icon(painter = painterResource(Res.drawable.ic_article),
-                        contentDescription = null,
-                        tint = ClapiColors.Tertiary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Text(
-                        text = Strings.exportCollections,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = ClapiColors.OnSurface,
-                    )
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    DocsHelpButton(
-                        url = DocsLinks.exportDocs,
-                        tooltip = "Export documentation",
-                        tag = "export-docs-btn",
-                        size = 24.dp,
-                    )
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.size(24.dp).testTag("export-collections-close-button"),
-                    ) {
-                        Icon(painter = painterResource(Res.drawable.ic_close),
-                            contentDescription = "Close",
-                            tint = ClapiColors.OnSurfaceDim,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
-                }
-            }
+    val dragState = rememberDraggableDialogState()
 
-            Text(
-                text = "Select collections to export (1 file per collection):",
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = onDismiss),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                modifier = modifier
+                    .draggableDialogCard(dragState, cornerRadius = 8.dp)
+                    .widthIn(min = 460.dp, max = 560.dp)
+                    .testTag("export-collections-dialog"),
+            ) {
+                DialogTitleBar(
+                    title = Strings.exportCollections,
+                    icon = painterResource(Res.drawable.ic_article),
+                    iconTint = ClapiColors.Tertiary,
+                    actions = {
+                        DocsHelpButton(
+                            url = DocsLinks.exportDocs,
+                            tooltip = "Export documentation",
+                            tag = "export-docs-btn",
+                            size = 24.dp,
+                        )
+                    },
+                    onClose = onDismiss,
+                    closeButtonTag = "export-collections-close-button",
+                    onDrag = dragState::onDrag,
+                    cornerRadius = 8.dp,
+                )
+
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Text(
+                        text = "Select collections to export (1 file per collection):",
                 style = MaterialTheme.typography.bodySmall,
                 color = ClapiColors.OnSurfaceDim,
             )
@@ -330,6 +308,8 @@ fun ExportCollectionsDialog(
             }
         }
     }
+}
+}
 }
 
 private fun countFolders(node: CollectionNode): Int {

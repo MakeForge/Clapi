@@ -57,99 +57,75 @@ fun ConfirmDeleteDialog(
     modifier: Modifier = Modifier,
     confirmLabel: String = "Delete",
 ) {
-    // M-2: Track drag offset so the dialog is repositionable.
-    var offsetX by remember { mutableStateOf(0f) }
-    var offsetY by remember { mutableStateOf(0f) }
-    var viewportSize by remember { mutableStateOf(IntSize.Zero) }
-    var cardSize by remember { mutableStateOf(IntSize.Zero) }
+    val dragState = rememberDraggableDialogState()
 
     Dialog(onDismissRequest = onDismiss) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .dialogEscape(onDismiss = onDismiss)
-                .onSizeChanged { viewportSize = it }
-                .pointerInput(Unit) { detectTapGestures { onDismiss() } },
+            modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = onDismiss),
             contentAlignment = Alignment.Center,
         ) {
-        Box(
-            modifier = modifier
-                .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
-                .widthIn(min = 360.dp, max = 480.dp)
-                .onSizeChanged { cardSize = it }
-                .clip(RoundedCornerShape(12.dp))
-                .background(ClapiColors.Surface)
-                .border(1.dp, ClapiColors.Border, RoundedCornerShape(12.dp))
-                .draggableNoSlop { dx, dy ->
-                    val (cx, cy) = clampDialogOffsetFromCenter(
-                        offsetX = offsetX + dx,
-                        offsetY = offsetY + dy,
-                        cardSize = cardSize,
-                        viewportSize = viewportSize,
-                    )
-                    offsetX = cx
-                    offsetY = cy
-                }
-                .pointerInput(Unit) { detectTapGestures { } }
-                .padding(24.dp)
-                .testTag("confirm-dialog"),
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SelectionContainer {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(
-                            title,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = ClapiColors.OnSurface,
-                        )
+            Column(
+                modifier = modifier
+                    .draggableDialogCard(dragState)
+                    .widthIn(min = 360.dp, max = 480.dp)
+                    .testTag("confirm-dialog"),
+            ) {
+                DialogTitleBar(
+                    title = title,
+                    onClose = onDismiss,
+                    closeButtonTag = "confirm-dialog-close",
+                    onDrag = dragState::onDrag,
+                )
+
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    SelectionContainer {
                         Text(
                             message,
                             fontSize = 13.sp,
                             color = ClapiColors.OnSurfaceVariant,
                         )
                     }
-                }
 
-                Spacer(Modifier.height(4.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                ) {
-                    // Cancel
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(ClapiColors.SurfaceContainer)
-                            .border(1.dp, ClapiColors.Border, RoundedCornerShape(6.dp))
-                            .clickable(onClick = onDismiss)
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .testTag("confirm-cancel-button"),
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                     ) {
-                        Text(Strings.cancel, fontSize = 13.sp, color = ClapiColors.OnSurface)
-                    }
+                        // Cancel
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(ClapiColors.SurfaceContainer)
+                                .border(1.dp, ClapiColors.Border, RoundedCornerShape(6.dp))
+                                .clickable(onClick = onDismiss)
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .testTag("confirm-cancel-button"),
+                        ) {
+                            Text(Strings.cancel, fontSize = 13.sp, color = ClapiColors.OnSurface)
+                        }
 
-                    // Confirm (destructive)
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(ClapiColors.Error.copy(alpha = 0.15f))
-                            .border(1.dp, ClapiColors.Error.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
-                            .clickable(onClick = onConfirm)
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .testTag("confirm-ok-button"),
-                    ) {
-                        Text(
-                            confirmLabel,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = ClapiColors.Error,
-                        )
+                        // Confirm (destructive)
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(ClapiColors.Error.copy(alpha = 0.15f))
+                                .border(1.dp, ClapiColors.Error.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                                .clickable(onClick = onConfirm)
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .testTag("confirm-ok-button"),
+                        ) {
+                            Text(
+                                confirmLabel,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = ClapiColors.Error,
+                            )
+                        }
                     }
                 }
             }
-        }  // closes card Box
-        }  // closes backdrop Box
+        }
     }
 }

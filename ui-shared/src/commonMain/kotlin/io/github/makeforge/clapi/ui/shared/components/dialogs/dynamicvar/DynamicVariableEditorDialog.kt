@@ -58,10 +58,14 @@ import io.github.makeforge.clapi.core.model.opencollection.DynamicVariableParame
 import io.github.makeforge.clapi.core.model.opencollection.VariableType
 import io.github.makeforge.clapi.core.scripting.RequestContext
 import io.github.makeforge.clapi.ui.shared.components.CodeEditor
+import io.github.makeforge.clapi.ui.shared.components.DialogTitleBar
 import io.github.makeforge.clapi.ui.shared.components.IconButtonWithTooltip
 import io.github.makeforge.clapi.ui.shared.components.SyntaxLanguage
 import io.github.makeforge.clapi.ui.shared.components.VariableHighlightColor
 import io.github.makeforge.clapi.ui.shared.components.dialogEscape
+import io.github.makeforge.clapi.ui.shared.components.draggableDialogBackdrop
+import io.github.makeforge.clapi.ui.shared.components.draggableDialogCard
+import io.github.makeforge.clapi.ui.shared.components.rememberDraggableDialogState
 import io.github.makeforge.clapi.ui.shared.components.dialogs.env.VariableTypeSelector
 import io.github.makeforge.clapi.ui.shared.generated.resources.Res
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_add
@@ -173,101 +177,76 @@ fun DynamicVariableEditorDialog(
         }
     }
 
+    val dragState = rememberDraggableDialogState()
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Column(
-            modifier = modifier
-                .width(1040.dp)
-                .height(680.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(ClapiColors.Surface)
-                .border(1.dp, ClapiColors.Border, RoundedCornerShape(12.dp))
-                .dialogEscape { onDismiss() }
-                .hotkeys {
-                    on(AppHotkeys.Save) { commitSave() }
-                }
-                .testTag("dynamic-var-editor-dialog"),
+        Box(
+            modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = onDismiss),
+            contentAlignment = Alignment.Center,
         ) {
-            // Top bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(ClapiColors.SurfaceHigh)
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            Column(
+                modifier = modifier
+                    .draggableDialogCard(dragState, cornerRadius = 12.dp)
+                    .width(1040.dp)
+                    .height(680.dp)
+                    .hotkeys {
+                        on(AppHotkeys.Save) { commitSave() }
+                    }
+                    .testTag("dynamic-var-editor-dialog"),
             ) {
-                Icon(
-                    painter = painterResource(Res.drawable.ic_code),
-                    contentDescription = null,
-                    tint = ClapiColors.Tertiary,
-                    modifier = Modifier.size(18.dp),
+                DialogTitleBar(
+                    title = Strings.dynamicVariableEditor,
+                    icon = painterResource(Res.drawable.ic_code),
+                    iconTint = ClapiColors.Tertiary,
+                    actions = {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(VariableHighlightColor.copy(alpha = 0.15f))
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                .semantics(mergeDescendants = true) {}
+                                .testTag("dynamic-var-signature-preview"),
+                        ) {
+                            Text(
+                                text = signaturePreview,
+                                fontSize = 12.sp,
+                                fontFamily = CodeFontFamily,
+                                fontWeight = FontWeight.SemiBold,
+                                color = VariableHighlightColor,
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(ClapiColors.SurfaceContainer)
+                                .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                .semantics(mergeDescendants = true) {}
+                                .testTag("dynamic-var-json-preview"),
+                        ) {
+                            Text(
+                                text = "JSON: $jsonUsagePreview",
+                                fontSize = 11.sp,
+                                fontFamily = CodeFontFamily,
+                                color = ClapiColors.OnSurfaceDim,
+                            )
+                        }
+                        DocsHelpButton(
+                            url = DocsLinks.dynamicVariables,
+                            tooltip = "Dynamic variables documentation",
+                            tag = "dynamic-var-docs-button",
+                            size = 28.dp,
+                        )
+                    },
+                    onClose = onDismiss,
+                    closeButtonTag = "dynamic-var-close-button",
+                    onDrag = dragState::onDrag,
                 )
-                Text(
-                    text = Strings.dynamicVariableEditor,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = ClapiColors.OnSurface,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Spacer(Modifier.width(8.dp))
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(VariableHighlightColor.copy(alpha = 0.15f))
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                        .semantics(mergeDescendants = true) {}
-                        .testTag("dynamic-var-signature-preview"),
-                ) {
-                    Text(
-                        text = signaturePreview,
-                        fontSize = 12.sp,
-                        fontFamily = CodeFontFamily,
-                        fontWeight = FontWeight.SemiBold,
-                        color = VariableHighlightColor,
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(ClapiColors.SurfaceContainer)
-                        .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                        .semantics(mergeDescendants = true) {}
-                        .testTag("dynamic-var-json-preview"),
-                ) {
-                    Text(
-                        text = "JSON: $jsonUsagePreview",
-                        fontSize = 11.sp,
-                        fontFamily = CodeFontFamily,
-                        color = ClapiColors.OnSurfaceDim,
-                    )
-                }
-                Spacer(Modifier.weight(1f))
-                DocsHelpButton(
-                    url = DocsLinks.dynamicVariables,
-                    tooltip = "Dynamic variables documentation",
-                    tag = "dynamic-var-docs-button",
-                    size = 28.dp,
-                )
-                Spacer(Modifier.width(4.dp))
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.size(28.dp).testTag("dynamic-var-close-button"),
-                ) {
-                    Icon(
-                        painter = painterResource(Res.drawable.ic_close),
-                        contentDescription = Strings.close,
-                        tint = ClapiColors.OnSurfaceDim,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
-            }
 
-            HorizontalDivider(color = ClapiColors.Border)
-
-            // Variable Name, Return Type & Description bar
+                // Variable Name, Return Type & Description bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -699,6 +678,7 @@ fun DynamicVariableEditorDialog(
             }
         }
     }
+}
 }
 
 private const val DEFAULT_DYNAMIC_SCRIPT_TEMPLATE = """// Return the dynamic value for this request

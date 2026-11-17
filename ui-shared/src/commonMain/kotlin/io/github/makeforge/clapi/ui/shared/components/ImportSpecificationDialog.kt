@@ -143,86 +143,61 @@ fun ImportSpecificationDialog(
         }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            modifier = modifier
-                .dialogEscape(onDismiss = onDismiss)
-                .widthIn(min = 550.dp, max = 650.dp)
-                .heightIn(min = 450.dp, max = 600.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .border(1.dp, ClapiColors.Border, RoundedCornerShape(8.dp))
-                .testTag("import-specification-dialog"),
-            color = ClapiColors.Surface,
-        ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                // Header
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(ClapiColors.SurfaceContainer)
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(painter = painterResource(Res.drawable.ic_upload_file),
-                        contentDescription = null,
-                        tint = ClapiColors.Primary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        if (currentStep == ImportDialogStep.SOURCE_SELECTION) {
-                            Strings.importDialogTitle
-                        } else {
-                            Strings.importSelectItems
-                        },
-                        color = ClapiColors.OnSurface,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    if (currentStep == ImportDialogStep.ITEM_SELECTION && scanResult != null) {
-                        Spacer(Modifier.width(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .background(ClapiColors.Primary.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                                .testTag("import-format-badge")
-                        ) {
-                            val badgeText = when (scanResult?.format) {
-                                SpecFormat.OPENAPI_V3 -> "OpenAPI 3.0"
-                                SpecFormat.OPENCOLLECTION -> "OpenCollection"
-                                SpecFormat.POSTMAN -> "Postman"
-                                SpecFormat.INSOMNIA -> "Insomnia v5"
-                                null -> "OpenCollection"
-                            }
-                            Text(
-                                badgeText,
-                                color = ClapiColors.Primary,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                            )
-                        }
-                    }
-                    Spacer(Modifier.weight(1f))
-                    DocsHelpButton(
-                        url = DocsLinks.importDocs,
-                        tooltip = "Import documentation",
-                        tag = "import-docs-btn",
-                        size = 28.dp,
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.size(28.dp),
-                    ) {
-                        Icon(painter = painterResource(Res.drawable.ic_close),
-                            contentDescription = Strings.close,
-                            tint = ClapiColors.OnSurfaceDim,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
+    val dragState = rememberDraggableDialogState()
 
-                HorizontalDivider(color = ClapiColors.Border)
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = onDismiss),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                modifier = modifier
+                    .draggableDialogCard(dragState, cornerRadius = 8.dp)
+                    .widthIn(min = 550.dp, max = 650.dp)
+                    .heightIn(min = 450.dp, max = 600.dp)
+                    .testTag("import-specification-dialog"),
+            ) {
+                DialogTitleBar(
+                    title = if (currentStep == ImportDialogStep.SOURCE_SELECTION) {
+                        Strings.importDialogTitle
+                    } else {
+                        Strings.importSelectItems
+                    },
+                    icon = painterResource(Res.drawable.ic_upload_file),
+                    actions = {
+                        if (currentStep == ImportDialogStep.ITEM_SELECTION && scanResult != null) {
+                            Box(
+                                modifier = Modifier
+                                    .background(ClapiColors.Primary.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    .testTag("import-format-badge")
+                            ) {
+                                val badgeText = when (scanResult?.format) {
+                                    SpecFormat.OPENAPI_V3 -> "OpenAPI 3.0"
+                                    SpecFormat.OPENCOLLECTION -> "OpenCollection"
+                                    SpecFormat.POSTMAN -> "Postman"
+                                    SpecFormat.INSOMNIA -> "Insomnia v5"
+                                    null -> "OpenCollection"
+                                }
+                                Text(
+                                    badgeText,
+                                    color = ClapiColors.Primary,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                            }
+                        }
+                        DocsHelpButton(
+                            url = DocsLinks.importDocs,
+                            tooltip = "Import documentation",
+                            tag = "import-docs-btn",
+                            size = 28.dp,
+                        )
+                    },
+                    onClose = onDismiss,
+                    onDrag = dragState::onDrag,
+                    cornerRadius = 8.dp,
+                )
 
                 // Body content based on step
                 if (currentStep == ImportDialogStep.SOURCE_SELECTION) {

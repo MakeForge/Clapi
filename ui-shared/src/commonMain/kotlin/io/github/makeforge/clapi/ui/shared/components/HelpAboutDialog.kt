@@ -48,61 +48,37 @@ fun HelpAboutDialog(
 ) {
     if (!state.showHelpDialog) return
 
+    val dragState = rememberDraggableDialogState()
+
     Dialog(onDismissRequest = { state.showHelpDialog = false }) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .dialogEscape(onDismiss = { state.showHelpDialog = false })
-                .pointerInput(Unit) { detectTapGestures { state.showHelpDialog = false } },
+            modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = { state.showHelpDialog = false }),
             contentAlignment = Alignment.Center,
         ) {
             Column(
                 modifier = modifier
+                    .draggableDialogCard(dragState, cornerRadius = 12.dp)
                     .widthIn(min = 720.dp, max = 920.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(ClapiColors.Surface)
-                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(12.dp))
-                    .padding(20.dp)
-                    .pointerInput(Unit) { detectTapGestures { } }
                     .testTag("help-about-dialog"),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    SelectionContainer {
-                        Text(
-                            text = "Help & About",
-                            color = ClapiColors.OnSurface,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
+                DialogTitleBar(
+                    title = "Help & About",
+                    actions = {
+                        DocsHelpButton(
+                            url = DocsLinks.baseUrl,
+                            tooltip = "Online Documentation",
+                            tag = "help-about-docs-btn",
+                            size = 28.dp,
                         )
-                    }
-                    Spacer(Modifier.weight(1f))
-                    DocsHelpButton(
-                        url = DocsLinks.baseUrl,
-                        tooltip = "Online Documentation",
-                        tag = "help-about-docs-btn",
-                        size = 28.dp,
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = "Close",
-                        color = ClapiColors.Primary,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(ClapiColors.SurfaceContainer)
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
-                            .testTag("help-about-close")
-                            .pointerInput(Unit) { detectTapGestures { state.showHelpDialog = false } },
-                    )
-                }
+                    },
+                    closeButtonText = "Close",
+                    closeButtonTag = "help-about-close",
+                    onClose = { state.showHelpDialog = false },
+                    onDrag = dragState::onDrag,
+                )
 
                 val scrollState = rememberScrollState()
-                Box(modifier = Modifier.fillMaxWidth().height(520.dp)) {
+                Box(modifier = Modifier.fillMaxWidth().height(520.dp).padding(20.dp)) {
                     SelectionContainer {
                         Column(
                             modifier = Modifier

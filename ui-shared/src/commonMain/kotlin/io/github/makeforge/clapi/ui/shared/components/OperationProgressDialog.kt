@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -33,51 +34,61 @@ fun OperationProgressDialog(
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val dragState = rememberDraggableDialogState()
+
     Dialog(onDismissRequest = { }) {
-        Column(
-            modifier = modifier
-                .dialogEscape(onDismiss = onCancel)
-                .widthIn(min = 360.dp, max = 520.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(ClapiColors.Surface)
-                .border(1.dp, ClapiColors.Border, RoundedCornerShape(12.dp))
-                .padding(20.dp)
-                .testTag("operation-progress-dialog"),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+        Box(
+            modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = onCancel),
+            contentAlignment = Alignment.Center,
         ) {
-            SelectionContainer {
-                Text(title, color = ClapiColors.OnSurface, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            Column(
+                modifier = modifier
+                    .draggableDialogCard(dragState, cornerRadius = 12.dp)
+                    .widthIn(min = 360.dp, max = 520.dp)
+                    .testTag("operation-progress-dialog"),
             ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.testTag("operation-progress-spinner"),
-                    color = ClapiColors.Primary,
-                    strokeWidth = 2.5.dp,
+                DialogTitleBar(
+                    title = title,
+                    onClose = onCancel,
+                    onDrag = dragState::onDrag,
                 )
-                SelectionContainer {
-                    Text(message, color = ClapiColors.OnSurfaceVariant, fontSize = 13.sp)
+
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.testTag("operation-progress-spinner"),
+                            color = ClapiColors.Primary,
+                            strokeWidth = 2.5.dp,
+                        )
+                        SelectionContainer {
+                            Text(message, color = ClapiColors.OnSurfaceVariant, fontSize = 13.sp)
+                        }
+                    }
+
+                    Spacer(Modifier.height(4.dp))
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        Text(
+                            text = "Cancel",
+                            color = ClapiColors.Error,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(ClapiColors.Error.copy(alpha = 0.14f))
+                                .clickable(onClick = onCancel)
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                                .testTag("operation-progress-cancel"),
+                        )
+                    }
                 }
-            }
-
-            Spacer(Modifier.height(4.dp))
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                Text(
-                    text = "Cancel",
-                    color = ClapiColors.Error,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(ClapiColors.Error.copy(alpha = 0.14f))
-                        .clickable(onClick = onCancel)
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                        .testTag("operation-progress-cancel"),
-                )
             }
         }
     }

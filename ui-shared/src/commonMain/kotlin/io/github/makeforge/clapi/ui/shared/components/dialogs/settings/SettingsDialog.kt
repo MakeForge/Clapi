@@ -23,11 +23,12 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import io.github.makeforge.clapi.ui.shared.components.DialogTitleBar
 import io.github.makeforge.clapi.ui.shared.components.DocsHelpButton
-import io.github.makeforge.clapi.ui.shared.components.clampDialogOffsetFromCenter
-import io.github.makeforge.clapi.ui.shared.components.dialogEscape
-import io.github.makeforge.clapi.ui.shared.components.draggableNoSlop
+import io.github.makeforge.clapi.ui.shared.components.draggableDialogBackdrop
+import io.github.makeforge.clapi.ui.shared.components.draggableDialogCard
 import io.github.makeforge.clapi.ui.shared.components.handPointerHover
+import io.github.makeforge.clapi.ui.shared.components.rememberDraggableDialogState
 import io.github.makeforge.clapi.ui.shared.generated.resources.*
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
 import io.github.makeforge.clapi.ui.shared.platform.DocsLinks
@@ -73,79 +74,53 @@ fun SettingsDialog(
     var selectedSection by remember { mutableStateOf(SettingsSection.GENERAL) }
     val settings = state.settings
 
-    // M-1: Make the dialog draggable (same pattern as EnvironmentEditDialog).
-    var settingsOffsetX by remember { mutableStateOf(0f) }
-    var settingsOffsetY by remember { mutableStateOf(0f) }
-    var settingsViewportSize by remember { mutableStateOf(IntSize.Zero) }
-    var settingsCardSize by remember { mutableStateOf(IntSize.Zero) }
+    val dragState = rememberDraggableDialogState()
 
     Dialog(onDismissRequest = { state.showSettingsDialog = false }) {
-        // Full-screen invisible backdrop — captures taps outside the card to dismiss.
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .dialogEscape(onDismiss = { state.showSettingsDialog = false })
-                .onSizeChanged { settingsViewportSize = it }
-                .pointerInput(Unit) {
-                    detectTapGestures { state.showSettingsDialog = false }
-                },
+            modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = { state.showSettingsDialog = false }),
             contentAlignment = Alignment.Center,
         ) {
-        Box(
-            modifier = modifier
-                .offset { IntOffset(settingsOffsetX.roundToInt(), settingsOffsetY.roundToInt()) }
-                .widthIn(min = 680.dp, max = 860.dp)
-                .height(660.dp)
-                .onSizeChanged { settingsCardSize = it }
-                .clip(RoundedCornerShape(12.dp))
-                .background(ClapiColors.Surface)
-                .border(1.dp, ClapiColors.Border, RoundedCornerShape(12.dp))
-                .draggableNoSlop { dx, dy ->
-                    val (cx, cy) = clampDialogOffsetFromCenter(
-                        offsetX = settingsOffsetX + dx,
-                        offsetY = settingsOffsetY + dy,
-                        cardSize = settingsCardSize,
-                        viewportSize = settingsViewportSize,
-                    )
-                    settingsOffsetX = cx
-                    settingsOffsetY = cy
+            Column(
+                modifier = modifier
+                    .draggableDialogCard(dragState)
+                    .widthIn(min = 680.dp, max = 860.dp)
+                    .height(660.dp)
+                    .testTag("settings-dialog"),
+            ) {
+                val docUrl = when (selectedSection) {
+                    SettingsSection.SECRETS -> DocsLinks.secretManagers
+                    SettingsSection.SCRIPTING -> DocsLinks.scriptingArchitecture
+                    else -> DocsLinks.settings
                 }
-                .pointerInput(Unit) { detectTapGestures { } }
-                .testTag("settings-dialog"),
-        ) {
-            Row(modifier = Modifier.fillMaxSize()) {
-                // ── Left nav ──────────────────────────────────
-                Column(
-                    modifier = Modifier
-                        .width(180.dp)
-                        .fillMaxHeight()
-                        .background(ClapiColors.SurfaceVariant)
-                        .padding(12.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            Strings.settings,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = ClapiColors.OnSurface,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        val docUrl = when (selectedSection) {
-                            SettingsSection.SECRETS -> DocsLinks.secretManagers
-                            SettingsSection.SCRIPTING -> DocsLinks.scriptingArchitecture
-                            else -> DocsLinks.settings
-                        }
+                DialogTitleBar(
+                    title = Strings.settings,
+                    icon = painterResource(Res.drawable.ic_settings),
+                    closeButtonText = Strings.t("done"),
+                    closeButtonTag = "settings-close-button",
+                    onClose = { state.showSettingsDialog = false },
+                    onDrag = dragState::onDrag,
+                    actions = {
                         DocsHelpButton(
                             url = docUrl,
                             tooltip = "Settings documentation",
                             tag = "settings-docs-btn",
-                            size = 20.dp,
+                            size = 24.dp,
                             iconSize = 14.dp,
                         )
-                    }
+                    },
+                )
+
+                Row(modifier = Modifier.fillMaxSize()) {
+                    // ── Left nav ──────────────────────────────────
+                    Column(
+                        modifier = Modifier
+                            .width(180.dp)
+                            .fillMaxHeight()
+                            .background(ClapiColors.SurfaceVariant)
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
 
                     SettingsSection.entries.forEach { section ->
                         val isActive = section == selectedSection
@@ -235,24 +210,10 @@ fun SettingsDialog(
                     scrollState = settingsScrollState,
                     modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
                 )
+                }
             }
-            }
-
-            // Close button (top-right)
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(12.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(ClapiColors.SurfaceContainer)
-                    .clickable { state.showSettingsDialog = false }
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                    .testTag("settings-close-button"),
-            ) {
-                Text(Strings.t("done"), color = ClapiColors.OnSurface, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-            }
-        }  // closes settings card Box
-        }  // closes full-screen backdrop Box
+        } // closes settings card Column
+        } // closes full-screen backdrop Box
     }
 }
 

@@ -123,39 +123,17 @@ fun SelectProtoFileDialog(
         }
     }
 
-    var offsetX by remember { mutableStateOf(0f) }
-    var offsetY by remember { mutableStateOf(0f) }
-    var viewportSize by remember { mutableStateOf(IntSize.Zero) }
-    var cardSize by remember { mutableStateOf(IntSize.Zero) }
+    val dragState = rememberDraggableDialogState()
 
     Dialog(onDismissRequest = { requestDismiss() }) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .dialogEscape(onDismiss = { requestDismiss() })
-                .onSizeChanged { viewportSize = it }
-                .pointerInput(Unit) { detectTapGestures { requestDismiss() } },
+            modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = { requestDismiss() }),
             contentAlignment = Alignment.Center,
         ) {
-            Box(
+            Column(
                 modifier = modifier
-                    .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
+                    .draggableDialogCard(dragState, cornerRadius = 12.dp)
                     .widthIn(min = 440.dp, max = 560.dp)
-                    .onSizeChanged { cardSize = it }
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(ClapiColors.Surface)
-                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(12.dp))
-                    .draggableNoSlop { dx, dy ->
-                        val (cx, cy) = clampDialogOffsetFromCenter(
-                            offsetX = offsetX + dx,
-                            offsetY = offsetY + dy,
-                            cardSize = cardSize,
-                            viewportSize = viewportSize,
-                        )
-                        offsetX = cx
-                        offsetY = cy
-                    }
-                    .pointerInput(Unit) { detectTapGestures { } }
                     .hotkeys {
                         on(AppHotkeys.Save) {
                             handleSave(closeDialog = false)
@@ -164,45 +142,27 @@ fun SelectProtoFileDialog(
                             requestDismiss()
                         }
                     }
-                    .padding(24.dp)
                     .testTag("select-proto-file-dialog"),
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    // Header row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            text = "Select Proto File",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = ClapiColors.OnSurface,
+                DialogTitleBar(
+                    title = "Select Proto File",
+                    actions = {
+                        DocsHelpButton(
+                            url = DocsLinks.protobufSettings,
+                            tooltip = "Protobuf documentation",
+                            tag = "proto-dialog-docs-btn",
+                            size = 28.dp,
                         )
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            DocsHelpButton(
-                                url = DocsLinks.protobufSettings,
-                                tooltip = "Protobuf documentation",
-                                tag = "proto-dialog-docs-btn",
-                                size = 28.dp,
-                            )
-                            IconButton(
-                                onClick = onDismiss,
-                                modifier = Modifier.size(28.dp).testTag("proto-dialog-close"),
-                            ) {
-                                Icon(painter = painterResource(Res.drawable.ic_close),
-                                    contentDescription = "Close",
-                                    tint = ClapiColors.OnSurfaceDim,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                            }
-                        }
-                    }
+                    },
+                    onClose = { requestDismiss() },
+                    closeButtonTag = "proto-dialog-close",
+                    onDrag = dragState::onDrag,
+                )
 
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
                     Text(
                         text = "Using Proto File",
                         fontSize = 12.sp,

@@ -51,106 +51,82 @@ fun DirtyMultiCloseDialog(
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // M-2: Make the dialog draggable.
-    var offsetX by remember { mutableStateOf(0f) }
-    var offsetY by remember { mutableStateOf(0f) }
-    var viewportSize by remember { mutableStateOf(IntSize.Zero) }
-    var cardSize by remember { mutableStateOf(IntSize.Zero) }
+    val dragState = rememberDraggableDialogState()
 
     Dialog(onDismissRequest = onCancel) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .dialogEscape(onDismiss = onCancel)
-                .onSizeChanged { viewportSize = it }
-                .pointerInput(Unit) { detectTapGestures { onCancel() } },
+            modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = onCancel),
             contentAlignment = Alignment.Center,
         ) {
-        Box(
-            modifier = modifier
-                .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
-                .widthIn(min = 400.dp, max = 540.dp)
-                .onSizeChanged { cardSize = it }
-                .clip(RoundedCornerShape(12.dp))
-                .background(ClapiColors.Surface)
-                .border(1.dp, ClapiColors.Border, RoundedCornerShape(12.dp))
-                .draggableNoSlop { dx, dy ->
-                    val (cx, cy) = clampDialogOffsetFromCenter(
-                        offsetX = offsetX + dx,
-                        offsetY = offsetY + dy,
-                        cardSize = cardSize,
-                        viewportSize = viewportSize,
-                    )
-                    offsetX = cx
-                    offsetY = cy
-                }
-                .pointerInput(Unit) { detectTapGestures { } }
-                .padding(24.dp)
-                .testTag("dirty-multi-close-dialog"),
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SelectionContainer {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(
-                            text = "Unsaved Changes",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = ClapiColors.OnSurface,
-                        )
+            Column(
+                modifier = modifier
+                    .draggableDialogCard(dragState)
+                    .widthIn(min = 400.dp, max = 540.dp)
+                    .testTag("dirty-multi-close-dialog"),
+            ) {
+                DialogTitleBar(
+                    title = "Unsaved Changes",
+                    onClose = onCancel,
+                    closeButtonTag = "dirty-multi-close-dialog-close",
+                    onDrag = dragState::onDrag,
+                )
+
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    SelectionContainer {
                         Text(
                             text = "$dirtyCount ${Strings.t("requests_unsaved_changes_suffix")}",
                             fontSize = 13.sp,
                             color = ClapiColors.OnSurfaceVariant,
                         )
                     }
-                }
 
-                Spacer(Modifier.height(4.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                ) {
-                    // Cancel
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(ClapiColors.SurfaceContainer)
-                            .border(1.dp, ClapiColors.Border, RoundedCornerShape(8.dp))
-                            .clickable(onClick = onCancel)
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .testTag("dirty-multi-cancel"),
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                     ) {
-                        Text(Strings.cancel, fontSize = 13.sp, color = ClapiColors.OnSurfaceVariant)
-                    }
+                        // Cancel
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(ClapiColors.SurfaceContainer)
+                                .border(1.dp, ClapiColors.Border, RoundedCornerShape(8.dp))
+                                .clickable(onClick = onCancel)
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .testTag("dirty-multi-cancel"),
+                        ) {
+                            Text(Strings.cancel, fontSize = 13.sp, color = ClapiColors.OnSurfaceVariant)
+                        }
 
-                    // Discard All
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(ClapiColors.SurfaceContainer)
-                            .border(1.dp, ClapiColors.Error.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
-                            .clickable(onClick = onDiscardAll)
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .testTag("dirty-multi-discard"),
-                    ) {
-                        Text(Strings.t("discard_all"), fontSize = 13.sp, color = ClapiColors.Error, fontWeight = FontWeight.Medium)
-                    }
+                        // Discard All
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(ClapiColors.SurfaceContainer)
+                                .border(1.dp, ClapiColors.Error.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                                .clickable(onClick = onDiscardAll)
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .testTag("dirty-multi-discard"),
+                        ) {
+                            Text(Strings.t("discard_all"), fontSize = 13.sp, color = ClapiColors.Error, fontWeight = FontWeight.Medium)
+                        }
 
-                    // Save All
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(ClapiColors.Primary)
-                            .clickable(onClick = onSaveAll)
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .testTag("dirty-multi-save-all"),
-                    ) {
-                        Text(Strings.t("save_all"), fontSize = 13.sp, color = ClapiColors.OnPrimary, fontWeight = FontWeight.SemiBold)
+                        // Save All
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(ClapiColors.Primary)
+                                .clickable(onClick = onSaveAll)
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .testTag("dirty-multi-save-all"),
+                        ) {
+                            Text(Strings.t("save_all"), fontSize = 13.sp, color = ClapiColors.OnPrimary, fontWeight = FontWeight.SemiBold)
+                        }
                     }
                 }
             }
-        }  // closes card Box
-        }  // closes backdrop Box
+        }
     }
 }
