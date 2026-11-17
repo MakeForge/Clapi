@@ -24,6 +24,7 @@ import io.github.makeforge.clapi.core.network.azure.AzureKeyVaultClient
 import io.github.makeforge.clapi.core.network.dynamicvar.DynamicVariableContext
 import io.github.makeforge.clapi.core.network.dynamicvar.DynamicVariableRegistry
 import io.github.makeforge.clapi.core.network.dynamicvar.DynamicVariableResolutionException
+import io.github.makeforge.clapi.core.network.gcp.GcpAuthMethod
 import io.github.makeforge.clapi.core.network.gcp.GcpSecretManagerClient
 import io.github.makeforge.clapi.core.network.getEnvironmentVariable
 import io.github.makeforge.clapi.core.network.grpc.DynamicGrpcClient
@@ -156,6 +157,9 @@ class RequestExecutionService(
         gcpAccessToken: String = "",
         gcpEndpointUrl: String = "https://secretmanager.googleapis.com",
         gcpClient: GcpSecretManagerClient? = null,
+        gcpServiceAccountJson: String = "",
+        gcpAuthMethod: GcpAuthMethod = GcpAuthMethod.SERVICE_ACCOUNT_KEY,
+        gcpAdcFilePath: String = "",
         keeperConfigJson: String = "",
         keeperClient: KeeperClient? = null,
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
@@ -190,8 +194,11 @@ class RequestExecutionService(
             gcp = GcpProviderConfig(
                 projectId = gcpProjectId,
                 accessToken = gcpAccessToken,
+                serviceAccountJson = gcpServiceAccountJson,
                 endpointUrl = gcpEndpointUrl,
                 clientOverride = gcpClient,
+                authMethod = gcpAuthMethod,
+                adcFilePath = gcpAdcFilePath,
             ),
             keeper = KeeperProviderConfig(
                 configJson = keeperConfigJson,
@@ -251,6 +258,9 @@ class RequestExecutionService(
         gcpAccessToken: String = "",
         gcpEndpointUrl: String = "https://secretmanager.googleapis.com",
         gcpClient: GcpSecretManagerClient? = null,
+        gcpServiceAccountJson: String = "",
+        gcpAuthMethod: GcpAuthMethod = GcpAuthMethod.SERVICE_ACCOUNT_KEY,
+        gcpAdcFilePath: String = "",
         keeperConfigJson: String = "",
         keeperClient: KeeperClient? = null,
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
@@ -288,8 +298,11 @@ class RequestExecutionService(
                 gcp = GcpProviderConfig(
                     projectId = gcpProjectId,
                     accessToken = gcpAccessToken,
+                    serviceAccountJson = gcpServiceAccountJson,
                     endpointUrl = gcpEndpointUrl,
                     clientOverride = gcpClient,
+                    authMethod = gcpAuthMethod,
+                    adcFilePath = gcpAdcFilePath,
                 ),
                 keeper = KeeperProviderConfig(
                     configJson = keeperConfigJson,
@@ -354,6 +367,9 @@ class RequestExecutionService(
         gcpAccessToken: String = "",
         gcpEndpointUrl: String = "https://secretmanager.googleapis.com",
         gcpClient: GcpSecretManagerClient? = null,
+        gcpServiceAccountJson: String = "",
+        gcpAuthMethod: GcpAuthMethod = GcpAuthMethod.SERVICE_ACCOUNT_KEY,
+        gcpAdcFilePath: String = "",
         keeperConfigJson: String = "",
         keeperClient: KeeperClient? = null,
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
@@ -394,8 +410,11 @@ class RequestExecutionService(
                 gcp = GcpProviderConfig(
                     projectId = gcpProjectId,
                     accessToken = gcpAccessToken,
+                    serviceAccountJson = gcpServiceAccountJson,
                     endpointUrl = gcpEndpointUrl,
                     clientOverride = gcpClient,
+                    authMethod = gcpAuthMethod,
+                    adcFilePath = gcpAdcFilePath,
                 ),
                 keeper = KeeperProviderConfig(
                     configJson = keeperConfigJson,

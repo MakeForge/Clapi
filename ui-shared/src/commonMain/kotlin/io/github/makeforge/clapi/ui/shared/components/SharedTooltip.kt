@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.IconButton
@@ -237,6 +238,7 @@ fun HoverTooltip(
     delayMillis: Long = 200L,
     alignment: Alignment = Alignment.BottomCenter,
     offset: IntOffset = IntOffset(0, 24),
+    maxLines: Int = 1,
     content: @Composable () -> Unit,
 ) {
     if (tooltip.isBlank()) {
@@ -268,6 +270,7 @@ fun HoverTooltip(
             ) {
                 Box(
                     modifier = Modifier
+                        .then(if (maxLines > 1) Modifier.widthIn(max = 380.dp) else Modifier)
                         .clip(RoundedCornerShape(5.dp))
                         .background(ClapiColors.SurfaceHigh)
                         .border(1.dp, ClapiColors.Border, RoundedCornerShape(5.dp))
@@ -278,7 +281,7 @@ fun HoverTooltip(
                         text = tooltip,
                         color = ClapiColors.OnSurface,
                         fontSize = 11.sp,
-                        maxLines = 1,
+                        maxLines = maxLines,
                     )
                 }
             }

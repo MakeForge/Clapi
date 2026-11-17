@@ -17,6 +17,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.*
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -263,10 +265,11 @@ internal fun EnvironmentTabButton(
     title: String,
     isSelected: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     tag: String = "",
 ) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(6.dp))
             .background(if (isSelected) ClapiColors.SelectedItem else ClapiColors.SurfaceContainer)
             .border(
@@ -274,6 +277,7 @@ internal fun EnvironmentTabButton(
                 if (isSelected) ClapiColors.Primary else ClapiColors.Border,
                 RoundedCornerShape(6.dp),
             )
+            .pointerHoverIcon(PointerIcon.Hand)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 6.dp)
             .then(if (tag.isNotEmpty()) Modifier.testTag(tag) else Modifier),
@@ -291,19 +295,21 @@ internal fun EnvironmentTabButton(
 internal fun ExternalSecretProviderDropdown(
     selectedProvider: String,
     onProviderSelected: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val selectedType = ExternalSecretType.fromValue(selectedProvider)
     val displayName = selectedType?.displayName() ?: selectedProvider
     val icon = externalSecretIcon(selectedType)
 
-    Box {
+    Box(modifier = modifier) {
         Row(
             modifier = Modifier
                 .height(30.dp)
                 .clip(RoundedCornerShape(6.dp))
                 .background(ClapiColors.SurfaceContainer)
                 .border(1.dp, ClapiColors.Border, RoundedCornerShape(6.dp))
+                .pointerHoverIcon(PointerIcon.Hand)
                 .clickable { expanded = true }
                 .padding(horizontal = 10.dp, vertical = 6.dp)
                 .testTag("env-secrets-provider-selector"),

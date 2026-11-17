@@ -209,4 +209,48 @@ class AzureKeyVaultClientTest {
         }
         assertTrue(ex.message!!.contains("Field 'missing_field' not found in Azure secret"))
     }
+
+    @Test
+    fun testConnection_with_vault_success() = runTest {
+        val client = createMockClient { url, headers ->
+            assertTrue(url.contains("/secrets?maxresults=1&api-version=7.4"))
+            assertEquals("Bearer dummy-token", headers["Authorization"]?.firstOrNull())
+            HttpStatusCode.OK to """{"value":[]}"""
+        }
+
+        val result = client.testConnection(
+            vaultName = "my-vault",
+            tenantId = "test-tenant",
+            clientId = "test-client",
+            clientSecret = "test-secret",
+            authorityHost = "bypass",
+        )
+        assertTrue(result.isSuccess)
+        assertEquals("Connected to Azure Key Vault", result.getOrNull())
+    }
+
+    @Test
+    fun testConnection_token_only_success_when_vault_blank() = runTest {
+        val client = createMockClient { _, _ ->
+            HttpStatusCode.OK to """{}"""
+        }
+
+        val result = client.testConnection(
+            vaultName = "",
+            tenantId = "test-tenant",
+            clientId = "test-client",
+            clientSecret = "test-secret",
+            authorityHost = "bypass",
+        )
+        assertTrue(result.isSuccess)
+        assertEquals("Authenticated with Azure Entra ID (Token acquired)", result.getOrNull())
+    }
+
+    @Test
+    fun testConnection_blank_credentials_fail_early() = runTest {
+        val client = createMockClient { _, _ -> HttpStatusCode.OK to "{}" }
+        assertTrue(client.testConnection("vault", "", "cid", "sec").isFailure)
+        assertTrue(client.testConnection("vault", "tid", "", "sec").isFailure)
+        assertTrue(client.testConnection("vault", "tid", "cid", "").isFailure)
+    }
 }

@@ -1,6 +1,7 @@
 package io.github.makeforge.clapi.ui.shared.persistence
 
 import io.github.makeforge.clapi.core.model.opencollection.ExternalSecretType
+import io.github.makeforge.clapi.core.network.gcp.GcpAuthMethod
 import io.github.makeforge.clapi.ui.shared.platform.PlatformStorage
 import io.github.makeforge.clapi.ui.shared.i18n.AppLanguage
 import io.github.makeforge.clapi.ui.shared.state.AppSettings
@@ -23,6 +24,8 @@ object SettingsStorageKeys {
     const val AZURE_CLIENT_SECRET = "${PREFIX}azureClientSecret"
     const val GCP_SERVICE_ACCOUNT_JSON = "${PREFIX}gcpServiceAccountJson"
     const val GCP_ACCESS_TOKEN = "${PREFIX}gcpAccessToken"
+    const val GCP_AUTH_METHOD = "${PREFIX}gcpAuthMethod"
+    const val GCP_ADC_FILE_PATH = "${PREFIX}gcpAdcFilePath"
     const val KEEPER_CONFIG = "${PREFIX}keeperConfig"
     const val KEEPASSXC_KEY = "${PREFIX}keepassxcKey"
 
@@ -123,9 +126,12 @@ object SettingsRepository {
         settings.azureApiVersion    = PlatformStorage.getString(PREFIX + "azureApiVersion") ?: settings.azureApiVersion
 
         // Secrets Manager (GCP)
-        settings.gcpProjectId       = PlatformStorage.getString(PREFIX + "gcpProjectId") ?: settings.gcpProjectId
-        settings.gcpAccessToken     = PlatformStorage.getSecretString(PREFIX + "gcpAccessToken") ?: settings.gcpAccessToken
-        settings.gcpEndpointUrl     = PlatformStorage.getString(PREFIX + "gcpEndpointUrl") ?: settings.gcpEndpointUrl
+        settings.gcpProjectId         = PlatformStorage.getString(PREFIX + "gcpProjectId") ?: settings.gcpProjectId
+        settings.gcpAccessToken       = PlatformStorage.getSecretString(PREFIX + "gcpAccessToken") ?: settings.gcpAccessToken
+        settings.gcpEndpointUrl       = PlatformStorage.getString(PREFIX + "gcpEndpointUrl") ?: settings.gcpEndpointUrl
+        settings.gcpAuthMethod        = PlatformStorage.getString(PREFIX + "gcpAuthMethod")?.let { GcpAuthMethod.fromId(it) } ?: settings.gcpAuthMethod
+        settings.gcpServiceAccountKey = PlatformStorage.getSecretString(PREFIX + "gcpServiceAccountJson") ?: settings.gcpServiceAccountKey
+        settings.gcpAdcFilePath       = PlatformStorage.getString(PREFIX + "gcpAdcFilePath") ?: settings.gcpAdcFilePath
 
         // Secrets Manager (Keeper Security Cloud)
         settings.keeperConfigJson   = PlatformStorage.getSecretString(PREFIX + "keeperConfig") ?: settings.keeperConfigJson
@@ -183,6 +189,9 @@ object SettingsRepository {
         PlatformStorage.putString(PREFIX + "gcpProjectId", settings.gcpProjectId)
         PlatformStorage.putSecretString(PREFIX + "gcpAccessToken", settings.gcpAccessToken)
         PlatformStorage.putString(PREFIX + "gcpEndpointUrl", settings.gcpEndpointUrl)
+        PlatformStorage.putString(PREFIX + "gcpAuthMethod", settings.gcpAuthMethod.id)
+        PlatformStorage.putSecretString(PREFIX + "gcpServiceAccountJson", settings.gcpServiceAccountKey)
+        PlatformStorage.putString(PREFIX + "gcpAdcFilePath", settings.gcpAdcFilePath)
 
         // Secrets Manager (Keeper Security Cloud)
         if (settings.keeperConfigJson.isNotBlank()) {

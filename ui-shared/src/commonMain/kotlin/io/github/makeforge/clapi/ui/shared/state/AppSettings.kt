@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import io.github.makeforge.clapi.core.model.opencollection.ExternalSecretType
+import io.github.makeforge.clapi.core.network.gcp.GcpAuthMethod
 import io.github.makeforge.clapi.ui.shared.i18n.AppLanguage
 import kotlinx.coroutines.launch
 
@@ -86,6 +87,9 @@ class AppSettings {
             copy.gcpProjectId = base.gcpProjectId
             copy.gcpAccessToken = base.gcpAccessToken
             copy.gcpEndpointUrl = base.gcpEndpointUrl
+            copy.gcpAuthMethod = base.gcpAuthMethod
+            copy.gcpServiceAccountKey = base.gcpServiceAccountKey
+            copy.gcpAdcFilePath = base.gcpAdcFilePath
             copy.keeperConfigJson = base.keeperConfigJson
             copy.keeperConnectionStatus = base.keeperConnectionStatus
         }
@@ -142,9 +146,12 @@ class AppSettings {
     var azureApiVersion    by mutableStateOf("7.4")
 
     // Secrets Manager (GCP)
-    var gcpProjectId       by mutableStateOf("")
-    var gcpAccessToken     by mutableStateOf("")
-    var gcpEndpointUrl     by mutableStateOf("https://secretmanager.googleapis.com")
+    var gcpProjectId          by mutableStateOf("")
+    var gcpAccessToken        by mutableStateOf("")
+    var gcpEndpointUrl        by mutableStateOf("https://secretmanager.googleapis.com")
+    var gcpAuthMethod         by mutableStateOf(GcpAuthMethod.SERVICE_ACCOUNT_KEY)
+    var gcpServiceAccountKey  by mutableStateOf("")
+    var gcpAdcFilePath        by mutableStateOf("")
 
     // Secrets Manager (Keeper Security Cloud)
     var keeperConfigJson       by mutableStateOf("")

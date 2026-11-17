@@ -6,6 +6,7 @@ import io.github.makeforge.clapi.core.network.aws.KtorAwsSecretsManagerClient
 import io.github.makeforge.clapi.core.network.azure.AzureKeyVaultClient
 import io.github.makeforge.clapi.core.network.azure.AzureKeyVaultConfig
 import io.github.makeforge.clapi.core.network.azure.KtorAzureKeyVaultClient
+import io.github.makeforge.clapi.core.network.gcp.DefaultGcpTokenProvider
 import io.github.makeforge.clapi.core.network.gcp.GcpSecretManagerClient
 import io.github.makeforge.clapi.core.network.gcp.GcpSecretManagerConfig
 import io.github.makeforge.clapi.core.network.gcp.KtorGcpSecretManagerClient
@@ -339,9 +340,18 @@ class GcpSecretProvider(
 ) : ExternalSecretProvider {
     override val providerId: String = "gcp-secrets-manager"
 
-    override fun isConfigured(context: SecretResolutionContext): Boolean =
-        context.gcp.projectId.isNotBlank() &&
-            (context.gcp.accessToken.isNotBlank() || context.gcp.serviceAccountJson.isNotBlank())
+    override fun isConfigured(context: SecretResolutionContext): Boolean {
+        val hasProjectId = context.gcp.projectId.isNotBlank() ||
+            (context.gcp.serviceAccountJson.isNotBlank() &&
+                DefaultGcpTokenProvider.extractProjectId(context.gcp.serviceAccountJson)?.isNotBlank() == true)
+        val hasCreds = context.gcp.accessToken.isNotBlank() ||
+            DefaultGcpTokenProvider.hasCredentials(
+                serviceAccountKey = context.gcp.serviceAccountJson,
+                authMethod = context.gcp.authMethod,
+                adcFilePath = context.gcp.adcFilePath,
+            )
+        return hasProjectId && hasCreds
+    }
 
     override suspend fun resolveDeclarations(
         requiredSecretNames: Set<String>,
@@ -367,7 +377,10 @@ class GcpSecretProvider(
         for (name in requiredSecretNames) {
             val decl = declarationMap.getValue(name)
             val secId = decl.secretId.ifBlank { decl.path }.trim()
-            val effectiveProject = decl.url.ifBlank { context.gcp.projectId }.trim()
+            val extractedProject = if (context.gcp.serviceAccountJson.isNotBlank()) {
+                DefaultGcpTokenProvider.extractProjectId(context.gcp.serviceAccountJson).orEmpty()
+            } else ""
+            val effectiveProject = decl.url.ifBlank { context.gcp.projectId }.ifBlank { extractedProject }.trim()
             if (effectiveProject.isBlank()) {
                 throw IllegalStateException("GCP Project ID is not configured. Please configure GCP Secret Manager in Settings -> Secrets Manager.")
             }
@@ -386,6 +399,9 @@ class GcpSecretProvider(
                 version = version,
                 accessToken = context.gcp.accessToken,
                 endpointUrl = context.gcp.endpointUrl.ifBlank { "https://secretmanager.googleapis.com" },
+                serviceAccountKey = context.gcp.serviceAccountJson,
+                authMethod = context.gcp.authMethod,
+                adcFilePath = context.gcp.adcFilePath,
             )
             val secretData = gcClient.fetchSecret(config)
 

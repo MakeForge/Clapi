@@ -37,6 +37,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.makeforge.clapi.core.network.gcp.DefaultGcpTokenProvider
+import io.github.makeforge.clapi.core.network.gcp.GcpAuthMethod
 import io.github.makeforge.clapi.core.network.gcp.GcpSecretManagerConfig
 import io.github.makeforge.clapi.core.network.gcp.KtorGcpSecretManagerClient
 import io.github.makeforge.clapi.core.network.keepassxc.createKeePassXcClient
@@ -90,10 +92,14 @@ internal fun EnvGcpSecretRow(
 
     var filtersExpanded by remember { mutableStateOf(false) }
     var matchState by remember { mutableStateOf("—") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     var refreshTrigger by remember { mutableStateOf(0) }
 
     val gcpProjectId = state?.settings?.gcpProjectId.orEmpty()
     val gcpAccessToken = state?.settings?.gcpAccessToken.orEmpty()
+    val gcpServiceAccountKey = state?.settings?.gcpServiceAccountKey.orEmpty()
+    val gcpAuthMethod = state?.settings?.gcpAuthMethod ?: GcpAuthMethod.SERVICE_ACCOUNT_KEY
+    val gcpAdcFilePath = state?.settings?.gcpAdcFilePath.orEmpty()
     val gcpEndpointUrl = state?.settings?.gcpEndpointUrl.orEmpty()
 
     LaunchedEffect(
@@ -104,19 +110,34 @@ internal fun EnvGcpSecretRow(
         refreshTrigger,
         gcpProjectId,
         gcpAccessToken,
+        gcpServiceAccountKey,
+        gcpAuthMethod,
+        gcpAdcFilePath,
         gcpEndpointUrl,
     ) {
-        val effectiveProject = secret.url.ifBlank { gcpProjectId }.trim()
-        if (effectiveProject.isBlank() || gcpAccessToken.isBlank()) {
+        val hasCreds = gcpAccessToken.isNotBlank() || DefaultGcpTokenProvider.hasCredentials(
+            serviceAccountKey = gcpServiceAccountKey,
+            authMethod = gcpAuthMethod,
+            adcFilePath = gcpAdcFilePath,
+        )
+        val extractedProject = if (gcpServiceAccountKey.isNotBlank()) {
+            DefaultGcpTokenProvider.extractProjectId(gcpServiceAccountKey).orEmpty()
+        } else ""
+        val effectiveProject = secret.url.ifBlank { gcpProjectId }.ifBlank { extractedProject }.trim()
+
+        if (effectiveProject.isBlank() || !hasCreds) {
             matchState = "Not Connected"
+            errorMessage = null
             return@LaunchedEffect
         }
         val trimmedSecretId = secret.path.trim()
         if (trimmedSecretId.isBlank()) {
             matchState = "—"
+            errorMessage = null
             return@LaunchedEffect
         }
         matchState = "Checking..."
+        errorMessage = null
         delay(350)
         try {
             val config = GcpSecretManagerConfig(
@@ -125,6 +146,9 @@ internal fun EnvGcpSecretRow(
                 version = "latest",
                 accessToken = gcpAccessToken,
                 endpointUrl = gcpEndpointUrl.ifBlank { "https://secretmanager.googleapis.com" },
+                serviceAccountKey = gcpServiceAccountKey,
+                authMethod = gcpAuthMethod,
+                adcFilePath = gcpAdcFilePath,
             )
             val secretData = KtorGcpSecretManagerClient.Shared.fetchSecret(config)
             val resolvedFilters = secret.customFilters.mapValues { (_, v) ->
@@ -139,6 +163,7 @@ internal fun EnvGcpSecretRow(
             val filterMismatch = resolvedFilters.any { (k, v) -> secretData[k] != v }
             if (filterMismatch) {
                 matchState = "✖ 0 found"
+                errorMessage = null
             } else {
                 val target = secret.targetField.trim()
                 if (target.isNotBlank()) {
@@ -147,13 +172,16 @@ internal fun EnvGcpSecretRow(
                 } else {
                     matchState = "✔ 1 match"
                 }
+                errorMessage = null
             }
         } catch (e: Exception) {
             val msg = e.message.orEmpty()
-            matchState = if (msg.contains("SecretNotFound", ignoreCase = true) || msg.contains("404") || msg.contains("not found", ignoreCase = true)) {
-                "✖ 0 found"
+            if (msg.contains("SecretNotFound", ignoreCase = true) || msg.contains("404") || msg.contains("not found", ignoreCase = true)) {
+                matchState = "✖ 0 found"
+                errorMessage = null
             } else {
-                "Error"
+                matchState = "Error"
+                errorMessage = msg.ifBlank { e.toString() }
             }
         }
     }
@@ -228,7 +256,8 @@ internal fun EnvGcpSecretRow(
 
             EnvSecretStatusCell(
                 status = matchState,
-                modifier = Modifier.weight(0.9f),
+                errorMessage = errorMessage,
+                modifier = Modifier.weight(1.0f),
                 statusTag = "env-secret-row-$index-match-count",
                 refreshTag = "env-secret-row-$index-refresh-status",
                 onRefresh = { refreshTrigger++ },

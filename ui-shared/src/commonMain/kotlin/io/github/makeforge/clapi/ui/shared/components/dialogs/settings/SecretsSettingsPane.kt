@@ -18,6 +18,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
@@ -30,6 +32,11 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.makeforge.clapi.core.model.opencollection.ExternalSecretType
+import io.github.makeforge.clapi.core.network.aws.KtorAwsSecretsManagerClient
+import io.github.makeforge.clapi.core.network.azure.KtorAzureKeyVaultClient
+import io.github.makeforge.clapi.core.network.gcp.DefaultGcpTokenProvider
+import io.github.makeforge.clapi.core.network.gcp.GcpAuthMethod
+import io.github.makeforge.clapi.core.network.gcp.KtorGcpSecretManagerClient
 import io.github.makeforge.clapi.core.network.keepassxc.DefaultKeePassXcClientManager
 import io.github.makeforge.clapi.core.network.keepassxc.KeePassXcStatus
 import io.github.makeforge.clapi.core.network.keepassxc.createKeePassXcClient
@@ -123,7 +130,181 @@ internal fun SecretsSettings(s: AppSettings) {
 }
 
 @Composable
+internal fun SecretManagerConnectionSection(
+    statusText: String,
+    statusColor: Color,
+    statusBg: Color,
+    statusBorder: Color,
+    isTesting: Boolean,
+    onTestConnection: () -> Unit,
+    tagPrefix: String,
+    title: String = "Connection Status",
+    subtitle: String? = null,
+    actionMessage: String? = null,
+    isError: Boolean = false,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = title,
+            fontSize = 13.sp,
+            color = ClapiColors.OnSurface,
+            fontWeight = FontWeight.Medium,
+        )
+        if (subtitle != null) {
+            Text(
+                text = subtitle,
+                fontSize = 11.sp,
+                color = ClapiColors.OnSurfaceDim,
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(statusBg)
+                    .border(1.dp, statusBorder, RoundedCornerShape(4.dp))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .testTag("$tagPrefix-status-badge"),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = statusText,
+                    color = statusColor,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(ClapiColors.SurfaceContainer)
+                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
+                    .clickable(enabled = !isTesting) { onTestConnection() }
+                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                    .pointerHoverIcon(PointerIcon.Hand)
+                    .testTag("$tagPrefix-test-connection-btn"),
+                contentAlignment = Alignment.Center,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_refresh),
+                        contentDescription = "Test Connection",
+                        tint = if (isTesting) ClapiColors.OnSurfaceDim else ClapiColors.Primary,
+                        modifier = Modifier.size(13.dp),
+                    )
+                    Text(
+                        text = if (isTesting) "Testing..." else "Test Connection",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isTesting) ClapiColors.OnSurfaceDim else ClapiColors.Primary,
+                    )
+                }
+            }
+        }
+
+        if (!actionMessage.isNullOrBlank()) {
+            SelectionContainer {
+                Text(
+                    text = actionMessage,
+                    fontSize = 11.sp,
+                    color = if (isError) ClapiColors.Error else ClapiColors.Primary,
+                    modifier = Modifier.padding(top = 2.dp).testTag("$tagPrefix-action-message"),
+                )
+            }
+        }
+    }
+}
+
+@Composable
 internal fun GcpSecretsSettings(s: AppSettings) {
+    val scope = rememberCoroutineScope()
+    var isTesting by remember { mutableStateOf(false) }
+    var connectionStatus by remember { mutableStateOf("Not Configured") }
+    var actionMessage by remember { mutableStateOf<String?>(null) }
+    var isError by remember { mutableStateOf(false) }
+
+    val hasCreds = s.gcpAccessToken.isNotBlank() || DefaultGcpTokenProvider.hasCredentials(
+        serviceAccountKey = s.gcpServiceAccountKey,
+        authMethod = s.gcpAuthMethod,
+        adcFilePath = s.gcpAdcFilePath,
+    )
+
+    fun runTest() {
+        if (!hasCreds) {
+            connectionStatus = "Not Configured"
+            actionMessage = "Please provide GCP credentials"
+            isError = true
+            return
+        }
+        scope.launch {
+            isTesting = true
+            connectionStatus = "Testing..."
+            actionMessage = null
+            val result = KtorGcpSecretManagerClient.Shared.testConnection(
+                projectId = s.gcpProjectId,
+                serviceAccountKey = s.gcpServiceAccountKey,
+                authMethod = s.gcpAuthMethod,
+                adcFilePath = s.gcpAdcFilePath,
+                accessToken = s.gcpAccessToken,
+                endpointUrl = s.gcpEndpointUrl.ifBlank { "https://secretmanager.googleapis.com" },
+            )
+            result.onSuccess { msg ->
+                connectionStatus = "Connected"
+                actionMessage = msg
+                isError = false
+            }.onFailure { err ->
+                connectionStatus = "Connection Failed"
+                actionMessage = err.message ?: "Connection failed"
+                isError = true
+            }
+            isTesting = false
+        }
+    }
+
+    LaunchedEffect(s.gcpProjectId, s.gcpAccessToken, s.gcpServiceAccountKey, s.gcpAuthMethod, s.gcpAdcFilePath, s.gcpEndpointUrl) {
+        if (hasCreds) {
+            runTest()
+        } else {
+            connectionStatus = "Not Configured"
+            actionMessage = null
+            isError = false
+        }
+    }
+
+    val (statusBg, statusBorder, statusFg) = when (connectionStatus) {
+        "Connected" -> Triple(ClapiColors.Primary.copy(alpha = 0.15f), ClapiColors.Primary.copy(alpha = 0.4f), ClapiColors.Primary)
+        "Connection Failed" -> Triple(ClapiColors.Error.copy(alpha = 0.15f), ClapiColors.Error.copy(alpha = 0.4f), ClapiColors.Error)
+        "Testing..." -> Triple(ClapiColors.SurfaceContainer, ClapiColors.Border, ClapiColors.OnSurfaceDim)
+        else -> Triple(ClapiColors.SurfaceContainer, ClapiColors.Border, ClapiColors.OnSurfaceDim)
+    }
+
+    SecretManagerConnectionSection(
+        statusText = connectionStatus,
+        statusColor = statusFg,
+        statusBg = statusBg,
+        statusBorder = statusBorder,
+        isTesting = isTesting,
+        onTestConnection = { runTest() },
+        tagPrefix = "gcp",
+        title = "Connection Status",
+        subtitle = if (hasCreds) "Google Cloud Secret Manager" else "Configure credentials below to connect",
+        actionMessage = actionMessage,
+        isError = isError,
+    )
+    SettingsDivider()
+
     SettingTextField(
         label = Strings.t("gcp_project_id"),
         value = s.gcpProjectId,
@@ -132,13 +313,44 @@ internal fun GcpSecretsSettings(s: AppSettings) {
         tag = "gcp-project-id",
     )
     SettingsDivider()
-    SettingPasswordField(
-        label = Strings.t("gcp_access_token"),
-        value = s.gcpAccessToken,
-        onValueChange = { s.gcpAccessToken = it },
-        placeholder = "••••••••••••••••",
-        tag = "gcp-access-token",
+    SettingDropdown(
+        label = "Authentication Method",
+        description = "Select how to authenticate with Google Cloud",
+        options = listOf(
+            GcpAuthMethod.SERVICE_ACCOUNT_KEY to "Service Account Key (JSON / File)",
+            GcpAuthMethod.APPLICATION_DEFAULT_CREDENTIALS to "Application Default Credentials (ADC)",
+        ),
+        selected = s.gcpAuthMethod,
+        onSelected = { s.gcpAuthMethod = it },
+        tagPrefix = "gcp-auth-method",
     )
+    SettingsDivider()
+    when (s.gcpAuthMethod) {
+        GcpAuthMethod.SERVICE_ACCOUNT_KEY -> {
+            SettingPasswordField(
+                label = "Service Account Key",
+                value = s.gcpServiceAccountKey,
+                onValueChange = { s.gcpServiceAccountKey = it },
+                placeholder = "Paste service account JSON or enter key file path",
+                tag = "gcp-service-account-key",
+            )
+        }
+        GcpAuthMethod.APPLICATION_DEFAULT_CREDENTIALS -> {
+            SettingTextField(
+                label = "Credentials File Path (Optional)",
+                value = s.gcpAdcFilePath,
+                onValueChange = { s.gcpAdcFilePath = it },
+                placeholder = "Default: ~/.config/gcloud/application_default_credentials.json",
+                tag = "gcp-adc-file-path",
+            )
+            Text(
+                text = "Credentials from 'gcloud auth application-default login' (or GOOGLE_APPLICATION_CREDENTIALS) are used automatically.",
+                fontSize = 11.sp,
+                color = ClapiColors.OnSurfaceDim,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+    }
     SettingsDivider()
     SettingTextField(
         label = Strings.t("gcp_endpoint_url"),
@@ -179,123 +391,146 @@ internal fun KeeperSecretsSettings(s: AppSettings) {
         }
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        // Status row
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Status header & description
+        Text(
+            text = "Connection Status",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = ClapiColors.OnSurface,
+        )
+        Text(
+            text = if (hasConfig) "Application credentials bound via Keeper Secrets Manager" else "No active Keeper client configuration",
+            fontSize = 11.sp,
+            color = ClapiColors.OnSurfaceDim,
+        )
+
+        val style = when {
+            isConnecting -> KeeperStatusStyle(
+                "Connecting...",
+                ClapiColors.SurfaceContainer,
+                ClapiColors.Border,
+                ClapiColors.OnSurfaceDim
+            )
+            isCheckingHealth || s.keeperConnectionStatus == KeeperConnectionStatus.CHECKING -> KeeperStatusStyle(
+                "Checking...",
+                ClapiColors.SurfaceContainer,
+                ClapiColors.Border,
+                ClapiColors.OnSurfaceDim
+            )
+            s.keeperConnectionStatus == KeeperConnectionStatus.CONNECTED -> KeeperStatusStyle(
+                "Connected",
+                ClapiColors.Primary.copy(alpha = 0.15f),
+                ClapiColors.Primary.copy(alpha = 0.4f),
+                ClapiColors.Primary
+            )
+            s.keeperConnectionStatus == KeeperConnectionStatus.ERROR -> KeeperStatusStyle(
+                "Connection Failed",
+                ClapiColors.Error.copy(alpha = 0.15f),
+                ClapiColors.Error.copy(alpha = 0.4f),
+                ClapiColors.Error
+            )
+            else -> KeeperStatusStyle(
+                "Not Connected",
+                ClapiColors.SurfaceContainer,
+                ClapiColors.Border,
+                ClapiColors.OnSurfaceDim
+            )
+        }
+
+        // Status badge + test connection + disconnect row
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(style.bg)
+                    .border(1.dp, style.border, RoundedCornerShape(4.dp))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .testTag("keeper-status-badge"),
+            ) {
                 Text(
-                    text = "Connection Status",
-                    fontSize = 13.sp,
-                    color = ClapiColors.OnSurface,
-                )
-                Text(
-                    text = if (hasConfig) "Application credentials bound via Keeper Secrets Manager" else "No active Keeper client configuration",
+                    text = style.text,
+                    color = style.fg,
                     fontSize = 11.sp,
-                    color = ClapiColors.OnSurfaceDim,
-                    modifier = Modifier.padding(top = 2.dp),
+                    fontWeight = FontWeight.Medium,
                 )
             }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(ClapiColors.SurfaceContainer)
+                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
+                    .clickable(enabled = !isCheckingHealth && !isConnecting) {
+                        if (!hasConfig) {
+                            actionMessage = "No active configuration. Please enter a one-time access token below to connect."
+                            isError = true
+                            return@clickable
+                        }
+                        scope.launch {
+                            isCheckingHealth = true
+                            s.keeperConnectionStatus = KeeperConnectionStatus.CHECKING
+                            try {
+                                val client = createKeeperClient(s.keeperConfigJson)
+                                val ok = client.testConnection()
+                                s.keeperConnectionStatus = if (ok) KeeperConnectionStatus.CONNECTED else KeeperConnectionStatus.ERROR
+                                actionMessage = if (ok) "Connected to Keeper Secrets Manager" else "Connection failed"
+                                isError = !ok
+                            } catch (e: Exception) {
+                                s.keeperConnectionStatus = KeeperConnectionStatus.ERROR
+                                actionMessage = e.message ?: "Connection failed"
+                                isError = true
+                            } finally {
+                                isCheckingHealth = false
+                            }
+                        }
+                    }
+                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                    .pointerHoverIcon(PointerIcon.Hand)
+                    .testTag("keeper-test-connection-btn"),
+                contentAlignment = Alignment.Center,
             ) {
-                val style = when {
-                    isConnecting -> KeeperStatusStyle(
-                        "Connecting...",
-                        ClapiColors.SurfaceContainer,
-                        ClapiColors.Border,
-                        ClapiColors.OnSurfaceDim
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_refresh),
+                        contentDescription = "Test Connection",
+                        tint = if (isCheckingHealth || isConnecting) ClapiColors.OnSurfaceDim else ClapiColors.Primary,
+                        modifier = Modifier.size(13.dp),
                     )
-                    isCheckingHealth || s.keeperConnectionStatus == KeeperConnectionStatus.CHECKING -> KeeperStatusStyle(
-                        "Checking...",
-                        ClapiColors.SurfaceContainer,
-                        ClapiColors.Border,
-                        ClapiColors.OnSurfaceDim
-                    )
-                    s.keeperConnectionStatus == KeeperConnectionStatus.CONNECTED -> KeeperStatusStyle(
-                        "Connected",
-                        ClapiColors.Primary.copy(alpha = 0.15f),
-                        ClapiColors.Primary.copy(alpha = 0.4f),
-                        ClapiColors.Primary
-                    )
-                    s.keeperConnectionStatus == KeeperConnectionStatus.ERROR -> KeeperStatusStyle(
-                        "Connection Failed",
-                        ClapiColors.Error.copy(alpha = 0.15f),
-                        ClapiColors.Error.copy(alpha = 0.4f),
-                        ClapiColors.Error
-                    )
-                    else -> KeeperStatusStyle(
-                        "Not Connected",
-                        ClapiColors.SurfaceContainer,
-                        ClapiColors.Border,
-                        ClapiColors.OnSurfaceDim
+                    Text(
+                        text = if (isCheckingHealth) "Testing..." else "Test Connection",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isCheckingHealth || isConnecting) ClapiColors.OnSurfaceDim else ClapiColors.Primary,
                     )
                 }
+            }
 
+            if (hasConfig) {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(4.dp))
-                        .background(style.bg)
-                        .border(1.dp, style.border, RoundedCornerShape(4.dp))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                        .testTag("keeper-status-badge"),
+                        .background(ClapiColors.SurfaceContainer)
+                        .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
+                        .clickable {
+                            s.keeperConfigJson = ""
+                            s.keeperConnectionStatus = KeeperConnectionStatus.DISCONNECTED
+                            SettingsRepository.save(s)
+                            actionMessage = "Configuration removed"
+                            isError = false
+                        }
+                        .padding(horizontal = 8.dp, vertical = 5.dp)
+                        .pointerHoverIcon(PointerIcon.Hand)
+                        .testTag("keeper-disconnect-btn"),
                 ) {
-                    Text(
-                        text = style.text,
-                        color = style.fg,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                    )
-                }
-
-                if (hasConfig) {
-                    IconButton(
-                        onClick = {
-                            scope.launch {
-                                isCheckingHealth = true
-                                s.keeperConnectionStatus = KeeperConnectionStatus.CHECKING
-                                try {
-                                    val client = createKeeperClient(s.keeperConfigJson)
-                                    val ok = client.testConnection()
-                                    s.keeperConnectionStatus = if (ok) KeeperConnectionStatus.CONNECTED else KeeperConnectionStatus.ERROR
-                                } catch (_: Exception) {
-                                    s.keeperConnectionStatus = KeeperConnectionStatus.ERROR
-                                } finally {
-                                    isCheckingHealth = false
-                                }
-                            }
-                        },
-                        modifier = Modifier.size(28.dp).testTag("keeper-refresh-status-btn"),
-                    ) {
-                        Icon(
-                            painter = painterResource(Res.drawable.ic_refresh),
-                            contentDescription = "Check connection",
-                            tint = ClapiColors.OnSurfaceDim,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(ClapiColors.SurfaceContainer)
-                            .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
-                            .clickable {
-                                s.keeperConfigJson = ""
-                                s.keeperConnectionStatus = KeeperConnectionStatus.DISCONNECTED
-                                SettingsRepository.save(s)
-                                actionMessage = "Configuration removed"
-                                isError = false
-                            }
-                            .padding(horizontal = 8.dp, vertical = 5.dp)
-                            .testTag("keeper-disconnect-btn"),
-                    ) {
-                        Text("Disconnect", fontSize = 11.sp, color = ClapiColors.OnSurfaceVariant)
-                    }
+                    Text("Disconnect", fontSize = 11.sp, color = ClapiColors.OnSurfaceVariant)
                 }
             }
         }
@@ -430,6 +665,78 @@ internal fun KeeperSecretsSettings(s: AppSettings) {
 
 @Composable
 internal fun AzureKeyVaultSettings(s: AppSettings) {
+    val scope = rememberCoroutineScope()
+    var isTesting by remember { mutableStateOf(false) }
+    var connectionStatus by remember { mutableStateOf("Not Configured") }
+    var actionMessage by remember { mutableStateOf<String?>(null) }
+    var isError by remember { mutableStateOf(false) }
+
+    val hasCreds = s.azureTenantId.isNotBlank() && s.azureClientId.isNotBlank() && s.azureClientSecret.isNotBlank()
+
+    fun runTest() {
+        if (!hasCreds) {
+            connectionStatus = "Not Configured"
+            actionMessage = "Please provide Azure Tenant ID, Client ID, and Client Secret"
+            isError = true
+            return
+        }
+        scope.launch {
+            isTesting = true
+            connectionStatus = "Testing..."
+            actionMessage = null
+            val result = KtorAzureKeyVaultClient.Shared.testConnection(
+                vaultName = s.azureVaultName,
+                tenantId = s.azureTenantId,
+                clientId = s.azureClientId,
+                clientSecret = s.azureClientSecret,
+                authorityHost = s.azureAuthorityHost.ifBlank { "https://login.microsoftonline.com" },
+                apiVersion = s.azureApiVersion.ifBlank { "7.4" },
+            )
+            result.onSuccess { msg ->
+                connectionStatus = "Connected"
+                actionMessage = msg
+                isError = false
+            }.onFailure { err ->
+                connectionStatus = "Connection Failed"
+                actionMessage = err.message ?: "Connection failed"
+                isError = true
+            }
+            isTesting = false
+        }
+    }
+
+    LaunchedEffect(s.azureVaultName, s.azureTenantId, s.azureClientId, s.azureClientSecret, s.azureAuthorityHost, s.azureApiVersion) {
+        if (hasCreds) {
+            runTest()
+        } else {
+            connectionStatus = "Not Configured"
+            actionMessage = null
+            isError = false
+        }
+    }
+
+    val (statusBg, statusBorder, statusFg) = when (connectionStatus) {
+        "Connected" -> Triple(ClapiColors.Primary.copy(alpha = 0.15f), ClapiColors.Primary.copy(alpha = 0.4f), ClapiColors.Primary)
+        "Connection Failed" -> Triple(ClapiColors.Error.copy(alpha = 0.15f), ClapiColors.Error.copy(alpha = 0.4f), ClapiColors.Error)
+        "Testing..." -> Triple(ClapiColors.SurfaceContainer, ClapiColors.Border, ClapiColors.OnSurfaceDim)
+        else -> Triple(ClapiColors.SurfaceContainer, ClapiColors.Border, ClapiColors.OnSurfaceDim)
+    }
+
+    SecretManagerConnectionSection(
+        statusText = connectionStatus,
+        statusColor = statusFg,
+        statusBg = statusBg,
+        statusBorder = statusBorder,
+        isTesting = isTesting,
+        onTestConnection = { runTest() },
+        tagPrefix = "azure",
+        title = "Connection Status",
+        subtitle = if (hasCreds) "Azure Key Vault" else "Configure credentials below to connect",
+        actionMessage = actionMessage,
+        isError = isError,
+    )
+    SettingsDivider()
+
     SettingTextField(
         label = Strings.t("azure_vault_name"),
         value = s.azureVaultName,
@@ -481,6 +788,77 @@ internal fun AzureKeyVaultSettings(s: AppSettings) {
 
 @Composable
 internal fun AwsSecretsSettings(s: AppSettings) {
+    val scope = rememberCoroutineScope()
+    var isTesting by remember { mutableStateOf(false) }
+    var connectionStatus by remember { mutableStateOf("Not Configured") }
+    var actionMessage by remember { mutableStateOf<String?>(null) }
+    var isError by remember { mutableStateOf(false) }
+
+    val hasCreds = s.awsAccessKeyId.isNotBlank() && s.awsSecretAccessKey.isNotBlank()
+
+    fun runTest() {
+        if (!hasCreds) {
+            connectionStatus = "Not Configured"
+            actionMessage = "Please provide AWS Access Key ID and Secret Access Key"
+            isError = true
+            return
+        }
+        scope.launch {
+            isTesting = true
+            connectionStatus = "Testing..."
+            actionMessage = null
+            val result = KtorAwsSecretsManagerClient.Shared.testConnection(
+                accessKey = s.awsAccessKeyId,
+                secretKey = s.awsSecretAccessKey,
+                region = s.awsRegion.ifBlank { "us-east-1" },
+                sessionToken = s.awsSessionToken.ifBlank { null },
+                endpointUrl = s.awsEndpointUrl.ifBlank { null },
+            )
+            result.onSuccess { msg ->
+                connectionStatus = "Connected"
+                actionMessage = msg
+                isError = false
+            }.onFailure { err ->
+                connectionStatus = "Connection Failed"
+                actionMessage = err.message ?: "Connection failed"
+                isError = true
+            }
+            isTesting = false
+        }
+    }
+
+    LaunchedEffect(s.awsAccessKeyId, s.awsSecretAccessKey, s.awsRegion, s.awsSessionToken, s.awsEndpointUrl) {
+        if (hasCreds) {
+            runTest()
+        } else {
+            connectionStatus = "Not Configured"
+            actionMessage = null
+            isError = false
+        }
+    }
+
+    val (statusBg, statusBorder, statusFg) = when (connectionStatus) {
+        "Connected" -> Triple(ClapiColors.Primary.copy(alpha = 0.15f), ClapiColors.Primary.copy(alpha = 0.4f), ClapiColors.Primary)
+        "Connection Failed" -> Triple(ClapiColors.Error.copy(alpha = 0.15f), ClapiColors.Error.copy(alpha = 0.4f), ClapiColors.Error)
+        "Testing..." -> Triple(ClapiColors.SurfaceContainer, ClapiColors.Border, ClapiColors.OnSurfaceDim)
+        else -> Triple(ClapiColors.SurfaceContainer, ClapiColors.Border, ClapiColors.OnSurfaceDim)
+    }
+
+    SecretManagerConnectionSection(
+        statusText = connectionStatus,
+        statusColor = statusFg,
+        statusBg = statusBg,
+        statusBorder = statusBorder,
+        isTesting = isTesting,
+        onTestConnection = { runTest() },
+        tagPrefix = "aws",
+        title = "Connection Status",
+        subtitle = if (hasCreds) "AWS Secrets Manager" else "Configure credentials below to connect",
+        actionMessage = actionMessage,
+        isError = isError,
+    )
+    SettingsDivider()
+
     SettingTextField(
         label = Strings.t("aws_region"),
         value = s.awsRegion,

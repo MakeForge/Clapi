@@ -135,4 +135,49 @@ class HashiCorpVaultClientTest {
         assertTrue(ex.message?.contains("Vault secret not found [HTTP 404]") == true)
         assertTrue(ex.message?.contains("secret/data/missing/secret") == true)
     }
+
+    @Test
+    fun testConnection_success_returns_success_result() = runTest {
+        var requestedUrl = ""
+        var tokenHeader = ""
+        val engine = MockEngine { request ->
+            requestedUrl = request.url.toString()
+            tokenHeader = request.headers["X-Vault-Token"] ?: ""
+            respond(
+                content = """{"data": {"id": "token-123"}}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+            )
+        }
+
+        val client = createClient(engine)
+        val result = client.testConnection("http://127.0.0.1:8200", "my-valid-token")
+        assertTrue(result.isSuccess)
+        assertEquals("Connected to HashiCorp Vault", result.getOrNull())
+        assertEquals("http://127.0.0.1:8200/v1/auth/token/lookup-self", requestedUrl)
+        assertEquals("my-valid-token", tokenHeader)
+    }
+
+    @Test
+    fun testConnection_forbidden_returns_failure() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = """{"errors": ["permission denied"]}""",
+                status = HttpStatusCode.Forbidden,
+            )
+        }
+
+        val client = createClient(engine)
+        val result = client.testConnection("http://127.0.0.1:8200", "invalid-token")
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("Vault authentication failed") == true)
+    }
+
+    @Test
+    fun testConnection_blank_inputs_fail_early() = runTest {
+        val engine = MockEngine { respond("") }
+        val client = createClient(engine)
+        assertTrue(client.testConnection("", "token").isFailure)
+        assertTrue(client.testConnection("http://localhost", "").isFailure)
+    }
 }

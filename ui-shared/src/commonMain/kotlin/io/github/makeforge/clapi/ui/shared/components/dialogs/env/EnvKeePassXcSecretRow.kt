@@ -88,15 +88,18 @@ internal fun EnvKeePassXcSecretRow(
 
     var filtersExpanded by remember { mutableStateOf(false) }
     var matchState by remember { mutableStateOf("—") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     var refreshTrigger by remember { mutableStateOf(0) }
 
     LaunchedEffect(secret.url, secret.targetField, secret.customFilters.toMap(), refreshTrigger) {
         val trimmedUrl = secret.url.trim()
         if (trimmedUrl.isBlank()) {
             matchState = "—"
+            errorMessage = null
             return@LaunchedEffect
         }
         matchState = "Checking..."
+        errorMessage = null
         delay(350)
         try {
             val client = createKeePassXcClient()
@@ -115,6 +118,7 @@ internal fun EnvKeePassXcSecretRow(
                 count == 1 -> "✔ 1 match"
                 else -> "✔ $count matches"
             }
+            errorMessage = null
         } catch (e: Exception) {
             val msg = e.message.orEmpty()
             matchState = when {
@@ -123,6 +127,7 @@ internal fun EnvKeePassXcSecretRow(
                 msg.contains("denied", ignoreCase = true) -> "Unassociated"
                 else -> "Error"
             }
+            errorMessage = msg.ifBlank { e.toString() }
         }
     }
 
@@ -185,6 +190,7 @@ internal fun EnvKeePassXcSecretRow(
 
             EnvSecretStatusCell(
                 status = matchState,
+                errorMessage = errorMessage,
                 modifier = Modifier.weight(1.0f),
                 statusTag = "env-secret-row-$index-match-count",
                 refreshTag = "env-secret-row-$index-refresh-status",

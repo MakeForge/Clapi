@@ -2,6 +2,7 @@ package io.github.makeforge.clapi.core.network.vault
 
 import io.github.makeforge.clapi.core.network.aws.AwsSecretsManagerClient
 import io.github.makeforge.clapi.core.network.azure.AzureKeyVaultClient
+import io.github.makeforge.clapi.core.network.gcp.GcpAuthMethod
 import io.github.makeforge.clapi.core.network.gcp.GcpSecretManagerClient
 import io.github.makeforge.clapi.core.network.getEnvironmentVariable
 import io.github.makeforge.clapi.core.network.keeper.KeeperClient
@@ -41,6 +42,8 @@ data class GcpProviderConfig(
     val serviceAccountJson: String = "",
     val endpointUrl: String = "https://secretmanager.googleapis.com",
     val clientOverride: GcpSecretManagerClient? = null,
+    val authMethod: GcpAuthMethod = GcpAuthMethod.SERVICE_ACCOUNT_KEY,
+    val adcFilePath: String = "",
 )
 
 data class KeeperProviderConfig(
