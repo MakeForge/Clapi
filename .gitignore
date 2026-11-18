@@ -84,6 +84,9 @@ test-results/
 reports/
 coverage/
 *.sarif
+*.log
+*.log.gz
+logs/
 
 # ── Python / Scripts ─────────────────────────────────────────
 __pycache__/

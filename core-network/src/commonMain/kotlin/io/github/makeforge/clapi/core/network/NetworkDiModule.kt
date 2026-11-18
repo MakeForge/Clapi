@@ -15,7 +15,7 @@ import org.koin.dsl.module
 fun networkModule(
     retryPolicy: RetryPolicy = RetryPolicy(),
     interceptors: List<NetworkInterceptor> = emptyList(),
-    logger: NetworkLogger = NoOpNetworkLogger
+    logger: NetworkLogger = Slf4jNetworkLogger()
 ): Module = module {
     single<ApiClient> {
         KtorApiClient(

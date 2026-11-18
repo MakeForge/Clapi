@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
+import io.github.makeforge.clapi.core.logging.AppLogging
 import io.github.makeforge.clapi.core.model.AuthType
 import io.github.makeforge.clapi.core.model.BodyType
 import io.github.makeforge.clapi.core.model.HttpMethodType
@@ -1697,7 +1698,15 @@ class AppState(openDefaultTab: Boolean = true) {
         selectedRequestId = activeTab?.id
     }
 
+    private val appLogger by lazy { AppLogging.logger("App") }
+    private val networkLogger by lazy { AppLogging.logger("Network") }
+
     fun log(message: String, level: LogLevel = LogLevel.INFO) {
+        when (level) {
+            LogLevel.ERROR -> appLogger.error { message }
+            LogLevel.WARNING -> appLogger.warn { message }
+            LogLevel.INFO, LogLevel.SUCCESS -> appLogger.info { message }
+        }
         diagnostics.log(message, level)
     }
 
@@ -1707,6 +1716,11 @@ class AppState(openDefaultTab: Boolean = true) {
      * summaries pass false so Console stays for scripts and app messages.
      */
     fun logNetworkEvent(message: String, level: LogLevel = LogLevel.INFO, echoToConsole: Boolean = true) {
+        when (level) {
+            LogLevel.ERROR -> networkLogger.error { message }
+            LogLevel.WARNING -> networkLogger.warn { message }
+            LogLevel.INFO, LogLevel.SUCCESS -> networkLogger.info { message }
+        }
         diagnostics.logNetworkEvent(message, level, echoToConsole)
     }
 

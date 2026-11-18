@@ -120,12 +120,12 @@ description: "Task list for Production VitePress Documentation Site implementati
 
 ### Implementation for User Story 3
 
-- [X] T050 [US3] Author Multiple Collections & OpenCollection Architecture guide in `docs/workspaces/collections.md`
-- [X] T051 [US3] Author Folder Settings & Cascaded Request Defaults Inheritance guide in `docs/workspaces/folders-and-inheritance.md`
-- [X] T052 [P] [US3] Author Collection-Level Protobuf Settings guide in `docs/workspaces/protobuf-settings.md`
-- [X] T053 [US3] Author Git Sync Architecture and OpenCollection Git-native diffing guide in `docs/collaboration/git-sync-overview.md`
-- [X] T054 [US3] Author In-App Git Operations (GitSyncDialog, status indicator, branch, commit, push, pull) guide in `docs/collaboration/git-operations.md`
-- [X] T055 [P] [US3] Author Team Workflows, Pull Requests, and Conflict Resolution guide in `docs/collaboration/team-workflows.md`
+- [X] T050 [US3] Author Multiple Collections & OpenCollection Architecture guide in `../../docs/organization`
+- [X] T051 [US3] Author Folder Settings & Cascaded Request Defaults Inheritance guide in `../../docs/organization`
+- [X] T052 [P] [US3] Author Collection-Level Protobuf Settings guide in `../../docs/organization`
+- [X] T053 [US3] Author Git Sync Architecture and OpenCollection Git-native diffing guide in `../../docs/organization/git-sync-overview.md`
+- [X] T054 [US3] Author In-App Git Operations (GitSyncDialog, status indicator, branch, commit, push, pull) guide in `../../docs/organization/git-operations.md`
+- [X] T055 [P] [US3] Author Team Workflows, Pull Requests, and Conflict Resolution guide in `../../docs/organization/team-workflows.md`
 
 **Checkpoint**: Team collaboration workflows and OpenCollection architecture are fully documented
 

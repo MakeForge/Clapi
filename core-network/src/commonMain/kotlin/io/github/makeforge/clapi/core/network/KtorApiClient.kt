@@ -57,7 +57,7 @@ class KtorApiClient(
     private val httpClient: HttpClient = defaultHttpClient(),
     private val retryPolicy: RetryPolicy = RetryPolicy(),
     private val interceptors: List<NetworkInterceptor> = emptyList(),
-    private val logger: NetworkLogger = NoOpNetworkLogger,
+    private val logger: NetworkLogger = Slf4jNetworkLogger(),
     private val json: Json = Json {
         ignoreUnknownKeys = true
         prettyPrint = true

@@ -15,10 +15,10 @@
 
 **Purpose**: Dependency configuration and build setup for Tinylog 2, SLF4J, and `kotlin-logging`.
 
-- [ ] T001 Add Tinylog 2.8.1 (`tinylog-api`, `tinylog-impl`, `slf4j-tinylog`), SLF4J 2.0.17 (`slf4j-api`), and `kotlin-logging` 8.0.7 dependency definitions to `gradle/libs.versions.toml`
-- [ ] T002 [P] Add `tinylog-api`, `tinylog-impl`, `slf4j-tinylog`, `slf4j-api`, and `kotlin-logging` dependencies to `ui-desktop/build.gradle.kts`
-- [ ] T003 [P] Add `kotlin-logging` and `slf4j-api` dependencies to `ui-shared/build.gradle.kts`
-- [ ] T004 [P] Add `kotlin-logging` and `slf4j-api` dependencies to `core-network/build.gradle.kts`
+- [X] T001 Add Tinylog 2.8.1 (`tinylog-api`, `tinylog-impl`, `slf4j-tinylog`), SLF4J 2.0.17 (`slf4j-api`), and `kotlin-logging` 8.0.7 dependency definitions to `gradle/libs.versions.toml`
+- [X] T002 [P] Add `tinylog-api`, `tinylog-impl`, `slf4j-tinylog`, `slf4j-api`, and `kotlin-logging` dependencies to `ui-desktop/build.gradle.kts`
+- [X] T003 [P] Add `kotlin-logging` and `slf4j-api` dependencies to `ui-shared/build.gradle.kts`
+- [X] T004 [P] Add `kotlin-logging` and `slf4j-api` dependencies to `core-network/build.gradle.kts`
 
 ---
 
@@ -26,10 +26,10 @@
 
 **Purpose**: Core logging facade, SPI definitions, and base configuration required before implementing user stories.
 
-- [ ] T005 Implement common multiplatform `AppLogging` facade object in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/logging/AppLogging.kt`
-- [ ] T006 [P] Implement `Slf4jNetworkLogger` adapter in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/Slf4jNetworkLogger.kt` implementing `NetworkLogger`
-- [ ] T007 [P] Create base `tinylog.properties` with `writingthread = true`, `writingthread.priority = 1`, and package level dampeners (`io.ktor = warn`, `io.netty = warn`) in `ui-desktop/src/desktopMain/resources/tinylog.properties`
-- [ ] T008 [P] Add ProGuard keep rules for `org.tinylog.**` and custom writers in `ui-desktop/proguard-rules.pro`
+- [X] T005 Implement common multiplatform `AppLogging` facade object in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/logging/AppLogging.kt`
+- [X] T006 [P] Implement `Slf4jNetworkLogger` adapter in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/Slf4jNetworkLogger.kt` implementing `NetworkLogger`
+- [X] T007 [P] Create base `tinylog.properties` with `writingthread = true`, `writingthread.priority = 1`, and package level dampeners (`io.ktor = warn`, `io.netty = warn`) in `ui-desktop/src/desktopMain/resources/tinylog.properties`
+- [X] T008 [P] Add ProGuard keep rules for `org.tinylog.**` and custom writers in `ui-desktop/proguard-rules.pro`
 
 **Checkpoint**: Core dependencies, facade, and foundational configuration ready. User story implementation can now proceed.
 
@@ -43,12 +43,12 @@
 
 ### Tests for User Story 1
 
-- [ ] T009 [P] [US1] Create benchmark test in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/logging/LoggingPerformanceBenchmarkTest.kt` verifying asynchronous non-blocking throughput (> 1,000 logs/sec, < 0.05 ms enqueue overhead)
+- [X] T009 [P] [US1] Create benchmark test in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/logging/LoggingPerformanceBenchmarkTest.kt` verifying asynchronous non-blocking throughput (> 1,000 logs/sec, < 0.05 ms enqueue overhead)
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Connect `Slf4jNetworkLogger` to `KtorApiClient` and `NetworkDiModule` as default logger in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/NetworkDiModule.kt`
-- [ ] T011 [US1] Configure Tinylog lock-free queue buffer sizing in `ui-desktop/src/desktopMain/resources/tinylog.properties` to absorb high-frequency streaming bursts
+- [X] T010 [US1] Connect `Slf4jNetworkLogger` to `KtorApiClient` and `NetworkDiModule` as default logger in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/NetworkDiModule.kt`
+- [X] T011 [US1] Configure Tinylog lock-free queue buffer sizing in `ui-desktop/src/desktopMain/resources/tinylog.properties` to absorb high-frequency streaming bursts
 
 **Checkpoint**: User Story 1 is functional and verifiable independently. Callers emit logs without blocking main execution threads.
 
@@ -62,14 +62,14 @@
 
 ### Tests for User Story 2
 
-- [ ] T012 [P] [US2] Create rolling file integration test in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/logging/LogFileRollingIntegrationTest.kt` verifying file creation, size-based rotation at 10 MB, and retention pruning capped at 5 backups
-- [ ] T013 [P] [US2] Create crash handler integration test in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/logging/CrashHandlerIntegrationTest.kt` verifying uncaught JVM exceptions are flushed to disk before exit
+- [X] T012 [P] [US2] Create rolling file integration test in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/logging/LogFileRollingIntegrationTest.kt` verifying file creation, size-based rotation at 10 MB, and retention pruning capped at 5 backups
+- [X] T013 [P] [US2] Create crash handler integration test in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/logging/CrashHandlerIntegrationTest.kt` verifying uncaught JVM exceptions are flushed to disk before exit
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] Implement `LogDirectoryConfigurator` in `ui-desktop/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/desktop/logging/LogDirectoryConfigurator.kt` resolving `<storageDir>/logs/`, setting `clapi.log.dir` system property, and installing `Thread.setDefaultUncaughtExceptionHandler`
-- [ ] T015 [US2] Hook `LogDirectoryConfigurator.configure(args)` and JVM shutdown flush in `ui-desktop/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/desktop/Main.kt` before Compose application launch
-- [ ] T016 [US2] Configure rolling file writer (`writer2 = rolling file`, `file = ${clapi.log.dir}/clapi.{date:yyyy-MM-dd}.{count}.log`, `latest = ${clapi.log.dir}/clapi.log`, `policies = daily, size: 10mb`, `backups = 5`, `convert = gzip`) in `ui-desktop/src/desktopMain/resources/tinylog.properties`
+- [X] T014 [US2] Implement `LogDirectoryConfigurator` in `ui-desktop/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/desktop/logging/LogDirectoryConfigurator.kt` resolving `<storageDir>/logs/`, setting `clapi.log.dir` system property, and installing `Thread.setDefaultUncaughtExceptionHandler`
+- [X] T015 [US2] Hook `LogDirectoryConfigurator.configure(args)` and JVM shutdown flush in `ui-desktop/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/desktop/Main.kt` before Compose application launch
+- [X] T016 [US2] Configure rolling file writer (`writer2 = rolling file`, `file = ${clapi.log.dir}/clapi.{date:yyyy-MM-dd}.{count}.log`, `latest = ${clapi.log.dir}/clapi.log`, `policies = daily, size: 10mb`, `backups = 5`, `convert = gzip`) in `ui-desktop/src/desktopMain/resources/tinylog.properties`
 
 **Checkpoint**: User Stories 1 AND 2 are complete. Logs are persisted to disk asynchronously and rotated automatically without unbounded storage growth.
 
@@ -83,14 +83,14 @@
 
 ### Tests for User Story 3
 
-- [ ] T017 [P] [US3] Create UI log writer integration test in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/logging/UiDiagnosticsLogWriterTest.kt` verifying background-to-UI dispatching and batching
+- [X] T017 [P] [US3] Create UI log writer integration test in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/logging/UiDiagnosticsLogWriterTest.kt` verifying background-to-UI dispatching and batching
 
 ### Implementation for User Story 3
 
-- [ ] T018 [US3] Implement `UiDiagnosticsLogWriter` in `ui-desktop/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/desktop/logging/UiDiagnosticsLogWriter.kt` implementing `org.tinylog.writers.Writer` and register via `ui-desktop/src/desktopMain/resources/META-INF/services/org.tinylog.writers.Writer`
-- [ ] T019 [US3] Implement `UiLogDispatcher` in `ui-desktop/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/desktop/logging/UiLogDispatcher.kt` to safely batch and dispatch log entries to `DiagnosticsLogState` on `Dispatchers.Main`
-- [ ] T020 [US3] Update `AppState.log` and `AppState.logNetworkEvent` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt` to route through `AppLogging`
-- [ ] T021 [US3] Add "Open Log Folder" icon action button to the diagnostics toolbar in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/BottomPanel.kt` using `java.awt.Desktop.getDesktop().open(logDir)`
+- [X] T018 [US3] Implement `UiDiagnosticsLogWriter` in `ui-desktop/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/desktop/logging/UiDiagnosticsLogWriter.kt` implementing `org.tinylog.writers.Writer` and register via `ui-desktop/src/desktopMain/resources/META-INF/services/org.tinylog.writers.Writer`
+- [X] T019 [US3] Implement `UiLogDispatcher` in `ui-desktop/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/desktop/logging/UiLogDispatcher.kt` to safely batch and dispatch log entries to `DiagnosticsLogState` on `Dispatchers.Main`
+- [X] T020 [US3] Update `AppState.log` and `AppState.logNetworkEvent` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt` to route through `AppLogging`
+- [X] T021 [US3] Add "Open Log Folder" icon action button to the diagnostics toolbar in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/BottomPanel.kt` using `java.awt.Desktop.getDesktop().open(logDir)`
 
 **Checkpoint**: User Stories 1, 2, and 3 are functional. The in-app UI diagnostics panel displays live logs seamlessly with quick access to the persistent folder.
 
@@ -104,12 +104,12 @@
 
 ### Tests for User Story 4
 
-- [ ] T022 [P] [US4] Create Stdio MCP logging isolation test in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/logging/McpStdioLoggingIsolationTest.kt` verifying 100% clean `stdout` during `--mcp` execution
+- [X] T022 [P] [US4] Create Stdio MCP logging isolation test in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/logging/McpStdioLoggingIsolationTest.kt` verifying 100% clean `stdout` during `--mcp` execution
 
 ### Implementation for User Story 4
 
-- [ ] T023 [US4] Configure `writer1.stream = err` in `ui-desktop/src/desktopMain/resources/tinylog.properties` ensuring console output strictly routes to standard error
-- [ ] T024 [US4] Update `StdioMcpServerRunner` in `mcp-server/src/commonMain/kotlin/io/github/makeforge/clapi/mcp/server/transport/StdioMcpServerRunner.kt` to ensure logging configuration completes before initializing protocol I/O streams
+- [X] T023 [US4] Configure `writer1.stream = err` in `ui-desktop/src/desktopMain/resources/tinylog.properties` ensuring console output strictly routes to standard error
+- [X] T024 [US4] Update `StdioMcpServerRunner` in `mcp-server/src/commonMain/kotlin/io/github/makeforge/clapi/mcp/server/transport/StdioMcpServerRunner.kt` to ensure logging configuration completes before initializing protocol I/O streams
 
 **Checkpoint**: All user stories are complete. Headless MCP stdio execution is protected against log contamination.
 
@@ -119,9 +119,9 @@
 
 **Purpose**: Cleanup, documentation, and end-to-end scenario validation.
 
-- [ ] T025 [P] Remove unused `ktor-client-logging` dependencies from `gradle/libs.versions.toml`, `core-network/build.gradle.kts`, and `ui-shared/build.gradle.kts`
-- [ ] T026 [P] Update architecture documentation in `docs/reference/architecture.md` describing the asynchronous Tinylog + SLF4J logging architecture, rolling file policies, and UI integration
-- [ ] T027 Execute all validation scenarios from `specs/030-async-file-logging/quickstart.md` to confirm end-to-end functionality
+- [X] T025 [P] Remove unused `ktor-client-logging` dependencies from `gradle/libs.versions.toml`, `core-network/build.gradle.kts`, and `ui-shared/build.gradle.kts`
+- [X] T026 [P] Update architecture documentation in `docs/reference/architecture.md` describing the asynchronous Tinylog + SLF4J logging architecture, rolling file policies, and UI integration
+- [X] T027 Execute all validation scenarios from `specs/030-async-file-logging/quickstart.md` to confirm end-to-end functionality
 
 ---
 

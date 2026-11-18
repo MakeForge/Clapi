@@ -16,10 +16,10 @@ kotlin {
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
-            implementation(libs.ktor.client.logging)
             implementation(libs.ktor.client.websockets)
             implementation(libs.ktor.client.auth)
             implementation(libs.koin.core)
+            implementation(libs.kotlin.logging)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -28,6 +28,7 @@ kotlin {
         }
         val desktopMain by getting {
             dependencies {
+                implementation(libs.slf4j.api)
                 implementation(libs.ktor.client.cio)
                 implementation(libs.grpc.okhttp)
                 implementation(libs.grpc.protobuf)
