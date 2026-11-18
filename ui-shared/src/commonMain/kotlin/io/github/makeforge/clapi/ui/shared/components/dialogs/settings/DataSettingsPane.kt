@@ -92,7 +92,10 @@ internal fun ScriptingSettings(s: AppSettings) {
 }
 
 @Composable
-internal fun DataSettings(state: AppState) {
+fun DataSettings(
+    state: AppState,
+    onOpenFile: ((String) -> Unit)? = null,
+) {
     val clearHistoryDesc = Strings.t("clear_history_desc")
     val clearLabel = Strings.t("clear")
     val clearHistoryTitle = Strings.t("clear_history_title")
@@ -126,5 +129,75 @@ internal fun DataSettings(state: AppState) {
         tag = "clear-console",
     ) {
         state.consoleLogs.clear()
+    }
+    SettingsDivider()
+    val logDir = System.getProperty("clapi.log.dir")
+        ?: (System.getProperty("user.home") + "/.clapi/logs")
+    val logFilePath = java.io.File(logDir, "clapi.log").absolutePath
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(
+            modifier = Modifier.weight(1f).padding(end = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = Strings.appLogs,
+                fontSize = 13.sp,
+                color = ClapiColors.OnSurface,
+            )
+            SelectionContainer {
+                Text(
+                    text = logFilePath,
+                    fontSize = 11.sp,
+                    color = ClapiColors.OnSurfaceDim,
+                    fontFamily = CodeFontFamily,
+                    modifier = Modifier.testTag("app-logs-path"),
+                )
+            }
+        }
+        Box(
+            modifier = Modifier
+                .testTag("open-log-file-button")
+                .clip(RoundedCornerShape(6.dp))
+                .background(ClapiColors.Primary.copy(alpha = 0.12f))
+                .border(1.dp, ClapiColors.Primary.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                .handPointerHover()
+                .clickable {
+                    val opener = onOpenFile ?: { path ->
+                        val logFile = java.io.File(path)
+                        runCatching {
+                            if (!logFile.exists()) {
+                                logFile.parentFile?.mkdirs()
+                                logFile.createNewFile()
+                            }
+                        }
+                        openFileInDefaultApp(logFile.absolutePath)
+                    }
+                    opener(logFilePath)
+                }
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+                .testTag("open-log-file-action"),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.ic_open_in_new),
+                    contentDescription = null,
+                    tint = ClapiColors.Primary,
+                    modifier = Modifier.size(13.dp),
+                )
+                Text(
+                    text = Strings.open,
+                    color = ClapiColors.Primary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+        }
     }
 }

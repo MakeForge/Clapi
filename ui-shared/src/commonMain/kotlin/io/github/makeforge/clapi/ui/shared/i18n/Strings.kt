@@ -32,6 +32,8 @@ object Strings {
     val error: String @Composable @ReadOnlyComposable get() = t("error")
     val success: String @Composable @ReadOnlyComposable get() = t("success")
     val retry: String @Composable @ReadOnlyComposable get() = t("retry")
+    val open: String @Composable @ReadOnlyComposable get() = t("open")
+    val appLogs: String @Composable @ReadOnlyComposable get() = t("app_logs")
 
     val history: String @Composable @ReadOnlyComposable get() = t("history")
     val collections: String @Composable @ReadOnlyComposable get() = t("collections")
