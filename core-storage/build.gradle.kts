@@ -16,8 +16,6 @@ kotlin {
         val desktopMain by getting {
             dependencies {
                 implementation(project.dependencies.platform(libs.jackson.bom))
-                implementation(libs.sqldelight.runtime)
-                implementation(libs.sqldelight.coroutines)
                 implementation(libs.networknt.json.schema)
                 implementation(libs.swagger.parser.get().toString()) {
                     exclude(group = "io.swagger.parser.v3", module = "swagger-parser-v2-converter")

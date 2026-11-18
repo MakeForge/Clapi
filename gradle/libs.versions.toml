@@ -6,7 +6,6 @@ coroutines = "1.10.2"
 serialization = "1.8.1"
 datetime = "0.6.2"
 koin = "4.0.2"
-sqldelight = "2.0.2"
 javet = "6.0.3"
 networknt = "3.0.9"
 kaml = "0.104.0"
@@ -51,8 +50,6 @@ junit4 = { module = "junit:junit", version = "4.13.2" }
 
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 
-sqldelight-runtime = { module = "app.cash.sqldelight:runtime", version.ref = "sqldelight" }
-sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
 
 networknt-json-schema = { module = "com.networknt:json-schema-validator", version.ref = "networknt" }
 kaml = { module = "com.charleskorn.kaml:kaml", version.ref = "kaml" }

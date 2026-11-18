@@ -26,7 +26,6 @@ For exact library coordinates, pinned versions, and build plugins, refer to the 
 | **Ktor Client** | Apache-2.0 | [ktorio/ktor](https://github.com/ktorio/ktor) | Network engine, HTTP, WebSockets, OAuth2 |
 | **KSafe** | Apache-2.0 | [ioannisa/ksafe](https://github.com/ioannisa/ksafe) | Hardware-accelerated local AES-256-GCM encryption |
 | **Koin** | Apache-2.0 | [InsertKoinIO/koin](https://github.com/InsertKoinIO/koin) | Dependency injection framework |
-| **SQLDelight** | Apache-2.0 | [cashapp/sqldelight](https://github.com/cashapp/sqldelight) | Type-safe embedded SQLite persistence |
 | **Javet** | Apache-2.0 | [caoccao/Javet](https://github.com/caoccao/Javet) | Embedded Google V8 JavaScript engine for scripts |
 | **gRPC Java** | Apache-2.0 | [grpc/grpc-java](https://github.com/grpc/grpc-java) | gRPC HTTP/2 transport & reflection client |
 | **Protocol Buffers** | BSD-3-Clause | [protocolbuffers/protobuf](https://github.com/protocolbuffers/protobuf) | Protobuf schema compilation & JSON mapping |
