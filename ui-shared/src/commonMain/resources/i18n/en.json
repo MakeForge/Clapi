@@ -518,5 +518,12 @@
   "type_number": "Number",
   "type_boolean": "Boolean",
   "type_object": "Object",
-  "read_only": "Read-only"
+  "read_only": "Read-only",
+  "mcp_server": "MCP Server",
+  "mcp_server_enable": "Enable Embedded MCP Server",
+  "mcp_server_enable_desc": "Expose Clapi collections, environments, and request execution locally over HTTP (127.0.0.1) for AI agents.",
+  "mcp_server_port": "Localhost Port (127.0.0.1)",
+  "mcp_server_running": "Running on",
+  "mcp_server_stopped": "Server Stopped",
+  "mcp_server_client_config": "MCP Client Configuration"
 }

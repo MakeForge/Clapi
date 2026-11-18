@@ -35,7 +35,7 @@ features:
     link: /security/ksafe-encryption
   - title: ⚡ Scripting Support
     details: Write pre-request scripts, dynamic variables and post-response assertions powered by an isolated V8 JS runtime with full Chai-compatible assertions.
-    link: /scripting/pre-request
+    link: /automation/pre-request
   - title: 🔒 Zero Telemetry or Sign-In Required
     details: Absolute privacy. No background telemetry and no analytics SDKs. All collections and secrets remain strictly on your local disk with ability to work 100% offline.
     link: /security/zero-telemetry

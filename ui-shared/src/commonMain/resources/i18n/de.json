@@ -432,5 +432,12 @@
   "type_number": "Number",
   "type_boolean": "Boolean",
   "type_object": "Objekt",
-  "read_only": "Schreibgeschützt"
+  "read_only": "Schreibgeschützt",
+  "mcp_server": "MCP-Server",
+  "mcp_server_enable": "Eingebetteten MCP-Server aktivieren",
+  "mcp_server_enable_desc": "Stellt Clapi-Sammlungen, Umgebungen und Anfrageausführung lokal über HTTP (127.0.0.1) für KI-Agenten bereit.",
+  "mcp_server_port": "Localhost-Port (127.0.0.1)",
+  "mcp_server_running": "Läuft auf",
+  "mcp_server_stopped": "Server gestoppt",
+  "mcp_server_client_config": "MCP-Client-Konfiguration"
 }

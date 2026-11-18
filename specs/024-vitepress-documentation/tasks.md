@@ -142,10 +142,10 @@ description: "Task list for Production VitePress Documentation Site implementati
 - [X] T056 [US4] Author Variable Scopes, Interpolation Syntax & Dynamic Variables guide in `docs/environments/variables.md`
 - [X] T057 [P] [US4] Author Environments & Fast Switching guide in `docs/environments/environments.md`
 - [X] T058 [US4] Author External Secret Managers guide (KeePassXC, AWS Secrets Manager, Azure Key Vault, GCP, Keeper) with KSafe encryption guarantees in `docs/environments/secret-managers.md`
-- [X] T059 [US4] Author Javet V8 Embedded JavaScript Engine Architecture & Sandbox Security guide in `docs/scripting/engine-architecture.md`
-- [X] T060 [P] [US4] Author Pre-Request Scripting Guide in `docs/scripting/pre-request.md`
-- [X] T061 [P] [US4] Author Post-Response Testing & Assertions Guide in `docs/scripting/post-response-tests.md`
-- [X] T062 [US4] Author Complete `clapi.*` Scripting API & Assertion Reference with Chai chaining examples in `docs/scripting/api-reference.md`
+- [X] T059 [US4] Author Javet V8 Embedded JavaScript Engine Architecture & Sandbox Security guide in `../../docs/automation`
+- [X] T060 [P] [US4] Author Pre-Request Scripting Guide in `../../docs/automation`
+- [X] T061 [P] [US4] Author Post-Response Testing & Assertions Guide in `../../docs/automation`
+- [X] T062 [US4] Author Complete `clapi.*` Scripting API & Assertion Reference with Chai chaining examples in `../../docs/automation`
 
 **Checkpoint**: Advanced scripting, environment hierarchies, and external secret vault integrations are fully documented
 

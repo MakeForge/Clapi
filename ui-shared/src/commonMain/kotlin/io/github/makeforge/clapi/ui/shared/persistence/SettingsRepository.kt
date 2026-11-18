@@ -135,6 +135,10 @@ object SettingsRepository {
 
         // Secrets Manager (Keeper Security Cloud)
         settings.keeperConfigJson   = PlatformStorage.getSecretString(PREFIX + "keeperConfig") ?: settings.keeperConfigJson
+
+        // Embedded MCP Server
+        settings.mcpServerEnabled   = getBool("mcpServerEnabled", settings.mcpServerEnabled)
+        settings.mcpServerPort      = getInt("mcpServerPort", settings.mcpServerPort).coerceIn(1, 65535)
     }
 
     // ── Save ───────────────────────────────────────────────────────────────
@@ -199,6 +203,10 @@ object SettingsRepository {
         } else {
             PlatformStorage.remove(PREFIX + "keeperConfig")
         }
+
+        // Embedded MCP Server
+        putBool("mcpServerEnabled", settings.mcpServerEnabled)
+        putInt("mcpServerPort", settings.mcpServerPort.coerceIn(1, 65535))
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────

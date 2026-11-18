@@ -55,12 +55,13 @@ export default defineConfig({
       {
         text: 'Automation',
         items: [
-          { text: 'V8 Scripting Engine', link: '/scripting/engine-architecture' },
-          { text: 'Pre-Request Scripting', link: '/scripting/pre-request' },
-          { text: 'Post-Response Assertions', link: '/scripting/post-response-tests' },
-          { text: 'Scripting API Reference', link: '/scripting/api-reference' }
+          { text: 'V8 Scripting Engine', link: '/automation/engine-architecture' },
+          { text: 'Pre-Request Scripting', link: '/automation/pre-request' },
+          { text: 'Post-Response Assertions', link: '/automation/post-response-tests' },
+          { text: 'Scripting API Reference', link: '/automation/api-reference' },
+          { text: 'MCP Server', link: '/automation/mcp-server' }
         ],
-        activeMatch: '/scripting/'
+        activeMatch: '/automation/'
       },
       {
         text: 'Settings',
@@ -247,14 +248,15 @@ export default defineConfig({
           ]
         }
       ],
-      '/scripting/': [
+      '/automation/': [
         {
           text: 'Automation',
           items: [
-            { text: 'V8 Engine Architecture', link: '/scripting/engine-architecture' },
-            { text: 'Pre-Request Scripting', link: '/scripting/pre-request' },
-            { text: 'Post-Response Assertions', link: '/scripting/post-response-tests' },
-            { text: 'Scripting API Reference', link: '/scripting/api-reference' }
+            { text: 'V8 Engine Architecture', link: '/automation/engine-architecture' },
+            { text: 'Pre-Request Scripting', link: '/automation/pre-request' },
+            { text: 'Post-Response Assertions', link: '/automation/post-response-tests' },
+            { text: 'Scripting API Reference', link: '/automation/api-reference' },
+            { text: 'MCP Server', link: '/automation/mcp-server' }
           ]
         }
       ],

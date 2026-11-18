@@ -110,6 +110,7 @@ kotlin {
             api(project(":editor-ui"))
             api(project(":core-network"))
             api(project(":core-storage"))
+            api(project(":mcp-server"))
             implementation(project(":core-scripting"))
             implementation(libs.coroutines.core)
             implementation(libs.serialization.json)

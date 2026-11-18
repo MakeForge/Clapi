@@ -16,6 +16,7 @@ import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import io.github.makeforge.clapi.core.storage.opencollection.DefaultCanonicalCollectionRepository
+import io.github.makeforge.clapi.mcp.server.transport.StdioMcpServerRunner
 import io.github.makeforge.clapi.ui.shared.MainScreen
 import io.github.makeforge.clapi.ui.shared.persistence.SettingsRepository
 import io.github.makeforge.clapi.ui.shared.persistence.TabsRepository
@@ -33,10 +34,13 @@ import kotlinx.coroutines.runBlocking
  * used by the packaging task to catch stale or incomplete fat-JAR contents.
  */
 fun main(args: Array<String>) {
+    if ("--mcp" in args) {
+        StdioMcpServerRunner.runFromCli(args)
+        return
+    }
+
     // Initialize persistent workspace repository with the configured or default app directory.
-    val storageDir = System.getProperty("clapi.dir")?.takeIf { it.isNotBlank() }
-        ?: System.getenv("CLAPI_DIR")?.takeIf { it.isNotBlank() }
-        ?: (System.getProperty("user.home") + "/.clapi")
+    val storageDir = StdioMcpServerRunner.resolveStorageDirectory(args)
     File(storageDir).mkdirs()
     WorkspaceRepository.canonicalRepository = DefaultCanonicalCollectionRepository(baseDirectory = storageDir)
 
@@ -67,6 +71,8 @@ fun main(args: Array<String>) {
             it.sidebarSearchQuery = ""
             // Link restored tabs to sidebar: highlight + expand ancestors
             it.syncSidebarToActiveTab()
+            // Start embedded MCP server if enabled in settings
+            it.embeddedMcpServerController.applySettings()
         }
     }
 
