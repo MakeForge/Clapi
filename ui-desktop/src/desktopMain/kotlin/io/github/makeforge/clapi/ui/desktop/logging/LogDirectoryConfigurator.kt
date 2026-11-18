@@ -22,10 +22,7 @@ object LogDirectoryConfigurator {
         val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             runCatching {
-                AppLogging.logger("CrashHandler").error(throwable) {
-                    "Uncaught fatal exception on thread '${thread.name}': ${throwable.message}"
-                }
-                ProviderRegistry.getLoggingProvider().shutdown()
+                GlobalCrashHandler.handleException(throwable, thread.name)
             }
             previousHandler?.uncaughtException(thread, throwable)
         }

@@ -455,7 +455,7 @@ git push origin v1.19.0
 
 ## Project Architecture
 
-See [`docs/reference/architecture.md`](docs/reference/architecture.md) for a full write-up. Key rules:
+See [`docs/settings/architecture.md`](docs/settings/architecture.md) for a full write-up. Key rules:
 
 - The **UI launcher** (`ui-desktop`) depends on **ui-shared** only.
 - **ui-shared** depends on **feature modules** and **core modules**.

@@ -1,22 +1,26 @@
 package io.github.makeforge.clapi.ui.desktop
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.Alignment
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.LocalWindowExceptionHandlerFactory
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowExceptionHandler
+import androidx.compose.ui.window.WindowExceptionHandlerFactory
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import io.github.makeforge.clapi.core.storage.opencollection.DefaultCanonicalCollectionRepository
 import io.github.makeforge.clapi.mcp.server.transport.StdioMcpServerRunner
+import io.github.makeforge.clapi.ui.desktop.logging.GlobalCrashHandler
 import io.github.makeforge.clapi.ui.desktop.logging.LogDirectoryConfigurator
 import io.github.makeforge.clapi.ui.desktop.logging.UiLogDispatcher
 import io.github.makeforge.clapi.ui.shared.MainScreen
@@ -25,8 +29,11 @@ import io.github.makeforge.clapi.ui.shared.persistence.TabsRepository
 import io.github.makeforge.clapi.ui.shared.persistence.WorkspaceRepository
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.theme.ClapiTheme
+import java.awt.Window as AwtWindow
 import java.io.File
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 /**
  * Starts Clapi, or runs the headless packaged-runtime shutdown smoke test.
@@ -35,6 +42,7 @@ import kotlinx.coroutines.runBlocking
  * path used during desktop shutdown without opening a Compose window. It is
  * used by the packaging task to catch stale or incomplete fat-JAR contents.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 fun main(args: Array<String>) {
     LogDirectoryConfigurator.configure(args)
 
@@ -96,20 +104,39 @@ fun main(args: Array<String>) {
         }
     }
 
-    Window(
-        onCloseRequest = { exitPending = true },
-        // Prevent a second close event from launching a duplicate save coroutine.
-        // The window stays visible briefly while the LaunchedEffect finishes.
-        icon = painterResource("icons/clapi-icon-64.png"),
-        title = "Clapi",
-        state = rememberWindowState(
-            size = DpSize(1400.dp, 900.dp),
-            position = WindowPosition.Aligned(Alignment.Center),
-        ),
-        onPreviewKeyEvent = { false },
+    val windowExceptionHandlerFactory = remember {
+        object : WindowExceptionHandlerFactory {
+            override fun exceptionHandler(window: AwtWindow): WindowExceptionHandler {
+                return WindowExceptionHandler { throwable ->
+                    GlobalCrashHandler.handleException(throwable, Thread.currentThread().name, window)
+                }
+            }
+        }
+    }
+
+    CompositionLocalProvider(
+        LocalWindowExceptionHandlerFactory provides windowExceptionHandlerFactory,
     ) {
-        ClapiTheme(appTheme = state.settings.theme, language = state.settings.language) {
-            MainScreen(state)
+        Window(
+            onCloseRequest = { exitPending = true },
+            // Prevent a second close event from launching a duplicate save coroutine.
+            // The window stays visible briefly while the LaunchedEffect finishes.
+            icon = painterResource("icons/clapi-icon-64.png"),
+            title = "Clapi",
+            state = rememberWindowState(
+                size = DpSize(1400.dp, 900.dp),
+                position = WindowPosition.Aligned(Alignment.Center),
+            ),
+            onPreviewKeyEvent = { false },
+        ) {
+            LaunchedEffect(state.settings.theme, state.settings.language) {
+                GlobalCrashHandler.currentTheme = state.settings.theme
+                GlobalCrashHandler.currentLanguage = state.settings.language
+            }
+
+            ClapiTheme(appTheme = state.settings.theme, language = state.settings.language) {
+                MainScreen(state)
+            }
         }
     }
     }
