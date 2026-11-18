@@ -120,7 +120,7 @@
 **Purpose**: Cleanup, documentation, and end-to-end scenario validation.
 
 - [X] T025 [P] Remove unused `ktor-client-logging` dependencies from `gradle/libs.versions.toml`, `core-network/build.gradle.kts`, and `ui-shared/build.gradle.kts`
-- [X] T026 [P] Update architecture documentation in `docs/reference/architecture.md` describing the asynchronous Tinylog + SLF4J logging architecture, rolling file policies, and UI integration
+- [X] T026 [P] Update architecture documentation in `../../docs/settings/architecture.md` describing the asynchronous Tinylog + SLF4J logging architecture, rolling file policies, and UI integration
 - [X] T027 Execute all validation scenarios from `specs/030-async-file-logging/quickstart.md` to confirm end-to-end functionality
 
 ---

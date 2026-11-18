@@ -180,7 +180,7 @@ If an active environment defines a dynamic variable with the same name as a coll
 
 ### OpenCollection JSON & YAML Format
 
-Dynamic variables are persisted natively in OpenCollection JSON and YAML files with their return data type (`type: string | number | boolean | object`) and `script`, making them first-class citizens in [Git Sync Collaboration](/collaboration/git-sync-overview) and workspace exports:
+Dynamic variables are persisted natively in OpenCollection JSON and YAML files with their return data type (`type: string | number | boolean | object`) and `script`, making them first-class citizens in [Git Sync Collaboration](/organization/git-sync-overview) and workspace exports:
 
 ```yaml
 environments:

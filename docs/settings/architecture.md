@@ -44,3 +44,13 @@ Clapi utilizes observable state holders without Android lifecycles:
 - **`AppState`**: Root observable state managing active tabs, loaded collections, active environment, and dialog states.
 - **`RequestTabState`**: Encapsulates the complete mutable state of an individual tab (method, URL, headers, body, auth, and response snapshot).
 - **`WorkspaceRepository`**: Persists tab state, open collections, and window dimensions to disk upon workspace modification.
+
+## Asynchronous Logging Subsystem
+
+Clapi uses an asynchronous, zero-UI-blocking logging architecture powered by **Tinylog 2** and **SLF4J / `kotlin-logging`**:
+
+1. **Non-Blocking Execution**: Log calls from the UI, Ktor client, and coroutine dispatchers deposit lightweight records into a lock-free queue and return immediately (<0.05 ms). A dedicated background writing thread (`writingthread = true`, `priority = 1`) handles all disk formatting, file writes, and UI batching.
+2. **Persistent Rolling File & Retention**: Logs are stored in `<storageDir>/logs/clapi.log` (rotating daily or at 10 MB, retaining 5 compressed `.gz` historical archives).
+3. **Crash Capture**: An uncaught exception handler intercepts unhandled JVM errors and flushes complete stack traces to disk before termination.
+4. **Headless Stdio Protocol Safety**: When running with `--mcp`, console logs route strictly to `stderr` (`writer1.stream = err`), ensuring `stdout` remains clean for newline-delimited JSON-RPC 2.0 frames.
+5. **In-App UI Diagnostics Console**: A custom `org.tinylog.writers.Writer` (`UiDiagnosticsLogWriter`) forwards entries from the background writing thread to `DiagnosticsLogState` on `Dispatchers.Main` with batching, accompanied by a one-click "Open Log Folder" button in the diagnostics panel toolbar.

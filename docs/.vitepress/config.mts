@@ -20,7 +20,6 @@ export default defineConfig({
       {
         text: 'Getting Started',
         items: [
-          { text: 'Overview', link: '/guide/' },
           { text: 'Installation', link: '/guide/installation' },
           { text: 'Quickstart', link: '/guide/quickstart' },
           { text: 'Migrating to Clapi', link: '/guide/migrate-to-clapi' },
@@ -43,14 +42,33 @@ export default defineConfig({
       {
         text: 'Organization',
         items: [
-          { text: 'Collections & Folders', link: '/workspaces/collections' },
-          { text: 'Request Defaults', link: '/workspaces/folders-and-inheritance' },
-          { text: 'Variables & Environments', link: '/environments/variables' },
-          { text: 'Dynamic Variables', link: '/environments/dynamic-variables' },
-          { text: 'Secret Managers', link: '/environments/secret-managers' },
-          { text: 'Git Sync Collaboration', link: '/collaboration/git-sync-overview' }
+          {
+            text: 'Workspace',
+            items: [
+              { text: 'Collections & Folders', link: '/organization/workspace/collections' },
+              { text: 'Request Defaults', link: '/organization/workspace/request-defaults' },
+              { text: 'Protobuf Settings', link: '/organization/workspace/protobuf-settings' }
+            ]
+          },
+          {
+            text: 'Variables & Environments',
+            items: [
+              { text: 'Variables', link: '/organization/environments/variables' },
+              { text: 'Dynamic Variables', link: '/organization/environments/dynamic-variables' },
+              { text: 'Environments', link: '/organization/environments/environments' },
+              { text: 'Secret Managers', link: '/organization/environments/secret-managers' }
+            ]
+          },
+          {
+            text: 'Git Collaboration',
+            items: [
+              { text: 'Git Sync Collaboration', link: '/organization/collaboration/git-sync-overview' },
+              { text: 'In-App Git Operations', link: '/organization/collaboration/git-operations' },
+              { text: 'Team Workflows & PRs', link: '/organization/collaboration/team-workflows' }
+            ]
+          }
         ],
-        activeMatch: '/(workspaces|environments|collaboration)/'
+        activeMatch: '/organization/'
       },
       {
         text: 'Automation',
@@ -66,21 +84,21 @@ export default defineConfig({
       {
         text: 'Settings',
         items: [
-          { text: 'Keyboard Shortcuts', link: '/reference/shortcuts' },
-          { text: 'Import & Export', link: '/import-export/import' },
-          { text: 'Settings & Proxy', link: '/reference/settings' },
-          { text: 'Encrypted Credentials', link: '/security/ksafe-encryption' }
+          { text: 'Keyboard Shortcuts', link: '/settings/shortcuts' },
+          { text: 'Settings & Proxy', link: '/settings/settings' },
+          { text: 'Import & Export', link: '/settings/import-export/import' },
         ],
-        activeMatch: '/(reference|import-export|security/ksafe-encryption)/'
+        activeMatch: '/settings/'
       },
       {
         text: 'About',
         items: [
-          { text: 'SBOM & Vulnerability Audits', link: '/security/sbom-vulnerabilities' },
-          { text: 'Zero Telemetry Guarantee', link: '/security/zero-telemetry' },
-          { text: 'Open Source Libraries', link: '/security/external-libraries' }
+          { text: 'SBOM & Vulnerability Audits', link: '/about/sbom-vulnerabilities' },
+          { text: 'Zero Telemetry Guarantee', link: '/about/zero-telemetry' },
+          { text: 'Open Source Libraries', link: '/about/external-libraries' },
+          { text: 'Encrypted Credentials', link: '/about/encrypted-credentials' }
         ],
-        activeMatch: '/security/(sbom-vulnerabilities|zero-telemetry|external-libraries)'
+        activeMatch: '/about/'
       }
     ],
 
@@ -89,7 +107,6 @@ export default defineConfig({
         {
           text: 'Getting Started',
           items: [
-            { text: 'Overview', link: '/guide/' },
             { text: 'Installation', link: '/guide/installation' },
             { text: 'Quickstart', link: '/guide/quickstart' },
             { text: 'Migrating to Clapi', link: '/guide/migrate-to-clapi' },
@@ -167,84 +184,30 @@ export default defineConfig({
           ]
         }
       ],
-      '/workspaces/': [
+      '/organization/': [
         {
           text: 'Workspace',
           items: [
-            { text: 'Collections & Folders', link: '/workspaces/collections' },
-            { text: 'Request Defaults', link: '/workspaces/folders-and-inheritance' },
-            { text: 'Protobuf Settings', link: '/workspaces/protobuf-settings' }
+            { text: 'Collections & Folders', link: '/organization/workspace/collections' },
+            { text: 'Request Defaults', link: '/organization/workspace/request-defaults' },
+            { text: 'Protobuf Settings', link: '/organization/workspace/protobuf-settings' }
           ]
         },
         {
           text: 'Variables & Environments',
           items: [
-            { text: 'Variables', link: '/environments/variables' },
-            { text: 'Dynamic Variables', link: '/environments/dynamic-variables' },
-            { text: 'Environments', link: '/environments/environments' },
-            { text: 'Secret Managers', link: '/environments/secret-managers' }
+            { text: 'Variables', link: '/organization/environments/variables' },
+            { text: 'Dynamic Variables', link: '/organization/environments/dynamic-variables' },
+            { text: 'Environments', link: '/organization/environments/environments' },
+            { text: 'Secret Managers', link: '/organization/environments/secret-managers' }
           ]
         },
         {
           text: 'Git Collaboration',
           items: [
-            { text: 'Git Sync Collaboration', link: '/collaboration/git-sync-overview' },
-            { text: 'In-App Git Operations', link: '/collaboration/git-operations' },
-            { text: 'Team Workflows & PRs', link: '/collaboration/team-workflows' }
-          ]
-        }
-      ],
-      '/environments/': [
-        {
-          text: 'Workspace',
-          items: [
-            { text: 'Collections & Folders', link: '/workspaces/collections' },
-            { text: 'Request Defaults', link: '/workspaces/folders-and-inheritance' },
-            { text: 'Protobuf Settings', link: '/workspaces/protobuf-settings' }
-          ]
-        },
-        {
-          text: 'Variables & Environments',
-          items: [
-            { text: 'Variables', link: '/environments/variables' },
-            { text: 'Dynamic Variables', link: '/environments/dynamic-variables' },
-            { text: 'Environments', link: '/environments/environments' },
-            { text: 'Secret Managers', link: '/environments/secret-managers' }
-          ]
-        },
-        {
-          text: 'Git Collaboration',
-          items: [
-            { text: 'Git Sync Collaboration', link: '/collaboration/git-sync-overview' },
-            { text: 'In-App Git Operations', link: '/collaboration/git-operations' },
-            { text: 'Team Workflows & PRs', link: '/collaboration/team-workflows' }
-          ]
-        }
-      ],
-      '/collaboration/': [
-        {
-          text: 'Workspace',
-          items: [
-            { text: 'Collections & Folders', link: '/workspaces/collections' },
-            { text: 'Request Defaults', link: '/workspaces/folders-and-inheritance' },
-            { text: 'Protobuf Settings', link: '/workspaces/protobuf-settings' }
-          ]
-        },
-        {
-          text: 'Variables & Environments',
-          items: [
-            { text: 'Variables', link: '/environments/variables' },
-            { text: 'Dynamic Variables', link: '/environments/dynamic-variables' },
-            { text: 'Environments', link: '/environments/environments' },
-            { text: 'Secret Managers', link: '/environments/secret-managers' }
-          ]
-        },
-        {
-          text: 'Git Collaboration',
-          items: [
-            { text: 'Git Sync Collaboration', link: '/collaboration/git-sync-overview' },
-            { text: 'In-App Git Operations', link: '/collaboration/git-operations' },
-            { text: 'Team Workflows & PRs', link: '/collaboration/team-workflows' }
+            { text: 'Git Sync Collaboration', link: '/organization/collaboration/git-sync-overview' },
+            { text: 'In-App Git Operations', link: '/organization/collaboration/git-operations' },
+            { text: 'Team Workflows & PRs', link: '/organization/collaboration/team-workflows' }
           ]
         }
       ],
@@ -260,52 +223,32 @@ export default defineConfig({
           ]
         }
       ],
-      '/reference/': [
+      '/settings/': [
         {
           text: 'Settings',
           items: [
-            { text: 'Keyboard Shortcuts', link: '/reference/shortcuts' },
-            { text: 'Settings & Proxy', link: '/reference/settings' },
-            { text: 'Encrypted Credentials', link: '/security/ksafe-encryption' },
-            { text: 'Architecture Deep Dive', link: '/reference/architecture' },
-            { text: 'Testing Reference', link: '/reference/testing' }
+            { text: 'Keyboard Shortcuts', link: '/settings/shortcuts' },
+            { text: 'Settings & Proxy', link: '/settings/settings' },
+            { text: 'Encrypted Credentials', link: '/about/encrypted-credentials' },
+            { text: 'Architecture Deep Dive', link: '/settings/architecture' }
           ]
         },
         {
           text: 'Import & Export',
           items: [
-            { text: 'Importing Specifications', link: '/import-export/import' },
-            { text: 'Exporting Workspaces', link: '/import-export/export' }
+            { text: 'Importing Specifications', link: '/settings/import-export/import' },
+            { text: 'Exporting Workspaces', link: '/settings/import-export/export' }
           ]
         }
       ],
-      '/import-export/': [
-        {
-          text: 'Settings',
-          items: [
-            { text: 'Keyboard Shortcuts', link: '/reference/shortcuts' },
-            { text: 'Settings & Proxy', link: '/reference/settings' },
-            { text: 'Encrypted Credentials', link: '/security/ksafe-encryption' },
-            { text: 'Architecture Deep Dive', link: '/reference/architecture' },
-            { text: 'Testing Reference', link: '/reference/testing' }
-          ]
-        },
-        {
-          text: 'Import & Export',
-          items: [
-            { text: 'Importing Specifications', link: '/import-export/import' },
-            { text: 'Exporting Workspaces', link: '/import-export/export' }
-          ]
-        }
-      ],
-      '/security/': [
+      '/about/': [
         {
           text: 'About',
           items: [
-            { text: 'SBOM & Vulnerability Audits', link: '/security/sbom-vulnerabilities' },
-            { text: 'Zero Telemetry Guarantee', link: '/security/zero-telemetry' },
-            { text: 'Open Source Libraries', link: '/security/external-libraries' },
-            { text: 'Encrypted Credentials', link: '/security/ksafe-encryption' }
+            { text: 'SBOM & Vulnerability Audits', link: '/about/sbom-vulnerabilities' },
+            { text: 'Zero Telemetry Guarantee', link: '/about/zero-telemetry' },
+            { text: 'Open Source Libraries', link: '/about/external-libraries' },
+            { text: 'Encrypted Credentials', link: '/about/encrypted-credentials' }
           ]
         }
       ]
