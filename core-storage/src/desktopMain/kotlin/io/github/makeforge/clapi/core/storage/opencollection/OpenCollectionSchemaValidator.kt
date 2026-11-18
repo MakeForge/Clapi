@@ -6,7 +6,7 @@ import com.networknt.schema.SchemaRegistry
 import com.networknt.schema.SpecificationVersion
 
 actual class OpenCollectionSchemaValidator actual constructor() {
-    private val schema: Schema = run {
+    private val schema: Schema by lazy {
         val stream = OpenCollectionSchemaValidator::class.java.getResourceAsStream("/opencollection/opencollection_v1.0.0.json")
             ?: error("Embedded OpenCollection v1.0.0 schema resource not found at /opencollection/opencollection_v1.0.0.json")
         val registry = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_7)

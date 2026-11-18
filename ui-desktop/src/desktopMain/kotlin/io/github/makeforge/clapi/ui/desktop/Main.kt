@@ -31,7 +31,9 @@ import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.theme.ClapiTheme
 import java.awt.Window as AwtWindow
 import java.io.File
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
@@ -56,6 +58,11 @@ fun main(args: Array<String>) {
     File(storageDir).mkdirs()
     WorkspaceRepository.canonicalRepository = DefaultCanonicalCollectionRepository(baseDirectory = storageDir)
 
+    // Preload workspace in the background while Compose/Skiko initializes the window.
+    CoroutineScope(Dispatchers.IO).launch {
+        WorkspaceRepository.canonicalRepository.loadGlobalCollection()
+    }
+
     if ("--shutdown-smoke-test" in args) {
         runBlocking {
             AppState(openDefaultTab = false).disposeAndAwait()
@@ -69,7 +76,9 @@ fun main(args: Array<String>) {
 
     // Set the dock/taskbar icon from the classpath so that `java -jar Clapi.jar`
     // shows the correct icon on all OSes without extra JVM flags.
-    applyAppIcon()
+    kotlin.concurrent.thread(name = "AppIconLoader", isDaemon = true) {
+        applyAppIcon()
+    }
 
     application {
     val state = remember {
