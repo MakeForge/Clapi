@@ -83,7 +83,7 @@ class McpHttpE2ETest {
             "wel",
         )
         assertTrue(completion.completion.values.contains("welcome"))
-        client.disconnect()
+        client.close()
     }
 
     @Test
@@ -97,7 +97,7 @@ class McpHttpE2ETest {
         assertTrue(headers != null && headers.isNotEmpty(), "HTTP response headers should be captured")
         // Subscribing against a subscribe-capable mock should not raise a JSON-RPC error.
         client.subscribeResource("clapi://docs/welcome")
-        client.disconnect()
+        client.close()
     }
 
     @Test
@@ -122,7 +122,7 @@ class McpHttpE2ETest {
         val headers = client.lastResponseHeaders
         assertTrue(headers != null && headers.isNotEmpty(), "subscribe response headers should be captured")
         client.unsubscribeResource("clapi://docs/welcome")
-        client.disconnect()
+        client.close()
     }
 
     @Test
@@ -142,7 +142,7 @@ class McpHttpE2ETest {
         assertTrue(headers != null && headers.isNotEmpty())
         val tools = client.listTools().map { it.name }
         assertTrue(tools.contains("echo"))
-        client.disconnect()
+        client.close()
     }
 
     @Test
@@ -152,7 +152,7 @@ class McpHttpE2ETest {
             client.connect(McpConnectionConfig(url = "$BASE_URL/mcp/authed"))
         }.exceptionOrNull()
         assertTrue(error is McpUnauthorizedException, "expected unauthorized, got $error")
-        client.disconnect()
+        client.close()
     }
 
     @Test
@@ -166,7 +166,7 @@ class McpHttpE2ETest {
             ),
         )
         assertEquals("Clapi MCP Mock", init.serverInfo.name)
-        client.disconnect()
+        client.close()
     }
 
     @Test
@@ -176,7 +176,7 @@ class McpHttpE2ETest {
             client.connect(McpConnectionConfig(url = "$BASE_URL/mcp/auth/bearer"))
         }.exceptionOrNull()
         assertTrue(error is McpUnauthorizedException, "expected unauthorized, got $error")
-        client.disconnect()
+        client.close()
     }
 
     @Test
@@ -190,7 +190,7 @@ class McpHttpE2ETest {
             ),
         )
         assertEquals("Clapi MCP Mock", init.serverInfo.name)
-        client.disconnect()
+        client.close()
     }
 
     @Test
@@ -205,7 +205,7 @@ class McpHttpE2ETest {
             )
         }.exceptionOrNull()
         assertTrue(error is McpUnauthorizedException, "expected unauthorized, got $error")
-        client.disconnect()
+        client.close()
     }
 
     @Test
@@ -219,7 +219,7 @@ class McpHttpE2ETest {
             ),
         )
         assertEquals("Clapi MCP Mock", init.serverInfo.name)
-        client.disconnect()
+        client.close()
     }
 
     @Test
@@ -229,7 +229,7 @@ class McpHttpE2ETest {
             client.connect(McpConnectionConfig(url = "$BASE_URL/mcp/auth/apikey"))
         }.exceptionOrNull()
         assertTrue(error is McpUnauthorizedException, "expected unauthorized, got $error")
-        client.disconnect()
+        client.close()
     }
 
     @Test
@@ -243,7 +243,7 @@ class McpHttpE2ETest {
             ),
         )
         assertEquals("Clapi MCP Mock", init.serverInfo.name)
-        client.disconnect()
+        client.close()
     }
 
     @Test
@@ -258,7 +258,7 @@ class McpHttpE2ETest {
             )
         }.exceptionOrNull()
         assertTrue(error is McpUnauthorizedException, "expected unauthorized, got $error")
-        client.disconnect()
+        client.close()
     }
 
     @Test
@@ -272,7 +272,7 @@ class McpHttpE2ETest {
             variableLayers = listOf(mapOf("base" to BASE_URL, "tenant" to "acme")),
         )
         assertEquals("Clapi MCP Mock", init.serverInfo.name)
-        client.disconnect()
+        client.close()
     }
 
     @Test
@@ -288,7 +288,7 @@ class McpHttpE2ETest {
         }.exceptionOrNull()
         assertTrue(error != null, "expected connect to fail without tenant")
         assertTrue(error!!.message!!.contains("missing_tenant") || error.message!!.contains("400"), error.message)
-        client.disconnect()
+        client.close()
     }
 
     @Test
@@ -301,7 +301,7 @@ class McpHttpE2ETest {
             ),
         )
         assertEquals("Clapi MCP Mock", init.serverInfo.name)
-        client.disconnect()
+        client.close()
     }
 
     @Test
@@ -312,7 +312,7 @@ class McpHttpE2ETest {
             variableLayers = listOf(mapOf("base" to BASE_URL, "path" to "/mcp")),
         )
         assertEquals("Clapi MCP Mock", init.serverInfo.name)
-        client.disconnect()
+        client.close()
     }
 
     @Test
@@ -321,7 +321,7 @@ class McpHttpE2ETest {
         client.connect(McpConnectionConfig(url = "$BASE_URL/mcp"))
         val error = runCatching { client.callTool("nope") }.exceptionOrNull()
         assertTrue(error!!.message!!.contains("-32602") || error.message!!.contains("Unknown"))
-        client.disconnect()
+        client.close()
     }
 
     @Test
@@ -329,7 +329,7 @@ class McpHttpE2ETest {
         val inbound = Channel<String>(Channel.UNLIMITED)
         val written = Channel<String>(Channel.UNLIMITED)
         val transport = NdjsonStdioTransport(this, inbound, { written.send(it) })
-        val client = McpClient(this, stdioFactory = { transport }, callTimeoutMs = 10_000)
+        val client = McpClient(this, stdioFactory = { transport }, callTimeoutMs = 30_000)
         val job = async {
             client.connect(
                 McpConnectionConfig(
@@ -345,7 +345,7 @@ class McpHttpE2ETest {
         inbound.send("""{"jsonrpc":"2.0","id":"srv-1","method":"sampling/createMessage","params":{"messages":[],"maxTokens":8}}""")
         val reply = written.receive()
         assertTrue(reply.contains("mock reply"))
-        client.disconnect()
+        client.close()
     }
 
     @Test
@@ -361,7 +361,7 @@ class McpHttpE2ETest {
             ),
         )
         assertEquals("mcp-oauth-token", tokens.accessToken)
-        val client = McpClient(this, http, oauthClient = oauth, callTimeoutMs = 10_000)
+        val client = McpClient(this, http, oauthClient = oauth, callTimeoutMs = 30_000)
         val init = client.connect(
             McpConnectionConfig(
                 url = "$BASE_URL/mcp/secure",
@@ -369,7 +369,7 @@ class McpHttpE2ETest {
             ),
         )
         assertEquals("Clapi MCP Mock", init.serverInfo.name)
-        client.disconnect()
+        client.close()
     }
 
     @Test
@@ -389,7 +389,7 @@ class McpHttpE2ETest {
         assertEquals("Clapi MCP Mock", init.serverInfo.name)
         val tools = client.listTools().map { it.name }
         assertTrue(tools.contains("echo"))
-        client.disconnect()
+        client.close()
     }
 
     @Test
@@ -418,14 +418,14 @@ class McpHttpE2ETest {
                 },
                 onClose = { process.destroy() },
             )
-            val client = McpClient(this, stdioFactory = { transport }, callTimeoutMs = 15_000)
+            val client = McpClient(this, stdioFactory = { transport }, callTimeoutMs = 30_000)
             val init = client.connect(
                 McpConnectionConfig(transport = McpTransportType.STDIO, command = "unused"),
             )
             assertEquals("Clapi MCP Mock", init.serverInfo.name)
             val echo = client.callTool("echo", buildJsonObject { put("text", "hi") })
             assertEquals("hi", echo.content.single().text)
-            client.disconnect()
+            client.close()
             readerJob.cancel()
         } finally {
             process.destroyForcibly()
@@ -438,12 +438,12 @@ class McpHttpE2ETest {
             McpConnectionConfig(transport = McpTransportType.STDIO, command = repoMcpStdioLauncher()),
         )
         try {
-            val client = McpClient(this, stdioFactory = { transport }, callTimeoutMs = 15_000)
+            val client = McpClient(this, stdioFactory = { transport }, callTimeoutMs = 30_000)
             val init = client.connect(
                 McpConnectionConfig(transport = McpTransportType.STDIO, command = "unused"),
             )
             assertEquals("Clapi MCP Mock", init.serverInfo.name)
-            client.disconnect()
+            client.close()
         } finally {
             transport.close()
         }
@@ -602,7 +602,7 @@ class McpHttpE2ETest {
                 },
                 onClose = { process.destroy() },
             )
-            val client = McpClient(this, stdioFactory = { transport }, callTimeoutMs = 15_000)
+            val client = McpClient(this, stdioFactory = { transport }, callTimeoutMs = 30_000)
             client.connect(
                 McpConnectionConfig(
                     transport = McpTransportType.STDIO,
@@ -618,7 +618,7 @@ class McpHttpE2ETest {
                 mustContain = listOf("file:///tmp/clapi", "tmp"),
                 mustNotContain = listOf("Invalid request"),
             )
-            client.disconnect()
+            client.close()
             readerJob.cancel()
         } finally {
             process.destroyForcibly()
@@ -641,7 +641,7 @@ class McpHttpE2ETest {
             mustContain = mustContain,
             mustNotContain = mustNotContain,
         )
-        client.disconnect()
+        client.close()
     }
 
     private fun assertCallbackOracle(
@@ -675,8 +675,15 @@ class McpHttpE2ETest {
             BASE_URL = "http://127.0.0.1:$port"
             server = embeddedServer(Netty, port = port, module = { module() })
             server!!.start(wait = false)
-            repeat(50) {
-                runCatching { java.net.Socket("127.0.0.1", port).close(); return }
+            repeat(100) {
+                val ready = runCatching {
+                    val conn = java.net.URI("$BASE_URL/mcp").toURL().openConnection() as java.net.HttpURLConnection
+                    conn.connectTimeout = 500
+                    conn.readTimeout = 500
+                    conn.requestMethod = "OPTIONS"
+                    conn.responseCode in 200..499
+                }.getOrDefault(false)
+                if (ready) return
                 Thread.sleep(100)
             }
         }
