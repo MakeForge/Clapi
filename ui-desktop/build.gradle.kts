@@ -163,6 +163,55 @@ tasks.matching { it.name == "createDistributable" || it.name == "createReleaseDi
 compose.desktop {
     application {
         mainClass = "io.github.makeforge.clapi.ui.desktop.MainKt"
+        // Baseline without any jvmArgs: 316MB
+        // # SerialGC: 230MB
+//        jvmArgs += listOf(
+//            "-Xms64m",
+//            "-Xmx256m",
+//            "-XX:+UseSerialGC",
+//            "-XX:MinHeapFreeRatio=10",
+//            "-XX:MaxHeapFreeRatio=20",
+//            "-Xss256k",
+//            "-XX:MaxMetaspaceSize=96m"
+//        )
+        // Generational ZGC: 245MB
+//        jvmArgs += listOf(
+//            "-Xms64m",
+//            "-Xmx1g",
+//            "-XX:SoftMaxHeapSize=256m",      // ZGC tries to stay under 256 MB, only expanding during spikes
+//            "-XX:+UseZGC",
+//            "-XX:+ZGenerational",            // Required flag on JDK 21 to enable generational mode
+//            "-XX:ZUncommitDelay=15",         // Return unused RAM to OS after 15s (default is 300s)
+//            "-Xss256k",
+//            "-XX:MaxMetaspaceSize=128m"
+//        )
+        // Generational ZGC + JIT code & Direct Cache: 204MB
+//        jvmArgs += listOf(
+//            "-Xms64m",
+//            "-Xmx1g",
+//            "-XX:SoftMaxHeapSize=256m",      // ZGC tries to stay under 256 MB, only expanding during spikes
+//            "-XX:+UseZGC",
+//            "-XX:+ZGenerational",            // Required flag on JDK 21 to enable generational mode
+//            "-XX:ZUncommitDelay=15",         // Return unused RAM to OS after 15s (default is 300s)
+//            "-Xss256k",
+//            "-XX:MaxMetaspaceSize=128m",
+//            "-XX:ReservedCodeCacheSize=64m",
+//            "-XX:MaxDirectMemorySize=64m"
+//        )
+        // Generational ZGC + JIT code & Direct Cache mildly: 208MB
+        jvmArgs += listOf(
+            "-Xms64m",
+            "-Xmx2g",                        // High ceiling so large JSON/binary responses never crash the app
+            "-XX:SoftMaxHeapSize=192m",      // ZGC aggressively keeps idle heap at or below 192 MB
+            "-XX:+UseZGC",
+            "-XX:+ZGenerational",            // Low-latency generational GC (JDK 21+)
+            "-XX:ZUncommitDelay=10",         // Returns spike RAM back to OS 10 seconds after closing a big tab
+            "-XX:+UseStringDeduplication",   // Huge win for JSON payloads with repeated keys ("id", "type", "created_at")
+            "-Xss256k",
+            "-XX:MaxMetaspaceSize=128m",
+            "-XX:ReservedCodeCacheSize=96m",
+            "-XX:MaxDirectMemorySize=256m"   // Give Ktor/OkHttp/Skia enough direct buffer headroom for large downloads
+        )
 
         buildTypes.release.proguard {
             isEnabled.set(false)

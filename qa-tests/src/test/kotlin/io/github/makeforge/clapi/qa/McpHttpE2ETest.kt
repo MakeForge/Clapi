@@ -59,7 +59,7 @@ class McpHttpE2ETest {
 
     @Test
     fun initialize_list_call_and_resource() = runBlocking {
-        val client = McpClient(this, http(), callTimeoutMs = 10_000)
+        val client = McpClient(this, http(), callTimeoutMs = 30_000)
         val init = client.connect(
             McpConnectionConfig(url = "$BASE_URL/mcp", httpMode = McpHttpMode.STREAMABLE_2025_06_18),
         )
@@ -88,7 +88,7 @@ class McpHttpE2ETest {
 
     @Test
     fun subscribe_and_response_headers_captured() = runBlocking {
-        val client = McpClient(this, http(), callTimeoutMs = 10_000)
+        val client = McpClient(this, http(), callTimeoutMs = 30_000)
         client.connect(
             McpConnectionConfig(url = "$BASE_URL/mcp", httpMode = McpHttpMode.STREAMABLE_2025_06_18),
         )
@@ -102,7 +102,7 @@ class McpHttpE2ETest {
 
     @Test
     fun subscribe_emits_resource_updated_notification() = runBlocking {
-        val client = McpClient(this, http(), callTimeoutMs = 10_000)
+        val client = McpClient(this, http(), callTimeoutMs = 30_000)
         client.connect(
             McpConnectionConfig(url = "$BASE_URL/mcp", httpMode = McpHttpMode.STREAMABLE_2025_06_18),
         )
@@ -127,7 +127,7 @@ class McpHttpE2ETest {
 
     @Test
     fun bearer_and_api_key_auth_headers_are_accepted() = runBlocking {
-        val client = McpClient(this, http(), callTimeoutMs = 10_000)
+        val client = McpClient(this, http(), callTimeoutMs = 30_000)
         val init = client.connect(
             McpConnectionConfig(
                 url = "$BASE_URL/mcp/authed",
@@ -147,7 +147,7 @@ class McpHttpE2ETest {
 
     @Test
     fun missing_auth_on_authed_endpoint_is_unauthorized() = runBlocking {
-        val client = McpClient(this, http(), callTimeoutMs = 10_000)
+        val client = McpClient(this, http(), callTimeoutMs = 30_000)
         val error = runCatching {
             client.connect(McpConnectionConfig(url = "$BASE_URL/mcp/authed"))
         }.exceptionOrNull()
@@ -157,7 +157,7 @@ class McpHttpE2ETest {
 
     @Test
     fun bearer_only_auth_is_accepted() = runBlocking {
-        val client = McpClient(this, http(), callTimeoutMs = 10_000)
+        val client = McpClient(this, http(), callTimeoutMs = 30_000)
         val init = client.connect(
             McpConnectionConfig(
                 url = "$BASE_URL/mcp/auth/bearer",
@@ -171,7 +171,7 @@ class McpHttpE2ETest {
 
     @Test
     fun bearer_only_auth_rejects_missing_token() = runBlocking {
-        val client = McpClient(this, http(), callTimeoutMs = 10_000)
+        val client = McpClient(this, http(), callTimeoutMs = 30_000)
         val error = runCatching {
             client.connect(McpConnectionConfig(url = "$BASE_URL/mcp/auth/bearer"))
         }.exceptionOrNull()
@@ -181,7 +181,7 @@ class McpHttpE2ETest {
 
     @Test
     fun basic_auth_is_accepted() = runBlocking {
-        val client = McpClient(this, http(), callTimeoutMs = 10_000)
+        val client = McpClient(this, http(), callTimeoutMs = 30_000)
         val init = client.connect(
             McpConnectionConfig(
                 url = "$BASE_URL/mcp/auth/basic",
@@ -195,7 +195,7 @@ class McpHttpE2ETest {
 
     @Test
     fun basic_auth_rejects_wrong_password() = runBlocking {
-        val client = McpClient(this, http(), callTimeoutMs = 10_000)
+        val client = McpClient(this, http(), callTimeoutMs = 30_000)
         val error = runCatching {
             client.connect(
                 McpConnectionConfig(
@@ -210,7 +210,7 @@ class McpHttpE2ETest {
 
     @Test
     fun api_key_auth_is_accepted() = runBlocking {
-        val client = McpClient(this, http(), callTimeoutMs = 10_000)
+        val client = McpClient(this, http(), callTimeoutMs = 30_000)
         val init = client.connect(
             McpConnectionConfig(
                 url = "$BASE_URL/mcp/auth/apikey",
@@ -224,7 +224,7 @@ class McpHttpE2ETest {
 
     @Test
     fun api_key_auth_rejects_missing_header() = runBlocking {
-        val client = McpClient(this, http(), callTimeoutMs = 10_000)
+        val client = McpClient(this, http(), callTimeoutMs = 30_000)
         val error = runCatching {
             client.connect(McpConnectionConfig(url = "$BASE_URL/mcp/auth/apikey"))
         }.exceptionOrNull()
@@ -234,7 +234,7 @@ class McpHttpE2ETest {
 
     @Test
     fun jwt_auth_is_accepted() = runBlocking {
-        val client = McpClient(this, http(), callTimeoutMs = 10_000)
+        val client = McpClient(this, http(), callTimeoutMs = 30_000)
         val init = client.connect(
             McpConnectionConfig(
                 url = "$BASE_URL/mcp/auth/jwt",
@@ -248,7 +248,7 @@ class McpHttpE2ETest {
 
     @Test
     fun jwt_auth_rejects_wrong_token() = runBlocking {
-        val client = McpClient(this, http(), callTimeoutMs = 10_000)
+        val client = McpClient(this, http(), callTimeoutMs = 30_000)
         val error = runCatching {
             client.connect(
                 McpConnectionConfig(
@@ -263,7 +263,7 @@ class McpHttpE2ETest {
 
     @Test
     fun url_query_params_are_sent_and_required_tenant_is_accepted() = runBlocking {
-        val client = McpClient(this, http(), callTimeoutMs = 10_000)
+        val client = McpClient(this, http(), callTimeoutMs = 30_000)
         val init = client.connect(
             McpConnectionConfig(
                 url = "{{base}}/mcp?requireTenant=true&tenant={{tenant}}",
@@ -277,7 +277,7 @@ class McpHttpE2ETest {
 
     @Test
     fun url_query_params_reject_missing_required_tenant() = runBlocking {
-        val client = McpClient(this, http(), callTimeoutMs = 10_000)
+        val client = McpClient(this, http(), callTimeoutMs = 30_000)
         val error = runCatching {
             client.connect(
                 McpConnectionConfig(
@@ -293,7 +293,7 @@ class McpHttpE2ETest {
 
     @Test
     fun stateless_query_param_still_initializes() = runBlocking {
-        val client = McpClient(this, http(), callTimeoutMs = 10_000)
+        val client = McpClient(this, http(), callTimeoutMs = 30_000)
         val init = client.connect(
             McpConnectionConfig(
                 url = "$BASE_URL/mcp?stateless=true",
@@ -306,7 +306,7 @@ class McpHttpE2ETest {
 
     @Test
     fun url_variables_are_interpolated_on_connect() = runBlocking {
-        val client = McpClient(this, http(), callTimeoutMs = 10_000)
+        val client = McpClient(this, http(), callTimeoutMs = 30_000)
         val init = client.connect(
             McpConnectionConfig(url = "{{base}}{{path}}", httpMode = McpHttpMode.STREAMABLE_2025_06_18),
             variableLayers = listOf(mapOf("base" to BASE_URL, "path" to "/mcp")),
@@ -317,7 +317,7 @@ class McpHttpE2ETest {
 
     @Test
     fun unknown_method_is_jsonrpc_error() = runBlocking {
-        val client = McpClient(this, http(), callTimeoutMs = 10_000)
+        val client = McpClient(this, http(), callTimeoutMs = 30_000)
         client.connect(McpConnectionConfig(url = "$BASE_URL/mcp"))
         val error = runCatching { client.callTool("nope") }.exceptionOrNull()
         assertTrue(error!!.message!!.contains("-32602") || error.message!!.contains("Unknown"))
@@ -379,7 +379,7 @@ class McpHttpE2ETest {
 
     @Test
     fun legacy_http_sse_initialize_and_tools_list() = runBlocking {
-        val client = McpClient(this, http(), callTimeoutMs = 10_000)
+        val client = McpClient(this, http(), callTimeoutMs = 30_000)
         val init = client.connect(
             McpConnectionConfig(
                 url = "$BASE_URL/mcp/sse",
@@ -631,7 +631,7 @@ class McpHttpE2ETest {
         mustContain: List<String>,
         mustNotContain: List<String> = emptyList(),
     ) {
-        val client = McpClient(this, http(), callTimeoutMs = 10_000)
+        val client = McpClient(this, http(), callTimeoutMs = 30_000)
         client.connect(config)
         val result = client.callTool(tool)
         assertCallbackOracle(

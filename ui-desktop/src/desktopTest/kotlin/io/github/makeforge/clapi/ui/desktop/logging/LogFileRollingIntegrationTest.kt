@@ -34,6 +34,7 @@ class LogFileRollingIntegrationTest {
 
         // Allow async writing thread to flush to disk
         Thread.sleep(300)
+        ClapiRollingFileWriter.flushCurrent()
 
         val effectiveLogDir = File(System.getProperty("clapi.log.dir") ?: logDir.absolutePath)
         val logFiles = effectiveLogDir.listFiles { _, name -> name.startsWith("clapi") } ?: emptyArray()

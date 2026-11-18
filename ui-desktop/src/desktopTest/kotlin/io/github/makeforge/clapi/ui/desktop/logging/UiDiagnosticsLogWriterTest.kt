@@ -15,9 +15,8 @@ class UiDiagnosticsLogWriterTest {
 
     @Before
     fun setup() {
-        UiLogDispatcher.clear()
+        UiLogDispatcher.unbind()
         diagnostics = DiagnosticsLogState()
-        UiLogDispatcher.bind(diagnostics)
     }
 
     @After
