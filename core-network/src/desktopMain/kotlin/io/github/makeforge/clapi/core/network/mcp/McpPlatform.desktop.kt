@@ -92,8 +92,17 @@ actual val mcpInteractiveOAuthSupported: Boolean = true
 actual suspend fun mcpOpenAuthorizeUrlAndAwaitCode(authorizeUrl: String, redirectPort: Int): String {
     val server = ServerSocket(redirectPort)
     try {
-        if (Desktop.isDesktopSupported()) {
-            runCatching { Desktop.getDesktop().browse(URI(authorizeUrl)) }
+        runCatching {
+            val os = System.getProperty("os.name", "").lowercase()
+            when {
+                os.contains("linux") -> ProcessBuilder("xdg-open", authorizeUrl).start()
+                Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE) -> {
+                    Desktop.getDesktop().browse(URI(authorizeUrl))
+                }
+                os.contains("win") -> ProcessBuilder("cmd", "/c", "start", "\"\"", authorizeUrl).start()
+                os.contains("mac") -> ProcessBuilder("open", authorizeUrl).start()
+                else -> ProcessBuilder("xdg-open", authorizeUrl).start()
+            }
         }
         val socket = server.accept()
         socket.soTimeout = 30_000

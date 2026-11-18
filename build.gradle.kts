@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlinSerialization) apply false
     alias(libs.plugins.composeMultiplatform) apply false
     alias(libs.plugins.composeCompiler) apply false
+    alias(libs.plugins.nucleus) apply false
     alias(libs.plugins.cyclonedx.bom)
 }
 
@@ -57,6 +58,12 @@ allprojects {
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
         compilerOptions {
             freeCompilerArgs.add("-Xskip-metadata-version-check")
+        }
+    }
+
+    plugins.withType<org.jetbrains.kotlin.gradle.plugin.KotlinBasePluginWrapper> {
+        extensions.configure<org.jetbrains.kotlin.gradle.dsl.KotlinBaseExtension> {
+            jvmToolchain(21)
         }
     }
 

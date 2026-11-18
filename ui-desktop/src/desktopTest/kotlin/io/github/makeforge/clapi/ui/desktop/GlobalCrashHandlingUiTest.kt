@@ -170,8 +170,8 @@ class GlobalCrashHandlingUiTest {
 
         composeRule.onNodeWithTag("crash-dialog").assertDoesNotExist()
 
-        // Trigger unexpected crash via GlobalCrashHandler on EDT
-        javax.swing.SwingUtilities.invokeAndWait {
+        // Trigger unexpected crash via GlobalCrashHandler
+        composeRule.runOnIdle {
             GlobalCrashHandler.handleException(IllegalStateException("Simulated global runtime crash"))
         }
         composeRule.waitForIdle()
