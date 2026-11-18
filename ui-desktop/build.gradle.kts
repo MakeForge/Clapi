@@ -164,6 +164,10 @@ compose.desktop {
     application {
         mainClass = "io.github.makeforge.clapi.ui.desktop.MainKt"
 
+        buildTypes.release.proguard {
+            isEnabled.set(false)
+        }
+
         nativeDistributions {
             modules(
                 "java.base",
