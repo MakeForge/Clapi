@@ -277,9 +277,12 @@ fun moveRequestsBeforeRequest(
     requestIds: List<String>,
     targetRequestId: String,
 ): Boolean {
-    if (requestIds.isEmpty() || targetRequestId in requestIds) return false
+    val uniqueIds = requestIds.distinct()
+    if (uniqueIds.isEmpty() || targetRequestId in uniqueIds) return false
+    if (findRequestParentAndIndex(collections, targetRequestId) == null) return false
+    if (uniqueIds.any { findRequestParentAndIndex(collections, it) == null }) return false
     val extracted = mutableListOf<CollectionNode>()
-    for (id in requestIds) {
+    for (id in uniqueIds) {
         val node = extractRequestNode(collections, id) ?: return false
         extracted.add(node)
     }
@@ -300,9 +303,12 @@ fun moveRequestsAfterRequest(
     requestIds: List<String>,
     targetRequestId: String,
 ): Boolean {
-    if (requestIds.isEmpty() || targetRequestId in requestIds) return false
+    val uniqueIds = requestIds.distinct()
+    if (uniqueIds.isEmpty() || targetRequestId in uniqueIds) return false
+    if (findRequestParentAndIndex(collections, targetRequestId) == null) return false
+    if (uniqueIds.any { findRequestParentAndIndex(collections, it) == null }) return false
     val extracted = mutableListOf<CollectionNode>()
-    for (id in requestIds) {
+    for (id in uniqueIds) {
         val node = extractRequestNode(collections, id) ?: return false
         extracted.add(node)
     }
@@ -323,10 +329,12 @@ fun moveRequestsToCollection(
     requestIds: List<String>,
     targetCollectionId: String,
 ): Boolean {
-    if (requestIds.isEmpty()) return false
+    val uniqueIds = requestIds.distinct()
+    if (uniqueIds.isEmpty()) return false
     val targetCollection = findCollectionById(collections, targetCollectionId) ?: return false
+    if (uniqueIds.any { findRequestParentAndIndex(collections, it) == null }) return false
     val extracted = mutableListOf<CollectionNode>()
-    for (id in requestIds) {
+    for (id in uniqueIds) {
         val node = extractRequestNode(collections, id) ?: return false
         extracted.add(node)
     }
@@ -462,15 +470,36 @@ fun isValidFolderGroupDropTarget(
     return true
 }
 
+/**
+ * Removes duplicates and any folder ID whose ancestor folder is also present in [folderIds],
+ * preserving order. Prevents double-duplication and data loss when moving or deleting a folder
+ * together with its descendants.
+ */
+fun pruneRedundantDescendantFolders(
+    collections: List<CollectionNode>,
+    folderIds: List<String>,
+): List<String> {
+    val unique = folderIds.distinct()
+    if (unique.size <= 1) return unique
+    val nodesById = unique.mapNotNull { id -> findCollectionById(collections, id)?.let { id to it } }.toMap()
+    return unique.filter { candidateId ->
+        nodesById.none { (otherId, otherNode) ->
+            otherId != candidateId && containsFolderId(otherNode, candidateId)
+        }
+    }
+}
+
 fun moveFoldersBeforeFolder(
     collections: MutableList<CollectionNode>,
     folderIds: List<String>,
     targetFolderId: String,
 ): Boolean {
-    if (folderIds.isEmpty() || targetFolderId in folderIds) return false
-    if (!isValidFolderGroupDropTarget(collections, folderIds, targetFolderId)) return false
+    val effectiveIds = pruneRedundantDescendantFolders(collections, folderIds)
+    if (effectiveIds.isEmpty() || targetFolderId in effectiveIds) return false
+    if (!isValidFolderGroupDropTarget(collections, effectiveIds, targetFolderId)) return false
+    if (findFolderParentAndIndex(collections, targetFolderId) == null) return false
     val extracted = mutableListOf<CollectionNode>()
-    for (id in folderIds) {
+    for (id in effectiveIds) {
         val node = extractFolderNode(collections, id) ?: return false
         extracted.add(node)
     }
@@ -491,10 +520,12 @@ fun moveFoldersAfterFolder(
     folderIds: List<String>,
     targetFolderId: String,
 ): Boolean {
-    if (folderIds.isEmpty() || targetFolderId in folderIds) return false
-    if (!isValidFolderGroupDropTarget(collections, folderIds, targetFolderId)) return false
+    val effectiveIds = pruneRedundantDescendantFolders(collections, folderIds)
+    if (effectiveIds.isEmpty() || targetFolderId in effectiveIds) return false
+    if (!isValidFolderGroupDropTarget(collections, effectiveIds, targetFolderId)) return false
+    if (findFolderParentAndIndex(collections, targetFolderId) == null) return false
     val extracted = mutableListOf<CollectionNode>()
-    for (id in folderIds) {
+    for (id in effectiveIds) {
         val node = extractFolderNode(collections, id) ?: return false
         extracted.add(node)
     }

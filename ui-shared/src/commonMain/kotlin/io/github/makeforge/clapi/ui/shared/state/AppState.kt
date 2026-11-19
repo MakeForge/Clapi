@@ -73,6 +73,16 @@ class AppState(openDefaultTab: Boolean = true) {
         lastSelectedSidebarItemId = null
     }
 
+    fun pruneSidebarSelection(removedIds: Collection<String>) {
+        if (removedIds.isEmpty()) return
+        val removedSet = removedIds.toHashSet()
+        selectedFolderIds.removeAll { it in removedSet }
+        selectedRequestIds.removeAll { it in removedSet }
+        if (lastSelectedSidebarItemId in removedSet) {
+            lastSelectedSidebarItemId = selectedRequestIds.lastOrNull() ?: selectedFolderIds.lastOrNull()
+        }
+    }
+
     fun selectSidebarFolder(
         folderId: String,
         isCtrlPressed: Boolean = false,
@@ -80,9 +90,27 @@ class AppState(openDefaultTab: Boolean = true) {
         visibleFolders: List<String> = emptyList(),
     ) {
         selectedRequestIds.clear()
-        if (isCtrlPressed) {
+        if (isCtrlPressed && isShiftPressed) {
+            val anchor = lastSelectedSidebarItemId
+            val anchorIdx = if (anchor != null) visibleFolders.indexOf(anchor) else -1
+            val targetIdx = visibleFolders.indexOf(folderId)
+            if (anchorIdx >= 0 && targetIdx >= 0) {
+                val range = minOf(anchorIdx, targetIdx)..maxOf(anchorIdx, targetIdx)
+                val toAdd = visibleFolders.slice(range)
+                for (id in toAdd) {
+                    if (id !in selectedFolderIds) {
+                        selectedFolderIds.add(id)
+                    }
+                }
+            } else {
+                if (folderId !in selectedFolderIds) {
+                    selectedFolderIds.add(folderId)
+                }
+                lastSelectedSidebarItemId = folderId
+            }
+        } else if (isCtrlPressed) {
             if (folderId in selectedFolderIds) {
-                selectedFolderIds.remove(folderId)
+                selectedFolderIds.removeAll { it == folderId }
                 if (lastSelectedSidebarItemId == folderId) {
                     lastSelectedSidebarItemId = selectedFolderIds.lastOrNull()
                 }
@@ -96,7 +124,7 @@ class AppState(openDefaultTab: Boolean = true) {
             val targetIdx = visibleFolders.indexOf(folderId)
             if (anchorIdx >= 0 && targetIdx >= 0) {
                 val range = minOf(anchorIdx, targetIdx)..maxOf(anchorIdx, targetIdx)
-                val toSelect = visibleFolders.slice(range)
+                val toSelect = visibleFolders.slice(range).distinct()
                 selectedFolderIds.clear()
                 selectedFolderIds.addAll(toSelect)
             } else {
@@ -118,9 +146,27 @@ class AppState(openDefaultTab: Boolean = true) {
         visibleRequests: List<String> = emptyList(),
     ) {
         selectedFolderIds.clear()
-        if (isCtrlPressed) {
+        if (isCtrlPressed && isShiftPressed) {
+            val anchor = lastSelectedSidebarItemId
+            val anchorIdx = if (anchor != null) visibleRequests.indexOf(anchor) else -1
+            val targetIdx = visibleRequests.indexOf(requestId)
+            if (anchorIdx >= 0 && targetIdx >= 0) {
+                val range = minOf(anchorIdx, targetIdx)..maxOf(anchorIdx, targetIdx)
+                val toAdd = visibleRequests.slice(range)
+                for (id in toAdd) {
+                    if (id !in selectedRequestIds) {
+                        selectedRequestIds.add(id)
+                    }
+                }
+            } else {
+                if (requestId !in selectedRequestIds) {
+                    selectedRequestIds.add(requestId)
+                }
+                lastSelectedSidebarItemId = requestId
+            }
+        } else if (isCtrlPressed) {
             if (requestId in selectedRequestIds) {
-                selectedRequestIds.remove(requestId)
+                selectedRequestIds.removeAll { it == requestId }
                 if (lastSelectedSidebarItemId == requestId) {
                     lastSelectedSidebarItemId = selectedRequestIds.lastOrNull()
                 }
@@ -134,7 +180,7 @@ class AppState(openDefaultTab: Boolean = true) {
             val targetIdx = visibleRequests.indexOf(requestId)
             if (anchorIdx >= 0 && targetIdx >= 0) {
                 val range = minOf(anchorIdx, targetIdx)..maxOf(anchorIdx, targetIdx)
-                val toSelect = visibleRequests.slice(range)
+                val toSelect = visibleRequests.slice(range).distinct()
                 selectedRequestIds.clear()
                 selectedRequestIds.addAll(toSelect)
             } else {

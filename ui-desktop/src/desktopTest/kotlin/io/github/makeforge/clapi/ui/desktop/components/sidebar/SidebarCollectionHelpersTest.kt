@@ -641,4 +641,72 @@ class SidebarCollectionHelpersTest {
         state.selectSidebarRequest("r1", isCtrlPressed = false, isShiftPressed = true, visibleRequests = visibleRequests)
         assertEquals(listOf("r1", "r2", "r3", "r4"), state.selectedRequestIds)
     }
+
+    @Test
+    fun selectSidebar_ctrlShiftClick_extendsExistingSelectionWithoutDuplicates() {
+        val state = io.github.makeforge.clapi.ui.shared.state.AppState()
+        val visibleRequests = listOf("r1", "r2", "r3", "r4", "r5")
+
+        state.selectSidebarRequest("r1", isCtrlPressed = false, isShiftPressed = false, visibleRequests = visibleRequests)
+        state.selectSidebarRequest("r3", isCtrlPressed = true, isShiftPressed = false, visibleRequests = visibleRequests)
+        state.selectSidebarRequest("r5", isCtrlPressed = true, isShiftPressed = true, visibleRequests = visibleRequests)
+
+        assertEquals(listOf("r1", "r3", "r4", "r5"), state.selectedRequestIds)
+    }
+
+    @Test
+    fun pruneSidebarSelection_removesDeletedIdsAndUpdatesAnchor() {
+        val state = io.github.makeforge.clapi.ui.shared.state.AppState()
+        state.selectSidebarRequest("r1", isCtrlPressed = true)
+        state.selectSidebarRequest("r2", isCtrlPressed = true)
+        assertEquals("r2", state.lastSelectedSidebarItemId)
+
+        state.pruneSidebarSelection(listOf("r2"))
+        assertEquals(listOf("r1"), state.selectedRequestIds)
+        assertEquals("r1", state.lastSelectedSidebarItemId)
+
+        state.pruneSidebarSelection(listOf("r1"))
+        assertTrue(state.selectedRequestIds.isEmpty())
+        assertNull(state.lastSelectedSidebarItemId)
+    }
+
+    @Test
+    fun pruneRedundantDescendantFolders_dropsChildWhenParentSelected() {
+        val collections = sampleCollections()
+        val sub = addSubfolderInCollections(collections, "c1", "Sub") ?: error("Expected subfolder")
+        val deep = addSubfolderInCollections(collections, sub.id, "Deep") ?: error("Expected deep subfolder")
+
+        val pruned = pruneRedundantDescendantFolders(collections, listOf("c1", sub.id, deep.id, "c2", "c1"))
+        assertEquals(listOf("c1", "c2"), pruned)
+    }
+
+    @Test
+    fun moveFoldersBeforeFolder_withParentAndChildSelected_movesParentWithoutDataLoss() {
+        val collections = sampleCollections()
+        val sub = addSubfolderInCollections(collections, "c1", "Sub") ?: error("Expected subfolder")
+
+        val moved = moveFoldersAfterFolder(collections, listOf("c1", sub.id), "c2")
+        assertTrue(moved)
+        assertEquals(listOf("c2", "c1"), collections.map { it.id })
+        assertTrue(collections[1].children.any { it.id == sub.id })
+    }
+
+    @Test
+    fun moveRequestsBeforeRequest_withStaleIdOrMissingTarget_doesNotLoseExistingRequests() {
+        val collections = sampleCollections()
+
+        // Stale ID in list -> must return false and keep r1 intact
+        assertFalse(moveRequestsBeforeRequest(collections, listOf("r1", "nonexistent"), "r3"))
+        assertEquals(listOf("r1", "r2", "r3"), collections[0].children.map { it.id })
+
+        // Missing target -> must return false and keep r1, r2 intact
+        assertFalse(moveRequestsBeforeRequest(collections, listOf("r1", "r2"), "nonexistent"))
+        assertEquals(listOf("r1", "r2", "r3"), collections[0].children.map { it.id })
+
+        // Same for moveRequestsAfterRequest and moveRequestsToCollection
+        assertFalse(moveRequestsAfterRequest(collections, listOf("r1", "nonexistent"), "r3"))
+        assertEquals(listOf("r1", "r2", "r3"), collections[0].children.map { it.id })
+        assertFalse(moveRequestsToCollection(collections, listOf("r1", "nonexistent"), "c2"))
+        assertEquals(listOf("r1", "r2", "r3"), collections[0].children.map { it.id })
+    }
 }

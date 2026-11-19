@@ -368,6 +368,11 @@ private var lastClickTargetId: String? = null
 private var lastClickTimestampMs: Long = 0L
 private const val DOUBLE_CLICK_TIMEOUT_MS = 400L
 
+fun resetPointerDoubleClickState() {
+    lastClickTargetId = null
+    lastClickTimestampMs = 0L
+}
+
 actual fun isPointerDoubleClick(targetId: String, event: PointerEvent): Boolean {
     val mouse = event.awtEventOrNull
     if (mouse != null) {
