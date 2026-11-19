@@ -150,7 +150,10 @@ internal fun CodeEditorSearchBar(
             }
 
             if (onToggleReplace != null) {
-                IconButton(
+                val replaceToggleDesc = if (showReplace) Strings.hideReplace else Strings.showReplace
+                IconButtonWithTooltip(
+                    tooltip = replaceToggleDesc,
+                    tooltipTag = "$testTagPrefix-search-replace-toggle-tooltip",
                     onClick = onToggleReplace,
                     modifier = Modifier
                         .size(24.dp)
@@ -158,26 +161,32 @@ internal fun CodeEditorSearchBar(
                 ) {
                     Icon(
                         painter = if (showReplace) painterResource(Res.drawable.ic_keyboard_arrow_up) else painterResource(Res.drawable.ic_keyboard_arrow_down),
-                        contentDescription = if (showReplace) Strings.hideReplace else Strings.showReplace,
+                        contentDescription = replaceToggleDesc,
                         tint = ClapiColors.OnSurfaceDim,
                         modifier = Modifier.size(16.dp),
                     )
                 }
             }
 
-            IconButton(
+            IconButtonWithTooltip(
+                tooltip = Strings.previousMatch,
+                tooltipTag = "$testTagPrefix-search-prev-tooltip",
                 onClick = onPrev,
                 modifier = Modifier.size(24.dp).focusProperties { canFocus = false },
             ) {
                 Icon(painter = painterResource(Res.drawable.ic_arrow_upward), Strings.previousMatch, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
             }
-            IconButton(
+            IconButtonWithTooltip(
+                tooltip = Strings.nextMatch,
+                tooltipTag = "$testTagPrefix-search-next-tooltip",
                 onClick = onNext,
                 modifier = Modifier.size(24.dp).focusProperties { canFocus = false },
             ) {
                 Icon(painter = painterResource(Res.drawable.ic_arrow_downward), Strings.nextMatch, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
             }
-            IconButton(
+            IconButtonWithTooltip(
+                tooltip = Strings.closeSearch,
+                tooltipTag = "$testTagPrefix-search-close-tooltip",
                 onClick = onClose,
                 modifier = Modifier
                     .size(24.dp)

@@ -43,6 +43,9 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
@@ -52,13 +55,18 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.isCtrlPressed
+import androidx.compose.ui.input.pointer.isMetaPressed
+import androidx.compose.ui.input.pointer.isPrimaryPressed
 import androidx.compose.ui.input.pointer.isSecondaryPressed
+import androidx.compose.ui.input.pointer.isShiftPressed
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -81,6 +89,7 @@ import io.github.makeforge.clapi.ui.shared.generated.resources.ic_view_week
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
 import io.github.makeforge.clapi.ui.shared.platform.PlatformHorizontalScrollbar
 import io.github.makeforge.clapi.ui.shared.platform.horizontalResizeCursor
+import io.github.makeforge.clapi.ui.shared.platform.isPointerDoubleClick
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.state.RequestTabState
 import io.github.makeforge.clapi.ui.shared.state.ResponseLayout
@@ -359,6 +368,19 @@ private fun RequestTabChip(
     var showContextMenu by remember { mutableStateOf(false) }
     var renameMode by remember(tab.id) { mutableStateOf(false) }
     var renameText by remember(tab.id) { mutableStateOf(TextFieldValue(tab.name)) }
+    val closeButtonPressed = remember { booleanArrayOf(false) }
+
+    val startInlineRename: () -> Unit = {
+        renameText = TextFieldValue(tab.name, TextRange(0, tab.name.length))
+        renameMode = true
+    }
+    val commitInlineRename: () -> Unit = {
+        val newName = renameText.text.trim()
+        if (newName.isNotEmpty() && newName != tab.name) {
+            onRename(newName)
+        }
+        renameMode = false
+    }
 
     // Outer Box fills the 36dp row height so the indicator can anchor at the bottom
     Box(
@@ -391,9 +413,22 @@ private fun RequestTabChip(
                         .border(1.dp, ClapiColors.Primary.copy(alpha = 0.5f), RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
                 } else Modifier
             )
-            .clickable(onClick = onClick)
-            .onPointerEvent(PointerEventType.Press) {
-                if (it.buttons.isSecondaryPressed) showContextMenu = true
+            .clickable(enabled = !renameMode, onClick = onClick)
+            .onPointerEvent(PointerEventType.Press) { event ->
+                if (closeButtonPressed[0]) {
+                    closeButtonPressed[0] = false
+                    return@onPointerEvent
+                }
+                if (event.buttons.isSecondaryPressed) {
+                    showContextMenu = true
+                } else if (!renameMode && event.buttons.isPrimaryPressed) {
+                    val hasModifier = event.keyboardModifiers.isCtrlPressed ||
+                        event.keyboardModifiers.isMetaPressed ||
+                        event.keyboardModifiers.isShiftPressed
+                    if (!hasModifier && isPointerDoubleClick("tab-${tab.id}", event)) {
+                        startInlineRename()
+                    }
+                }
             }
             .then(if (isDragged) Modifier.testTag("tab-chip-dragged-${tab.id}") else Modifier)
             .testTag("tab-chip-${tab.id}"),
@@ -436,6 +471,11 @@ private fun RequestTabChip(
                 )
             }
             if (renameMode) {
+                val focusRequester = remember(tab.id) { FocusRequester() }
+                var hadFocus by remember(tab.id) { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    focusRequester.requestFocus()
+                }
                 BasicTextField(
                     value = renameText,
                     onValueChange = { renameText = it },
@@ -449,14 +489,20 @@ private fun RequestTabChip(
                     modifier = Modifier
                         .background(ClapiColors.SurfaceContainer, RoundedCornerShape(4.dp))
                         .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .focusRequester(focusRequester)
+                        .onFocusChanged { focusState ->
+                            if (focusState.isFocused) {
+                                hadFocus = true
+                            } else if (hadFocus && renameMode) {
+                                commitInlineRename()
+                            }
+                        }
                         // M-5: Confirm rename with Enter, cancel with Escape
                         .onPreviewKeyEvent { keyEvent ->
                             if (keyEvent.type == KeyEventType.KeyDown) {
                                 when (keyEvent.key) {
-                                    Key.Enter -> {
-                                        val newName = renameText.text.trim()
-                                        if (newName.isNotEmpty()) onRename(newName)
-                                        renameMode = false
+                                    Key.Enter, Key.NumPadEnter -> {
+                                        commitInlineRename()
                                         true
                                     }
                                     Key.Escape -> {
@@ -475,9 +521,7 @@ private fun RequestTabChip(
                     fontSize = 11.sp,
                     modifier = Modifier
                         .clickable {
-                            val newName = renameText.text.trim()
-                            if (newName.isNotEmpty()) onRename(newName)
-                            renameMode = false
+                            commitInlineRename()
                         }
                         .testTag("tab-rename-save-${tab.id}"),
                 )
@@ -500,6 +544,9 @@ private fun RequestTabChip(
                         tint = ClapiColors.OnSurfaceDim,
                         modifier = Modifier
                             .size(14.dp)
+                            .onPointerEvent(PointerEventType.Press) {
+                                closeButtonPressed[0] = true
+                            }
                             .clickable(onClick = onClose)
                             .testTag("tab-close-${tab.id}"),
                     )
@@ -533,8 +580,7 @@ private fun RequestTabChip(
                 text = { Text(Strings.t("rename")) },
                 onClick = {
                     showContextMenu = false
-                    renameText = TextFieldValue(tab.name)
-                    renameMode = true
+                    startInlineRename()
                 },
                 modifier = Modifier.testTag("tab-ctx-rename"),
             )

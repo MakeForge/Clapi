@@ -828,10 +828,13 @@ private fun ToolbarBtn(
     onClick: () -> Unit,
     testTag: String = "",
 ) {
-    IconButton(
+    IconButtonWithTooltip(
+        tooltip = contentDescription,
+        tooltipTag = if (testTag.isNotEmpty()) "$testTag-tooltip" else null,
         onClick = onClick,
         modifier = Modifier
             .size(28.dp)
+            .handPointerHover()
             .focusProperties { canFocus = false }
             .then(if (testTag.isNotEmpty()) Modifier.testTag(testTag) else Modifier),
     ) {

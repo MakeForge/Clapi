@@ -1,6 +1,12 @@
 package io.github.makeforge.clapi.ui.shared.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,18 +16,31 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.onPointerEvent
+import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.makeforge.clapi.ui.shared.platform.PlatformHorizontalScrollbar
+import kotlinx.coroutines.launch
 import io.github.makeforge.clapi.core.model.BodyType
 import io.github.makeforge.clapi.core.model.FormEntryType
 import io.github.makeforge.clapi.core.model.RequestKind
@@ -298,6 +317,7 @@ private val defaultRequestEditorTabs = listOf(
     RequestEditorTab.TESTS,
 )
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun EditorTabBar(
     selectedTab: RequestEditorTab,
@@ -323,19 +343,41 @@ internal fun EditorTabBar(
         RequestEditorTab.HEADERS   to headerCount,
     )
 
+    val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
+    val tabBounds = remember { mutableStateMapOf<RequestEditorTab, Pair<Int, Int>>() }
+
+    LaunchedEffect(selectedTab) {
+        val (tabLeft, tabWidth) = tabBounds[selectedTab] ?: return@LaunchedEffect
+        val viewport = scrollState.viewportSize
+        if (viewport > 0) {
+            val tabRight = tabLeft + tabWidth
+            when {
+                tabLeft < scrollState.value -> scrollState.animateScrollTo(tabLeft)
+                tabRight > scrollState.value + viewport -> scrollState.animateScrollTo(tabRight - viewport)
+            }
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .background(ClapiColors.Surface)
+            .testTag("editor-tab-bar"),
     ) {
-        val selectedIndex = availableTabs.indexOf(selectedTab).coerceAtLeast(0)
-        ScrollableTabRow(
-            selectedTabIndex = selectedIndex,
-            containerColor = Color.Transparent,
-            contentColor = ClapiColors.OnSurface,
-            edgePadding = 0.dp,
-            divider = {},
-            indicator = {},
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(scrollState)
+                .onPointerEvent(PointerEventType.Scroll) { event ->
+                    val delta = event.changes.firstOrNull()?.scrollDelta ?: return@onPointerEvent
+                    val horizontal = if (delta.x != 0f) delta.x else delta.y
+                    if (horizontal != 0f && scrollState.maxValue > 0) {
+                        scope.launch { scrollState.scrollBy(horizontal * 48f) }
+                    }
+                }
+                .testTag("editor-tab-row"),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             availableTabs.forEach { tab ->
                 val selected = tab == selectedTab
@@ -348,10 +390,20 @@ internal fun EditorTabBar(
                     RequestEditorTab.PRE_REQUEST -> Strings.preRequest
                     RequestEditorTab.TESTS -> Strings.tests
                 }
-                Tab(
-                    selected = selected,
-                    onClick = { onTabSelected(tab) },
-                    modifier = Modifier.height(36.dp),
+                val interactionSource = remember(tab) { MutableInteractionSource() }
+                val isHovered by interactionSource.collectIsHoveredAsState()
+                Box(
+                    modifier = Modifier
+                        .height(36.dp)
+                        .onGloballyPositioned { coords ->
+                            tabBounds[tab] = coords.positionInParent().x.toInt() to coords.size.width
+                        }
+                        .background(if (isHovered && !selected) ClapiColors.HoverOverlay else Color.Transparent)
+                        .hoverable(interactionSource)
+                        .pointerHoverIcon(PointerIcon.Hand)
+                        .clickable { onTabSelected(tab) }
+                        .testTag("editor-tab-${tab.name.lowercase()}"),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -359,26 +411,47 @@ internal fun EditorTabBar(
                         modifier = Modifier.padding(horizontal = 12.dp),
                     ) {
                         icons[tab]?.let { icon ->
-                            Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp),
-                                tint = if (selected) ClapiColors.Primary else ClapiColors.OnSurfaceDim)
+                            Icon(
+                                icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = if (selected) ClapiColors.Primary else ClapiColors.OnSurfaceDim,
+                            )
                         }
                         Text(
                             label,
                             fontSize = 12.sp,
                             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                             color = if (selected) ClapiColors.Primary else ClapiColors.OnSurfaceVariant,
+                            maxLines = 1,
                         )
                         counts[tab]?.takeIf { it > 0 }?.let { count ->
                             Text(
                                 "($count)",
                                 fontSize = 10.sp,
                                 color = ClapiColors.OnSurfaceDim,
+                                maxLines = 1,
                             )
                         }
+                    }
+                    if (selected) {
+                        Box(
+                            Modifier
+                                .align(Alignment.BottomCenter)
+                                .fillMaxWidth()
+                                .height(2.dp)
+                                .background(ClapiColors.Primary),
+                        )
                     }
                 }
             }
         }
+
+        PlatformHorizontalScrollbar(
+            scrollState = scrollState,
+            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
+            testTag = "editor-tabs-scrollbar",
+        )
 
         // bottom line
         Box(
