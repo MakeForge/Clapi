@@ -156,6 +156,33 @@ class AppState(openDefaultTab: Boolean = true) {
     var requestResponseSplit by mutableStateOf(0.50f)
     var mainVerticalSplit    by mutableStateOf(0.73f)   // main area / bottom panel
 
+    // ── response view state (expand / collapse / detach) ─
+    var responseDisplayMode by mutableStateOf(ResponseDisplayMode.EXPANDED)
+
+    val isResponseCollapsed: Boolean get() = responseDisplayMode == ResponseDisplayMode.COLLAPSED
+    val isResponseDetached:  Boolean get() = responseDisplayMode == ResponseDisplayMode.DETACHED
+    val isResponseExpanded:  Boolean get() = responseDisplayMode == ResponseDisplayMode.EXPANDED
+
+    fun collapseResponse() {
+        responseDisplayMode = ResponseDisplayMode.COLLAPSED
+    }
+
+    fun expandResponse() {
+        responseDisplayMode = ResponseDisplayMode.EXPANDED
+    }
+
+    fun detachResponse() {
+        responseDisplayMode = ResponseDisplayMode.DETACHED
+    }
+
+    fun reattachResponse() {
+        responseDisplayMode = ResponseDisplayMode.EXPANDED
+    }
+
+    fun closeDetachedResponse() {
+        responseDisplayMode = ResponseDisplayMode.COLLAPSED
+    }
+
     // ── tabs ───────────
     val openTabs       = mutableStateListOf<RequestTabState>().also {
         if (openDefaultTab) it.add(RequestTabState())

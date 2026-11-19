@@ -151,6 +151,8 @@
   "add_folder": "Añadir carpeta",
   "expand": "Expandir",
   "collapse": "Contraer",
+  "detach": "Separar",
+  "reattach": "Volver a acoplar",
   "duplicate_collection": "Duplicar carpeta",
   "duplicate_folder": "Duplicar carpeta",
   "duplicate_request": "Duplicar solicitud",

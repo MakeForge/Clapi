@@ -87,6 +87,8 @@ object Strings {
     val expandAll: String @Composable @ReadOnlyComposable get() = t("expand_all")
     val expand: String @Composable @ReadOnlyComposable get() = t("expand")
     val collapse: String @Composable @ReadOnlyComposable get() = t("collapse")
+    val detach: String @Composable @ReadOnlyComposable get() = t("detach")
+    val reattach: String @Composable @ReadOnlyComposable get() = t("reattach")
     val noEnvironmentsConfigured: String @Composable @ReadOnlyComposable get() = t("no_environments_configured")
     val createEnvironment: String @Composable @ReadOnlyComposable get() = t("create_environment")
     val searchEnvironmentVariables: String @Composable @ReadOnlyComposable get() = t("search_environment_variables")

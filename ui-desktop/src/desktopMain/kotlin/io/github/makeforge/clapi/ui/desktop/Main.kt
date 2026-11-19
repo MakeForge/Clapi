@@ -1,7 +1,13 @@
 package io.github.makeforge.clapi.ui.desktop
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -13,8 +19,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.rememberWindowState
@@ -32,12 +40,16 @@ import io.github.makeforge.clapi.ui.desktop.logging.GlobalCrashHandler
 import io.github.makeforge.clapi.ui.desktop.logging.LogDirectoryConfigurator
 import io.github.makeforge.clapi.ui.desktop.logging.UiLogDispatcher
 import io.github.makeforge.clapi.ui.shared.MainScreen
+import io.github.makeforge.clapi.ui.shared.components.BrandIcon
 import io.github.makeforge.clapi.ui.shared.components.CrashReportDialog
+import io.github.makeforge.clapi.ui.shared.components.ResponseViewer
 import io.github.makeforge.clapi.ui.shared.components.TitleBarBrandContent
+import io.github.makeforge.clapi.ui.shared.i18n.Strings
 import io.github.makeforge.clapi.ui.shared.persistence.SettingsRepository
 import io.github.makeforge.clapi.ui.shared.persistence.TabsRepository
 import io.github.makeforge.clapi.ui.shared.persistence.WorkspaceRepository
 import io.github.makeforge.clapi.ui.shared.state.AppState
+import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
 import io.github.makeforge.clapi.ui.shared.theme.ClapiTheme
 import io.github.vinceglb.filekit.FileKit
 import java.io.File
@@ -204,6 +216,57 @@ fun main(args: Array<String>) {
                                         GlobalCrashHandler.restartApplication()
                                     },
                                 )
+                            }
+                        }
+                    }
+
+                    if (state.isResponseDetached) {
+                        MaterialDecoratedWindow(
+                            onCloseRequest = { state.closeDetachedResponse() },
+                            icon = painterResource("icons/clapi-icon-64.png"),
+                            title = "Clapi - Response",
+                            state = rememberWindowState(
+                                size = DpSize(800.dp, 600.dp),
+                                position = WindowPosition.Aligned(Alignment.Center),
+                            ),
+                            minimumSize = DpSize(400.dp, 300.dp),
+                            onPreviewKeyEvent = { false },
+                        ) {
+                            MaterialTitleBar {
+                                Row(
+                                    modifier = Modifier.align(Alignment.Start).padding(start = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    BrandIcon(modifier = Modifier.size(18.dp))
+                                    Text(
+                                        text = "Response",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = ClapiColors.OnSurface,
+                                    )
+                                }
+                            }
+
+                            Box(Modifier.fillMaxSize().background(ClapiColors.Background)) {
+                                val activeTab = state.activeTab
+                                if (activeTab != null) {
+                                    ResponseViewer(
+                                        tab = activeTab,
+                                        modifier = Modifier.fillMaxSize(),
+                                        showCursorPosition = state.settings.showEditorPositionIndicator,
+                                        state = state,
+                                        isDetached = true,
+                                    )
+                                } else {
+                                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = Strings.noRequestSelected,
+                                            color = ClapiColors.OnSurfaceDim,
+                                            fontSize = 14.sp,
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
