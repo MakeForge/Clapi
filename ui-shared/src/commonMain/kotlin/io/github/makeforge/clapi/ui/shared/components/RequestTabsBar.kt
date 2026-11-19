@@ -162,8 +162,10 @@ fun RequestTabsBar(
                                     .onGloballyPositioned { coords ->
                                         val x = coords.positionInParent().x
                                         val w = coords.size.width.toFloat()
-                                        dragState.tabBounds[index] = TabBounds(index, x, w)
-                                        tabPositions[index] = x.toInt()
+                                        val currentIndex = state.openTabs.indexOfFirst { it.id == tab.id }
+                                        val targetIdx = if (currentIndex >= 0) currentIndex else index
+                                        dragState.tabBounds[targetIdx] = TabBounds(targetIdx, x, w)
+                                        tabPositions[targetIdx] = x.toInt()
                                     },
                             ) {
                                 // Subtle placeholder slot in the original location of the dragged tab
@@ -195,7 +197,10 @@ fun RequestTabsBar(
                                     showClose = true,
                                     isDragged = isDragged,
                                     dragOffsetX = if (isDragged) dragState.dragOffsetX else 0f,
-                                    onDragStart = { dragState.onDragStart(index, tab.id) },
+                                    onDragStart = {
+                                        val currentIndex = state.openTabs.indexOfFirst { it.id == tab.id }
+                                        dragState.onDragStart(if (currentIndex >= 0) currentIndex else index, tab.id)
+                                    },
                                     onDragDelta = { dx -> dragState.onDragDelta(dx) },
                                     onDragEnd = { dragState.onDragEnd(onMoveTab) },
                                     onDragCancel = { dragState.reset() },
