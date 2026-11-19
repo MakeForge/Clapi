@@ -1,6 +1,7 @@
 package io.github.makeforge.clapi.ui.shared.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -31,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
@@ -47,6 +51,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerHoverIcon
@@ -61,6 +66,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import kotlin.math.roundToInt
 import io.github.makeforge.clapi.core.model.RequestKind
 import io.github.makeforge.clapi.ui.shared.generated.resources.Res
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_article
@@ -97,12 +104,18 @@ fun RequestTabsBar(
     onCloseToLeft: (Int) -> Unit,
     onCloseToRight: (Int) -> Unit,
     onCloseAll: () -> Unit,
+    onMoveTab: (fromIndex: Int, toIndex: Int) -> Unit = { from, to -> state.moveTab(from, to) },
     modifier: Modifier = Modifier,
 ) {
     val tabScrollState = rememberScrollState()
     // Natural (layout-coordinate) x-position of each tab chip inside the
     // scrollable Row. Populated by onGloballyPositioned on each chip wrapper.
     val tabPositions = remember { mutableStateMapOf<Int, Int>() }
+    val dragState = remember { RequestTabsDragState() }
+
+    LaunchedEffect(state.openTabs.size) {
+        dragState.tabBounds.keys.retainAll(state.openTabs.indices)
+    }
 
     // Auto-scroll so the active tab is visible whenever it changes
     // (e.g. when the user clicks a request in the sidebar).
@@ -130,28 +143,87 @@ fun RequestTabsBar(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     state.openTabs.forEachIndexed { index, tab ->
-                        // Box captures the chip's natural x-offset in the Row's
-                        // layout coordinate space for auto-scroll targeting.
-                        Box(
-                            modifier = Modifier.onGloballyPositioned { coords ->
-                                tabPositions[index] = coords.positionInParent().x.toInt()
-                            },
-                        ) {
-                            RequestTabChip(
-                                tab = tab,
-                                isActive = index == state.activeTabIndex,
-                                onClick = {
-                                    state.activeTabIndex = index
+                        key(tab.id) {
+                            val isDragged = dragState.isDragging && dragState.draggedTabId == tab.id
+                            val showIndicatorLeft = dragState.showDropIndicatorLeft(index)
+                            val showIndicatorRight = dragState.showDropIndicatorRight(index)
+
+                            // Box captures the chip's natural x-offset in the Row's
+                            // layout coordinate space for auto-scroll targeting.
+                            Box(
+                                modifier = Modifier.onGloballyPositioned { coords ->
+                                    val x = coords.positionInParent().x
+                                    val w = coords.size.width.toFloat()
+                                    dragState.tabBounds[index] = TabBounds(index, x, w)
+                                    tabPositions[index] = x.toInt()
                                 },
-                                onClose = { onRequestClose(index) },
-                                onRename = { newName -> onRenameTab(tab.id, newName) },
-                                onShowInSidebar = { onShowInSidebar(tab.id) },
-                                onCloseOthers = { onCloseOthers(index) },
-                                onCloseToLeft = { onCloseToLeft(index) },
-                                onCloseToRight = { onCloseToRight(index) },
-                                onCloseAll = onCloseAll,
-                                showClose = true,
-                            )
+                            ) {
+                                // Subtle placeholder slot in the original location of the dragged tab
+                                if (isDragged) {
+                                    Box(
+                                        modifier = Modifier
+                                            .matchParentSize()
+                                            .padding(vertical = 4.dp, horizontal = 2.dp)
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(ClapiColors.SurfaceContainer.copy(alpha = 0.5f))
+                                            .border(1.dp, ClapiColors.Border.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                                            .testTag("tab-placeholder-${tab.id}"),
+                                    )
+                                }
+
+                                RequestTabChip(
+                                    tab = tab,
+                                    isActive = index == state.activeTabIndex,
+                                    onClick = {
+                                        state.activeTabIndex = index
+                                    },
+                                    onClose = { onRequestClose(index) },
+                                    onRename = { newName -> onRenameTab(tab.id, newName) },
+                                    onShowInSidebar = { onShowInSidebar(tab.id) },
+                                    onCloseOthers = { onCloseOthers(index) },
+                                    onCloseToLeft = { onCloseToLeft(index) },
+                                    onCloseToRight = { onCloseToRight(index) },
+                                    onCloseAll = onCloseAll,
+                                    showClose = true,
+                                    isDragged = isDragged,
+                                    dragOffsetX = if (isDragged) dragState.dragOffsetX else 0f,
+                                    onDragStart = { dragState.onDragStart(index, tab.id) },
+                                    onDragDelta = { dx -> dragState.onDragDelta(dx) },
+                                    onDragEnd = { dragState.onDragEnd(onMoveTab) },
+                                    onDragCancel = { dragState.reset() },
+                                    canDrag = state.openTabs.size > 1,
+                                )
+
+                                // Horizontal drag-to-reorder drop indicator on the left edge (rendered on top with zIndex 20f)
+                                if (showIndicatorLeft) {
+                                    Box(
+                                        Modifier
+                                            .align(Alignment.CenterStart)
+                                            .zIndex(20f)
+                                            .width(3.dp)
+                                            .fillMaxHeight(0.85f)
+                                            .clip(RoundedCornerShape(1.5.dp))
+                                            .background(ClapiColors.Primary)
+                                            .testTag("tab-drop-indicator-left-${tab.id}")
+                                            .testTag("tab-drop-indicator"),
+                                    )
+                                }
+
+                                // Horizontal drag-to-reorder drop indicator on the right edge (rendered on top with zIndex 20f)
+                                if (showIndicatorRight) {
+                                    Box(
+                                        Modifier
+                                            .align(Alignment.CenterEnd)
+                                            .zIndex(20f)
+                                            .width(3.dp)
+                                            .fillMaxHeight(0.85f)
+                                            .clip(RoundedCornerShape(1.5.dp))
+                                            .background(ClapiColors.Primary)
+                                            .testTag("tab-drop-indicator-right-${tab.id}")
+                                            .testTag("tab-drop-indicator"),
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -260,6 +332,14 @@ private fun RequestTabChip(
     onCloseToRight: () -> Unit,
     onCloseAll: () -> Unit,
     showClose: Boolean,
+    isDragged: Boolean = false,
+    dragOffsetX: Float = 0f,
+    onDragStart: () -> Unit = {},
+    onDragDelta: (Float) -> Unit = {},
+    onDragEnd: () -> Unit = {},
+    onDragCancel: () -> Unit = {},
+    canDrag: Boolean = true,
+    modifier: Modifier = Modifier,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val isHovered by interaction.collectIsHoveredAsState()
@@ -269,21 +349,40 @@ private fun RequestTabChip(
 
     // Outer Box fills the 36dp row height so the indicator can anchor at the bottom
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxHeight()
+            .zIndex(if (isDragged) 10f else 0f)
+            .hoverable(interaction)
+            .pointerHoverIcon(PointerIcon.Hand)
+            .draggableTab(
+                enabled = canDrag && !renameMode,
+                onDragStart = onDragStart,
+                onDragDelta = onDragDelta,
+                onDragEnd = onDragEnd,
+                onDragCancel = onDragCancel,
+            )
+            .offset { IntOffset(dragOffsetX.roundToInt(), 0) }
             .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
             .background(
                 when {
+                    isDragged -> ClapiColors.SurfaceHigh
                     isActive  -> ClapiColors.Background
                     isHovered -> ClapiColors.HoverOverlay
                     else      -> Color.Transparent
                 }
             )
-            .hoverable(interaction)
+            .then(
+                if (isDragged) {
+                    Modifier
+                        .shadow(elevation = 6.dp, shape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                        .border(1.dp, ClapiColors.Primary.copy(alpha = 0.5f), RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                } else Modifier
+            )
             .clickable(onClick = onClick)
             .onPointerEvent(PointerEventType.Press) {
                 if (it.buttons.isSecondaryPressed) showContextMenu = true
             }
+            .then(if (isDragged) Modifier.testTag("tab-chip-dragged-${tab.id}") else Modifier)
             .testTag("tab-chip-${tab.id}"),
     ) {
         // Tab label row
