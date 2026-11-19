@@ -1,15 +1,18 @@
 package io.github.makeforge.clapi.ui.shared.components
 
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitHorizontalTouchSlopOrCancellation
+import androidx.compose.foundation.gestures.horizontalDrag
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.isPrimaryPressed
 import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
-import kotlin.math.abs
+import androidx.compose.ui.input.pointer.positionChange
 
 /**
  * Bounds of a tab chip within the horizontally scrollable row layout coordinates.
@@ -117,11 +120,11 @@ class RequestTabsDragState {
     }
 }
 
-private const val TAB_DRAG_SLOP_PX = 8f
-
 /**
  * Modifier detecting horizontal drag gestures for reordering tabs.
- * Allows micro-jitter / clicks (< TAB_DRAG_SLOP_PX) without starting drag or consuming click events.
+ * Uses pointer lock via `horizontalDrag` to track movement reliably across
+ * adjacent tabs and boundaries without being intercepted by child components.
+ * Only triggers on primary mouse button press past drag slop.
  */
 fun Modifier.draggableTab(
     enabled: Boolean = true,
@@ -132,62 +135,30 @@ fun Modifier.draggableTab(
 ): Modifier {
     if (!enabled) return this
     return this.pointerInput(enabled) {
-        awaitPointerEventScope {
-            var isDragging = false
-            var accumulatedDx = 0f
-
-            try {
-                while (true) {
-                    val event = awaitPointerEvent()
-                    when (event.type) {
-                        PointerEventType.Press -> {
-                            if (!event.buttons.isSecondaryPressed) {
-                                isDragging = false
-                                accumulatedDx = 0f
-                            }
-                        }
-                        PointerEventType.Move, PointerEventType.Exit, PointerEventType.Enter -> {
-                            if (!event.buttons.isSecondaryPressed) {
-                                event.changes.forEach { change ->
-                                    if (change.pressed) {
-                                        val dx = change.position.x - change.previousPosition.x
-                                        accumulatedDx += dx
-
-                                        if (!isDragging) {
-                                            if (abs(accumulatedDx) >= TAB_DRAG_SLOP_PX) {
-                                                isDragging = true
-                                                change.consume()
-                                                onDragStart()
-                                                onDragDelta(accumulatedDx)
-                                            }
-                                        } else {
-                                            if (dx != 0f) {
-                                                change.consume()
-                                                onDragDelta(dx)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        PointerEventType.Release -> {
-                            if (isDragging) {
-                                isDragging = false
-                                accumulatedDx = 0f
-                                onDragEnd()
-                            } else {
-                                accumulatedDx = 0f
-                            }
-                        }
-                    }
-                    if (isDragging && event.changes.all { !it.pressed }) {
-                        isDragging = false
-                        accumulatedDx = 0f
-                        onDragEnd()
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            if (!currentEvent.buttons.isPrimaryPressed || currentEvent.buttons.isSecondaryPressed) {
+                return@awaitEachGesture
+            }
+            var overSlop = 0f
+            val drag = awaitHorizontalTouchSlopOrCancellation(down.id) { change, over ->
+                change.consume()
+                overSlop = over
+            }
+            if (drag != null) {
+                onDragStart()
+                val initialDelta = drag.position.x - down.position.x
+                onDragDelta(if (initialDelta != 0f) initialDelta else overSlop)
+                val success = horizontalDrag(drag.id) { change ->
+                    val dx = change.positionChange().x
+                    change.consume()
+                    if (dx != 0f) {
+                        onDragDelta(dx)
                     }
                 }
-            } finally {
-                if (isDragging) {
+                if (success) {
+                    onDragEnd()
+                } else {
                     onDragCancel()
                 }
             }

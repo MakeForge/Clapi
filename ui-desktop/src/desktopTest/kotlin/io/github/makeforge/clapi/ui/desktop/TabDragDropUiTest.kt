@@ -50,6 +50,36 @@ class TabDragDropUiTest {
     }
 
     @Test
+    fun dragging_middle_tab_right_reorders_to_end() {
+        val state = AppState().apply {
+            openTabs[0].name = "Tab A"
+            addTab(name = "Tab B", method = HttpMethodType.POST)
+            addTab(name = "Tab C", method = HttpMethodType.PUT)
+        }
+        val tabA = state.openTabs[0]
+        val tabB = state.openTabs[1]
+        val tabC = state.openTabs[2]
+
+        composeRule.setContent { MainScreen(state) }
+        composeRule.waitForIdle()
+
+        // Drag Tab B horizontally to the right across Tab C
+        composeRule.onNodeWithTag("tab-chip-${tabB.id}").performMouseInput {
+            moveTo(center)
+            press()
+            moveBy(Offset(120f, 0f))
+            release()
+        }
+        composeRule.waitForIdle()
+
+        // Tab B should now be at index 2 (last), Tab C at index 1, Tab A at index 0
+        assertEquals(tabA.id, state.openTabs[0].id)
+        assertEquals(tabC.id, state.openTabs[1].id)
+        assertEquals(tabB.id, state.openTabs[2].id)
+        assertEquals(2, state.activeTabIndex)
+    }
+
+    @Test
     fun dragging_tab_left_reorders_tabs_in_state() {
         val state = AppState().apply {
             openTabs[0].name = "Tab A"
