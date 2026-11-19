@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performMouseInput
 import io.github.makeforge.clapi.ui.shared.MainScreen
+import io.github.makeforge.clapi.ui.shared.components.TitleBarBrandContent
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import org.junit.Rule
 import org.junit.Test
@@ -67,7 +68,7 @@ class ToolbarTooltipUiTest {
 
     @Test
     fun toggle_sidebar_tooltip_is_visible_on_hover() {
-        composeRule.setContent { MainScreen(AppState()) }
+        composeRule.setContent { TitleBarBrandContent(AppState()) }
         composeRule.waitForIdle()
 
         composeRule

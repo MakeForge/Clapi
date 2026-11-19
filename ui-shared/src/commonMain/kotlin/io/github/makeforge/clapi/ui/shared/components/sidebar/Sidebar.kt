@@ -3,11 +3,7 @@ package io.github.makeforge.clapi.ui.shared.components.sidebar
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.scrollBy
-import androidx.compose.foundation.hoverable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,11 +18,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -44,10 +38,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.isSecondaryPressed
@@ -57,35 +47,18 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import io.github.makeforge.clapi.ui.shared.components.HoverTooltip
-import io.github.makeforge.clapi.ui.shared.components.IconButtonWithTooltip
 import io.github.makeforge.clapi.ui.shared.components.SharedTooltipCoordinator
 import io.github.makeforge.clapi.ui.shared.components.SidebarTooltipOverlay
 import io.github.makeforge.clapi.ui.shared.components.sharedSidebarTooltipState
 import io.github.makeforge.clapi.ui.shared.generated.resources.Res
-import io.github.makeforge.clapi.ui.shared.generated.resources.ic_add
-import io.github.makeforge.clapi.ui.shared.generated.resources.ic_article
-import io.github.makeforge.clapi.ui.shared.generated.resources.ic_close
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_download
-import io.github.makeforge.clapi.ui.shared.generated.resources.ic_history
-import io.github.makeforge.clapi.ui.shared.generated.resources.ic_input
-import io.github.makeforge.clapi.ui.shared.generated.resources.ic_keyboard_arrow_down
-import io.github.makeforge.clapi.ui.shared.generated.resources.ic_keyboard_arrow_right
-import io.github.makeforge.clapi.ui.shared.generated.resources.ic_more_vert
-import io.github.makeforge.clapi.ui.shared.generated.resources.ic_search
-import io.github.makeforge.clapi.ui.shared.generated.resources.ic_settings
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_upload
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
 import io.github.makeforge.clapi.ui.shared.persistence.ImportExportNaming
 import io.github.makeforge.clapi.ui.shared.persistence.ImportExportRepository
 import io.github.makeforge.clapi.ui.shared.persistence.WorkspaceRepository
 import io.github.makeforge.clapi.ui.shared.platform.ioDispatcher
-import io.github.makeforge.clapi.ui.shared.platform.pickFileForImport
 import io.github.makeforge.clapi.ui.shared.platform.saveFileForExport
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.state.CollectionNode
@@ -466,9 +439,7 @@ fun Sidebar(
                         .padding(start = 4.dp, end = 8.dp),
                 ) {
 
-            sidebarHistorySection(state = state)
-
-            sidebarCollectionsSection(
+                sidebarCollectionsSection(
                 state = state,
                 scope = scope,
                 dragState = dragState,
@@ -496,6 +467,8 @@ fun Sidebar(
                         renameEnvironmentValue = name
                     },
                 )
+
+                sidebarHistorySection(state = state)
             }
 
             VerticalScrollbar(
