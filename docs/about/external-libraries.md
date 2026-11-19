@@ -28,6 +28,7 @@ For exact library coordinates, pinned versions, and build plugins, refer to the 
 | **Koin** | Apache-2.0 | [InsertKoinIO/koin](https://github.com/InsertKoinIO/koin) | Dependency injection framework |
 | **Javet** | Apache-2.0 | [caoccao/Javet](https://github.com/caoccao/Javet) | Embedded Google V8 JavaScript engine for scripts |
 | **gRPC Java** | Apache-2.0 | [grpc/grpc-java](https://github.com/grpc/grpc-java) | gRPC HTTP/2 transport & reflection client |
+| **RabbitMQ Java Client** | Apache-2.0 / MPL-2.0 | [rabbitmq/rabbitmq-java-client](https://github.com/rabbitmq/rabbitmq-java-client) | RabbitMQ AMQP 0-9-1 Publish, Subscribe, and RPC client |
 | **Protocol Buffers** | BSD-3-Clause | [protocolbuffers/protobuf](https://github.com/protocolbuffers/protobuf) | Protobuf schema compilation & JSON mapping |
 | **KeePassXC Proxy Access** | MIT | [purejava/keepassxc-proxy-access](https://github.com/purejava/keepassxc-proxy-access) | Native messaging proxy client for KeePassXC |
 | **Keeper Secrets Manager** | MIT | [Keeper-Security/secrets-manager](https://github.com/Keeper-Security/secrets-manager) | Keeper vault secret resolution SDK |

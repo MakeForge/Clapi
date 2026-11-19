@@ -18,7 +18,7 @@ Unlike most modern commercial API clients (e.g. Postman, Insomnia) that enforce 
 2. **No Cloud Sign-In Required**: There are zero user accounts, zero sign-in walls, and no mandatory cloud registrations. You can download and immediately use every feature of Clapi without creating an account or providing an email.
 3. **100% Offline Capability**: Clapi operates completely offline by default. All collections, environments, certificates, and settings live strictly on your local disk and require no internet connection to function.
 4. **Zero Spying or Tracking**: Clapi does not collect personal identifiers, device hardware fingerprints, keystrokes, or request payloads.
-5. **No Phantom Network Calls**: Clapi initiates network calls **only** when you explicitly trigger **Send** or connect to an MCP/WebSocket/gRPC server you specifically configured.
+5. **No Phantom Network Calls**: Clapi initiates network calls **only** when you explicitly trigger **Send** or connect to an MCP/WebSocket/gRPC/RabbitMQ server you specifically configured.
 6. **Local Data Sovereignty**: All collections, environments, certificates, and workspaces live strictly on your local filesystem under your direct control.
 :::
 

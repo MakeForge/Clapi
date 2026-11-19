@@ -10,6 +10,12 @@ import io.github.makeforge.clapi.mcp.server.backend.GraphQlVariantDto
 import io.github.makeforge.clapi.mcp.server.backend.GrpcMetadataDto
 import io.github.makeforge.clapi.mcp.server.backend.GrpcRequestConfigDto
 import io.github.makeforge.clapi.mcp.server.backend.McpWorkspaceBackend
+import io.github.makeforge.clapi.mcp.server.backend.RabbitMqConnectionDto
+import io.github.makeforge.clapi.mcp.server.backend.RabbitMqExchangeDto
+import io.github.makeforge.clapi.mcp.server.backend.RabbitMqPropertiesDto
+import io.github.makeforge.clapi.mcp.server.backend.RabbitMqQueueDto
+import io.github.makeforge.clapi.mcp.server.backend.RabbitMqRequestConfigDto
+import io.github.makeforge.clapi.mcp.server.backend.RabbitMqSettingsDto
 import io.github.makeforge.clapi.mcp.server.backend.SanitizedRequestDto
 import io.github.makeforge.clapi.mcp.server.backend.SanitizedVariableDto
 import io.github.makeforge.clapi.mcp.server.backend.UpsertRequestInput
@@ -27,6 +33,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 
 object RequestTools {
@@ -80,8 +88,9 @@ object RequestTools {
                             add(JsonPrimitive("grpc"))
                             add(JsonPrimitive("graphql"))
                             add(JsonPrimitive("websocket"))
+                            add(JsonPrimitive("rabbitmq"))
                         })
-                        put("description", "Request protocol kind: 'http' (default), 'grpc', 'graphql', or 'websocket'.")
+                        put("description", "Request protocol kind: 'http' (default), 'grpc', 'graphql', 'websocket', or 'rabbitmq'.")
                     })
                     put("summary", buildJsonObject {
                         put("type", "string")
@@ -143,6 +152,10 @@ object RequestTools {
                         put("type", "object")
                         put("description", "WebSocket configuration {messageFormat: text|json|xml|binary, timeout, keepAliveInterval, variants: [{title, type, data, selected}]}.")
                     })
+                    put("rabbitmq", buildJsonObject {
+                        put("type", "object")
+                        put("description", "RabbitMQ configuration {mode: publish|subscribe|rpc, connection: {host, port, vhost, useTls}, exchange: {name, type, durable, autoDelete}, queue: {name, durable, exclusive, autoDelete}, routingKey, replyQueue, properties, variants, settings}.")
+                    })
                 })
             },
         ),
@@ -203,6 +216,7 @@ object RequestTools {
                     grpc = args["grpc"]?.let { parseGrpcConfig(it) },
                     graphql = args["graphql"]?.let { parseGraphQlConfig(it) },
                     websocket = args["websocket"]?.let { parseWebSocketConfig(it) },
+                    rabbitmq = args["rabbitmq"]?.let { parseRabbitMqConfig(it) },
                 )
                 val saved = backend.upsertRequest(input)
                 okResult(json.encodeToJsonElement(SanitizedRequestDto.serializer(), saved))
@@ -318,6 +332,89 @@ object RequestTools {
             timeout = obj.optString("timeout"),
             keepAliveInterval = obj.optString("keepAliveInterval"),
             variants = variants,
+        )
+    }
+
+    private fun parseRabbitMqConfig(element: JsonElement): RabbitMqRequestConfigDto? {
+        val obj = element as? JsonObject ?: return null
+        val connObj = obj["connection"] as? JsonObject
+        val connection = RabbitMqConnectionDto(
+            host = connObj?.optString("host") ?: obj.optString("host") ?: "localhost",
+            port = (connObj?.get("port") as? JsonPrimitive)?.intOrNull ?: 5672,
+            vhost = connObj?.optString("vhost") ?: "/",
+            useTls = connObj?.optBoolean("useTls") ?: false,
+        )
+        val exObj = obj["exchange"] as? JsonObject
+        val exchange = exObj?.let {
+            RabbitMqExchangeDto(
+                name = it.optString("name").orEmpty(),
+                type = it.optString("type") ?: "direct",
+                durable = it.optBoolean("durable") ?: true,
+                autoDelete = it.optBoolean("autoDelete") ?: false,
+            )
+        }
+        val qObj = obj["queue"] as? JsonObject
+        val queue = qObj?.let {
+            RabbitMqQueueDto(
+                name = it.optString("name").orEmpty(),
+                durable = it.optBoolean("durable") ?: true,
+                exclusive = it.optBoolean("exclusive") ?: false,
+                autoDelete = it.optBoolean("autoDelete") ?: false,
+            )
+        }
+        val propsObj = obj["properties"] as? JsonObject
+        val properties = propsObj?.let {
+            RabbitMqPropertiesDto(
+                contentType = it.optString("contentType") ?: "application/json",
+                contentEncoding = it.optString("contentEncoding"),
+                deliveryMode = (it["deliveryMode"] as? JsonPrimitive)?.intOrNull ?: 2,
+                priority = (it["priority"] as? JsonPrimitive)?.intOrNull,
+                correlationId = it.optString("correlationId"),
+                replyTo = it.optString("replyTo"),
+                expiration = it.optString("expiration"),
+                messageId = it.optString("messageId"),
+                type = it.optString("type"),
+                appId = it.optString("appId"),
+            )
+        }
+        val variants = (obj["variants"] as? JsonArray)?.mapNotNull { item ->
+            val vObj = item as? JsonObject ?: return@mapNotNull null
+            val title = vObj.optString("title") ?: vObj.optString("name") ?: return@mapNotNull null
+            WebSocketVariantDto(
+                title = title,
+                type = vObj.optString("type") ?: "json",
+                data = vObj.optString("data") ?: vObj.optString("message").orEmpty(),
+                selected = vObj.optBoolean("selected") ?: false,
+            )
+        }.orEmpty()
+        val settingsObj = obj["settings"] as? JsonObject
+        val settings = if (settingsObj != null) {
+            RabbitMqSettingsDto(
+                connectionTimeoutMs = (settingsObj["connectionTimeoutMs"] as? JsonPrimitive)?.longOrNull ?: 10_000L,
+                heartbeatSeconds = (settingsObj["heartbeatSeconds"] as? JsonPrimitive)?.intOrNull ?: 30,
+                publisherConfirms = settingsObj.optBoolean("publisherConfirms") ?: true,
+                mandatory = settingsObj.optBoolean("mandatory") ?: false,
+                declareTopology = settingsObj.optBoolean("declareTopology") ?: false,
+                ackMode = settingsObj.optString("ackMode") ?: "auto",
+                prefetchCount = (settingsObj["prefetchCount"] as? JsonPrimitive)?.intOrNull ?: 50,
+                maxTimelineMessages = (settingsObj["maxTimelineMessages"] as? JsonPrimitive)?.intOrNull ?: 1_000,
+                rpcTimeoutMs = (settingsObj["rpcTimeoutMs"] as? JsonPrimitive)?.longOrNull ?: 15_000L,
+                replyStrategy = settingsObj.optString("replyStrategy") ?: "direct_reply_to",
+                useTlsClientCert = settingsObj.optBoolean("useTlsClientCert") ?: false,
+            )
+        } else {
+            RabbitMqSettingsDto()
+        }
+        return RabbitMqRequestConfigDto(
+            mode = obj.optString("mode") ?: "publish",
+            connection = connection,
+            exchange = exchange,
+            queue = queue,
+            routingKey = obj.optString("routingKey").orEmpty(),
+            replyQueue = obj.optString("replyQueue"),
+            properties = properties,
+            variants = variants,
+            settings = settings,
         )
     }
 }

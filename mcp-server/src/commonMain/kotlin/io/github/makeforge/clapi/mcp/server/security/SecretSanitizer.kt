@@ -30,6 +30,7 @@ import io.github.makeforge.clapi.core.model.opencollection.OAuth2ClientCredentia
 import io.github.makeforge.clapi.core.model.opencollection.OAuth2ResourceOwner
 import io.github.makeforge.clapi.core.model.opencollection.OpenCollectionDocument
 import io.github.makeforge.clapi.core.model.opencollection.OpenCollectionItem
+import io.github.makeforge.clapi.core.model.opencollection.RabbitMqRequestItem
 import io.github.makeforge.clapi.core.model.opencollection.RegularVariable
 import io.github.makeforge.clapi.core.model.opencollection.RequestDefaults
 import io.github.makeforge.clapi.core.model.opencollection.SecretVariable
@@ -552,6 +553,17 @@ object SecretSanitizer {
                         if (isSensitiveHeader(h.name)) h.copy(value = "") else h
                     },
                     auth = sanitizeAuthForExport(item.websocket.auth),
+                ),
+                runtime = item.runtime?.copy(
+                    variables = item.runtime?.variables.orEmpty().map(::sanitizeVariableEntryForExport)
+                ),
+            )
+            is RabbitMqRequestItem -> item.copy(
+                rabbitmq = item.rabbitmq.copy(
+                    headers = item.rabbitmq.headers.map { h ->
+                        if (isSensitiveHeader(h.name)) h.copy(value = "") else h
+                    },
+                    auth = sanitizeAuthForExport(item.rabbitmq.auth),
                 ),
                 runtime = item.runtime?.copy(
                     variables = item.runtime?.variables.orEmpty().map(::sanitizeVariableEntryForExport)

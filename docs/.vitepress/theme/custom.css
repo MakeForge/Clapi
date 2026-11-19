@@ -381,3 +381,56 @@ html.dark .light-only,
     height: 36px;
   }
 }
+
+/* Request-type protocol icons row directly under hero text on index page */
+.hero-protocol-icons {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  overflow-x: auto;
+}
+
+@media (max-width: 959px) {
+  .hero-protocol-icons {
+    justify-content: center;
+  }
+}
+
+.hero-protocol-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.hero-protocol-link:hover {
+  transform: translateY(-1px);
+  border-color: var(--vp-c-brand-1);
+  background: var(--vp-c-brand-soft);
+}
+
+.hero-protocol-icon {
+  height: 32px;
+  width: 32px;
+  object-fit: contain;
+  display: block;
+}
+
+.hero-protocol-icon.wide {
+  width: auto;
+  max-width: 44px;
+}
+
+.hero-protocol-icon.monochrome {
+  opacity: 0.85;
+}
+
+.dark .hero-protocol-icon.monochrome {
+  filter: invert(1);
+}

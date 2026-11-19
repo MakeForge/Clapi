@@ -1,6 +1,15 @@
 package io.github.makeforge.clapi.ui.shared.components.sidebar
 
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -14,11 +23,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import io.github.makeforge.clapi.core.model.HttpMethodType
+import io.github.makeforge.clapi.core.model.opencollection.RabbitMqOperationMode
 import io.github.makeforge.clapi.ui.shared.components.GraphQLBadge
 import io.github.makeforge.clapi.ui.shared.components.GrpcBadge
 import io.github.makeforge.clapi.ui.shared.components.HttpBadge
 import io.github.makeforge.clapi.ui.shared.components.McpMethodBadge
 import io.github.makeforge.clapi.ui.shared.components.MethodBadge
+import io.github.makeforge.clapi.ui.shared.components.RabbitMqBadge
 import io.github.makeforge.clapi.ui.shared.components.WebSocketBadge
 import io.github.makeforge.clapi.ui.shared.generated.resources.Res
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_content_copy
@@ -46,6 +57,7 @@ fun CollectionTreeNodeAddMenu(
     onAddGrpcRequest: (CollectionNode) -> Unit,
     onAddWebSocketRequest: (CollectionNode) -> Unit,
     onAddGraphQLRequest: (CollectionNode) -> Unit,
+    onAddRabbitMqRequest: (CollectionNode, RabbitMqOperationMode) -> Unit = { _, _ -> },
     onAddMcpConnection: (CollectionNode) -> Unit = {},
     onAddSseRequest: (CollectionNode) -> Unit = {},
     modifier: Modifier = Modifier,
@@ -120,6 +132,12 @@ fun CollectionTreeNodeAddMenu(
             },
             modifier = Modifier.testTag("folder-menu-new-graphql"),
         )
+        RabbitMqSubMenuMenuItem(
+            node = node,
+            testTagPrefix = "folder-menu",
+            onDismissParent = onDismissRequest,
+            onAddRabbitMqRequest = onAddRabbitMqRequest,
+        )
         DropdownMenuItem(
             text = { Text(Strings.t("new_mcp_connection")) },
             leadingIcon = {
@@ -150,6 +168,88 @@ fun CollectionTreeNodeAddMenu(
 }
 
 @Composable
+private fun RabbitMqSubMenuMenuItem(
+    node: CollectionNode,
+    testTagPrefix: String,
+    onDismissParent: () -> Unit,
+    onAddRabbitMqRequest: (CollectionNode, RabbitMqOperationMode) -> Unit,
+) {
+    var subMenuExpanded by remember { mutableStateOf(false) }
+    val hoverInteraction = remember { MutableInteractionSource() }
+    val isHovered by hoverInteraction.collectIsHoveredAsState()
+    LaunchedEffect(isHovered) {
+        if (isHovered) subMenuExpanded = true
+    }
+
+    Box(
+        modifier = Modifier.hoverable(hoverInteraction),
+    ) {
+        DropdownMenuItem(
+            text = { Text("RabbitMQ") },
+            leadingIcon = {
+                Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
+                    RabbitMqBadge(modeBadge = "RMQ", compact = true)
+                }
+            },
+            trailingIcon = {
+                Text("▸", color = ClapiColors.OnSurfaceDim)
+            },
+            onClick = { subMenuExpanded = true },
+            modifier = Modifier.testTag("$testTagPrefix-new-rabbitmq"),
+        )
+        DropdownMenu(
+            expanded = subMenuExpanded,
+            onDismissRequest = { subMenuExpanded = false },
+            offset = androidx.compose.ui.unit.DpOffset(x = 200.dp, y = (-40).dp),
+            modifier = Modifier.testTag("$testTagPrefix-rabbitmq-submenu"),
+        ) {
+            DropdownMenuItem(
+                text = { Text("RabbitMQ Publish Request") },
+                leadingIcon = {
+                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
+                        RabbitMqBadge(modeBadge = "PUB", compact = true)
+                    }
+                },
+                onClick = {
+                    subMenuExpanded = false
+                    onDismissParent()
+                    onAddRabbitMqRequest(node, RabbitMqOperationMode.PUBLISH)
+                },
+                modifier = Modifier.testTag("$testTagPrefix-new-rabbitmq-publish"),
+            )
+            DropdownMenuItem(
+                text = { Text("RabbitMQ Subscribe Request") },
+                leadingIcon = {
+                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
+                        RabbitMqBadge(modeBadge = "SUB", compact = true)
+                    }
+                },
+                onClick = {
+                    subMenuExpanded = false
+                    onDismissParent()
+                    onAddRabbitMqRequest(node, RabbitMqOperationMode.SUBSCRIBE)
+                },
+                modifier = Modifier.testTag("$testTagPrefix-new-rabbitmq-subscribe"),
+            )
+            DropdownMenuItem(
+                text = { Text("RabbitMQ RPC Request") },
+                leadingIcon = {
+                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
+                        RabbitMqBadge(modeBadge = "RPC", compact = true)
+                    }
+                },
+                onClick = {
+                    subMenuExpanded = false
+                    onDismissParent()
+                    onAddRabbitMqRequest(node, RabbitMqOperationMode.RPC)
+                },
+                modifier = Modifier.testTag("$testTagPrefix-new-rabbitmq-rpc"),
+            )
+        }
+    }
+}
+
+@Composable
 fun CollectionTreeNodeContextMenu(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
@@ -169,6 +269,7 @@ fun CollectionTreeNodeContextMenu(
     onAddGrpcRequest: (CollectionNode) -> Unit,
     onAddWebSocketRequest: (CollectionNode) -> Unit,
     onAddGraphQLRequest: (CollectionNode) -> Unit,
+    onAddRabbitMqRequest: (CollectionNode, RabbitMqOperationMode) -> Unit = { _, _ -> },
     onAddMcpConnection: (CollectionNode) -> Unit,
     onAddSseRequest: (CollectionNode) -> Unit,
     onExportCollection: (CollectionNode) -> Unit,
@@ -311,6 +412,12 @@ fun CollectionTreeNodeContextMenu(
                 },
                 onClick = { onDismissRequest(); onAddGraphQLRequest(node) },
                 modifier = Modifier.testTag("collection-menu-new-graphql"),
+            )
+            RabbitMqSubMenuMenuItem(
+                node = node,
+                testTagPrefix = "collection-menu",
+                onDismissParent = onDismissRequest,
+                onAddRabbitMqRequest = onAddRabbitMqRequest,
             )
             DropdownMenuItem(
                 text = { Text(Strings.t("new_mcp_connection")) },

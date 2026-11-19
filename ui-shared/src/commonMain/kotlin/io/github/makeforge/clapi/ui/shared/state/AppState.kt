@@ -1060,6 +1060,40 @@ class AppState(openDefaultTab: Boolean = true) {
                 tab.webSocketOutgoingPayload = node.bodyContent
             }
         }
+        if (tab.kind == RequestKind.RABBITMQ) {
+            tab.headers.clear()
+            node?.headerEntries?.let { entries ->
+                tab.headers.addAll(entries.map { MutableKeyValue(it.key, it.value, it.enabled, it.secret, kind = HeaderKind.USER) })
+            } ?: node?.userHeaders?.forEach { (k, v) ->
+                tab.headers.add(MutableKeyValue(k, v, kind = HeaderKind.USER))
+            }
+            if (!node?.webSocketVariants.isNullOrEmpty()) {
+                tab.webSocketMessageVariants.clear()
+                tab.webSocketMessageVariants.addAll(node!!.webSocketVariants)
+                val sel = tab.webSocketMessageVariants.indexOfFirst { it.selected == true }
+                tab.activeWebSocketVariantIndex = if (sel >= 0) sel else 0
+            }
+            node?.webSocketMessageFormat?.let { tab.webSocketMessageFormat = it }
+            if (node?.bodyContent != null && tab.webSocketMessageVariants.isEmpty()) {
+                tab.webSocketOutgoingPayload = node.bodyContent
+            }
+            node?.rabbitMqDetails?.let { d ->
+                tab.rabbitMqMode = d.mode
+                tab.rabbitMqConnection = d.connection
+                d.exchange?.let { tab.rabbitMqExchange = it }
+                d.queue?.let { tab.rabbitMqQueue = it }
+                tab.rabbitMqRoutingKey = d.routingKey
+                tab.rabbitMqReplyQueue = d.replyQueue.orEmpty()
+                d.properties?.let { tab.rabbitMqProperties = it }
+                if (d.mode == io.github.makeforge.clapi.core.model.opencollection.RabbitMqOperationMode.SUBSCRIBE &&
+                    tab.selectedRabbitMqTab == RabbitMqEditorTab.MESSAGE
+                ) {
+                    tab.selectedRabbitMqTab = RabbitMqEditorTab.AMQP
+                }
+            }
+            node?.rabbitMqSettings?.let { tab.rabbitMqSettings = it }
+            node?.rabbitMqDocs?.let { tab.rabbitMqDocs = it }
+        }
         if (tab.kind == RequestKind.GRAPHQL) {
             tab.headers.clear()
             node?.headerEntries?.let { entries ->
@@ -1910,6 +1944,49 @@ class AppState(openDefaultTab: Boolean = true) {
         addTab(requestId = requestId, name = name, method = HttpMethodType.POST, url = "https://")
     }
 
+    /** Add a new RabbitMQ request node inside the given collection (folder). Opens it as a tab. */
+    fun addRabbitMqRequestToCollection(
+        collectionId: String,
+        mode: io.github.makeforge.clapi.core.model.opencollection.RabbitMqOperationMode =
+            io.github.makeforge.clapi.core.model.opencollection.RabbitMqOperationMode.PUBLISH,
+    ) {
+        val folder = findFolder(collectionId) ?: return
+        val siblingNames = folder.children.map { it.name }.toSet()
+        val baseName = when (mode) {
+            io.github.makeforge.clapi.core.model.opencollection.RabbitMqOperationMode.PUBLISH -> "New RabbitMQ Publish"
+            io.github.makeforge.clapi.core.model.opencollection.RabbitMqOperationMode.SUBSCRIBE -> "New RabbitMQ Subscribe"
+            io.github.makeforge.clapi.core.model.opencollection.RabbitMqOperationMode.RPC -> "New RabbitMQ RPC"
+        }
+        val name = generateUniqueName(baseName, siblingNames)
+        val requestId = generateUuid()
+        val defaultDetails = io.github.makeforge.clapi.core.model.opencollection.RabbitMqRequestDetails(
+            mode = mode,
+            connection = io.github.makeforge.clapi.core.model.opencollection.RabbitMqConnectionConfig(
+                host = "localhost",
+                port = 5672,
+                vhost = "/",
+            ),
+            auth = io.github.makeforge.clapi.core.model.opencollection.AuthInherit,
+        )
+        val node = CollectionNode(
+            id = requestId,
+            requestRef = generateUuid(),
+            name = name,
+            isFolder = false,
+            method = HttpMethodType.POST,
+            url = "amqp://localhost:5672/",
+            authType = AuthType.INHERIT,
+            kind = RequestKind.RABBITMQ,
+            rabbitMqDetails = defaultDetails,
+            rabbitMqSettings = io.github.makeforge.clapi.core.model.opencollection.RabbitMqRequestSettings(),
+        )
+        folder.children.add(node)
+        notifyCollectionsChanged()
+        selectedCollectionId = rootCollectionIdContaining(collectionId) ?: collectionId
+        selectedRequestId = requestId
+        addTab(requestId = requestId, name = name, method = HttpMethodType.POST, url = "amqp://localhost:5672/")
+    }
+
     fun addMcpConnectionToCollection(collectionId: String) {
         val folder = findFolder(collectionId) ?: return
         val siblingNames = folder.children.map { it.name }.toSet()
@@ -2498,11 +2575,24 @@ class AppState(openDefaultTab: Boolean = true) {
                     protoSyncToGit     = tab.protoSyncToGit,
                     grpcMethod         = tab.grpcMethod?.ifBlank { null },
                     grpcMethodType     = tab.grpcMethodType.ifBlank { "unary" },
-                    webSocketVariants  = if (tab.kind == RequestKind.WEBSOCKET) tab.webSocketMessageVariants.toList() else emptyList(),
+                    webSocketVariants  = if (tab.kind == RequestKind.WEBSOCKET || tab.kind == RequestKind.RABBITMQ) tab.webSocketMessageVariants.toList() else emptyList(),
                     webSocketTimeout   = if (tab.kind == RequestKind.WEBSOCKET) tab.webSocketTimeout else null,
                     webSocketKeepAliveInterval = if (tab.kind == RequestKind.WEBSOCKET) tab.webSocketKeepAliveInterval else null,
                     webSocketDocs      = if (tab.kind == RequestKind.WEBSOCKET) tab.webSocketDocs.ifBlank { null } else null,
-                    webSocketMessageFormat = if (tab.kind == RequestKind.WEBSOCKET) tab.effectiveWebSocketFormat else null,
+                    webSocketMessageFormat = if (tab.kind == RequestKind.WEBSOCKET || tab.kind == RequestKind.RABBITMQ) tab.effectiveWebSocketFormat else null,
+                    rabbitMqDetails    = if (tab.kind == RequestKind.RABBITMQ) {
+                        io.github.makeforge.clapi.core.model.opencollection.RabbitMqRequestDetails(
+                            mode = tab.rabbitMqMode,
+                            connection = tab.rabbitMqConnection,
+                            exchange = tab.rabbitMqExchange,
+                            queue = tab.rabbitMqQueue,
+                            routingKey = tab.rabbitMqRoutingKey,
+                            replyQueue = tab.rabbitMqReplyQueue.ifBlank { null },
+                            properties = tab.rabbitMqProperties,
+                        )
+                    } else null,
+                    rabbitMqSettings   = if (tab.kind == RequestKind.RABBITMQ) tab.rabbitMqSettings else null,
+                    rabbitMqDocs       = if (tab.kind == RequestKind.RABBITMQ) tab.rabbitMqDocs.ifBlank { null } else null,
                     graphQlVariants    = if (tab.kind == RequestKind.GRAPHQL) tab.graphQlVariants.toList() else emptyList(),
                     graphQlDocs        = if (tab.kind == RequestKind.GRAPHQL) tab.graphQlDocs.ifBlank { null } else null,
                     graphQlSettings    = if (tab.kind == RequestKind.GRAPHQL) {

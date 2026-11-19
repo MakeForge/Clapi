@@ -174,6 +174,9 @@ object OpenApiExporter {
                 is io.github.makeforge.clapi.core.model.opencollection.GraphQLRequestItem -> {
                     // OpenAPI 3.0 export only covers HTTP requests
                 }
+                is io.github.makeforge.clapi.core.model.opencollection.RabbitMqRequestItem -> {
+                    // OpenAPI 3.0 export only covers HTTP requests
+                }
             }
         }
     }

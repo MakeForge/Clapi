@@ -297,6 +297,13 @@ class AppStateWorkspaceBackend(
         res
     }
 
+    override suspend fun subscribeRabbitMq(
+        input: io.github.makeforge.clapi.mcp.server.backend.SubscribeRabbitMqInput,
+    ): io.github.makeforge.clapi.mcp.server.backend.SubscribeRabbitMqResultDto = syncMutex.withLock {
+        syncFromAppStateToDelegate()
+        delegate.subscribeRabbitMq(input)
+    }
+
     override suspend fun inspectResponse(input: InspectResponseInput): InspectResponseResultDto = syncMutex.withLock {
         delegate.inspectResponse(input)
     }

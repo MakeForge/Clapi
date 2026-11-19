@@ -14,6 +14,7 @@ import io.github.makeforge.clapi.core.model.opencollection.OpenCollectionItem
 import io.github.makeforge.clapi.core.model.opencollection.SecretVariable
 import io.github.makeforge.clapi.core.model.opencollection.WebSocketRequestItem
 import io.github.makeforge.clapi.core.model.opencollection.GraphQLRequestItem
+import io.github.makeforge.clapi.core.model.opencollection.RabbitMqRequestItem
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -66,6 +67,10 @@ object OpenCollectionSerializer {
 
     private val KNOWN_GRAPHQL_REQUEST_KEYS = setOf(
         "info", "graphql", "runtime", "settings", "docs", "extensions"
+    )
+
+    private val KNOWN_RABBITMQ_REQUEST_KEYS = setOf(
+        "info", "rabbitmq", "runtime", "settings", "docs", "extensions"
     )
 
     fun serializeJson(document: OpenCollectionDocument): String {
@@ -162,6 +167,10 @@ object OpenCollectionSerializer {
                 }
                 is GraphQLRequestItem -> {
                     // OpenCollection GraphQLRequest schema has additionalProperties: false;
+                    // item extensions are not written into the item object directly.
+                }
+                is RabbitMqRequestItem -> {
+                    // OpenCollection RabbitMqRequest schema has additionalProperties: false;
                     // item extensions are not written into the item object directly.
                 }
             }
@@ -267,6 +276,11 @@ object OpenCollectionSerializer {
                 }
                 is GraphQLRequestItem -> {
                     val extraRequestKeys = itemJson.filterKeys { it !in KNOWN_GRAPHQL_REQUEST_KEYS }
+                    val mergedExt = if (extraRequestKeys.isNotEmpty()) extraRequestKeys + item.extensions else item.extensions
+                    item.copy(extensions = mergedExt)
+                }
+                is RabbitMqRequestItem -> {
+                    val extraRequestKeys = itemJson.filterKeys { it !in KNOWN_RABBITMQ_REQUEST_KEYS }
                     val mergedExt = if (extraRequestKeys.isNotEmpty()) extraRequestKeys + item.extensions else item.extensions
                     item.copy(extensions = mergedExt)
                 }

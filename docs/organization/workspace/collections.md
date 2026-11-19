@@ -23,7 +23,7 @@ In the left sidebar, the **Collections** section allows managing multiple distin
 - **Inline Renaming**: Double-click any collection's name in the sidebar to rename it inline. Press Enter to commit or Escape to cancel.
 - **Context Menu**: Right-click any collection to:
   - **Add Folder**: Create an organizational sub-folder.
-  - **Add Request**: Create an HTTP, GraphQL, WebSocket, gRPC, or MCP request.
+  - **Add Request**: Create an HTTP, GraphQL, WebSocket, gRPC, RabbitMQ, or MCP request.
   - **Duplicate Collection**: Create a clone of the collection.
   - **Export Collection**: Save the collection to disk as an OpenCollection file.
   - **Delete Collection**: Remove the collection from the workspace.

@@ -77,6 +77,18 @@ import io.github.makeforge.clapi.core.model.opencollection.WebSocketMessageType
 import io.github.makeforge.clapi.core.model.opencollection.WebSocketMessageVariant
 import io.github.makeforge.clapi.core.model.opencollection.WebSocketRequestDetails
 import io.github.makeforge.clapi.core.model.opencollection.WebSocketRequestInfo
+import io.github.makeforge.clapi.core.model.opencollection.AmqpAckMode
+import io.github.makeforge.clapi.core.model.opencollection.AmqpMessageProperties
+import io.github.makeforge.clapi.core.model.opencollection.RabbitMqConnectionConfig
+import io.github.makeforge.clapi.core.model.opencollection.RabbitMqExchangeConfig
+import io.github.makeforge.clapi.core.model.opencollection.RabbitMqExchangeType
+import io.github.makeforge.clapi.core.model.opencollection.RabbitMqOperationMode
+import io.github.makeforge.clapi.core.model.opencollection.RabbitMqQueueConfig
+import io.github.makeforge.clapi.core.model.opencollection.RabbitMqReplyStrategy
+import io.github.makeforge.clapi.core.model.opencollection.RabbitMqRequestDetails
+import io.github.makeforge.clapi.core.model.opencollection.RabbitMqRequestInfo
+import io.github.makeforge.clapi.core.model.opencollection.RabbitMqRequestItem
+import io.github.makeforge.clapi.core.model.opencollection.RabbitMqRequestSettings
 import io.github.makeforge.clapi.core.model.opencollection.WebSocketRequestItem
 import io.github.makeforge.clapi.core.model.opencollection.WebSocketRequestRuntime
 import io.github.makeforge.clapi.core.model.opencollection.WebSocketRequestSettings
@@ -267,6 +279,7 @@ class HeadlessWorkspaceBackend(
             is GrpcRequestItem -> item.copy(extensions = newExt)
             is GraphQLRequestItem -> item.copy(extensions = newExt)
             is WebSocketRequestItem -> item.copy(extensions = newExt)
+            is RabbitMqRequestItem -> item.copy(extensions = newExt)
         }
     }
 
@@ -315,6 +328,14 @@ class HeadlessWorkspaceBackend(
                     kind = "websocket",
                     method = "WS",
                     url = item.websocket.url,
+                    slashPath = slashPath,
+                )
+                is RabbitMqRequestItem -> WorkspaceTreeNodeDto(
+                    id = id,
+                    name = item.info.name,
+                    kind = "rabbitmq",
+                    method = item.rabbitmq.mode.badge,
+                    url = "${if (item.rabbitmq.connection.useTls) "amqps" else "amqp"}://${item.rabbitmq.connection.host}:${item.rabbitmq.connection.effectivePort()}${item.rabbitmq.connection.vhost}",
                     slashPath = slashPath,
                 )
             }
@@ -580,7 +601,7 @@ class HeadlessWorkspaceBackend(
 
     // ── Multi-Protocol Requests ──────────────────────────────────────────
 
-    private val requestKinds = setOf("http", "grpc", "graphql", "websocket")
+    private val requestKinds = setOf("http", "grpc", "graphql", "websocket", "rabbitmq")
 
     override suspend fun getRequest(idOrPath: String): SanitizedRequestDto = mutex.withLock {
         val doc = loadOrCreateGlobalDoc()
@@ -678,6 +699,148 @@ class HeadlessWorkspaceBackend(
         return ResponseSnapshotCache.toExecutionResultDto(snapshot, input.maxBodyLength)
     }
 
+    override suspend fun subscribeRabbitMq(input: SubscribeRabbitMqInput): SubscribeRabbitMqResultDto {
+        val (doc, priv, node, item, ancestorFolders, collectionFolder) = mutex.withLock {
+            val d = loadOrCreateGlobalDoc()
+            val p = loadPrivateState()
+            val roots = buildTreeFromDoc(d)
+            val resolvedNode = NodeLookupResolver.resolve(roots, input.requestId, requestKinds)
+            val resolvedItem = findItemById(d, roots, resolvedNode.id)
+                ?: throw NodeNotFoundException(input.requestId, "request")
+            val chain = findAncestorFolderItems(d, roots, resolvedNode.id)
+            val colFolder = chain.firstOrNull()
+                ?: throw NodeNotFoundException(input.requestId, "collection")
+            ExecutionLookupContext(d, p, resolvedNode, resolvedItem, chain.drop(1), colFolder)
+        }
+
+        if (item !is RabbitMqRequestItem) {
+            throw IllegalArgumentException("Request '${node.slashPath}' is not a RabbitMQ request.")
+        }
+
+        val maxMessages = input.maxMessages.coerceIn(1, 100)
+        val timeoutMs = input.timeoutMs.coerceIn(250L, 30_000L)
+        val maxBodyLen = input.maxBodyLength.coerceIn(MIN_BODY_LENGTH, MAX_BODY_LENGTH)
+
+        val allEnvs = doc.config?.environments.orEmpty()
+        val activeEnvName = input.environmentName?.trim()?.takeIf { it.isNotEmpty() } ?: priv.activeEnvironment
+        val activeEnv = activeEnvName?.let { name ->
+            allEnvs.firstOrNull { it.name == name } ?: allEnvs.firstOrNull { it.name.equals(name, ignoreCase = true) }
+        }
+
+        val knownSecrets = mutableSetOf<String>()
+        val basicAuthPairs = mutableListOf<Pair<String, String>>()
+        priv.globalVariables.filter { it.secret && it.value.isNotBlank() }.forEach { knownSecrets.add(it.value) }
+        priv.scopedSecrets.values.filter { it.isNotBlank() }.forEach { knownSecrets.add(it) }
+        collectAuthSecrets(collectionFolder.request?.auth, knownSecrets, basicAuthPairs)
+        ancestorFolders.forEach { collectAuthSecrets(it.request?.auth, knownSecrets, basicAuthPairs) }
+        collectAuthSecrets(item.rabbitmq.auth, knownSecrets, basicAuthPairs)
+
+        val collectionStandaloneDoc = OpenCollectionDocument(
+            opencollection = "1.0.0",
+            info = CollectionInfo(name = collectionFolder.info.name),
+            config = doc.config,
+            request = collectionFolder.request,
+        )
+
+        val layers = buildList {
+            if (input.transientVariables.isNotEmpty()) add(input.transientVariables)
+            val envVars = activeEnv?.variables?.mapNotNull { v ->
+                when (v) {
+                    is RegularVariable -> if (v.disabled != true) v.name to (v.value?.asString ?: "") else null
+                    is SecretVariable -> if (v.disabled != true) priv.scopedSecrets["env:${activeEnv.name}:${v.name}"]?.let { v.name to it } else null
+                    else -> null
+                }
+            }?.toMap().orEmpty()
+            if (envVars.isNotEmpty()) add(envVars)
+            val globalVars = priv.globalVariables.filter { it.enabled }.associate { it.name to it.value }
+            if (globalVars.isNotEmpty()) add(globalVars)
+        }
+
+        val startMs = System.currentTimeMillis()
+        val session = executionService.executeRabbitMqSubscribe(
+            requestItem = item,
+            parentHierarchy = ancestorFolders,
+            collectionRoot = collectionStandaloneDoc,
+            variableLayers = layers,
+            environment = activeEnv,
+        )
+
+        val collected = mutableListOf<SanitizedRabbitMqMessageDto>()
+        var hitCap = false
+        try {
+            if (session.status.value == io.github.makeforge.clapi.core.model.RabbitMqConnectionStatus.ERROR) {
+                val err = SecretSanitizer.scrubText(session.errorMessage.value ?: "RabbitMQ subscribe failed", knownSecrets)
+                return SubscribeRabbitMqResultDto(
+                    requestId = node.id,
+                    elapsedMs = (System.currentTimeMillis() - startMs).coerceAtLeast(0),
+                    messageCount = 0,
+                    error = err,
+                )
+            }
+            kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
+                session.messages.collect { msg ->
+                    val rawBody = if (msg.isBinary) {
+                        "[Binary payload: ${msg.contentType ?: "application/octet-stream"}, ${msg.byteLength} bytes]"
+                    } else {
+                        SecretSanitizer.scrubText(msg.payloadText.orEmpty(), knownSecrets)
+                    }
+                    val bodyBytes = rawBody.encodeToByteArray()
+                    val isTrunc = bodyBytes.size > maxBodyLen
+                    val preview = if (isTrunc) bodyBytes.decodeToString(0, maxBodyLen) else rawBody
+                    val sanitizedHeaders = msg.headers.entries.associate { (k, v) ->
+                        k to if (SecretSanitizer.isSensitiveHeader(k)) {
+                            SecretSanitizer.maskHeaderValue(k, v, isSecretFlagged = true)
+                        } else {
+                            SecretSanitizer.scrubText(v, knownSecrets)
+                        }
+                    }
+                    collected.add(
+                        SanitizedRabbitMqMessageDto(
+                            timestamp = msg.timestampEpochMillis,
+                            exchange = msg.exchange,
+                            routingKey = msg.routingKey,
+                            contentType = msg.contentType,
+                            headers = sanitizedHeaders,
+                            properties = RabbitMqPropertiesDto(
+                                contentType = msg.properties.contentType,
+                                contentEncoding = msg.properties.contentEncoding,
+                                deliveryMode = msg.properties.deliveryMode,
+                                priority = msg.properties.priority,
+                                correlationId = msg.properties.correlationId,
+                                replyTo = msg.properties.replyTo,
+                                expiration = msg.properties.expiration,
+                                messageId = msg.properties.messageId,
+                                type = msg.properties.type,
+                                appId = msg.properties.appId,
+                            ),
+                            bodyPreview = preview,
+                            byteLength = msg.byteLength,
+                            isBinary = msg.isBinary,
+                            _truncated = isTrunc,
+                        )
+                    )
+                    if (collected.size >= maxMessages) {
+                        hitCap = true
+                        throw kotlinx.coroutines.CancellationException("maxMessages reached")
+                    }
+                }
+            }
+        } catch (_: kotlinx.coroutines.CancellationException) {
+            // Normal exit when maxMessages cap is reached
+        } finally {
+            session.close()
+        }
+
+        val elapsed = (System.currentTimeMillis() - startMs).coerceAtLeast(0)
+        return SubscribeRabbitMqResultDto(
+            requestId = node.id,
+            elapsedMs = elapsed,
+            messageCount = collected.size,
+            truncated = hitCap,
+            messages = collected,
+        )
+    }
+
     override suspend fun inspectResponse(input: InspectResponseInput): InspectResponseResultDto {
         val node = mutex.withLock {
             val doc = loadOrCreateGlobalDoc()
@@ -722,7 +885,7 @@ class HeadlessWorkspaceBackend(
             val roots = buildTreeFromDoc(doc)
             val target = NodeLookupResolver.resolve(roots, input.targetId, setOf("collection", "folder"))
             val leaves = NodeLookupResolver.flatten(listOf(target)).filter {
-                it.kind in setOf("http", "grpc", "graphql")
+                it.kind in setOf("http", "grpc", "graphql", "rabbitmq")
             }
             target to leaves
         }
@@ -736,6 +899,22 @@ class HeadlessWorkspaceBackend(
         var failedAsserts = 0
 
         for (reqNode in executableRequests) {
+            if (reqNode.kind == "rabbitmq" && reqNode.method.equals("SUB", ignoreCase = true)) {
+                itemResults.add(
+                    TestSuiteItemResultDto(
+                        requestId = reqNode.id,
+                        name = reqNode.name,
+                        slashPath = reqNode.slashPath,
+                        statusCode = 0,
+                        passed = true,
+                        durationMs = 0L,
+                        assertions = emptyList(),
+                        error = "SKIPPED: Indefinite RabbitMQ subscription skipped in test suite",
+                    )
+                )
+                passedReqs++
+                continue
+            }
             val reqStart = System.currentTimeMillis()
             val itemResult = try {
                 val snapshot = executeSingleRequestInternal(
@@ -1316,6 +1495,7 @@ class HeadlessWorkspaceBackend(
                 is HttpRequestItem -> item.runtime?.scripts.orEmpty()
                 is GraphQLRequestItem -> item.runtime?.scripts.orEmpty()
                 is GrpcRequestItem -> item.runtime?.scripts.orEmpty()
+                is RabbitMqRequestItem -> item.runtime?.scripts.orEmpty()
                 else -> emptyList()
             }
             itemScripts.filter {
@@ -1336,6 +1516,7 @@ class HeadlessWorkspaceBackend(
                 is HttpRequestItem -> item.runtime?.scripts.orEmpty()
                 is GraphQLRequestItem -> item.runtime?.scripts.orEmpty()
                 is GrpcRequestItem -> item.runtime?.scripts.orEmpty()
+                is RabbitMqRequestItem -> item.runtime?.scripts.orEmpty()
                 else -> emptyList()
             }
             itemScripts.filter {
@@ -1555,6 +1736,168 @@ class HeadlessWorkspaceBackend(
                     scriptLogs = allLogs,
                     scriptError = grpcResp.errorMessage,
                 )
+                val sanitizedSnapshot = SecretSanitizer.sanitizeExecutionSnapshot(rawSnapshot, knownSecrets, basicAuthPairs)
+                snapshotCache.put(sanitizedSnapshot)
+                sanitizedSnapshot
+            }
+            is RabbitMqRequestItem -> {
+                if (item.rabbitmq.mode == RabbitMqOperationMode.SUBSCRIBE) {
+                    throw IllegalArgumentException(
+                        "RabbitMQ Subscribe request '${node.slashPath}' is a streaming consumer; call clapi_subscribe_rabbitmq with maxMessages and timeoutMs instead."
+                    )
+                }
+                collectAuthSecrets(item.rabbitmq.auth, knownSecrets, basicAuthPairs)
+
+                // Run pre-request scripts
+                for (code in preScripts) {
+                    val ctx = ScriptContext(
+                        url = "${if (item.rabbitmq.connection.useTls) "amqps" else "amqp"}://${item.rabbitmq.connection.host}:${item.rabbitmq.connection.effectivePort()}${item.rabbitmq.connection.vhost}",
+                        method = item.rabbitmq.mode.badge,
+                        variables = envVarMap,
+                        globalVariables = globalVarMap,
+                        collectionVariables = colVarMap,
+                        requestHeaders = item.rabbitmq.headers.filter { it.disabled != true }.associate { it.name to it.value },
+                        requestBody = item.rabbitmq.message?.variantList?.firstOrNull { it.selected == true }?.message?.data
+                            ?: item.rabbitmq.message?.singleMessage?.data,
+                    )
+                    val res = scriptEngine.executePreRequestScript(code, ctx)
+                    allLogs.addAll(res.logs)
+                    res.newVariables.forEach { (k, v) -> envVarMap[k] = v }
+                    res.newGlobalVariables.forEach { (k, v) -> globalVarMap[k] = v }
+                    res.newCollectionVariables.forEach { (k, v) -> colVarMap[k] = v }
+                    res.newRequestVariables.forEach { (k, v) -> reqVarMap[k] = v }
+                    if (!res.success && res.error != null) {
+                        scriptError = res.error
+                        break
+                    }
+                }
+
+                val effectiveLayers = buildLayers()
+                val rawSnapshot = if (item.rabbitmq.mode == RabbitMqOperationMode.PUBLISH) {
+                    val pubRes = executionService.executeRabbitMqPublish(
+                        requestItem = item,
+                        parentHierarchy = ancestorFolders,
+                        collectionRoot = collectionStandaloneDoc,
+                        variableLayers = effectiveLayers,
+                        environment = activeEnv,
+                    )
+                    val bodyText = if (pubRes.isSuccess) {
+                        """{"confirmed":${pubRes.confirmed},"exchange":"${pubRes.exchange}","routingKey":"${pubRes.routingKey}","byteLength":${pubRes.byteLength},"elapsedMs":${pubRes.elapsedMs}}"""
+                    } else if (pubRes.returnedUnroutable) {
+                        """{"returnedUnroutable":true,"replyCode":${pubRes.returnReplyCode},"replyText":"${pubRes.returnReplyText.orEmpty()}"}"""
+                    } else {
+                        pubRes.errorMessage ?: "RabbitMQ publish failed"
+                    }
+                    val statusInt = if (pubRes.isSuccess) 200 else 500
+                    for (code in testScripts) {
+                        val ctx = ScriptContext(
+                            url = item.rabbitmq.connection.host,
+                            method = "PUB",
+                            statusCode = statusInt,
+                            responseBody = bodyText,
+                            responseSizeBytes = bodyText.encodeToByteArray().size.toLong(),
+                            variables = envVarMap,
+                            globalVariables = globalVarMap,
+                            collectionVariables = colVarMap,
+                            responseTimeMs = pubRes.elapsedMs,
+                        )
+                        val res = scriptEngine.executeTestScript(code, ctx)
+                        allLogs.addAll(res.logs)
+                        allAssertions.addAll(res.assertions)
+                        if (!res.success && res.error != null && scriptError == null) scriptError = res.error
+                    }
+                    ExecutionSnapshot(
+                        requestId = node.id,
+                        slashPath = node.slashPath,
+                        executedAtEpochMillis = System.currentTimeMillis(),
+                        statusCode = statusInt,
+                        statusText = when {
+                            pubRes.isSuccess && pubRes.confirmed -> "CONFIRMED"
+                            pubRes.isSuccess -> "PUBLISHED"
+                            pubRes.returnedUnroutable -> "UNROUTABLE"
+                            else -> "ERROR"
+                        },
+                        contentType = "application/json",
+                        isBinary = false,
+                        totalBytes = bodyText.encodeToByteArray().size.toLong(),
+                        sanitizedRequestHeaders = SecretSanitizer.sanitizeHttpHeaders(item.rabbitmq.headers, knownSecrets),
+                        sanitizedResponseHeaders = emptyList(),
+                        sanitizedBodyText = bodyText,
+                        metrics = ResponseMetrics(
+                            statusCode = statusInt,
+                            responseTimeMs = pubRes.elapsedMs,
+                            responseSizeBytes = bodyText.encodeToByteArray().size.toLong(),
+                        ),
+                        assertions = allAssertions,
+                        scriptLogs = allLogs,
+                        scriptError = scriptError ?: pubRes.errorMessage,
+                    )
+                } else {
+                    val rpcRes = executionService.executeRabbitMqRpc(
+                        requestItem = item,
+                        parentHierarchy = ancestorFolders,
+                        collectionRoot = collectionStandaloneDoc,
+                        variableLayers = effectiveLayers,
+                        environment = activeEnv,
+                    )
+                    val reply = rpcRes.reply
+                    val isBinary = reply?.isBinary == true
+                    val bodyText = when {
+                        reply != null && !isBinary -> reply.payloadText.orEmpty()
+                        reply != null && isBinary -> "[Binary payload: ${reply.contentType ?: "application/octet-stream"}, ${reply.byteLength} bytes]"
+                        else -> rpcRes.errorMessage ?: "RabbitMQ RPC failed"
+                    }
+                    val statusInt = when {
+                        rpcRes.isSuccess -> 200
+                        rpcRes.timedOut -> 504
+                        else -> 500
+                    }
+                    for (code in testScripts) {
+                        val ctx = ScriptContext(
+                            url = item.rabbitmq.connection.host,
+                            method = "RPC",
+                            statusCode = statusInt,
+                            responseBody = bodyText,
+                            responseSizeBytes = reply?.byteLength ?: bodyText.encodeToByteArray().size.toLong(),
+                            variables = envVarMap,
+                            globalVariables = globalVarMap,
+                            collectionVariables = colVarMap,
+                            responseHeaders = reply?.headers.orEmpty(),
+                            responseTimeMs = rpcRes.elapsedMs,
+                        )
+                        val res = scriptEngine.executeTestScript(code, ctx)
+                        allLogs.addAll(res.logs)
+                        allAssertions.addAll(res.assertions)
+                        if (!res.success && res.error != null && scriptError == null) scriptError = res.error
+                    }
+                    ExecutionSnapshot(
+                        requestId = node.id,
+                        slashPath = node.slashPath,
+                        executedAtEpochMillis = System.currentTimeMillis(),
+                        statusCode = statusInt,
+                        statusText = when {
+                            rpcRes.isSuccess -> "OK"
+                            rpcRes.timedOut -> "TIMEOUT"
+                            else -> "ERROR"
+                        },
+                        contentType = reply?.contentType ?: "application/json",
+                        isBinary = isBinary,
+                        totalBytes = reply?.byteLength ?: bodyText.encodeToByteArray().size.toLong(),
+                        sanitizedRequestHeaders = SecretSanitizer.sanitizeHttpHeaders(item.rabbitmq.headers, knownSecrets),
+                        sanitizedResponseHeaders = reply?.headers.orEmpty().map { (k, v) ->
+                            SecretSanitizer.sanitizeHeader(k, v, knownSecrets = knownSecrets)
+                        },
+                        sanitizedBodyText = bodyText,
+                        metrics = ResponseMetrics(
+                            statusCode = statusInt,
+                            responseTimeMs = rpcRes.elapsedMs,
+                            responseSizeBytes = reply?.byteLength ?: bodyText.encodeToByteArray().size.toLong(),
+                        ),
+                        assertions = allAssertions,
+                        scriptLogs = allLogs,
+                        scriptError = scriptError ?: rpcRes.errorMessage,
+                    )
+                }
                 val sanitizedSnapshot = SecretSanitizer.sanitizeExecutionSnapshot(rawSnapshot, knownSecrets, basicAuthPairs)
                 snapshotCache.put(sanitizedSnapshot)
                 sanitizedSnapshot
@@ -2393,6 +2736,88 @@ class HeadlessWorkspaceBackend(
                     extensions = ext,
                 )
             }
+            "rabbitmq" -> {
+                val rmq = input.rabbitmq ?: RabbitMqRequestConfigDto()
+                val scripts = mergeScripts(emptyList(), input.preRequestScript, input.testScript)
+                val msgPayload = when {
+                    rmq.variants.isNotEmpty() -> WebSocketMessagePayload.Variants(
+                        rmq.variants.map { v ->
+                            WebSocketMessageVariant(
+                                title = v.title,
+                                selected = v.selected,
+                                message = WebSocketMessage(type = WebSocketMessageType.fromValue(v.type), data = v.data),
+                            )
+                        }
+                    )
+                    input.bodyContent != null -> WebSocketMessagePayload.Single(
+                        WebSocketMessage(type = WebSocketMessageType.JSON, data = input.bodyContent)
+                    )
+                    else -> null
+                }
+                RabbitMqRequestItem(
+                    info = RabbitMqRequestInfo(name = name, description = desc),
+                    rabbitmq = RabbitMqRequestDetails(
+                        mode = RabbitMqOperationMode.fromValue(rmq.mode) ?: RabbitMqOperationMode.PUBLISH,
+                        connection = RabbitMqConnectionConfig(
+                            host = rmq.connection.host,
+                            port = rmq.connection.port,
+                            vhost = rmq.connection.vhost,
+                            useTls = rmq.connection.useTls,
+                        ),
+                        exchange = rmq.exchange?.let {
+                            RabbitMqExchangeConfig(
+                                name = it.name,
+                                type = RabbitMqExchangeType.fromValue(it.type) ?: RabbitMqExchangeType.DIRECT,
+                                durable = it.durable,
+                                autoDelete = it.autoDelete,
+                            )
+                        },
+                        queue = rmq.queue?.let {
+                            RabbitMqQueueConfig(
+                                name = it.name,
+                                durable = it.durable,
+                                exclusive = it.exclusive,
+                                autoDelete = it.autoDelete,
+                            )
+                        },
+                        routingKey = rmq.routingKey,
+                        replyQueue = rmq.replyQueue,
+                        headers = headers,
+                        properties = rmq.properties?.let {
+                            AmqpMessageProperties(
+                                contentType = it.contentType,
+                                contentEncoding = it.contentEncoding,
+                                deliveryMode = it.deliveryMode,
+                                priority = it.priority,
+                                correlationId = it.correlationId,
+                                replyTo = it.replyTo,
+                                expiration = it.expiration,
+                                messageId = it.messageId,
+                                type = it.type,
+                                appId = it.appId,
+                            )
+                        },
+                        message = msgPayload,
+                        auth = auth,
+                    ),
+                    runtime = if (vars.isNotEmpty() || scripts.isNotEmpty()) HttpRequestRuntime(variables = vars, scripts = scripts) else null,
+                    settings = RabbitMqRequestSettings(
+                        connectionTimeoutMs = rmq.settings.connectionTimeoutMs,
+                        heartbeatSeconds = rmq.settings.heartbeatSeconds,
+                        publisherConfirms = rmq.settings.publisherConfirms,
+                        mandatory = rmq.settings.mandatory,
+                        declareTopology = rmq.settings.declareTopology,
+                        ackMode = AmqpAckMode.fromValue(rmq.settings.ackMode) ?: AmqpAckMode.AUTO,
+                        prefetchCount = rmq.settings.prefetchCount,
+                        maxTimelineMessages = rmq.settings.maxTimelineMessages,
+                        rpcTimeoutMs = rmq.settings.rpcTimeoutMs,
+                        replyStrategy = RabbitMqReplyStrategy.fromValue(rmq.settings.replyStrategy) ?: RabbitMqReplyStrategy.DIRECT_REPLY_TO,
+                        useTlsClientCert = rmq.settings.useTlsClientCert,
+                    ),
+                    docs = input.summary,
+                    extensions = ext,
+                )
+            }
             else -> {
                 val scripts = mergeScripts(emptyList(), input.preRequestScript, input.testScript)
                 val body = buildHttpRequestBody(input.bodyType, input.bodyContent, input.formDataEntries)
@@ -2425,6 +2850,7 @@ class HeadlessWorkspaceBackend(
             is GrpcRequestItem -> "grpc"
             is GraphQLRequestItem -> "graphql"
             is WebSocketRequestItem -> "websocket"
+            is RabbitMqRequestItem -> "rabbitmq"
             else -> "http"
         }
         if (targetKind != null && targetKind != currentKind) {
@@ -2624,6 +3050,100 @@ class HeadlessWorkspaceBackend(
                             variables = mergedVars,
                             scripts = mergedScripts,
                         ),
+                        docs = input.summary ?: existing.docs,
+                    ),
+                    id,
+                )
+            }
+            is RabbitMqRequestItem -> {
+                val rmq = input.rabbitmq
+                val mergedHeaders = input.headers?.map { h ->
+                    val prevVal = existing.rabbitmq.headers.firstOrNull { it.name.equals(h.key, ignoreCase = true) }?.value.orEmpty()
+                    HttpRequestHeader(
+                        name = h.key,
+                        value = SecretSanitizer.preserveSecretIfMasked(h.value, prevVal),
+                        disabled = if (h.enabled) null else true,
+                    )
+                } ?: existing.rabbitmq.headers
+                val mergedAuth = SecretSanitizer.mergeAuthUpdate(input.auth, existing.rabbitmq.auth)
+                val mergedMsg = when {
+                    rmq != null && rmq.variants.isNotEmpty() -> WebSocketMessagePayload.Variants(
+                        rmq.variants.map { v ->
+                            WebSocketMessageVariant(
+                                title = v.title,
+                                selected = v.selected,
+                                message = WebSocketMessage(type = WebSocketMessageType.fromValue(v.type), data = v.data),
+                            )
+                        }
+                    )
+                    input.bodyContent != null -> WebSocketMessagePayload.Single(
+                        WebSocketMessage(type = WebSocketMessageType.JSON, data = input.bodyContent)
+                    )
+                    else -> existing.rabbitmq.message
+                }
+                val mergedVars = input.variables?.map { v ->
+                    val prev = existing.runtime?.variables?.firstOrNull { it.name == v.key }
+                    toVariableEntry(v, prev)
+                } ?: existing.runtime?.variables.orEmpty()
+                val mergedScripts = mergeScripts(existing.runtime?.scripts.orEmpty(), input.preRequestScript, input.testScript)
+                withItemId(
+                    existing.copy(
+                        info = existing.info.copy(name = newName, description = newDesc),
+                        rabbitmq = existing.rabbitmq.copy(
+                            mode = rmq?.mode?.let { RabbitMqOperationMode.fromValue(it) } ?: existing.rabbitmq.mode,
+                            connection = rmq?.connection?.let {
+                                RabbitMqConnectionConfig(it.host, it.port, it.vhost, it.useTls)
+                            } ?: existing.rabbitmq.connection,
+                            exchange = rmq?.exchange?.let {
+                                RabbitMqExchangeConfig(
+                                    name = it.name,
+                                    type = RabbitMqExchangeType.fromValue(it.type) ?: RabbitMqExchangeType.DIRECT,
+                                    durable = it.durable,
+                                    autoDelete = it.autoDelete,
+                                )
+                            } ?: existing.rabbitmq.exchange,
+                            queue = rmq?.queue?.let {
+                                RabbitMqQueueConfig(it.name, it.durable, it.exclusive, it.autoDelete)
+                            } ?: existing.rabbitmq.queue,
+                            routingKey = rmq?.routingKey ?: existing.rabbitmq.routingKey,
+                            replyQueue = rmq?.replyQueue ?: existing.rabbitmq.replyQueue,
+                            headers = mergedHeaders,
+                            properties = rmq?.properties?.let {
+                                AmqpMessageProperties(
+                                    contentType = it.contentType,
+                                    contentEncoding = it.contentEncoding,
+                                    deliveryMode = it.deliveryMode,
+                                    priority = it.priority,
+                                    correlationId = it.correlationId,
+                                    replyTo = it.replyTo,
+                                    expiration = it.expiration,
+                                    messageId = it.messageId,
+                                    type = it.type,
+                                    appId = it.appId,
+                                )
+                            } ?: existing.rabbitmq.properties,
+                            message = mergedMsg,
+                            auth = mergedAuth,
+                        ),
+                        runtime = (existing.runtime ?: HttpRequestRuntime()).copy(
+                            variables = mergedVars,
+                            scripts = mergedScripts,
+                        ),
+                        settings = rmq?.settings?.let {
+                            RabbitMqRequestSettings(
+                                connectionTimeoutMs = it.connectionTimeoutMs,
+                                heartbeatSeconds = it.heartbeatSeconds,
+                                publisherConfirms = it.publisherConfirms,
+                                mandatory = it.mandatory,
+                                declareTopology = it.declareTopology,
+                                ackMode = AmqpAckMode.fromValue(it.ackMode) ?: AmqpAckMode.AUTO,
+                                prefetchCount = it.prefetchCount,
+                                maxTimelineMessages = it.maxTimelineMessages,
+                                rpcTimeoutMs = it.rpcTimeoutMs,
+                                replyStrategy = RabbitMqReplyStrategy.fromValue(it.replyStrategy) ?: RabbitMqReplyStrategy.DIRECT_REPLY_TO,
+                                useTlsClientCert = it.useTlsClientCert,
+                            )
+                        } ?: existing.settings,
                         docs = input.summary ?: existing.docs,
                     ),
                     id,
@@ -2925,6 +3445,84 @@ class HeadlessWorkspaceBackend(
                         timeout = (item.settings?.timeout as? JsonPrimitive)?.contentOrNull,
                         keepAliveInterval = (item.settings?.keepAliveInterval as? JsonPrimitive)?.contentOrNull,
                         variants = variants,
+                    ),
+                )
+            }
+            is RabbitMqRequestItem -> {
+                val preScript = item.runtime?.scripts.orEmpty()
+                    .firstOrNull { it.type == ScriptType.BEFORE_REQUEST }?.code
+                val testScript = item.runtime?.scripts.orEmpty()
+                    .firstOrNull { it.type == ScriptType.TESTS || it.type == ScriptType.AFTER_RESPONSE }?.code
+                val variants = item.rabbitmq.message?.variantList.orEmpty().map { v ->
+                    WebSocketVariantDto(
+                        title = v.title,
+                        type = v.message.type.value,
+                        data = v.message.data,
+                        selected = v.selected == true,
+                    )
+                }
+                val activeVariant = variants.firstOrNull { it.selected } ?: variants.firstOrNull()
+                val s = item.settings ?: RabbitMqRequestSettings()
+                SanitizedRequestDto(
+                    id = node.id,
+                    name = item.info.name,
+                    slashPath = node.slashPath,
+                    collectionId = collectionId,
+                    parentFolderId = parentFolderId,
+                    kind = "rabbitmq",
+                    summary = item.info.description?.content ?: item.docs,
+                    method = item.rabbitmq.mode.badge,
+                    url = "${if (item.rabbitmq.connection.useTls) "amqps" else "amqp"}://${item.rabbitmq.connection.host}:${item.rabbitmq.connection.effectivePort()}${item.rabbitmq.connection.vhost}",
+                    headers = SecretSanitizer.sanitizeHttpHeaders(item.rabbitmq.headers),
+                    auth = SecretSanitizer.sanitizeAuth(item.rabbitmq.auth),
+                    bodyContent = activeVariant?.data,
+                    variables = item.runtime?.variables.orEmpty().map(SecretSanitizer::sanitizeVariable),
+                    preRequestScript = preScript,
+                    testScript = testScript,
+                    rabbitmq = RabbitMqRequestConfigDto(
+                        mode = item.rabbitmq.mode.value,
+                        connection = RabbitMqConnectionDto(
+                            host = item.rabbitmq.connection.host,
+                            port = item.rabbitmq.connection.port,
+                            vhost = item.rabbitmq.connection.vhost,
+                            useTls = item.rabbitmq.connection.useTls,
+                        ),
+                        exchange = item.rabbitmq.exchange?.let {
+                            RabbitMqExchangeDto(it.name, it.type.value, it.durable, it.autoDelete)
+                        },
+                        queue = item.rabbitmq.queue?.let {
+                            RabbitMqQueueDto(it.name, it.durable, it.exclusive, it.autoDelete)
+                        },
+                        routingKey = item.rabbitmq.routingKey,
+                        replyQueue = item.rabbitmq.replyQueue,
+                        properties = item.rabbitmq.properties?.let {
+                            RabbitMqPropertiesDto(
+                                contentType = it.contentType,
+                                contentEncoding = it.contentEncoding,
+                                deliveryMode = it.deliveryMode,
+                                priority = it.priority,
+                                correlationId = it.correlationId,
+                                replyTo = it.replyTo,
+                                expiration = it.expiration,
+                                messageId = it.messageId,
+                                type = it.type,
+                                appId = it.appId,
+                            )
+                        },
+                        variants = variants,
+                        settings = RabbitMqSettingsDto(
+                            connectionTimeoutMs = s.connectionTimeoutMs,
+                            heartbeatSeconds = s.heartbeatSeconds,
+                            publisherConfirms = s.publisherConfirms,
+                            mandatory = s.mandatory,
+                            declareTopology = s.declareTopology,
+                            ackMode = s.ackMode.value,
+                            prefetchCount = s.prefetchCount,
+                            maxTimelineMessages = s.maxTimelineMessages,
+                            rpcTimeoutMs = s.rpcTimeoutMs,
+                            replyStrategy = s.replyStrategy.value,
+                            useTlsClientCert = s.useTlsClientCert,
+                        ),
                     ),
                 )
             }

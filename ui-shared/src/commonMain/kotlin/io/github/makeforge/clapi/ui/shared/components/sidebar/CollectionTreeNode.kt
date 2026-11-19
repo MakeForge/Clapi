@@ -75,6 +75,7 @@ import io.github.makeforge.clapi.core.model.HttpMethodType
 import io.github.makeforge.clapi.core.model.RequestKind
 import io.github.makeforge.clapi.ui.shared.components.GraphQLBadge
 import io.github.makeforge.clapi.ui.shared.components.GrpcBadge
+import io.github.makeforge.clapi.ui.shared.components.RabbitMqBadge
 import io.github.makeforge.clapi.ui.shared.components.IconButtonWithTooltip
 import io.github.makeforge.clapi.ui.shared.components.McpMethodBadge
 import io.github.makeforge.clapi.ui.shared.components.MethodBadge
@@ -166,7 +167,7 @@ internal fun CollectionTreeNode(
     val indent = (22 + depth * 22).dp
     val isFolderNode = node.isFolder
     val isCollectionRoot = depth == 0 && node.isFolder
-    val isRequest = !node.isFolder && (node.kind == RequestKind.GRPC || node.kind == RequestKind.MCP || node.kind == RequestKind.WEBSOCKET || node.kind == RequestKind.GRAPHQL || (node.method != null && node.url != null))
+    val isRequest = !node.isFolder && (node.kind == RequestKind.GRPC || node.kind == RequestKind.MCP || node.kind == RequestKind.WEBSOCKET || node.kind == RequestKind.GRAPHQL || node.kind == RequestKind.RABBITMQ || (node.method != null && node.url != null))
     val isSelectedRequest = isRequest && state.selectedRequestId == node.id
     val isSidebarFolderSelected = isFolderNode && node.id in state.selectedFolderIds
     val isSidebarRequestSelected = isRequest && node.id in state.selectedRequestIds
@@ -459,6 +460,15 @@ internal fun CollectionTreeNode(
                     modifier = Modifier.size(12.dp),
                 )
                 GraphQLBadge(compact = true, modifier = Modifier.testTag("graphql-badge-${node.id}"))
+            } else if (node.kind == RequestKind.RABBITMQ) {
+                Icon(painter = painterResource(Res.drawable.ic_drag_indicator),
+                    contentDescription = Strings.t("drag_to_reorder"),
+                    tint = ClapiColors.OnSurfaceDim.copy(alpha = 0.4f),
+                    modifier = Modifier.size(12.dp),
+                )
+                val openTab = state.openTabs.find { it.id == node.id }
+                val modeBadge = openTab?.rabbitMqMode?.badge ?: node.rabbitMqDetails?.mode?.badge ?: "PUB"
+                RabbitMqBadge(modeBadge = modeBadge, compact = true, modifier = Modifier.testTag("rabbitmq-badge-${node.id}"))
             } else if (node.method != null) {
                 Icon(painter = painterResource(Res.drawable.ic_drag_indicator),
                     contentDescription = Strings.t("drag_to_reorder"),
@@ -627,6 +637,7 @@ internal fun CollectionTreeNode(
                         onAddGrpcRequest = onAddGrpcRequest,
                         onAddWebSocketRequest = onAddWebSocketRequest,
                         onAddGraphQLRequest = onAddGraphQLRequest,
+                        onAddRabbitMqRequest = { target, mode -> state.addRabbitMqRequestToCollection(target.id, mode) },
                         onAddMcpConnection = onAddMcpConnection,
                         onAddSseRequest = onAddSseRequest,
                     )

@@ -250,6 +250,7 @@ actual class OpenApiImporter actual constructor() : SpecificationImporter {
                 is io.github.makeforge.clapi.core.model.opencollection.GrpcRequestItem -> count++
                 is io.github.makeforge.clapi.core.model.opencollection.WebSocketRequestItem -> count++
                 is io.github.makeforge.clapi.core.model.opencollection.GraphQLRequestItem -> count++
+                is io.github.makeforge.clapi.core.model.opencollection.RabbitMqRequestItem -> count++
                 is FolderItem -> count += countRequests(item.items)
             }
         }

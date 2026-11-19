@@ -59,6 +59,7 @@ object ClapiColors {
     val MethodConnect: Color       @Composable @ReadOnlyComposable get() = LocalAppColors.current.methodConnect
     val MethodWebSocket: Color     @Composable @ReadOnlyComposable get() = LocalAppColors.current.methodWebSocket
     val MethodGraphQl: Color       @Composable @ReadOnlyComposable get() = LocalAppColors.current.methodGraphQl
+    val MethodRabbitMq: Color      @Composable @ReadOnlyComposable get() = LocalAppColors.current.methodRabbitMq
     val BadgeHttp: Color           @Composable @ReadOnlyComposable get() = LocalAppColors.current.badgeHttp
     val BadgeGrpc: Color           @Composable @ReadOnlyComposable get() = LocalAppColors.current.badgeGrpc
     val BadgeMcp: Color            @Composable @ReadOnlyComposable get() = LocalAppColors.current.badgeMcp
