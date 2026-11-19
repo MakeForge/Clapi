@@ -63,7 +63,7 @@ allprojects {
 
     plugins.withType<org.jetbrains.kotlin.gradle.plugin.KotlinBasePluginWrapper> {
         extensions.configure<org.jetbrains.kotlin.gradle.dsl.KotlinBaseExtension> {
-            jvmToolchain(21)
+            jvmToolchain(25)
         }
     }
 

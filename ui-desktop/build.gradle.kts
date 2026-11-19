@@ -1,5 +1,4 @@
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
-import dev.nucleusframework.desktop.application.dsl.CompressionLevel
 import dev.nucleusframework.desktop.application.dsl.TargetFormat
 import java.io.FileOutputStream
 import java.util.zip.ZipEntry
@@ -29,6 +28,7 @@ kotlin {
                 implementation(compose.foundation)
                 implementation(compose.material3)
                 implementation(libs.nucleus.application)
+                implementation(libs.nucleus.aot.runtime)
                 implementation(libs.nucleus.core.runtime)
                 implementation(libs.nucleus.decorated.window.tao)
                 implementation(libs.nucleus.decorated.window.material3)
@@ -171,48 +171,16 @@ tasks.matching { it.name == "createDistributable" || it.name == "createReleaseDi
 // Change it in ONE place: gradle.properties  appVersion=x.y.z
 nucleus.application {
     mainClass = "io.github.makeforge.clapi.ui.desktop.MainKt"
-    // Baseline without any jvmArgs: 316MB
-    // # SerialGC: 230MB
-//        jvmArgs += listOf(
-//            "-Xms64m",
-//            "-Xmx256m",
-//            "-XX:+UseSerialGC",
-//            "-XX:MinHeapFreeRatio=10",
-//            "-XX:MaxHeapFreeRatio=20",
-//            "-Xss256k",
-//            "-XX:MaxMetaspaceSize=96m"
-//        )
-    // Generational ZGC: 245MB
-//        jvmArgs += listOf(
-//            "-Xms64m",
-//            "-Xmx1g",
-//            "-XX:SoftMaxHeapSize=256m",      // ZGC tries to stay under 256 MB, only expanding during spikes
-//            "-XX:+UseZGC",
-//            "-XX:+ZGenerational",            // Required flag on JDK 21 to enable generational mode
-//            "-XX:ZUncommitDelay=15",         // Return unused RAM to OS after 15s (default is 300s)
-//            "-Xss256k",
-//            "-XX:MaxMetaspaceSize=128m"
-//        )
-    // Generational ZGC + JIT code & Direct Cache: 204MB
-//        jvmArgs += listOf(
-//            "-Xms64m",
-//            "-Xmx1g",
-//            "-XX:SoftMaxHeapSize=256m",      // ZGC tries to stay under 256 MB, only expanding during spikes
-//            "-XX:+UseZGC",
-//            "-XX:+ZGenerational",            // Required flag on JDK 21 to enable generational mode
-//            "-XX:ZUncommitDelay=15",         // Return unused RAM to OS after 15s (default is 300s)
-//            "-Xss256k",
-//            "-XX:MaxMetaspaceSize=128m",
-//            "-XX:ReservedCodeCacheSize=64m",
-//            "-XX:MaxDirectMemorySize=64m"
-//        )
+    val javaToolchains = project.extensions.getByType<JavaToolchainService>()
+    javaHome = javaToolchains.launcherFor {
+        languageVersion.set(JavaLanguageVersion.of(25))
+    }.get().metadata.installationPath.asFile.absolutePath
     // Generational ZGC + JIT code & Direct Cache mildly: 208MB
     jvmArgs += listOf(
         "-Xms64m",
         "-Xmx2g",                        // High ceiling so large JSON/binary responses never crash the app
         "-XX:SoftMaxHeapSize=192m",      // ZGC aggressively keeps idle heap at or below 192 MB
         "-XX:+UseZGC",
-        "-XX:+ZGenerational",            // Low-latency generational GC (JDK 21+)
         "-XX:ZUncommitDelay=10",         // Returns spike RAM back to OS 10 seconds after closing a big tab
         "-XX:+UseStringDeduplication",   // Huge win for JSON payloads with repeated keys ("id", "type", "created_at")
         "-Xss256k",
@@ -226,6 +194,8 @@ nucleus.application {
     }
 
     nativeDistributions {
+        enableAotCache = true
+
         modules(
             "java.base",
             "java.datatransfer",
@@ -279,8 +249,8 @@ nucleus.application {
             }
         }
         linux {
-            packageName        = "clapi"
-            debMaintainer      = "makeforge@yahoo.com"
+            packageName        = "Clapi"
+            debMaintainer      = "clapiproject@yahoo.com"
             appCategory        = "Development"
             iconFile.set(project.file("src/desktopMain/resources/icons/clapi-icon-256.png"))
         }

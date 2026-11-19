@@ -26,11 +26,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -129,11 +129,11 @@ jobs:
         uses: actions/checkout@v4
 
       # ── 2. JDK ───────────────────────────────────────────────────────────────
-      - name: Set up JDK 21
+      - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
 
       # ── 3. Gradle (validates wrapper, provides caching) ───────────────────────
       - name: Set up Gradle
