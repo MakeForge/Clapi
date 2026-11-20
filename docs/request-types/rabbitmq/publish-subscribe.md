@@ -11,6 +11,12 @@ description: Publishing messages with confirms/mandatory returns and consuming l
 
 ## Publishing Messages (`PUB`)
 
+<ThemedScreenshot
+  light="/generated/screenshots/MainScreenPreviewsKt.MainScreenRabbitMqPublishPreviewLight.W1600dp_H800dp.png"
+  dark="/generated/screenshots/MainScreenPreviewsKt.MainScreenRabbitMqPublishPreviewDark.W1600dp_H800dp.png"
+  alt="Clapi RabbitMQ Publish Request Editor"
+/>
+
 In **Publish** mode, Clapi connects to your RabbitMQ broker, resolves all `{{variable}}` tokens across connection, routing, header, property, and body fields, and dispatches the message.
 
 ### Exchanges & Routing Keys
@@ -30,9 +36,13 @@ Configure the destination in the **AMQP** tab:
 
 In the **Headers & Props** tab you can configure standard AMQP `BasicProperties` (`content_type`, `delivery_mode`, `correlation_id`, `reply_to`, `message_id`, `expiration`, `type`, `app_id`) alongside arbitrary custom AMQP application headers.
 
----
-
 ## Subscribing & Consuming Messages (`SUB`)
+
+<ThemedScreenshot
+  light="/generated/screenshots/MainScreenPreviewsKt.MainScreenRabbitMqSubscribePreviewLight.W1600dp_H800dp.png"
+  dark="/generated/screenshots/MainScreenPreviewsKt.MainScreenRabbitMqSubscribePreviewDark.W1600dp_H800dp.png"
+  alt="Clapi RabbitMQ Subscribe and Live Consumer Timeline"
+/>
 
 In **Subscribe** mode, Clapi maintains a live AMQP consumer session and streams incoming deliveries into the right-hand **Message Timeline**.
 

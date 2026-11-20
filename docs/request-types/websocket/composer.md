@@ -13,8 +13,6 @@ description: Composing and sending real-time text, JSON, and binary messages in 
 
 The WebSocket Message Composer allows authoring payloads while a connection is actively open.
 
----
-
 ## Formats
 
 ### 1. JSON
@@ -31,8 +29,6 @@ Raw string frames for simple chat or custom text protocols.
 
 ### 3. Binary (Hex / Base64)
 Transmit raw binary frames (opcode `0x02`) by inputting Base64 or Hex encoded strings.
-
----
 
 ## Dynamic Variable Injection
 

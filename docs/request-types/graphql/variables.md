@@ -13,8 +13,6 @@ description: Managing JSON variables and dynamic parameter substitution in Clapi
 
 In GraphQL, arguments should be passed dynamically using variables rather than hardcoded directly into query strings. Clapi provides a dedicated **Variables** pane right below or beside the query editor.
 
----
-
 ## Defining Variables
 
 In your query editor, define the variable types in the operation signature:
@@ -38,8 +36,6 @@ In the **Variables** tab, supply the corresponding JSON document:
   "includeArchived": false
 }
 ```
-
----
 
 ## Dynamic Variables in GraphQL Variables
 

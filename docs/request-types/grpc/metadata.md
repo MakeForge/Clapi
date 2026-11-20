@@ -13,15 +13,11 @@ description: Setting ASCII and binary metadata headers on gRPC calls in Clapi.
 
 gRPC metadata is analogous to HTTP headers. Metadata allows passing contextual information such as authentication tokens, tracing IDs, and tenancy keys alongside RPC calls.
 
----
-
 ## ASCII Metadata
 Standard string key-value pairs entered in the **Metadata** tab:
 - `authorization`: `Bearer {{myJwtToken}}`
 - `x-request-id`: <code v-pre>{{$guid}}</code>
 - `tenant-id`: `acme-corp`
-
----
 
 ## Binary Metadata (`-bin`)
 In gRPC, keys ending with `-bin` represent binary metadata values:

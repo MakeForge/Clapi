@@ -21,8 +21,6 @@ Clapi is a first-class desktop client for Anthropic's [Model Context Protocol (M
 
 Save an MCP connection in your workspace, connect over HTTP or local desktop stdio processes, execute tools, browse resources, run prompts, and analyze raw JSON-RPC exchanges.
 
----
-
 ## Quick Start
 
 1. In the sidebar, click **Add → MCP Connection** (`RequestKind.MCP`).
@@ -33,8 +31,6 @@ Save an MCP connection in your workspace, connect over HTTP or local desktop std
 4. Once connected, browse the **Tools**, **Resources**, and **Prompts** tabs.
 5. Select a tool (e.g. `read_file`), enter arguments in the generated form or JSON editor, and click **Run**.
 6. The tool result renders in the response pane, while raw protocol traffic is recorded in **Activity**.
-
----
 
 ## Detailed Feature Subpages
 

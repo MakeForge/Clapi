@@ -13,23 +13,17 @@ description: Consuming Server-Sent Events, Socket.IO, and MQTT event streams in 
 
 In addition to WebSockets, modern APIs utilize streaming event architectures. Clapi natively supports **Server-Sent Events (SSE)**, **Socket.IO**, and **MQTT over WebSockets**.
 
----
-
 ## 1. Server-Sent Events (SSE)
 
 - **Content-Type**: `text/event-stream`
 - **Streaming Parser**: Events are parsed into discrete blocks showing `event`, `data`, `id`, and `retry`.
 - **Typewriter Effect**: LLM token streams (e.g. OpenAI-compatible `/v1/chat/completions` with `"stream": true`) are visualized as tokens arrive in real time.
 
----
-
 ## 2. Socket.IO
 
 - Connects to Socket.IO v4 servers with custom namespaces and query parameters.
 - Emits named events with structured JSON arguments.
 - Listens for specific incoming event channels with dedicated filtering.
-
----
 
 ## 3. MQTT over WebSockets
 

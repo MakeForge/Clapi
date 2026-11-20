@@ -19,8 +19,6 @@ description: Complete guide to executing gRPC unary and streaming calls with Pro
 
 Clapi includes native support for **gRPC** (`RequestKind.GRPC`). It enables loading Protocol Buffer (`.proto`) files, discovering services via Server Reflection, selecting RPC methods from dropdowns, authoring request payloads as user-friendly JSON, and inspecting binary protobuf responses.
 
----
-
 ## Quick Start
 
 1. Create a new request and set the protocol to **gRPC** (`RequestKind.GRPC`).
@@ -32,8 +30,6 @@ Clapi includes native support for **gRPC** (`RequestKind.GRPC`). It enables load
 5. Notice how Clapi generates a sample JSON payload matching the protobuf message schema.
 6. Click **Send** (`⌘ + Enter` / `Ctrl + Enter`).
 7. Inspect the returned protobuf response formatted as JSON in the right pane.
-
----
 
 ## Detailed Feature Subpages
 

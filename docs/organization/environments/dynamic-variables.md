@@ -20,8 +20,6 @@ Dynamic variables generate fresh values on **every request execution** instead o
 > [!TIP]
 > Press **`Ctrl+Space`** inside any variable-aware input field (URL bar, headers, query parameters, auth fields, or body editor) to open the variable autocomplete dropdown and insert built-in or user-defined dynamic variables with their parameter signatures. See [Keyboard Shortcuts](/reference/shortcuts) for all editor shortcuts.
 
----
-
 ## Built-in Dynamic System Variables
 
 Built-in dynamic variables start with a `$` prefix and require no setup. Every occurrence of a built-in token is evaluated fresh when the request is sent.
@@ -49,8 +47,6 @@ Content-Type: application/json
   "createdAt": {{$timestamp}}
 }
 ```
-
----
 
 ## User-Defined Dynamic Variables
 
@@ -83,8 +79,6 @@ The **Dynamic Variable Script Editor** is split into two panes:
     - **Console Output** (`console.log`, `console.warn`, `console.error`)
     - **Script Error Details** if the script throws a syntax/runtime error or exceeds the 2,000 ms timeout.
 
----
-
 ## Defining & Calling Parameterized Dynamic Variables
 
 You can declare zero or more primitive parameters on any user-defined dynamic variable. Inside your JavaScript code, parameter values are available both:
@@ -115,8 +109,6 @@ Template calls support comma-separated primitive literals:
 - **Double- or Single-Quoted Strings**: <code v-pre>{{formatTag("ORD", 'prod')}}</code> (supports `\"`, `\'`, and `\\` escapes)
 - **Booleans & `null`**: <code v-pre>{{myVar(true, false, null)}}</code>
 
----
-
 ## Accessing Outgoing Request Context (`context.request`)
 
 Every user-defined dynamic variable script receives a **read-only** `context.request` object containing metadata about the request currently being executed:
@@ -141,8 +133,6 @@ console.log("Signing request:", method, url);
 return btoa(method + ":" + url + ":" + Date.now());
 ```
 
----
-
 ## JSON Request Body Quoting Rules
 
 When authoring JSON request bodies in Clapi's code editor, quoting depends on the variable's configured **Type**:
@@ -163,8 +153,6 @@ When authoring JSON request bodies in Clapi's code editor, quoting depends on th
   }
   ```
   If an unquoted string variable is used in a JSON value position (`{"username": {{userToken}}}`), the editor linter emits a warning advising you to wrap the token in quotes: `"{{userToken}}"`.
-
----
 
 ## Scope Precedence & Import / Export
 
@@ -204,8 +192,6 @@ environments:
 
 > [!NOTE]
 > Backward compatibility: OpenCollection files containing legacy `"type": "dynamic"` entries are automatically imported as dynamic variables with data type `string`.
-
----
 
 ## Error Handling & Execution Guardrails
 

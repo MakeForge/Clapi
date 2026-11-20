@@ -13,8 +13,6 @@ description: Exporting collections to OpenCollection format with automatic secre
 
 You can export any collection or full workspace to share with colleagues or commit to external archives.
 
----
-
 ## Exporting a Collection
 
 1. In the sidebar, right-click the collection you want to export.
@@ -23,8 +21,6 @@ You can export any collection or full workspace to share with colleagues or comm
    - **OpenCollection (YAML)**: Recommended for Git and human readability.
    - **OpenCollection (JSON)**: Standard JSON representation.
 4. Select destination directory and save.
-
----
 
 ## Secret Sanitization Guarantee
 

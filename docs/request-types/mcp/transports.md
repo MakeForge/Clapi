@@ -13,8 +13,6 @@ description: Configuring Streamable HTTP, Legacy SSE, and Stdio process transpor
 
 The Model Context Protocol supports multiple physical transports. Clapi supports all current and legacy official transport specifications.
 
----
-
 ## Supported Transports
 
 ### 1. Streamable HTTP (MCP 2025-06-18)

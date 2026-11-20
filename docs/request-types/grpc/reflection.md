@@ -13,8 +13,6 @@ description: Auto-discovering services and methods from gRPC servers using Serve
 
 When the target gRPC server has the **gRPC Server Reflection Protocol** (`grpc.reflection.v1alpha.ServerReflection` or `grpc.reflection.v1.ServerReflection`) enabled, you don't need manual `.proto` files on your local machine.
 
----
-
 ## Using Reflection in Clapi
 
 1. In the gRPC request bar, enter the server address:

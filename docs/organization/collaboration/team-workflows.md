@@ -13,15 +13,11 @@ description: Best practices for collaborating on API collections with your engin
 
 By managing API collections in standard Git repositories, your team can easily maintain Clapi workspaces and keep them in sync without much effort.
 
----
-
 ## Typical Workflow
 
 1. **Pull Changes**: Ensure you are working with the latest changes via Git Sync dialog via pull action.
 2. **Make Changes**: Edit or create new Requests/Collections/Folders or similar in Clapi.
 3. **Commit & Push**: Open the Git Sync dialog in Clapi, write a commit message, and push the branch to your Git remote.
-
----
 
 ## Conflict Resolution
 

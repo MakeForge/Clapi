@@ -11,6 +11,12 @@ description: Complete guide to publishing, subscribing, and executing RPC reques
 
 ## Overview
 
+<ThemedScreenshot
+  light="/generated/screenshots/MainScreenPreviewsKt.MainScreenRabbitMqPublishPreviewLight.W1600dp_H800dp.png"
+  dark="/generated/screenshots/MainScreenPreviewsKt.MainScreenRabbitMqPublishPreviewDark.W1600dp_H800dp.png"
+  alt="Clapi RabbitMQ Request Workbench"
+/>
+
 Clapi includes first-class **RabbitMQ** support (`RequestKind.RABBITMQ`, `type: "rabbitmq"` in OpenCollection) covering all three core AMQP 0-9-1 messaging patterns in a single dedicated workbench:
 
 - **Publish (`PUB`)**: Send messages to exchanges (direct, topic, fanout, headers, or default) with routing keys, AMQP BasicProperties, custom headers, publisher confirms, and mandatory return detection.
@@ -19,8 +25,6 @@ Clapi includes first-class **RabbitMQ** support (`RequestKind.RABBITMQ`, `type: 
 
 All RabbitMQ connection, topology, routing, payload, auth, script, and setting fields are stored directly inside your OpenCollection file—no external sidecar files required.
 
----
-
 ## Quick Start
 
 1. Click the **`+`** button on any collection or folder in the sidebar and choose **RabbitMQ Request**.
@@ -28,8 +32,6 @@ All RabbitMQ connection, topology, routing, payload, auth, script, and setting f
 3. Configure authentication in the **Auth** tab (defaults to **Inherit** from parent folder/collection).
 4. In the **AMQP** tab, set your exchange name/type, routing key (or binding pattern), queue name, and (for RPC) reply strategy.
 5. Compose your payload in the **Message** tab (supports `{{variable}}` interpolation and named variants) and click **Publish**, **Subscribe**, or **Send RPC**.
-
----
 
 ## Detailed Feature Subpages
 

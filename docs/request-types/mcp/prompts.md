@@ -13,8 +13,6 @@ description: Testing server prompts and handling server-initiated LLM sampling i
 
 MCP Prompts provide reusable, server-managed prompt templates with parameterized arguments. MCP Sampling allows servers to request LLM completions back from the client.
 
----
-
 ## Exploring & Testing Prompts
 
 1. Navigate to the **Prompts** tab.
@@ -22,8 +20,6 @@ MCP Prompts provide reusable, server-managed prompt templates with parameterized
 3. Fill in required arguments (e.g. `language`, `code_snippet`).
 4. Click **Get Prompt** (`prompts/get`).
 5. Clapi displays the resolved messages array (user, assistant, and system roles) with rendered text and image attachments.
-
----
 
 ## Handling Server Sampling (`sampling/createMessage`)
 

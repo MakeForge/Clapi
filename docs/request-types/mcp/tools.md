@@ -13,16 +13,12 @@ description: Discovering advertised tools, generating argument input forms, and 
 
 MCP Tools allow AI models and clients to execute computational actions (e.g. running SQL queries, reading git history, calling external APIs). Clapi provides an intuitive UI to test these tools independently.
 
----
-
 ## Tool Exploration
 
 When connected to an MCP server, Clapi sends `tools/list`:
 - **Searchable Tool Directory**: Filter tools by name or description.
 - **Destructive Operation Warnings**: Tools flagged as mutating or destructive display a visual warning badge.
 - **Read-Only Chips**: Non-mutating discovery tools are badged as `Read-Only`.
-
----
 
 ## Invocation Modes
 

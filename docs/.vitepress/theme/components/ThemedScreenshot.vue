@@ -2,11 +2,17 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { withBase } from 'vitepress';
 
-defineProps<{
+withDefaults(defineProps<{
   light: string;
   dark: string;
   alt?: string;
-}>();
+  crop?: boolean;
+  expandable?: boolean;
+  maxWidth?: string;
+}>(), {
+  crop: true,
+  expandable: true,
+});
 
 const isLightboxOpen = ref(false);
 const isMounted = ref(false);
@@ -45,30 +51,33 @@ function onKeyDown(e: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="themed-screenshot-container">
+  <div class="themed-screenshot-container" :style="maxWidth ? { maxWidth } : undefined">
     <div
       class="themed-screenshot-frame"
-      @click="openLightbox"
-      title="Click to expand high-resolution preview"
+      :class="{ 'is-uncropped': !crop, 'is-static': !expandable }"
+      @click="expandable && openLightbox()"
+      :title="expandable ? 'Click to expand high-resolution preview' : undefined"
     >
       <!-- Screenshot images (Focused Workbench View) -->
-      <div class="screenshot-viewport">
+      <div class="screenshot-viewport" :class="{ 'is-uncropped': !crop }">
         <img
           :src="withBase(light)"
           :alt="alt || ''"
           class="screenshot-img screenshot-light"
+          :class="{ 'is-uncropped': !crop }"
           loading="lazy"
         />
         <img
           :src="withBase(dark)"
           :alt="alt || ''"
           class="screenshot-img screenshot-dark"
+          :class="{ 'is-uncropped': !crop }"
           loading="lazy"
         />
       </div>
 
       <!-- Action Toolbar with Expand button -->
-      <div class="screenshot-toolbar" @click.stop>
+      <div v-if="expandable" class="screenshot-toolbar" @click.stop>
         <button
           type="button"
           class="toolbar-btn"
@@ -144,6 +153,14 @@ function onKeyDown(e: KeyboardEvent) {
   border-color: var(--vp-c-brand-1);
 }
 
+.themed-screenshot-frame.is-static {
+  cursor: default;
+}
+
+.themed-screenshot-frame.is-static:hover {
+  border-color: var(--vp-c-divider);
+}
+
 .screenshot-viewport {
   position: relative;
   width: 100%;
@@ -151,6 +168,10 @@ function onKeyDown(e: KeyboardEvent) {
   overflow: hidden;
   display: block;
   background-color: var(--vp-c-bg-soft);
+}
+
+.screenshot-viewport.is-uncropped {
+  aspect-ratio: auto;
 }
 
 .screenshot-img {
@@ -162,6 +183,11 @@ function onKeyDown(e: KeyboardEvent) {
   border-radius: 0 !important;
   border: none !important;
   box-shadow: none !important;
+}
+
+.screenshot-img.is-uncropped {
+  width: 100% !important;
+  transform: none;
 }
 
 /* Toolbar overlay */

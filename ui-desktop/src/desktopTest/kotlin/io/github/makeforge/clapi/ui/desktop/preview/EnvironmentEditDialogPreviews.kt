@@ -18,7 +18,7 @@ fun EnvironmentEditDialogPreviewDark() {
         openEnvEdit(0)
     }
     ClapiTheme(appTheme = AppTheme.DARK) {
-        EnvironmentEditDialog(state)
+        EnvironmentEditDialog(state, useDialogWindow = false)
     }
 }
 
@@ -30,6 +30,6 @@ fun EnvironmentEditDialogPreviewLight() {
         openEnvEdit(0)
     }
     ClapiTheme(appTheme = AppTheme.LIGHT) {
-        EnvironmentEditDialog(state)
+        EnvironmentEditDialog(state, useDialogWindow = false)
     }
 }

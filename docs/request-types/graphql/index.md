@@ -19,8 +19,6 @@ description: Complete guide to querying, mutating, and introspecting GraphQL API
 
 Clapi includes a dedicated, first-class GraphQL workbench (`RequestKind.GRAPHQL`). Instead of forcing GraphQL into a generic raw JSON HTTP POST editor, Clapi provides a specialized split editor with dedicated panels for your GraphQL query, JSON variables, schema introspection, and interactive documentation.
 
----
-
 ## Quick Start
 
 1. Create a new request and set the protocol to **GraphQL** (`RequestKind.GRAPHQL`).
@@ -45,8 +43,6 @@ Clapi includes a dedicated, first-class GraphQL workbench (`RequestKind.GRAPHQL`
    ```
 5. Click **Send** (`⌘ + Enter` / `Ctrl + Enter`).
 6. The formatted response data displays in the response viewer on the right.
-
----
 
 ## Detailed Feature Subpages
 

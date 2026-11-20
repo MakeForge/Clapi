@@ -13,15 +13,11 @@ description: Reading static and dynamic resource URIs and managing live subscrip
 
 MCP Resources are data artifacts exposed by servers (e.g. database schemas, file contents, system logs, documentation) identified by URIs (e.g. `file:///var/log/syslog`, `postgres://schema/public`).
 
----
-
 ## Reading Resources
 
 - **Resource Browser**: View all resources returned by `resources/list`.
 - **Direct Read**: Click a resource to dispatch `resources/read`. Text and binary content render directly in the Response pane.
 - **Resource Templates**: For parameterized URIs (e.g. `github://repos/{owner}/{repo}/issues`), Clapi presents input fields to supply URI template variables.
-
----
 
 ## Live Subscriptions
 

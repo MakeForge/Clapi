@@ -16,8 +16,6 @@ RabbitMQ requests participate in Clapi's standard **Collection → Folder → Re
 - Setting **Auth** to **Inherit** automatically resolves credentials from the nearest parent folder or collection root.
 - All credential fields support `{{variable}}` interpolation, including write-only secret variables and external secret managers (AWS Secrets Manager, Azure Key Vault, GCP Secret Manager, HashiCorp Vault, Keeper Security, and KeePassXC).
 
----
-
 ## Supported AMQP Auth Mechanisms
 
 | Clapi Auth Type | RabbitMQ AMQP Mechanism |
@@ -27,8 +25,6 @@ RabbitMQ requests participate in Clapi's standard **Collection → Folder → Re
 | **Bearer Token / JWT** | RabbitMQ OAuth 2.0 backend (`rabbitmq_auth_backend_oauth2`) convention—passes the resolved token as the AMQP password. |
 | **OAuth 2.0** | Acquires/resolves the OAuth 2.0 access token and supplies it as the AMQP password (with optional username). |
 | **TLS Client Certificate** | Enable **TLS** in the connection bar and **Use TLS Client Certificate (`EXTERNAL` SASL)** in **Settings** to authenticate with collection/environment PKCS#12 or PEM client certificates over `amqps://`. |
-
----
 
 ## TLS (`amqps://`)
 

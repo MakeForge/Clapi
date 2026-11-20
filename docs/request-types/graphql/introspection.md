@@ -13,8 +13,6 @@ description: Fetching GraphQL schema introspection and exploring documentation i
 
 When connected to an introspection-enabled GraphQL server, Clapi can automatically query the `__schema` endpoint and generate an interactive documentation browser directly inside your workspace.
 
----
-
 ## Introspecting a Schema
 
 1. Enter your GraphQL endpoint URL.
@@ -34,8 +32,6 @@ When connected to an introspection-enabled GraphQL server, Clapi can automatical
    }
    ```
 5. Once fetched, the schema is cached locally for fast offline browsing and autocompletion.
-
----
 
 ## Exploring the Schema
 

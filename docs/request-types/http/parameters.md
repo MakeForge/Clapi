@@ -13,8 +13,6 @@ description: How to configure and manage query parameters and path variables in 
 
 Clapi features a bidirectional query parameter editor. Any changes made to query parameters in the address bar automatically reflect in the **Params** key-value table, and any changes in the table immediately re-encode into the URL string.
 
----
-
 ## Query Parameters Table
 
 The **Params** tab allows toggling, editing, and adding query parameters:
@@ -30,8 +28,6 @@ The **Params** tab allows toggling, editing, and adding query parameters:
 Press **`Ctrl + Space`** inside any parameter key or value cell to open the autocomplete popup and quickly insert variables and secrets. See the [Keyboard Shortcuts](/reference/shortcuts) page for details.
 :::
 
----
-
 ## Bidirectional Synchronization
 
 When you type:
@@ -46,8 +42,6 @@ Similarly, adding a row `sort` = `desc` updates the URL to:
 ```text
 https://api.example.com/items?page=1&status=active&sort=desc
 ```
-
----
 
 ## Path Variables (`:param`)
 

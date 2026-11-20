@@ -13,8 +13,6 @@ description: Understanding connection lifecycle, Ping/Pong heartbeats, and recon
 
 Persistent socket connections require active connection health monitoring. Clapi manages standard WebSocket control frames and connection state transitions transparently.
 
----
-
 ## Connection States
 
 | State | Status Chip | Description |
@@ -24,14 +22,10 @@ Persistent socket connections require active connection health monitoring. Clapi
 | **Connected** | Green | Handshake accepted; full-duplex communication active. |
 | **Error** | Red | Handshake failed, TLS error, or connection reset by peer. |
 
----
-
 ## Ping / Pong Frames (Heartbeats)
 
 - Clapi automatically answers incoming WebSocket `Ping` frames (opcode `0x09`) with an immediate RFC-compliant `Pong` frame (opcode `0x0A`).
 - Heartbeat frames are handled at the protocol layer to keep the connection alive without cluttering your message log.
-
----
 
 ## Reconnection Behavior
 

@@ -13,8 +13,6 @@ description: Configuring Plaintext (h2c), TLS, and Mutual TLS (mTLS) for gRPC in
 
 gRPC runs strictly over HTTP/2. Clapi supports both unencrypted plaintext HTTP/2 (`h2c`) for local development and secure TLS/mTLS for production deployments.
 
----
-
 ## Security Modes
 
 ### 1. Plaintext (`h2c`)

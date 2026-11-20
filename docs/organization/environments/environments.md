@@ -13,8 +13,6 @@ description: Creating environment sets and fast switching from the top toolbar i
 
 Environments allow maintaining different configurations (such as base URLs, API keys, and client secrets) for different deployment targets (e.g. `Localhost`, `Development`, `Staging`, `Production`) without duplicating requests.
 
----
-
 ## Creating Environments
 
 1. In the sidebar, expand the **Environments** section.
@@ -28,8 +26,6 @@ Environments allow maintaining different configurations (such as base URLs, API 
 ::: tip Shortcuts for Inserting Variables & Secrets
 While editing requests, press **`Ctrl + Space`** inside any variable-aware input field (URL bar, headers, parameters, auth credentials, or request body) to open the autocomplete popup and quickly insert variables and secrets from your active environment. See the [Keyboard Shortcuts](/reference/shortcuts) page for details.
 :::
-
----
 
 ## Fast Switching
 

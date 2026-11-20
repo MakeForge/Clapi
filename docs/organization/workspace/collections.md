@@ -13,8 +13,6 @@ description: Maintaining and organizing multiple API collections side by side us
 
 Clapi supports maintaining multiple independent API collections side by side in a unified workspace. Under the hood, Clapi uses the open-standard [OpenCollection](https://opencollection.com) format, ensuring your API definitions are never trapped inside a proprietary database or cloud service.
 
----
-
 ## Managing Collections in the Sidebar
 
 In the left sidebar, the **Collections** section allows managing multiple distinct collections:
@@ -27,8 +25,6 @@ In the left sidebar, the **Collections** section allows managing multiple distin
   - **Duplicate Collection**: Create a clone of the collection.
   - **Export Collection**: Save the collection to disk as an OpenCollection file.
   - **Delete Collection**: Remove the collection from the workspace.
-
----
 
 ## Collection Settings Editor
 

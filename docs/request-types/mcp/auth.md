@@ -13,8 +13,6 @@ description: Authenticating to secure remote MCP servers using OAuth 2.1 and API
 
 Remote MCP servers operating over Streamable HTTP often require enterprise-grade authorization. Clapi supports OAuth 2.1 with PKCE, dynamic client registration, and static tokens.
 
----
-
 ## Authentication Schemes
 
 ### 1. OAuth 2.1 Authorization

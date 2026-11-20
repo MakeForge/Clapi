@@ -2,8 +2,6 @@
 
 Clapi includes a built-in **Model Context Protocol (MCP) Server** (`2025-06-18` Streamable HTTP & Stdio, plus `2024-11-05` Legacy SSE) that allows AI coding assistants (such as Claude Code, Claude Desktop, Cursor, Windsurf, and custom MCP agents) to browse collections, author multi-protocol requests (HTTP, gRPC, GraphQL, WebSocket, RabbitMQ), manage environments and typed variables, execute API calls and test suites, inspect large responses via JSONPath, and import/export specifications—all protected by a **Zero-Exfiltration Secret Sanitization Pipeline**.
 
----
-
 ## 1. Operating Modes
 
 ### A. Headless CLI Mode (`--mcp` over Stdio)
@@ -53,8 +51,6 @@ Use embedded mode when you want to collaborate interactively with an AI agent wh
    }
    ```
 
----
-
 ## 2. Dual Identifier Resolution (UUID & Slash Paths)
 
 Every tool and resource template that targets a collection, folder, or request accepts **either**:
@@ -62,8 +58,6 @@ Every tool and resource template that targets a collection, folder, or request a
 - **Human-Readable Slash Path**: `"Payments API/Invoices/Create Invoice"` (literal slashes in item names can be escaped as `\/`)
 
 If a slash path matches multiple items with the same name, Clapi returns a disambiguation error listing each candidate's UUID, method, and path.
-
----
 
 ## 3. Available MCP Resources
 
@@ -76,8 +70,6 @@ If a slash path matches multiple items with the same name, Clapi returns a disam
 | `clapi://environments/{envName}` | Effective variable projection for an environment (including inherited/overridden indicators and external secret declarations) with all secrets masked. |
 | `clapi://responses/{requestId}/latest` | Latest cached execution response snapshot (sanitized headers, budgeted body preview, timing metrics, and test assertion results). |
 | `clapi://logs/console` | Recent sanitized pre-request and post-request script console output and execution diagnostics. |
-
----
 
 ## 4. Available MCP Tools
 
@@ -109,15 +101,11 @@ If a slash path matches multiple items with the same name, Clapi returns a disam
 - **`clapi_export_collection`**: Export a collection to sanitized `opencollection-yaml`, `opencollection-json`, `openapi-yaml`, or `openapi-json`.
 - **`clapi_git_sync`**: Execute `status`, `commit`, `pull`, or `push` on a Git-backed collection.
 
----
-
 ## 5. Built-In MCP Prompts
 
 - **`debug_api_failure(requestId)`**: Assembles sanitized request config, latest execution snapshot, failed assertions, and console logs to diagnose API failures.
 - **`generate_api_tests(requestId)`**: Inspects request and latest response structure to author `clapi.test` and `clapi.expect` post-request assertions.
 - **`curl_to_clapi_request(curlCommand, targetCollection, targetFolder?)`**: Guides conversion of a raw cURL command into a structured Clapi request while extracting hardcoded credentials into write-only secret variables.
-
----
 
 ## 6. Zero-Exfiltration Security Model
 
