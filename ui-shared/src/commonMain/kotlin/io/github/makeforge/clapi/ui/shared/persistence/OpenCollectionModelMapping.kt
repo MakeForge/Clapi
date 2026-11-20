@@ -135,10 +135,23 @@ private fun collectClapiMetadata(
             collectClapiMetadata(child, out, childPath, collectionDir)
         }
     } else {
-        val effectiveProtoFilePath = if (collectionDir != null && node.protoSyncToGit && !node.protoFilePath.isNullOrBlank()) {
-            ProtoPathResolver.syncRequestProtoFile(node.protoFilePath, node.id, collectionDir)
+        val effectiveProtoFilePath: String?
+        val effectiveProtoFolderPath: String?
+        if (collectionDir != null && node.protoSyncToGit && !node.protoFolderPath.isNullOrBlank() && !node.protoFilePath.isNullOrBlank()) {
+            val synced = ProtoPathResolver.syncRequestProtoFolder(
+                sourceFolderPath = node.protoFolderPath,
+                sourceProtoFilePath = node.protoFilePath,
+                requestId = node.id,
+                collectionDir = collectionDir,
+            )
+            effectiveProtoFolderPath = synced.folderRelPath
+            effectiveProtoFilePath = synced.protoFileRelPath
+        } else if (collectionDir != null && node.protoSyncToGit && !node.protoFilePath.isNullOrBlank()) {
+            effectiveProtoFolderPath = node.protoFolderPath?.takeIf { it.isNotBlank() }
+            effectiveProtoFilePath = ProtoPathResolver.syncRequestProtoFile(node.protoFilePath, node.id, collectionDir)
         } else {
-            node.protoFilePath
+            effectiveProtoFolderPath = node.protoFolderPath?.takeIf { it.isNotBlank() }
+            effectiveProtoFilePath = node.protoFilePath
         }
         val meta = buildJsonObject {
             put("id", node.id)
@@ -177,6 +190,7 @@ private fun collectClapiMetadata(
             put("kind", node.kind.name)
             node.requestRef?.let { put("requestRef", it) }
             effectiveProtoFilePath?.let { put("protoFilePath", it) }
+            effectiveProtoFolderPath?.let { put("protoFolderPath", it) }
             if (node.protoSyncToGit) {
                 put("protoSyncToGit", true)
             }
@@ -920,10 +934,33 @@ fun CollectionNode.toOpenCollectionItem(collectionDir: String? = null): OpenColl
             } else {
                 null
             }
-            val effectiveProtoFilePath = if (collectionDir != null && protoSyncToGit && !protoFilePath.isNullOrBlank()) {
-                ProtoPathResolver.syncRequestProtoFile(protoFilePath, id, collectionDir)
+            val effectiveProtoFilePath: String?
+            val effectiveProtoFolderPath: String?
+            if (collectionDir != null && protoSyncToGit && !protoFolderPath.isNullOrBlank() && !protoFilePath.isNullOrBlank()) {
+                val synced = ProtoPathResolver.syncRequestProtoFolder(
+                    sourceFolderPath = protoFolderPath,
+                    sourceProtoFilePath = protoFilePath,
+                    requestId = id,
+                    collectionDir = collectionDir,
+                )
+                effectiveProtoFolderPath = synced.folderRelPath
+                effectiveProtoFilePath = synced.protoFileRelPath
+            } else if (collectionDir != null && protoSyncToGit && !protoFilePath.isNullOrBlank()) {
+                effectiveProtoFolderPath = protoFolderPath?.takeIf { it.isNotBlank() }
+                effectiveProtoFilePath = ProtoPathResolver.syncRequestProtoFile(protoFilePath, id, collectionDir)
             } else {
-                protoFilePath
+                effectiveProtoFolderPath = protoFolderPath?.takeIf { it.isNotBlank() }
+                effectiveProtoFilePath = protoFilePath
+            }
+            if (!effectiveProtoFolderPath.isNullOrBlank() || protoSyncToGit) {
+                val existingClapi = (ext["clapi"] as? JsonObject)?.toMutableMap() ?: mutableMapOf()
+                if (!effectiveProtoFolderPath.isNullOrBlank()) {
+                    existingClapi["protoFolderPath"] = JsonPrimitive(effectiveProtoFolderPath)
+                }
+                if (protoSyncToGit) {
+                    existingClapi["protoSyncToGit"] = JsonPrimitive(true)
+                }
+                ext["clapi"] = JsonObject(existingClapi)
             }
             return io.github.makeforge.clapi.core.model.opencollection.GrpcRequestItem(
                 info = io.github.makeforge.clapi.core.model.opencollection.GrpcRequestInfo(name = name),
@@ -1645,6 +1682,7 @@ fun OpenCollectionItem.toCollectionNode(
             }
 
             var resolvedProtoFilePath: String? = grpc.protoFilePath
+            var resolvedProtoFolderPath: String? = null
             var resolvedGrpcMethod: String? = grpc.method
             var resolvedGrpcMethodType: String? = grpc.methodType?.value ?: "unary"
 
@@ -1671,6 +1709,7 @@ fun OpenCollectionItem.toCollectionNode(
                 if (resolvedProtoFilePath == null) {
                     resolvedProtoFilePath = meta["protoFilePath"]?.jsonPrimitive?.contentOrNull
                 }
+                resolvedProtoFolderPath = meta["protoFolderPath"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
                 if (resolvedGrpcMethod == null) {
                     resolvedGrpcMethod = meta["grpcMethod"]?.jsonPrimitive?.contentOrNull
                 }
@@ -1680,7 +1719,8 @@ fun OpenCollectionItem.toCollectionNode(
             }
 
             val resolvedProtoSyncToGit = meta?.get("protoSyncToGit")?.jsonPrimitive?.booleanOrNull
-                ?: (resolvedProtoFilePath?.let { ProtoPathResolver.isRelativeGitProtoPath(it) } ?: false)
+                ?: ((resolvedProtoFilePath?.let { ProtoPathResolver.isRelativeGitProtoPath(it) } == true) ||
+                    (resolvedProtoFolderPath?.let { ProtoPathResolver.isRelativeGitProtoPath(it) } == true))
 
             val preScript = runtime?.scripts?.firstOrNull { it.type == ScriptType.BEFORE_REQUEST }?.code
             val postScript = runtime?.scripts?.firstOrNull { it.type == ScriptType.AFTER_RESPONSE || it.type == ScriptType.TESTS }?.code
@@ -1719,6 +1759,7 @@ fun OpenCollectionItem.toCollectionNode(
                 requestRef = reqRef ?: generateUuid(),
                 kind = RequestKind.GRPC,
                 protoFilePath = resolvedProtoFilePath,
+                protoFolderPath = resolvedProtoFolderPath,
                 protoSyncToGit = resolvedProtoSyncToGit,
                 grpcMethod = resolvedGrpcMethod,
                 grpcMethodType = resolvedGrpcMethodType,

@@ -308,4 +308,76 @@ class ProtocJarParserTest {
             tempFile.delete()
         }
     }
+
+    @Test
+    fun `resolves nested imports when root proto folder or protobuf subfolder is passed in includePaths`() = runTest {
+        val tempRoot = File.createTempFile("clapi_proto_folder_test_", "").apply {
+            delete()
+            mkdirs()
+        }
+        try {
+            val resourcesDir = File(tempRoot, "resources").apply { mkdirs() }
+            val protobufDir = File(resourcesDir, "protobuf").apply { mkdirs() }
+            val commonDir = File(protobufDir, "common").apply { mkdirs() }
+            val collectionSharedDir = File(tempRoot, "collection_shared").apply { mkdirs() }
+
+            File(commonDir, "metadata.proto").writeText(
+                """
+                syntax = "proto3";
+                package clapi.common;
+                message RequestMetadata {
+                  string trace_id = 1;
+                }
+                """.trimIndent()
+            )
+            val sharedProto = File(collectionSharedDir, "extra.proto").apply {
+                writeText(
+                    """
+                    syntax = "proto3";
+                    package clapi.extra;
+                    message ExtraInfo {
+                      string label = 1;
+                    }
+                    """.trimIndent()
+                )
+            }
+            val greeterProto = File(protobufDir, "greeter.proto").apply {
+                writeText(
+                    """
+                    syntax = "proto3";
+                    package helloworld;
+                    import "protobuf/common/metadata.proto";
+                    import "extra.proto";
+                    service Greeter {
+                      rpc SayHello (HelloRequest) returns (HelloReply);
+                    }
+                    message HelloRequest { string name = 1; }
+                    message HelloReply {
+                      string message = 1;
+                      clapi.common.RequestMetadata ack_metadata = 2;
+                      clapi.extra.ExtraInfo extra = 3;
+                    }
+                    """.trimIndent()
+                )
+            }
+
+            // 1. Selecting the parent `resources` folder + collection proto file
+            val schemaFromRoot = parser.parseProtoFile(
+                protoFilePath = greeterProto.absolutePath,
+                includePaths = listOf(resourcesDir.absolutePath, sharedProto.absolutePath),
+            )
+            assertEquals(1, schemaFromRoot.services.size)
+            assertEquals("helloworld.Greeter/SayHello", schemaFromRoot.services.single().methods.single().fullMethodName)
+
+            // 2. Selecting the `protobuf` subfolder itself + collection proto file
+            val schemaFromSubfolder = parser.parseProtoFile(
+                protoFilePath = greeterProto.absolutePath,
+                includePaths = listOf(protobufDir.absolutePath, sharedProto.absolutePath),
+            )
+            assertEquals(1, schemaFromSubfolder.services.size)
+            assertEquals("helloworld.Greeter/SayHello", schemaFromSubfolder.services.single().methods.single().fullMethodName)
+        } finally {
+            tempRoot.deleteRecursively()
+        }
+    }
 }

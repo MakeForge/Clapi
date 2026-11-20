@@ -333,4 +333,36 @@ class GrpcApiE2ETest {
         assertNotNull(lastLogged, "Expected logged request on DummyApiServer")
         assertEquals("Bearer mock-grpc-token-xyz-123", lastLogged.headers["authorization"])
     }
+
+    @Test
+    fun `executes SayHello using request proto folder without collection-level import paths`() = runTest {
+        val greeterFile = File(server.protoFilePath())
+        val protoFolder = greeterFile.parentFile
+
+        val schema = protoParser.parseProtoFile(
+            protoFilePath = greeterFile.absolutePath,
+            includePaths = listOf(protoFolder.absolutePath),
+        )
+        assertEquals(1, schema.services.size)
+        assertEquals("helloworld.Greeter", schema.services.single().fullName)
+
+        val response = grpcClient.executeUnary(
+            GrpcCallRequest(
+                requestId = "e2e-proto-folder-test",
+                host = "127.0.0.1",
+                port = server.grpcPort(),
+                useTls = false,
+                protoFilePath = greeterFile.absolutePath,
+                fullMethodName = "helloworld.Greeter/SayHello",
+                jsonPayload = """{"name": "Folder Workflow"}""",
+                includePaths = listOf(protoFolder.absolutePath),
+            )
+        )
+
+        assertEquals(0, response.statusCode, "Expected 0 OK, got ${response.statusCode}: ${response.errorMessage}")
+        assertEquals("OK", response.statusDescription)
+        assertNotNull(response.responseJson)
+        assertTrue(response.responseJson!!.contains("Hello, Folder Workflow!"))
+        assertTrue(response.responseJson!!.contains("trace-Folder Workflow"))
+    }
 }

@@ -34,3 +34,33 @@ actual fun copyFileOrDirectory(sourcePath: String, destinationPath: String): Boo
         false
     }
 }
+
+actual fun copyProtoFilesFromDirectory(sourceDir: String, destinationDir: String): Boolean {
+    return try {
+        val src = File(sourceDir)
+        if (!src.exists() || !src.isDirectory) return false
+        val dst = File(destinationDir)
+        if (src.canonicalFile == dst.canonicalFile) return true
+
+        if (dst.exists()) {
+            dst.deleteRecursively()
+        }
+        val canonicalSrc = src.canonicalFile
+        var copiedAny = false
+        src.walkTopDown()
+            .filter { it.isFile && it.extension.equals("proto", ignoreCase = true) }
+            .forEach { file ->
+                val relPath = file.canonicalFile.relativeTo(canonicalSrc).path
+                val targetFile = File(dst, relPath)
+                targetFile.parentFile?.mkdirs()
+                file.copyTo(targetFile, overwrite = true)
+                copiedAny = true
+            }
+        if (!copiedAny) {
+            dst.mkdirs()
+        }
+        true
+    } catch (_: Exception) {
+        false
+    }
+}

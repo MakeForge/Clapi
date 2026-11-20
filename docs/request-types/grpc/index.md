@@ -24,7 +24,7 @@ Clapi includes native support for **gRPC** (`RequestKind.GRPC`). It enables load
 1. Create a new request and set the protocol to **gRPC** (`RequestKind.GRPC`).
 2. Enter the server host and port (e.g. `localhost:50051` or `grpc.example.com:443`).
 3. Load your schema:
-   - Click **Select Proto File** to browse your local `.proto` definitions, OR
+   - Click **Proto** in the request bar to select a single `.proto` file, select an entire **Proto Folder** (and pick the target service `.proto` file inside it so nested imports resolve automatically), or choose a collection-level proto file, OR
    - Click **Use Server Reflection** to fetch services dynamically from the running server.
 4. Select the target **Service** and **Method** from the dropdowns (e.g. `UserService / GetUserProfile`).
 5. Notice how Clapi generates a sample JSON payload matching the protobuf message schema.

@@ -193,6 +193,47 @@ actual fun pickProtoFiles(onResult: (filePaths: List<String>) -> Unit) {
     }
 }
 
+actual fun pickProtoDirectory(onResult: (dirPath: String) -> Unit) {
+    fileIoScope.launch {
+        val picked = runCatching {
+            FileKit.openDirectoryPicker(
+                directory = rememberedPlatformDirectory(),
+                dialogSettings = FileKitDialogSettings(
+                    title = "Select Proto Folder",
+                ),
+            )
+        }.getOrNull() ?: return@launch
+
+        val selected = File(picked.path)
+        rememberChooserDirectory(selected)
+        withContext(Dispatchers.Main) {
+            onResult(selected.absolutePath)
+        }
+    }
+}
+
+actual fun listProtoFilesInDirectory(dirPath: String): List<DiscoveredProtoFile> {
+    val trimmed = dirPath.trim()
+    if (trimmed.isEmpty()) return emptyList()
+    val root = File(trimmed)
+    if (!root.exists() || !root.isDirectory) return emptyList()
+    val canonicalRoot = runCatching { root.canonicalFile }.getOrDefault(root.absoluteFile)
+    return root.walkTopDown()
+        .filter { it.isFile && it.extension.equals("proto", ignoreCase = true) }
+        .map { file ->
+            val canonicalFile = runCatching { file.canonicalFile }.getOrDefault(file.absoluteFile)
+            val relative = runCatching {
+                canonicalFile.relativeTo(canonicalRoot).path.replace('\\', '/')
+            }.getOrDefault(file.name)
+            DiscoveredProtoFile(
+                relativePath = relative,
+                absolutePath = file.absolutePath,
+            )
+        }
+        .sortedBy { it.relativePath.lowercase() }
+        .toList()
+}
+
 actual fun openFileInDefaultApp(filePath: String) {
     runCatching {
         val file = File(filePath)
