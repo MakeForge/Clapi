@@ -607,4 +607,99 @@ class VariablePopupTest {
         composeRule.onNodeWithTag("variable-editor-popup").assertIsDisplayed()
         composeRule.onNodeWithText("Variable: number", useUnmergedTree = true).assertIsDisplayed()
     }
+
+    @Test
+    fun parameterized_dynamic_variable_renders_params_and_apply_button_in_popup() {
+        val state = AppState()
+        var appliedToken: String? = null
+
+        composeRule.setContent {
+            VariableEditorPopup(
+                variableName = "\$timestampMsFromNow(100)",
+                state = state,
+                onDismiss = {},
+                onApply = { appliedToken = it },
+            )
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("variable-editor-popup").assertIsDisplayed()
+        composeRule.onNodeWithTag("variable-popup-apply", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("variable-popup-param-offsetMs", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("variable-popup-preview-expression", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithText("{{\$timestampMsFromNow(100)}}", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("variable-popup-current-value", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun editing_parameter_in_popup_updates_live_preview_and_applying_updates_text() {
+        val state = AppState().apply {
+            environments.clear()
+            environments.add(EnvState("Dev"))
+            selectedEnvIndex = 0
+        }
+        var textValue by mutableStateOf("{{\$timestampMsFromNow(100)}}")
+
+        composeRule.setContent {
+            VariableAwareTextField(
+                value = textValue,
+                onValueChange = { textValue = it },
+                modifier = Modifier.width(350.dp).testTag("var-input"),
+                state = state,
+            )
+        }
+        composeRule.waitForIdle()
+
+        // Click directly on the variable text
+        composeRule.onNodeWithTag("var-input").performTouchInput {
+            click(Offset(20f, 10f))
+        }
+        composeRule.waitForIdle()
+
+        // Popup MUST open
+        composeRule.onNodeWithTag("variable-editor-popup").assertIsDisplayed()
+
+        // Replace parameter text "100" with "250"
+        val paramNode = composeRule.onNodeWithTag("variable-popup-param-offsetMs", useUnmergedTree = true)
+        paramNode.assertIsDisplayed()
+        paramNode.performTextInput("250")
+        composeRule.waitForIdle()
+
+        // Preview expression must show updated expression
+        composeRule.onNodeWithTag("variable-popup-preview-expression", useUnmergedTree = true).assertIsDisplayed()
+
+        // Click Apply
+        composeRule.onNodeWithTag("variable-popup-apply", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        // Popup must be dismissed
+        composeRule.onAllNodesWithTag("variable-editor-popup").assertCountEquals(0)
+
+        // Text field must be updated with the new parameter value
+        assertTrue(textValue.contains("timestampMsFromNow"), "Text should contain timestampMsFromNow, was: $textValue")
+        assertTrue(textValue.startsWith("{{") && textValue.endsWith("}}"), "Text should be wrapped in braces, was: $textValue")
+    }
+
+    @Test
+    fun built_in_dynamic_variables_have_parameters_configured() {
+        val state = AppState()
+        var appliedToken: String? = null
+
+        composeRule.setContent {
+            VariableEditorPopup(
+                variableName = "\$isoTimestampBeforeNowMs(500)",
+                state = state,
+                onDismiss = {},
+                onApply = { appliedToken = it },
+            )
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("variable-editor-popup").assertIsDisplayed()
+        composeRule.onNodeWithText("Variable: \$isoTimestampBeforeNowMs(500)", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("variable-popup-apply", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        assertEquals("\$isoTimestampBeforeNowMs(500)", appliedToken)
+    }
 }

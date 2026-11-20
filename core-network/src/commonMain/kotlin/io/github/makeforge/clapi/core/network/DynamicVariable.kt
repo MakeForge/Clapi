@@ -1,9 +1,11 @@
 package io.github.makeforge.clapi.core.network
 
+import io.github.makeforge.clapi.core.model.opencollection.DynamicVariableParameter
 import kotlin.random.Random
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 
 /**
  * Represents a dynamic variable handler for [VariableResolver].
@@ -18,6 +20,9 @@ interface DynamicVariable {
 
     /** Sample value representing the resolved output. */
     val example: String get() = ""
+
+    /** Declared parameters for parameterized dynamic variables. */
+    val parameters: List<DynamicVariableParameter> get() = emptyList()
 
     /**
      * Returns true if this handler can resolve the given variable token.
@@ -43,6 +48,54 @@ object TimestampDynamicVariable : DynamicVariable {
         Clock.System.now().toEpochMilliseconds().toString()
 }
 
+object TimestampMsFromNowDynamicVariable : DynamicVariable {
+    private val pattern = Regex("^\\$?timestampMsFromNow\\(\\s*(-?\\d+)\\s*\\)$", RegexOption.IGNORE_CASE)
+
+    override val name: String = "\$timestampMsFromNow(offsetMs)"
+    override val description: String = "UTC UNIX epoch timestamp in millis offset after now"
+    override val example: String = "1710495000100"
+    override val parameters: List<DynamicVariableParameter> = listOf(
+        DynamicVariableParameter(name = "offsetMs", defaultValue = "100", description = "Milliseconds after now")
+    )
+
+    override fun matches(token: String): Boolean {
+        val norm = token.removePrefix("$")
+        return norm.equals("timestampMsFromNow", ignoreCase = true) ||
+            norm.equals("timestampMsFromNow(offsetMs)", ignoreCase = true) ||
+            pattern.matches(token)
+    }
+
+    override fun resolve(token: String): String? {
+        val groups = pattern.find(token)?.groupValues ?: return null
+        val offsetMs = groups[1].toLongOrNull() ?: return null
+        return (Clock.System.now().toEpochMilliseconds() + offsetMs).toString()
+    }
+}
+
+object TimestampMsBeforeNowDynamicVariable : DynamicVariable {
+    private val pattern = Regex("^\\$?timestampMsBeforeNow\\(\\s*(-?\\d+)\\s*\\)$", RegexOption.IGNORE_CASE)
+
+    override val name: String = "\$timestampMsBeforeNow(offsetMs)"
+    override val description: String = "UTC UNIX epoch timestamp in millis offset before now"
+    override val example: String = "1710494999900"
+    override val parameters: List<DynamicVariableParameter> = listOf(
+        DynamicVariableParameter(name = "offsetMs", defaultValue = "100", description = "Milliseconds before now")
+    )
+
+    override fun matches(token: String): Boolean {
+        val norm = token.removePrefix("$")
+        return norm.equals("timestampMsBeforeNow", ignoreCase = true) ||
+            norm.equals("timestampMsBeforeNow(offsetMs)", ignoreCase = true) ||
+            pattern.matches(token)
+    }
+
+    override fun resolve(token: String): String? {
+        val groups = pattern.find(token)?.groupValues ?: return null
+        val offsetMs = groups[1].toLongOrNull() ?: return null
+        return (Clock.System.now().toEpochMilliseconds() - offsetMs).toString()
+    }
+}
+
 object IsoTimestampDynamicVariable : DynamicVariable {
     override val name: String = "\$isoTimestamp"
     override val description: String = "Current ISO-8601 timestamp"
@@ -53,6 +106,56 @@ object IsoTimestampDynamicVariable : DynamicVariable {
 
     override fun resolve(token: String): String =
         Clock.System.now().toString()
+}
+
+object IsoTimestampFromNowMsDynamicVariable : DynamicVariable {
+    private val pattern = Regex("^\\$?isoTimestampFromNowMs\\(\\s*(-?\\d+)\\s*\\)$", RegexOption.IGNORE_CASE)
+
+    override val name: String = "\$isoTimestampFromNowMs(offsetMs)"
+    override val description: String = "UTC ISO-8601 timestamp offset in millis after now"
+    override val example: String = "2026-03-15T09:30:00.100Z"
+    override val parameters: List<DynamicVariableParameter> = listOf(
+        DynamicVariableParameter(name = "offsetMs", defaultValue = "100", description = "Milliseconds after now")
+    )
+
+    override fun matches(token: String): Boolean {
+        val norm = token.removePrefix("$")
+        return norm.equals("isoTimestampFromNowMs", ignoreCase = true) ||
+            norm.equals("isoTimestampFromNowMs(offsetMs)", ignoreCase = true) ||
+            pattern.matches(token)
+    }
+
+    override fun resolve(token: String): String? {
+        val groups = pattern.find(token)?.groupValues ?: return null
+        val offsetMs = groups[1].toLongOrNull() ?: return null
+        val targetMs = Clock.System.now().toEpochMilliseconds() + offsetMs
+        return Instant.fromEpochMilliseconds(targetMs).toString()
+    }
+}
+
+object IsoTimestampBeforeNowMsDynamicVariable : DynamicVariable {
+    private val pattern = Regex("^\\$?isoTimestampBeforeNowMs\\(\\s*(-?\\d+)\\s*\\)$", RegexOption.IGNORE_CASE)
+
+    override val name: String = "\$isoTimestampBeforeNowMs(offsetMs)"
+    override val description: String = "UTC ISO-8601 timestamp offset in millis before now"
+    override val example: String = "2026-03-15T09:29:59.900Z"
+    override val parameters: List<DynamicVariableParameter> = listOf(
+        DynamicVariableParameter(name = "offsetMs", defaultValue = "100", description = "Milliseconds before now")
+    )
+
+    override fun matches(token: String): Boolean {
+        val norm = token.removePrefix("$")
+        return norm.equals("isoTimestampBeforeNowMs", ignoreCase = true) ||
+            norm.equals("isoTimestampBeforeNowMs(offsetMs)", ignoreCase = true) ||
+            pattern.matches(token)
+    }
+
+    override fun resolve(token: String): String? {
+        val groups = pattern.find(token)?.groupValues ?: return null
+        val offsetMs = groups[1].toLongOrNull() ?: return null
+        val targetMs = Clock.System.now().toEpochMilliseconds() - offsetMs
+        return Instant.fromEpochMilliseconds(targetMs).toString()
+    }
 }
 
 object RandomIntDynamicVariable : DynamicVariable {
@@ -73,6 +176,10 @@ object RandomIntRangeDynamicVariable : DynamicVariable {
     override val name: String = "\$randomInt(min, max)"
     override val description: String = "Random integer in range [min, max]"
     override val example: String = "42"
+    override val parameters: List<DynamicVariableParameter> = listOf(
+        DynamicVariableParameter(name = "min", defaultValue = "0", description = "Minimum value (inclusive)"),
+        DynamicVariableParameter(name = "max", defaultValue = "1000", description = "Maximum value (inclusive)"),
+    )
 
     override fun matches(token: String): Boolean {
         val norm = token.removePrefix("$")

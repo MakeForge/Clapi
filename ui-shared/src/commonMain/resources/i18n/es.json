@@ -94,6 +94,7 @@
   "retry": "Reintentar",
   "run_query": "Ejecutar consulta",
   "save": "Guardar",
+  "apply": "Aplicar",
   "schema_explorer": "Explorador de esquema",
   "search": "Buscar",
   "search_in_response": "Buscar en la respuesta…",

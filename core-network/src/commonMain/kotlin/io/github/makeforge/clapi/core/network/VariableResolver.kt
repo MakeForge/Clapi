@@ -24,7 +24,11 @@ data class ParsedVariableToken(
 object VariableResolver {
     val dynamicVariables: List<DynamicVariable> = listOf(
         TimestampDynamicVariable,
+        TimestampMsFromNowDynamicVariable,
+        TimestampMsBeforeNowDynamicVariable,
         IsoTimestampDynamicVariable,
+        IsoTimestampFromNowMsDynamicVariable,
+        IsoTimestampBeforeNowMsDynamicVariable,
         RandomIntDynamicVariable,
         RandomIntRangeDynamicVariable,
         GuidDynamicVariable,

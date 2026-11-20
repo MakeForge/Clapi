@@ -35,6 +35,54 @@ class VariableResolverTest {
     }
 
     @Test
+    fun resolves_timestamp_ms_from_now_and_before_now() {
+        val nowBefore = Clock.System.now().toEpochMilliseconds()
+        val value = "after={{\$timestampMsFromNow(100)}};before={{\$timestampMsBeforeNow(100)}}"
+        val resolved = VariableResolver.resolve(value = value, variableLayers = emptyList())
+        val nowAfter = Clock.System.now().toEpochMilliseconds()
+
+        val parts = resolved.split(";")
+        val afterTs = parts[0].substringAfter("after=").toLong()
+        val beforeTs = parts[1].substringAfter("before=").toLong()
+
+        assertTrue(afterTs >= nowBefore + 100)
+        assertTrue(afterTs <= nowAfter + 100)
+        assertTrue(beforeTs <= nowAfter - 100)
+        assertTrue(beforeTs >= nowBefore - 100)
+        assertTrue(afterTs > beforeTs)
+    }
+
+    @Test
+    fun resolves_iso_timestamp_ms_from_now_and_before_now() {
+        val value = "after={{\$isoTimestampFromNowMs(100)}};before={{\$isoTimestampBeforeNowMs(100)}}"
+        val resolved = VariableResolver.resolve(value = value, variableLayers = emptyList())
+
+        val parts = resolved.split(";")
+        val afterIso = parts[0].substringAfter("after=")
+        val beforeIso = parts[1].substringAfter("before=")
+
+        assertTrue(afterIso.contains("T"))
+        assertTrue(afterIso.endsWith("Z"))
+        assertTrue(beforeIso.contains("T"))
+        assertTrue(beforeIso.endsWith("Z"))
+
+        val afterInstant = kotlinx.datetime.Instant.parse(afterIso)
+        val beforeInstant = kotlinx.datetime.Instant.parse(beforeIso)
+        assertTrue(afterInstant.toEpochMilliseconds() > beforeInstant.toEpochMilliseconds())
+    }
+
+    @Test
+    fun resolves_new_dynamic_variables_without_dollar_prefix_and_case_insensitive() {
+        val resolved = VariableResolver.resolve(
+            value = "{{timestampMsFromNow(50)}}|{{isotimestampfromnowms(50)}}",
+            variableLayers = emptyList(),
+        )
+        val parts = resolved.split("|")
+        assertTrue(parts[0].toLongOrNull() != null)
+        assertTrue(parts[1].contains("T"))
+    }
+
+    @Test
     fun resolves_dynamic_random_int_within_requested_range() {
         val value = "{{ \$randomInt(10, 20) }}"
         val resolved = VariableResolver.resolve(value = value, variableLayers = emptyList())

@@ -840,6 +840,11 @@ class AppState(openDefaultTab: Boolean = true) {
         VariableResolver.dynamicVariables.forEach { dv ->
             names.add(dv.name)
             names.add(dv.name.removePrefix("$"))
+            val base = dv.name.substringBefore('(').trim()
+            if (base != dv.name) {
+                names.add(base)
+                names.add(base.removePrefix("$"))
+            }
         }
         return names
     }

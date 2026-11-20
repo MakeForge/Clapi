@@ -281,6 +281,7 @@ fun BodyEditor(
                 // syntax highlighting, code folding, search, and format
                 val language = bodyTypeToLanguage(tab.bodyType)
                 var bodyPopupVariable by remember { mutableStateOf<String?>(null) }
+                var bodyPopupRange by remember { mutableStateOf<IntRange?>(null) }
                 // Compute the set of all defined variable names across all active layers & dynamic variables
                 // (env → collection → globals + dynamic variables + secrets). Used to colour tokens orange (resolved)
                 // vs red (unresolved) inside the code editor.
@@ -346,7 +347,9 @@ fun BodyEditor(
                             },
                             testTagPrefix = "body-editor",
                             onCursorTap = { offset ->
-                                bodyPopupVariable = if (offset >= 0) variableNameAtOffset(tab.bodyContent, offset) else null
+                                val found = if (offset >= 0) findVariableTokenRangeAtOffset(tab.bodyContent, offset) else null
+                                bodyPopupRange = found?.first
+                                bodyPopupVariable = found?.second
                             },
                             lineVariableSpans = variableHighlightProvider,
                             availableVariables = availableVars,
@@ -359,7 +362,26 @@ fun BodyEditor(
                                 variableName = variableName,
                                 state = state,
                                 tab = tab,
-                                onDismiss = { bodyPopupVariable = null },
+                                onDismiss = {
+                                    bodyPopupVariable = null
+                                    bodyPopupRange = null
+                                },
+                                onApply = { newVarToken ->
+                                    val tokenToReplace = "{{$variableName}}"
+                                    val targetRange = bodyPopupRange?.takeIf {
+                                        it.first in tab.bodyContent.indices && it.last in tab.bodyContent.indices &&
+                                            tab.bodyContent.substring(it) == tokenToReplace
+                                    }
+                                    val newContent = if (targetRange != null) {
+                                        tab.bodyContent.replaceRange(targetRange, "{{$newVarToken}}")
+                                    } else if (tab.bodyContent.contains(tokenToReplace)) {
+                                        tab.bodyContent.replaceFirst(tokenToReplace, "{{$newVarToken}}")
+                                    } else {
+                                        tab.bodyContent
+                                    }
+                                    tab.bodyContent = newContent
+                                    onDirty()
+                                },
                             )
                         }
                     }

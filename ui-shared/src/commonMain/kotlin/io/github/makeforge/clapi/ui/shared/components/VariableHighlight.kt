@@ -142,14 +142,18 @@ fun parseVariableNames(text: String): List<String> =
         .toList()
 
 /** Returns the variable name under [offset], if the cursor is inside `{{...}}`. */
-fun variableNameAtOffset(text: String, offset: Int): String? {
+fun variableNameAtOffset(text: String, offset: Int): String? =
+    findVariableTokenRangeAtOffset(text, offset)?.second
+
+/** Returns the token range and variable name under [offset], if the cursor is inside `{{...}}`. */
+fun findVariableTokenRangeAtOffset(text: String, offset: Int): Pair<IntRange, String>? {
     if (offset < 0 || offset >= text.length) return null
     for (match in VARIABLE_REGEX.findAll(text)) {
         val start = match.range.first
         val endExclusive = match.range.last + 1
         if (offset in start until endExclusive) {
             val name = normalizeVariableDisplayName(match.groupValues[1])
-            if (name.isNotEmpty()) return name
+            if (name.isNotEmpty()) return match.range to name
         }
     }
     return null
@@ -466,6 +470,7 @@ fun VariableAwareTextField(
     // Popup visibility — null means hidden. Set ONLY from the click handler
     // inside onValueChange. Never set during initialisation (fixes Issue 1).
     var popupVariable by remember { mutableStateOf<String?>(null) }
+    var popupRange by remember { mutableStateOf<IntRange?>(null) }
     var showVariableDropdown by remember { mutableStateOf(false) }
     var selectedVariableIndex by remember { mutableIntStateOf(0) }
     val availableVariables = remember(state, currentTab, definedNames, extraVariables, normalizedExcludes) {
@@ -612,17 +617,27 @@ fun VariableAwareTextField(
                     val pressPos = lastPressPosition.value
                     lastPressPosition.value = null
                     if (state != null && new.selection.collapsed) {
-                        val varAtPoint = if (pressPos != null && textLayoutResult != null) {
-                            findVariableAtPoint(pressPos, textLayoutResult, annotated)
+                        val cursor = new.selection.start
+                        val foundByCursor = findVariableTokenRangeAtOffset(new.text, cursor)
+                        val foundByPoint = if (foundByCursor == null && pressPos != null && textLayoutResult != null) {
+                            val charOffset = textLayoutResult?.getOffsetForPosition(pressPos) ?: -1
+                            if (charOffset >= 0) findVariableTokenRangeAtOffset(new.text, charOffset) else null
+                        } else null
+
+                        val found = foundByCursor ?: foundByPoint
+                        if (found != null) {
+                            popupRange = found.first
+                            popupVariable = found.second
                         } else {
-                            val cursor = new.selection.start
-                            val annotations = annotated.getStringAnnotations(VARIABLE_TAG, 0, annotated.length)
-                            annotations.firstOrNull { cursor >= it.start && cursor < it.end }?.item
+                            val varAtPoint = if (pressPos != null && textLayoutResult != null) {
+                                findVariableAtPoint(pressPos, textLayoutResult, annotated)
+                            } else null
+                            popupVariable = varAtPoint
+                            popupRange = null
                         }
-                        // null → close any open popup (click outside a token)
-                        popupVariable = varAtPoint
                     } else {
                         popupVariable = null
+                        popupRange = null
                     }
                 }
             },
@@ -728,7 +743,31 @@ fun VariableAwareTextField(
                     variableName = varName,
                     state = state,
                     tab = currentTab,
-                    onDismiss = { popupVariable = null },
+                    onDismiss = {
+                        popupVariable = null
+                        popupRange = null
+                    },
+                    onApply = { newVarToken ->
+                        val oldText = fieldValue.text
+                        val tokenToReplace = "{{$varName}}"
+                        val targetRange = popupRange?.takeIf {
+                            it.first in oldText.indices && it.last in oldText.indices &&
+                                oldText.substring(it) == tokenToReplace
+                        }
+                        val newText = if (targetRange != null) {
+                            oldText.replaceRange(targetRange, "{{$newVarToken}}")
+                        } else if (oldText.contains(tokenToReplace)) {
+                            oldText.replaceFirst(tokenToReplace, "{{$newVarToken}}")
+                        } else {
+                            oldText
+                        }
+                        if (newText != oldText) {
+                            val newAnnotated = highlightVariablesWithStatus(newText, definedNames)
+                            val newCursor = (targetRange?.first ?: (oldText.indexOf(tokenToReplace).takeIf { it >= 0 } ?: 0)) + newVarToken.length + 4
+                            fieldValue = TextFieldValue(annotatedString = newAnnotated, selection = TextRange(newCursor.coerceIn(0, newText.length)))
+                            onValueChange(newText)
+                        }
+                    },
                 )
             }
         }
@@ -872,6 +911,7 @@ fun VariableEditorPopup(
     tab: RequestTabState? = state.activeTab,
     initialOffset: IntOffset = IntOffset(40, 32),
     onPositionChanged: (IntOffset) -> Unit = {},
+    onApply: ((String) -> Unit)? = null,
 ) {
     VariableEditorPopupImpl(
         variableName = variableName,
@@ -880,5 +920,6 @@ fun VariableEditorPopup(
         tab = tab,
         initialOffset = initialOffset,
         onPositionChanged = onPositionChanged,
+        onApply = onApply,
     )
 }

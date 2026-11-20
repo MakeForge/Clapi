@@ -183,6 +183,7 @@
   "run": "Run",
   "run_query": "Run Query",
   "save": "Save",
+  "apply": "Apply",
   "schema_explorer": "Schema Explorer",
   "search": "Search",
   "search_in_response": "Search in response…",

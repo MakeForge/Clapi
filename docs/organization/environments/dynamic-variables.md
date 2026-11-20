@@ -29,7 +29,11 @@ Built-in dynamic variables start with a `$` prefix and require no setup. Every o
 | **GUID / UUID v4** | <code v-pre>{{$guid}}</code> or <code v-pre>{{$uuid}}</code> | Generates a random RFC 4122 v4 UUID | `c9b2f4a1-7e82-4f9a-b892-1bfa3c678231` |
 | **UNIX Timestamp (s)** | <code v-pre>{{$timestamp}}</code> | Current UTC UNIX epoch timestamp in seconds | `1731628100` |
 | **UNIX Timestamp (ms)** | <code v-pre>{{$timestampMs}}</code> | Current UTC UNIX epoch timestamp in milliseconds | `1731628100123` |
+| **UNIX Timestamp (ms after now)** | <code v-pre>{{$timestampMsFromNow(offsetMs)}}</code> | UTC UNIX epoch timestamp in millis offset after now | `1731628100223` (for `100`) |
+| **UNIX Timestamp (ms before now)** | <code v-pre>{{$timestampMsBeforeNow(offsetMs)}}</code> | UTC UNIX epoch timestamp in millis offset before now | `1731628100023` (for `100`) |
 | **ISO 8601 Timestamp** | <code v-pre>{{$isoTimestamp}}</code> | Current UTC timestamp in ISO 8601 format | `2026-11-15T22:45:00.000Z` |
+| **ISO 8601 (ms after now)** | <code v-pre>{{$isoTimestampFromNowMs(offsetMs)}}</code> | UTC ISO 8601 timestamp in millis offset after now | `2026-11-15T22:45:00.100Z` (for `100`) |
+| **ISO 8601 (ms before now)** | <code v-pre>{{$isoTimestampBeforeNowMs(offsetMs)}}</code> | UTC ISO 8601 timestamp in millis offset before now | `2026-11-15T22:44:59.900Z` (for `100`) |
 | **Random Integer** | <code v-pre>{{$randomInt}}</code> | Random integer between `0` and `1000` (inclusive) | `482` |
 | **Random Integer (Range)** | <code v-pre>{{$randomInt(min, max)}}</code> | Random integer between `min` and `max` (inclusive) | `42` (for <code v-pre>{{$randomInt(10, 99)}}</code>) |
 | **Random Alphanumeric** | <code v-pre>{{$randomAlphaNumeric}}</code> | Random 8-character alphanumeric string | `k9J2bX7w` |
@@ -47,6 +51,14 @@ Content-Type: application/json
   "createdAt": {{$timestamp}}
 }
 ```
+
+### Editing Dynamic Variable Parameters in Editors
+
+When you click on any parameterized dynamic variable (e.g. `{{$timestampMsFromNow(100)}}`, `{{$isoTimestampFromNowMs(500)}}`, or `{{$randomInt(1, 100)}}`) in the Code Editor, URL field, or headers, an inline dialog opens displaying:
+- **Evaluated Value & Template Preview**: Live evaluation of the dynamic variable output that updates as you edit.
+- **Editable Parameter Fields**: Text inputs for each declared parameter (e.g., `offsetMs`, `min`, `max`).
+- **Apply Action**: Click **Apply** (or press `Ctrl+S` / `Cmd+S`) to update the variable token directly in your editor with the new parameter values.
+
 
 ## User-Defined Dynamic Variables
 

@@ -20,6 +20,7 @@ object Strings {
     val send: String @Composable @ReadOnlyComposable get() = t("send")
     val cancel: String @Composable @ReadOnlyComposable get() = t("cancel")
     val save: String @Composable @ReadOnlyComposable get() = t("save")
+    val apply: String @Composable @ReadOnlyComposable get() = t("apply")
     val delete: String @Composable @ReadOnlyComposable get() = t("delete")
     val close: String @Composable @ReadOnlyComposable get() = t("close")
     val confirm: String @Composable @ReadOnlyComposable get() = t("confirm")

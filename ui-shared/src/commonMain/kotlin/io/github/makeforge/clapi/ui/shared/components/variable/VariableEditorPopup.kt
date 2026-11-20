@@ -14,15 +14,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -31,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
@@ -186,10 +191,64 @@ fun VariableEditorPopup(
     tab: RequestTabState? = state.activeTab,
     initialOffset: IntOffset = IntOffset(40, 32),
     onPositionChanged: (IntOffset) -> Unit = {},
+    onApply: ((String) -> Unit)? = null,
 ) {
     val cleanName = remember(variableName) { normalizeVariableDisplayName(variableName) }
     val info = resolveVariableSourceInfo(cleanName, state, tab)
     val env = state.selectedEnvironment
+
+    val parsedToken = remember(cleanName) { VariableResolver.parseVariableToken(cleanName) }
+    val baseName = remember(parsedToken, cleanName) { parsedToken.name.ifBlank { cleanName } }
+
+    val builtInHandler = remember(cleanName, baseName) {
+        VariableResolver.dynamicVariables.firstOrNull { it.matches(cleanName) || it.matches(baseName) }
+    }
+    val userDyn = remember(baseName, state, tab) {
+        state.activeDynamicVariables(tab).firstOrNull { it.name == baseName }
+    }
+
+    val declaredParams = remember(builtInHandler, userDyn) {
+        builtInHandler?.parameters?.takeIf { it.isNotEmpty() } ?: userDyn?.parameters.orEmpty()
+    }
+
+    val isParameterizedDynamic = remember(info.isDynamic, declaredParams) {
+        info.isDynamic && declaredParams.isNotEmpty()
+    }
+
+    val paramValues = remember(cleanName, declaredParams) {
+        mutableStateMapOf<String, String>().apply {
+            declaredParams.forEachIndexed { index, param ->
+                val argVal = parsedToken.args.getOrNull(index)?.toString()
+                put(param.name, argVal ?: param.defaultValue ?: "")
+            }
+        }
+    }
+
+    val currentArgs = declaredParams.map { param ->
+        paramValues[param.name] ?: param.defaultValue ?: ""
+    }
+    val prefix = if (cleanName.startsWith("$")) "$" else ""
+    val nameWithoutDollar = baseName.removePrefix("$")
+    val updatedToken = "$prefix$nameWithoutDollar(${currentArgs.joinToString(", ")})"
+    val updatedExpression = "{{$updatedToken}}"
+
+    val previewResolvedValue by remember(updatedToken, paramValues.values.toList()) {
+        derivedStateOf {
+            try {
+                if (builtInHandler != null) {
+                    builtInHandler.resolve(updatedToken)
+                } else if (userDyn != null) {
+                    val scriptContext = VariableResolver.buildScriptContext(userDyn, currentArgs, null)
+                    val res = VariableResolver.defaultDynamicEngine.evaluateDynamicVariable(userDyn.script, scriptContext)
+                    if (res.success) res.returnValue else null
+                } else {
+                    VariableResolver.resolveDynamicToken(updatedToken)
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
 
     var editValue by remember(cleanName, info.isDynamic) {
         val initial = if (info.isDynamic) {
@@ -207,6 +266,13 @@ fun VariableEditorPopup(
     fun isDirty(): Boolean = !info.isDynamic && editValue.text != baselineValue
 
     fun handleSave(closeDialog: Boolean = false) {
+        if (isParameterizedDynamic) {
+            onApply?.invoke(updatedToken)
+            if (closeDialog) {
+                onDismiss()
+            }
+            return
+        }
         if (info.isDynamic) {
             if (closeDialog) {
                 onDismiss()
@@ -296,7 +362,10 @@ fun VariableEditorPopup(
                     .pointerInput(Unit) { detectTapGestures { } }
                     .hotkeys {
                         on(AppHotkeys.Save) {
-                            if (!info.isDynamic) {
+                            if (isParameterizedDynamic) {
+                                onApply?.invoke(updatedToken)
+                                onDismiss()
+                            } else if (!info.isDynamic) {
                                 handleSave(closeDialog = false)
                             }
                         }
@@ -323,7 +392,7 @@ fun VariableEditorPopup(
                     ) {
                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(
-                                text = "${Strings.t("variable")}: $cleanName",
+                                text = "${Strings.t("variable")}: ${if (isParameterizedDynamic) updatedToken else cleanName}",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = VariableHighlightColor,
@@ -392,14 +461,26 @@ fun VariableEditorPopup(
                             }
                         }
                         Text(
-                            text = info.currentResolvedValue ?: Strings.t("not_defined"),
+                            text = (if (isParameterizedDynamic) previewResolvedValue else info.currentResolvedValue) ?: Strings.t("not_defined"),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
-                            color = if (info.currentResolvedValue == null) ClapiColors.Error else ClapiColors.OnSurface,
+                            color = if ((if (isParameterizedDynamic) previewResolvedValue else info.currentResolvedValue) == null) ClapiColors.Error else ClapiColors.OnSurface,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.testTag("variable-popup-current-value"),
                         )
+                        if (isParameterizedDynamic) {
+                            Text(
+                                text = updatedExpression,
+                                fontSize = 11.sp,
+                                fontFamily = CodeFontFamily,
+                                fontWeight = FontWeight.SemiBold,
+                                color = VariableHighlightColor,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.testTag("variable-popup-preview-expression"),
+                            )
+                        }
 
                         HorizontalDivider(color = ClapiColors.Border.copy(alpha = 0.6f))
 
@@ -453,48 +534,117 @@ fun VariableEditorPopup(
 
                     HorizontalDivider(color = ClapiColors.Border)
 
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = Strings.value,
-                                fontSize = 11.sp,
-                                color = ClapiColors.OnSurfaceVariant,
-                                fontWeight = FontWeight.Medium,
-                            )
-                            Text(
-                                text = if (info.isDynamic) "${Strings.t("dynamic")} (${Strings.t("read_only")})" else "Sets in environment",
-                                fontSize = 10.sp,
-                                color = ClapiColors.OnSurfaceDim,
+                    if (isParameterizedDynamic) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = Strings.parameters,
+                                    fontSize = 11.sp,
+                                    color = ClapiColors.OnSurfaceVariant,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                                Text(
+                                    text = "${Strings.t("dynamic")} (editable)",
+                                    fontSize = 10.sp,
+                                    color = ClapiColors.OnSurfaceDim,
+                                )
+                            }
+                            declaredParams.forEachIndexed { idx, param ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Text(
+                                        text = param.name,
+                                        fontSize = 12.sp,
+                                        fontFamily = CodeFontFamily,
+                                        color = ClapiColors.OnSurfaceVariant,
+                                        modifier = Modifier.width(90.dp),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    BasicTextField(
+                                        value = paramValues[param.name] ?: "",
+                                        onValueChange = { paramValues[param.name] = it },
+                                        singleLine = true,
+                                        textStyle = TextStyle(
+                                            color = ClapiColors.OnSurface,
+                                            fontSize = 12.sp,
+                                            fontFamily = CodeFontFamily,
+                                        ),
+                                        cursorBrush = SolidColor(ClapiColors.Primary),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(ClapiColors.SurfaceContainer)
+                                            .border(1.dp, ClapiColors.BorderLight, RoundedCornerShape(6.dp))
+                                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                                            .testTag("variable-popup-param-${param.name}")
+                                            .testTag("variable-popup-param-$idx"),
+                                        decorationBox = { inner ->
+                                            if ((paramValues[param.name] ?: "").isEmpty()) {
+                                                Text(
+                                                    text = param.defaultValue ?: Strings.value,
+                                                    color = ClapiColors.OnSurfaceDim,
+                                                    fontSize = 12.sp,
+                                                    fontFamily = CodeFontFamily,
+                                                )
+                                            }
+                                            inner()
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = Strings.value,
+                                    fontSize = 11.sp,
+                                    color = ClapiColors.OnSurfaceVariant,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                                Text(
+                                    text = if (info.isDynamic) "${Strings.t("dynamic")} (${Strings.t("read_only")})" else "Sets in environment",
+                                    fontSize = 10.sp,
+                                    color = ClapiColors.OnSurfaceDim,
+                                )
+                            }
+                            VariableAwareTextField(
+                                value = editValue.text,
+                                onValueChange = { if (!info.isDynamic) editValue = TextFieldValue(it) },
+                                readOnly = info.isDynamic,
+                                singleLine = true,
+                                placeholder = Strings.t("enter_value"),
+                                textStyle = TextStyle(
+                                    color = if (info.isDynamic) ClapiColors.OnSurfaceDim else ClapiColors.OnSurface,
+                                    fontSize = 13.sp,
+                                    fontFamily = CodeFontFamily,
+                                ),
+                                state = state,
+                                tab = tab,
+                                excludeVariables = setOf(cleanName),
+                                selectAllOnStart = !info.isDynamic,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .then(if (!info.isDynamic) Modifier.autoFocus() else Modifier)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (info.isDynamic) ClapiColors.SurfaceContainer.copy(alpha = 0.5f) else ClapiColors.SurfaceContainer)
+                                    .border(1.dp, ClapiColors.BorderLight, RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 10.dp, vertical = 8.dp)
+                                    .testTag("variable-popup-value-input"),
                             )
                         }
-                        VariableAwareTextField(
-                            value = editValue.text,
-                            onValueChange = { if (!info.isDynamic) editValue = TextFieldValue(it) },
-                            readOnly = info.isDynamic,
-                            singleLine = true,
-                            placeholder = Strings.t("enter_value"),
-                            textStyle = TextStyle(
-                                color = if (info.isDynamic) ClapiColors.OnSurfaceDim else ClapiColors.OnSurface,
-                                fontSize = 13.sp,
-                                fontFamily = CodeFontFamily,
-                            ),
-                            state = state,
-                            tab = tab,
-                            excludeVariables = setOf(cleanName),
-                            selectAllOnStart = !info.isDynamic,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .then(if (!info.isDynamic) Modifier.autoFocus() else Modifier)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (info.isDynamic) ClapiColors.SurfaceContainer.copy(alpha = 0.5f) else ClapiColors.SurfaceContainer)
-                                .border(1.dp, ClapiColors.BorderLight, RoundedCornerShape(8.dp))
-                                .padding(horizontal = 10.dp, vertical = 8.dp)
-                                .testTag("variable-popup-value-input"),
-                        )
                     }
 
                     Row(
@@ -521,21 +671,42 @@ fun VariableEditorPopup(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(if (info.isDynamic) ClapiColors.Primary else ClapiColors.SurfaceContainer)
-                                .border(1.dp, if (info.isDynamic) Color.Transparent else ClapiColors.Border, RoundedCornerShape(8.dp))
+                                .background(if (info.isDynamic && !isParameterizedDynamic) ClapiColors.Primary else ClapiColors.SurfaceContainer)
+                                .border(1.dp, if (info.isDynamic && !isParameterizedDynamic) Color.Transparent else ClapiColors.Border, RoundedCornerShape(8.dp))
                                 .clickable(onClick = onDismiss)
                                 .padding(horizontal = 14.dp, vertical = 8.dp)
                                 .testTag("variable-popup-cancel"),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
-                                text = if (info.isDynamic) Strings.t("close") else Strings.t("cancel"),
+                                text = if (info.isDynamic && !isParameterizedDynamic) Strings.t("close") else Strings.cancel,
                                 fontSize = 12.sp,
-                                color = if (info.isDynamic) ClapiColors.OnPrimary else ClapiColors.OnSurface,
-                                fontWeight = if (info.isDynamic) FontWeight.SemiBold else FontWeight.Medium,
+                                color = if (info.isDynamic && !isParameterizedDynamic) ClapiColors.OnPrimary else ClapiColors.OnSurface,
+                                fontWeight = if (info.isDynamic && !isParameterizedDynamic) FontWeight.SemiBold else FontWeight.Medium,
                             )
                         }
-                        if (!info.isDynamic) {
+                        if (isParameterizedDynamic) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(ClapiColors.Primary)
+                                    .clickable {
+                                        onApply?.invoke(updatedToken)
+                                        onDismiss()
+                                    }
+                                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                                    .testTag("variable-popup-apply"),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = Strings.apply,
+                                    fontSize = 12.sp,
+                                    color = ClapiColors.OnPrimary,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                )
+                            }
+                        } else if (!info.isDynamic) {
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
