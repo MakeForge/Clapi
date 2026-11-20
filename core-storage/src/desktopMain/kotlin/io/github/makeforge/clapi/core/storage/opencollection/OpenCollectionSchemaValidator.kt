@@ -6,12 +6,19 @@ import com.networknt.schema.SchemaRegistry
 import com.networknt.schema.SpecificationVersion
 
 actual class OpenCollectionSchemaValidator actual constructor() {
-    private val schema: Schema by lazy {
-        val stream = OpenCollectionSchemaValidator::class.java.getResourceAsStream("/opencollection/opencollection_v1.0.0.json")
-            ?: error("Embedded OpenCollection v1.0.0 schema resource not found at /opencollection/opencollection_v1.0.0.json")
-        val registry = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_7)
-        stream.use { registry.getSchema(it) }
+    companion object {
+        private val sharedSchema: Schema by lazy {
+            val stream = OpenCollectionSchemaValidator::class.java.getResourceAsStream("/opencollection/opencollection_v1.0.0.json")
+                ?: error("Embedded OpenCollection v1.0.0 schema resource not found at /opencollection/opencollection_v1.0.0.json")
+            val registry = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_7)
+            stream.use { registry.getSchema(it) }
+        }
+
+        private val JSON_VERSION_REGEX = Regex(""""opencollection"\s*:\s*"([^"]*)"""")
+        private val YAML_VERSION_REGEX = Regex("""(?m)^\s*opencollection\s*:\s*['"]?([^\s'"#]+)['"]?""")
     }
+
+    private val schema: Schema get() = sharedSchema
 
     actual fun validate(rawJson: String): List<ValidationIssue> {
         return try {
@@ -24,22 +31,17 @@ actual class OpenCollectionSchemaValidator actual constructor() {
                 )
             }.toMutableList()
 
-            // Check opencollection version constraint (FR-002: must be "1.0.0")
-            try {
-                val element = kotlinx.serialization.json.Json.parseToJsonElement(rawJson)
-                val version = (element as? kotlinx.serialization.json.JsonObject)
-                    ?.get("opencollection")
-                    ?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
-                if (version != null && version != "1.0.0") {
-                    issues.add(
-                        ValidationIssue(
-                            path = "$.opencollection",
-                            message = "OpenCollection version '$version' is unsupported. Only '1.0.0' is supported.",
-                            keyword = "const"
-                        )
+            // Check opencollection version constraint (FR-002: must be "1.0.0") without re-parsing the full JSON AST
+            val version = JSON_VERSION_REGEX.find(rawJson)?.groupValues?.get(1)
+            if (version != null && version != "1.0.0") {
+                issues.add(
+                    ValidationIssue(
+                        path = "$.opencollection",
+                        message = "OpenCollection version '$version' is unsupported. Only '1.0.0' is supported.",
+                        keyword = "const"
                     )
-                }
-            } catch (_: Exception) {}
+                )
+            }
 
             issues
         } catch (e: Exception) {
@@ -64,19 +66,16 @@ actual class OpenCollectionSchemaValidator actual constructor() {
                 )
             }.toMutableList()
 
-            try {
-                val node = com.charleskorn.kaml.Yaml.default.parseToYamlNode(rawYaml)
-                val version = ((node as? com.charleskorn.kaml.YamlMap)?.get<com.charleskorn.kaml.YamlScalar>("opencollection"))?.content
-                if (version != null && version != "1.0.0") {
-                    issues.add(
-                        ValidationIssue(
-                            path = "$.opencollection",
-                            message = "OpenCollection version '$version' is unsupported. Only '1.0.0' is supported.",
-                            keyword = "const"
-                        )
+            val version = YAML_VERSION_REGEX.find(rawYaml)?.groupValues?.get(1)
+            if (version != null && version != "1.0.0") {
+                issues.add(
+                    ValidationIssue(
+                        path = "$.opencollection",
+                        message = "OpenCollection version '$version' is unsupported. Only '1.0.0' is supported.",
+                        keyword = "const"
                     )
-                }
-            } catch (_: Exception) {}
+                )
+            }
 
             issues
         } catch (e: Exception) {

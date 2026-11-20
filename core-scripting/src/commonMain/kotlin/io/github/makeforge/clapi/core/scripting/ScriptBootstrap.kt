@@ -21,67 +21,110 @@ internal object ScriptBootstrap {
         userScript: String,
         context: ScriptContext,
         prefix: String,
-    ): String = buildString {
-        // ── Opening IIFE ──────────────────────────────────────────────────
-        append("(function(){")
-        append("'use strict';")
+    ): String {
+        val estimatedCapacity = RUNTIME_JS.length +
+            GLOBAL_ALIASES.length +
+            userScript.length +
+            (context.responseBody?.length ?: 0) +
+            (context.requestBody?.length ?: 0) +
+            (context.assembledText?.length ?: 0) +
+            1024
 
-        // ── Inject context data as JS vars ────────────────────────────────
-        append("var __sc=").append(context.statusCode ?: "null").append(";")
-        append("var __st=").append(jsString(statusText(context.statusCode))).append(";")
-        append("var __rb=").append(jsString(context.responseBody)).append(";")
-        append("var __rt=").append(context.responseTimeMs ?: "null").append(";")
-        append("var __rs=").append(context.responseSizeBytes ?: "null").append(";")
-        append("var __rh=").append(jsObject(context.responseHeaders)).append(";")
-        append("var __ru=").append(jsString(context.url)).append(";")
-        append("var __rm=").append(jsString(context.method)).append(";")
-        append("var __rqb=").append(jsString(context.requestBody)).append(";")
-        append("var __rqh=").append(jsObject(context.requestHeaders)).append(";")
-        append("var __rqp=").append(jsObject(context.requestQueryParams)).append(";")
-        append("var __ev=").append(jsObject(context.variables)).append(";")
-        append("var __gv=").append(jsObject(context.globalVariables)).append(";")
-        append("var __cv=").append(jsObject(context.collectionVariables)).append(";")
-        append("var __se=").append(jsStringArray(context.streamEvents)).append(";")
-        append("var __at=").append(jsString(context.assembledText)).append(";")
+        return buildString(estimatedCapacity) {
+            // ── Opening IIFE ──────────────────────────────────────────────────
+            append("(function(){")
+            append("'use strict';")
 
-        // ── Runtime (constant) ────────────────────────────────────────────
-        append(RUNTIME_JS)
+            // ── Inject context data as JS vars (single-pass direct append) ────
+            append("var __sc=").append(context.statusCode ?: "null").append(";")
+            append("var __st="); appendJsString(statusText(context.statusCode)); append(";")
+            append("var __rb="); appendJsString(context.responseBody); append(";")
+            append("var __rt=").append(context.responseTimeMs ?: "null").append(";")
+            append("var __rs=").append(context.responseSizeBytes ?: "null").append(";")
+            append("var __rh="); appendJsObject(context.responseHeaders); append(";")
+            append("var __ru="); appendJsString(context.url); append(";")
+            append("var __rm="); appendJsString(context.method); append(";")
+            append("var __rqb="); appendJsString(context.requestBody); append(";")
+            append("var __rqh="); appendJsObject(context.requestHeaders); append(";")
+            append("var __rqp="); appendJsObject(context.requestQueryParams); append(";")
+            append("var __ev="); appendJsObject(context.variables); append(";")
+            append("var __gv="); appendJsObject(context.globalVariables); append(";")
+            append("var __cv="); appendJsObject(context.collectionVariables); append(";")
+            append("var __se="); appendJsStringArray(context.streamEvents); append(";")
+            append("var __at="); appendJsString(context.assembledText); append(";")
 
-        // ── Namespace + global aliases ────────────────────────────────────
-        append("globalThis[").append(jsString(prefix)).append("]=__ns;")
-        append(GLOBAL_ALIASES)
+            // ── Runtime (constant) ────────────────────────────────────────────
+            append(RUNTIME_JS)
 
-        // ── Execute user script in isolated inner IIFE ────────────────────
-        append("try{(function(){")
-        append(userScript)
-        append("\n})();}catch(__e){__r.error=__e.message||String(__e);}")
+            // ── Namespace + global aliases ────────────────────────────────────
+            append("globalThis["); appendJsString(prefix); append("]=__ns;")
+            append(GLOBAL_ALIASES)
 
-        // ── Return results as JSON string ─────────────────────────────────
-        append("return JSON.stringify(__r);")
-        append("})()")
-    }
+            // ── Execute user script in isolated inner IIFE ────────────────────
+            append("try{(function(){")
+            append(userScript)
+            append("\n})();}catch(__e){__r.error=__e.message||String(__e);}")
 
-    // ── JS helpers ────────────────────────────────────────────────────────
-
-    private fun jsString(s: String?): String {
-        if (s == null) return "null"
-        return "\"${escapeJs(s)}\""
-    }
-
-    private fun jsObject(map: Map<String, String>): String {
-        if (map.isEmpty()) return "{}"
-        return map.entries.joinToString(",", "{", "}") { (k, v) ->
-            "\"${escapeJs(k)}\":\"${escapeJs(v)}\""
+            // ── Return results as JSON string ─────────────────────────────────
+            append("return JSON.stringify(__r);")
+            append("})()")
         }
     }
 
-    private fun jsStringArray(list: List<String>): String {
-        if (list.isEmpty()) return "[]"
-        return list.joinToString(",", "[", "]") { jsString(it) }
+    // ── JS helpers (zero-copy single-pass writers) ────────────────────────
+
+    private fun StringBuilder.appendJsString(s: String?) {
+        if (s == null) {
+            append("null")
+            return
+        }
+        append('"')
+        appendEscapedJs(s)
+        append('"')
     }
 
-    private fun escapeJs(s: String): String = buildString(s.length + 16) {
-        s.forEach { ch ->
+    private fun StringBuilder.appendJsObject(map: Map<String, String>) {
+        if (map.isEmpty()) {
+            append("{}")
+            return
+        }
+        append('{')
+        var first = true
+        for ((k, v) in map) {
+            if (!first) append(',')
+            first = false
+            append('"')
+            appendEscapedJs(k)
+            append("\":\"")
+            appendEscapedJs(v)
+            append('"')
+        }
+        append('}')
+    }
+
+    private fun StringBuilder.appendJsStringArray(list: List<String>) {
+        if (list.isEmpty()) {
+            append("[]")
+            return
+        }
+        append('[')
+        for (i in list.indices) {
+            if (i > 0) append(',')
+            appendJsString(list[i])
+        }
+        append(']')
+    }
+
+    private fun StringBuilder.appendEscapedJs(s: String) {
+        var prevWasLessThan = false
+        for (i in 0 until s.length) {
+            val ch = s[i]
+            if (prevWasLessThan && ch == '/') {
+                append("\\/")
+                prevWasLessThan = false
+                continue
+            }
+            prevWasLessThan = (ch == '<')
             when (ch) {
                 '\\' -> append("\\\\")
                 '"' -> append("\\\"")
@@ -100,7 +143,7 @@ internal object ScriptBootstrap {
                 }
             }
         }
-    }.replace("</", "<\\/")
+    }
 
     private fun statusText(code: Int?): String = when (code) {
         null -> ""

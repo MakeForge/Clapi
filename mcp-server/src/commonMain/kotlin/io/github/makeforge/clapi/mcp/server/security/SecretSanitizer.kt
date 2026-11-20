@@ -420,7 +420,11 @@ object SecretSanitizer {
     fun scrubText(text: String, knownSecrets: Iterable<String>): String {
         if (text.isEmpty()) return text
         val candidates = expandScrubCandidates(knownSecrets)
-        if (candidates.isEmpty()) return text
+        return scrubTextWithExpandedCandidates(text, candidates)
+    }
+
+    private fun scrubTextWithExpandedCandidates(text: String, candidates: List<String>): String {
+        if (text.isEmpty() || candidates.isEmpty()) return text
         var result = text
         for (secret in candidates) {
             if (result.contains(secret)) {
@@ -435,24 +439,36 @@ object SecretSanitizer {
         knownSecrets: Iterable<String>,
         basicAuthPairs: Iterable<Pair<String, String>> = emptyList(),
     ): ExecutionSnapshot {
-        val expanded = expandScrubCandidates(knownSecrets, basicAuthPairs).toSet()
+        val expanded = expandScrubCandidates(knownSecrets, basicAuthPairs)
         return snapshot.copy(
             sanitizedRequestHeaders = snapshot.sanitizedRequestHeaders.map { h ->
-                sanitizeHeader(h.key, h.value, h.enabled, h.secret, h.description, expanded)
+                val isSensitive = h.secret || isSensitiveHeader(h.key)
+                val maskedValue = if (isSensitive) {
+                    maskHeaderValue(h.key, h.value, isSecretFlagged = true)
+                } else {
+                    scrubTextWithExpandedCandidates(h.value, expanded)
+                }
+                h.copy(value = maskedValue, secret = isSensitive)
             },
             sanitizedResponseHeaders = snapshot.sanitizedResponseHeaders.map { h ->
-                sanitizeHeader(h.key, h.value, h.enabled, h.secret, h.description, expanded)
+                val isSensitive = h.secret || isSensitiveHeader(h.key)
+                val maskedValue = if (isSensitive) {
+                    maskHeaderValue(h.key, h.value, isSecretFlagged = true)
+                } else {
+                    scrubTextWithExpandedCandidates(h.value, expanded)
+                }
+                h.copy(value = maskedValue, secret = isSensitive)
             },
-            sanitizedBodyText = scrubText(snapshot.sanitizedBodyText, expanded),
+            sanitizedBodyText = scrubTextWithExpandedCandidates(snapshot.sanitizedBodyText, expanded),
             assertions = snapshot.assertions.map { a ->
                 AssertionResult(
-                    name = scrubText(a.name, expanded),
+                    name = scrubTextWithExpandedCandidates(a.name, expanded),
                     passed = a.passed,
-                    message = a.message?.let { scrubText(it, expanded) },
+                    message = a.message?.let { scrubTextWithExpandedCandidates(it, expanded) },
                 )
             },
-            scriptLogs = snapshot.scriptLogs.map { scrubText(it, expanded) },
-            scriptError = snapshot.scriptError?.let { scrubText(it, expanded) },
+            scriptLogs = snapshot.scriptLogs.map { scrubTextWithExpandedCandidates(it, expanded) },
+            scriptError = snapshot.scriptError?.let { scrubTextWithExpandedCandidates(it, expanded) },
         )
     }
 
