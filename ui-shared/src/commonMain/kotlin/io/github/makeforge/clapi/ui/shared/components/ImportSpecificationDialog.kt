@@ -119,6 +119,7 @@ fun ImportSpecificationDialog(
     state: AppState,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    useDialogWindow: Boolean = true,
 ) {
     var currentStep by remember { mutableStateOf(ImportDialogStep.SOURCE_SELECTION) }
     var sourceType by remember { mutableStateOf(ImportSourceType.FILE) }
@@ -145,18 +146,14 @@ fun ImportSpecificationDialog(
 
     val dragState = rememberDraggableDialogState()
 
-    Dialog(onDismissRequest = onDismiss) {
-        Box(
-            modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = onDismiss),
-            contentAlignment = Alignment.Center,
+    val dialogCard: @Composable () -> Unit = {
+        Column(
+            modifier = modifier
+                .draggableDialogCard(dragState, cornerRadius = 8.dp)
+                .widthIn(min = 550.dp, max = 650.dp)
+                .heightIn(min = 450.dp, max = 600.dp)
+                .testTag("import-specification-dialog"),
         ) {
-            Column(
-                modifier = modifier
-                    .draggableDialogCard(dragState, cornerRadius = 8.dp)
-                    .widthIn(min = 550.dp, max = 650.dp)
-                    .heightIn(min = 450.dp, max = 600.dp)
-                    .testTag("import-specification-dialog"),
-            ) {
                 DialogTitleBar(
                     title = if (currentStep == ImportDialogStep.SOURCE_SELECTION) {
                         Strings.importDialogTitle
@@ -720,6 +717,18 @@ fun ImportSpecificationDialog(
                 }
             }
         }
+
+    if (useDialogWindow) {
+        Dialog(onDismissRequest = onDismiss) {
+            Box(
+                modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = onDismiss),
+                contentAlignment = Alignment.Center,
+            ) {
+                dialogCard()
+            }
+        }
+    } else {
+        dialogCard()
     }
 }
 

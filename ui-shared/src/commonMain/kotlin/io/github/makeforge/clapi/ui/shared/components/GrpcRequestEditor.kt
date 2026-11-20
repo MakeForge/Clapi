@@ -38,6 +38,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -426,10 +428,14 @@ private fun GrpcRequestBar(
     onSave: () -> Unit,
 ) {
     var methodMenuExpanded by remember { mutableStateOf(false) }
-    val protoLabel = remember(tab.protoFilePath) {
+    val protoTooltip = remember(tab.protoFilePath) {
         val path = tab.protoFilePath?.trim().orEmpty()
-        if (path.isEmpty()) "Proto"
-        else path.substringAfterLast('/').substringAfterLast('\\').ifBlank { "Proto" }
+        if (path.isEmpty()) {
+            "Select Proto File"
+        } else {
+            val fileName = path.substringAfterLast('/').substringAfterLast('\\').ifBlank { path }
+            "Proto: $fileName"
+        }
     }
     val methodLabel = tab.grpcMethod?.takeIf { it.isNotBlank() } ?: "Select Method"
 
@@ -469,31 +475,26 @@ private fun GrpcRequestBar(
             )
         }
 
-        // Proto file button
-        Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(ClapiColors.SurfaceContainer)
-                .border(1.dp, ClapiColors.Border, RoundedCornerShape(8.dp))
-                .clickable(onClick = onOpenProtoDialog)
-                .padding(horizontal = 10.dp, vertical = 8.dp)
-                .testTag("grpc-proto-button"),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Icon(painter = painterResource(Res.drawable.ic_description),
-                contentDescription = "Select Proto File",
-                tint = ClapiColors.MethodPatch,
-                modifier = Modifier.size(15.dp),
-            )
-            Text(
-                text = protoLabel,
-                color = ClapiColors.OnSurface,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+        // Proto file icon button (filename shown on hover tooltip to keep the request bar compact)
+        HoverTooltip(tooltip = protoTooltip) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(ClapiColors.SurfaceContainer)
+                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(8.dp))
+                    .pointerHoverIcon(PointerIcon.Hand)
+                    .clickable(onClick = onOpenProtoDialog)
+                    .padding(horizontal = 10.dp, vertical = 9.dp)
+                    .testTag("grpc-proto-button"),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.ic_description),
+                    contentDescription = protoTooltip,
+                    tint = ClapiColors.MethodPatch,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
         }
 
         // Method selector dropdown

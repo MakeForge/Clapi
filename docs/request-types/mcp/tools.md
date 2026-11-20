@@ -15,6 +15,13 @@ MCP Tools allow AI models and clients to execute computational actions (e.g. run
 
 ## Tool Exploration
 
+<ThemedScreenshot
+  light="/screenshots/mcp-tools.png"
+  dark="/screenshots/mcp-tools.png"
+  alt="Clapi MCP Tools Discovery and Execution"
+  :crop="false"
+/>
+
 When connected to an MCP server, Clapi sends `tools/list`:
 - **Searchable Tool Directory**: Filter tools by name or description.
 - **Destructive Operation Warnings**: Tools flagged as mutating or destructive display a visual warning badge.

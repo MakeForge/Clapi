@@ -40,7 +40,7 @@ import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
-private enum class SettingsSection(val icon: DrawableResource) {
+enum class SettingsSection(val icon: DrawableResource) {
     GENERAL(Res.drawable.ic_settings),
     EDITOR(Res.drawable.ic_format_align_left),
     THEME(Res.drawable.ic_light_mode),
@@ -71,26 +71,24 @@ private fun settingsSectionLabel(section: SettingsSection): String = when (secti
 fun SettingsDialog(
     state: AppState,
     modifier: Modifier = Modifier,
+    useDialogWindow: Boolean = true,
+    initialSection: SettingsSection = SettingsSection.GENERAL,
 ) {
-    if (!state.showSettingsDialog) return
+    if (!state.showSettingsDialog && useDialogWindow) return
 
-    var selectedSection by remember { mutableStateOf(SettingsSection.GENERAL) }
+    var selectedSection by remember { mutableStateOf(initialSection) }
     val settings = state.settings
 
     val dragState = rememberDraggableDialogState()
 
-    Dialog(onDismissRequest = { state.showSettingsDialog = false }) {
-        Box(
-            modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = { state.showSettingsDialog = false }),
-            contentAlignment = Alignment.Center,
+    val dialogCard: @Composable () -> Unit = {
+        Column(
+            modifier = modifier
+                .draggableDialogCard(dragState)
+                .widthIn(min = 680.dp, max = 860.dp)
+                .height(660.dp)
+                .testTag("settings-dialog"),
         ) {
-            Column(
-                modifier = modifier
-                    .draggableDialogCard(dragState)
-                    .widthIn(min = 680.dp, max = 860.dp)
-                    .height(660.dp)
-                    .testTag("settings-dialog"),
-            ) {
                 val docUrl = when (selectedSection) {
                     SettingsSection.SECRETS -> DocsLinks.secretManagers
                     SettingsSection.SCRIPTING -> DocsLinks.scriptingArchitecture
@@ -217,7 +215,19 @@ fun SettingsDialog(
                 }
             }
         } // closes settings card Column
-        } // closes full-screen backdrop Box
+    }
+
+    if (useDialogWindow) {
+        Dialog(onDismissRequest = { state.showSettingsDialog = false }) {
+            Box(
+                modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = { state.showSettingsDialog = false }),
+                contentAlignment = Alignment.Center,
+            ) {
+                dialogCard()
+            }
+        }
+    } else {
+        dialogCard()
     }
 }
 

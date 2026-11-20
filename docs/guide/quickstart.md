@@ -73,3 +73,10 @@ Clapi supports multiple first-class protocol types. You can create:
    ```
 3. Click **Send** again.
 4. Click the **Tests** sub-tab in the response viewer to see your test assertions pass with green checkmarks (`2 / 2 Passed`).
+
+<ThemedScreenshot
+  light="/generated/screenshots/MainScreenTestsPreviewsKt.MainScreenTestsPreviewLight.W1600dp_H800dp.png"
+  dark="/generated/screenshots/MainScreenTestsPreviewsKt.MainScreenTestsPreviewDark.W1600dp_H800dp.png"
+  alt="Clapi Test Assertions Passing in Response Viewer"
+  :crop="true"
+/>

@@ -18,7 +18,7 @@
 ---
 
 <p align="center">
-  <img src="docs/public/generated/screenshots/MainScreenPreviewsKt.MainScreenHttpPreviewDark.W1920dp_H1080dp.png" alt="Clapi — dark theme" width="100%" />
+  <img src="docs/public/generated/screenshots/MainScreenPreviewsKt.MainScreenHttpPreviewDark.W1600dp_H800dp.png" alt="Clapi — dark theme" width="100%" />
 </p>
 
 ---

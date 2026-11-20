@@ -15,6 +15,13 @@ When developing microservice architectures with gRPC, multiple requests typicall
 
 ## Configuring Collection Protobuf Roots
 
+<ThemedScreenshot
+  light="/generated/screenshots/MainScreenCollectionProtobufPreviewsKt.MainScreenCollectionProtobufPreviewLight.W1600dp_H800dp.png"
+  dark="/generated/screenshots/MainScreenCollectionProtobufPreviewsKt.MainScreenCollectionProtobufPreviewDark.W1600dp_H800dp.png"
+  alt="Clapi Collection-Level Protobuf Settings and Import Roots"
+  :crop="true"
+/>
+
 In the collection editor, navigate to the **Protobuf** tab:
 1. **Proto Directory Roots**: Add one or more local directories where `.proto` schema files are stored.
 2. **Import Path Resolution**: Specify additional base directories for resolving `import "..."` statements in proto files.

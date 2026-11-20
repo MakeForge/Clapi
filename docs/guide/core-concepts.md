@@ -47,7 +47,7 @@ The sidebar organizes your API assets into three collapsible sections:
 
 The center-left region allows composing and executing requests across six core protocols:
 - **Protocol & Method Dropdown**: Choose from HTTP verbs (`GET`, `POST`, `PUT`, `DELETE`, etc.), `GRAPHQL`, `WEBSOCKET`, `GRPC`, `RABBITMQ` (`PUB` / `SUB` / `RPC`), or `MCP`.
-- **URL Bar**: Enter the destination URL or stdio command. Supports dynamic interpolation: `https://{{host}}:{{port}}/api/users/{{userId}}`. Press `Ctrl + Space` anywhere to autocomplete variables and secrets (see [Keyboard Shortcuts](/reference/shortcuts)).
+- **URL Bar**: Enter the destination URL or stdio command. Supports dynamic interpolation: `https://{{host}}:{{port}}/api/users/{{userId}}`. Press `Ctrl + Space` anywhere to autocomplete variables and secrets (see [Keyboard Shortcuts](/settings/shortcuts)).
 - **Sub-Tabs**:
   - **Params**: Query string parameters with automatic bidirectional URL sync.
   - **Headers**: Custom and standard HTTP/transport headers with folder inheritance tags.

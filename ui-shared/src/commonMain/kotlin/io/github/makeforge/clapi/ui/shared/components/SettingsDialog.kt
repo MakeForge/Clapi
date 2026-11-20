@@ -9,9 +9,11 @@ import io.github.makeforge.clapi.ui.shared.state.AppState
 fun SettingsDialog(
     state: AppState,
     modifier: Modifier = Modifier,
+    useDialogWindow: Boolean = true,
 ) {
     DelegateSettingsDialog(
         state = state,
         modifier = modifier,
+        useDialogWindow = useDialogWindow,
     )
 }

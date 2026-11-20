@@ -24,6 +24,14 @@ Clapi provides a streamlined import dialog to bring existing API specifications 
 
 ## Import Workflow
 
+<ThemedScreenshot
+  light="/generated/screenshots/ImportSpecificationDialogPreviewsKt.ImportSpecificationDialogPreviewLight.W640dp_H560dp.png"
+  dark="/generated/screenshots/ImportSpecificationDialogPreviewsKt.ImportSpecificationDialogPreviewDark.W640dp_H560dp.png"
+  alt="Clapi Import Specification Dialog"
+  :crop="false"
+  max-width="640px"
+/>
+
 1. Click the **Import** button in the sidebar (or press `⌘ + O` / `Ctrl + O`).
 2. Select your input method:
    - **File Import**: Drag and drop `.json` or `.yaml` files into the dropzone or click **Choose Files**.

@@ -77,7 +77,17 @@ val copyScreenshots = tasks.register<Copy>("copyScreenshots") {
     description = "Copies preview screenshots from build/outputs/roborazzi to docs/public/generated/screenshots"
     mustRunAfter("recordRoborazziDesktop")
     from(layout.buildDirectory.dir("outputs/roborazzi")) {
-        include("*MainScreenPreviews*", "*GitSyncPreviews*")
+        include(
+            "*MainScreenPreviews*",
+            "*GitSyncPreviews*",
+            "*EnvironmentEditDialogPreviews*",
+            "*ImportSpecificationDialogPreviews*",
+            "*SelectProtoFileDialogPreviews*",
+            "*SettingsDialogPreviews*",
+            "*MainScreenTestsPreviews*",
+            "*MainScreenFolderPreviews*",
+            "*MainScreenCollectionProtobufPreviews*",
+        )
     }
     into(rootProject.file("docs/public/generated/screenshots"))
 }

@@ -11,6 +11,14 @@ description: Configuring visual themes, font sizes, HTTP proxies, and SSL/TLS ve
 
 ## Overview
 
+<ThemedScreenshot
+  light="/generated/screenshots/SettingsDialogPreviewsKt.SettingsDialogPreviewLight.W760dp_H640dp.png"
+  dark="/generated/screenshots/SettingsDialogPreviewsKt.SettingsDialogPreviewDark.W760dp_H640dp.png"
+  alt="Clapi Application Settings & Preferences"
+  :crop="false"
+  max-width="760px"
+/>
+
 Access the settings modal by clicking the gear icon in the top toolbar or pressing `⌘ + ,` / `Ctrl + ,`.
 
 ## Configuration Tabs
