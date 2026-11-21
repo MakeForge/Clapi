@@ -826,6 +826,10 @@ fun Sidebar(state: AppState) {
                                 state.addWebSocketRequestToCollection(target.id)
                                 persistWorkspaceAsync()
                             },
+                            onAddGraphQLRequest = { target ->
+                                state.addGraphQLRequestToCollection(target.id)
+                                persistWorkspaceAsync()
+                            },
                             onAddMcpConnection = { target ->
                                 state.addMcpConnectionToCollection(target.id)
                                 persistWorkspaceAsync()
@@ -1557,6 +1561,20 @@ fun WebSocketBadge(compact: Boolean = false, modifier: Modifier = Modifier) {
     )
 }
 
+@Composable
+fun GraphQLBadge(compact: Boolean = false, modifier: Modifier = Modifier) {
+    Text(
+        text = "GQL",
+        color = ClapiColors.MethodGraphQl,
+        fontSize = if (compact) 10.sp else 12.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(ClapiColors.MethodGraphQl.copy(alpha = 0.12f))
+            .padding(horizontal = if (compact) 4.dp else 6.dp, vertical = 2.dp),
+    )
+}
+
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun CollectionTreeNode(
@@ -1573,6 +1591,7 @@ private fun CollectionTreeNode(
     onAddRequest: (CollectionNode) -> Unit,
     onAddGrpcRequest: (CollectionNode) -> Unit = {},
     onAddWebSocketRequest: (CollectionNode) -> Unit = {},
+    onAddGraphQLRequest: (CollectionNode) -> Unit = {},
     onAddMcpConnection: (CollectionNode) -> Unit,
     onAddSseRequest: (CollectionNode) -> Unit,
     onRenameRequest: (CollectionNode) -> Unit,
@@ -1613,7 +1632,7 @@ private fun CollectionTreeNode(
     val indent = (22 + depth * 22).dp
     val isFolderNode = node.isFolder
     val isCollectionRoot = depth == 0 && node.isFolder
-    val isRequest = !node.isFolder && (node.kind == RequestKind.GRPC || node.kind == RequestKind.MCP || node.kind == RequestKind.WEBSOCKET || (node.method != null && node.url != null))
+    val isRequest = !node.isFolder && (node.kind == RequestKind.GRPC || node.kind == RequestKind.MCP || node.kind == RequestKind.WEBSOCKET || node.kind == RequestKind.GRAPHQL || (node.method != null && node.url != null))
     val isSelectedRequest = isRequest && state.selectedRequestId == node.id
     val isSidebarFolderSelected = isFolderNode && node.id in state.selectedFolderIds
     val isSidebarRequestSelected = isRequest && node.id in state.selectedRequestIds
@@ -1889,6 +1908,13 @@ private fun CollectionTreeNode(
                     modifier = Modifier.size(12.dp),
                 )
                 WebSocketBadge(compact = true, modifier = Modifier.testTag("websocket-badge-${node.id}"))
+            } else if (node.kind == RequestKind.GRAPHQL) {
+                Icon(painter = painterResource(Res.drawable.ic_drag_indicator),
+                    contentDescription = Strings.t("drag_to_reorder"),
+                    tint = ClapiColors.OnSurfaceDim.copy(alpha = 0.4f),
+                    modifier = Modifier.size(12.dp),
+                )
+                GraphQLBadge(compact = true, modifier = Modifier.testTag("graphql-badge-${node.id}"))
             } else if (node.method != null) {
                 Icon(painter = painterResource(Res.drawable.ic_drag_indicator),
                     contentDescription = Strings.t("drag_to_reorder"),
@@ -2088,6 +2114,15 @@ private fun CollectionTreeNode(
                             },
                             modifier = Modifier.testTag("folder-menu-new-websocket"),
                         )
+                        DropdownMenuItem(
+                            text = { Text(Strings.t("new_graphql_request")) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            onClick = {
+                                showAddMenu = false
+                                onAddGraphQLRequest(node)
+                            },
+                            modifier = Modifier.testTag("folder-menu-new-graphql"),
+                        )
                     }
                 }
             }
@@ -2201,6 +2236,12 @@ private fun CollectionTreeNode(
                             leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = null, modifier = Modifier.size(16.dp)) },
                             onClick = { showMenu = false; onAddWebSocketRequest(node) },
                             modifier = Modifier.testTag("collection-menu-new-websocket"),
+                        )
+                        DropdownMenuItem(
+                            text = { Text(Strings.t("new_graphql_request")) },
+                            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            onClick = { showMenu = false; onAddGraphQLRequest(node) },
+                            modifier = Modifier.testTag("collection-menu-new-graphql"),
                         )
                         DropdownMenuItem(
                             text = { Text(Strings.t("new_mcp_connection")) },
@@ -2317,6 +2358,7 @@ private fun CollectionTreeNode(
                         onAddRequest = onAddRequest,
                         onAddGrpcRequest = onAddGrpcRequest,
                         onAddWebSocketRequest = onAddWebSocketRequest,
+                        onAddGraphQLRequest = onAddGraphQLRequest,
                         onAddMcpConnection = onAddMcpConnection,
                         onAddSseRequest = onAddSseRequest,
                         onRenameRequest = onRenameRequest,

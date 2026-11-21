@@ -4,10 +4,12 @@ import io.github.crustack.clapi.core.model.RequestBody
 import io.github.crustack.clapi.core.model.RequestDefinition
 import io.github.crustack.clapi.core.model.opencollection.ExternalSecretVariable
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
+import io.github.crustack.clapi.core.model.opencollection.GraphQLRequestItem
 import io.github.crustack.clapi.core.model.opencollection.GrpcRequestItem
 import io.github.crustack.clapi.core.model.opencollection.HashicorpVaultExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestItem
 import io.github.crustack.clapi.core.model.opencollection.OpenCollectionDocument
+import io.github.crustack.clapi.core.model.opencollection.RegularVariable
 import io.github.crustack.clapi.core.model.opencollection.SecretVariable
 import io.github.crustack.clapi.core.model.opencollection.VariableEntry
 import io.github.crustack.clapi.core.network.ApiClient
@@ -81,10 +83,7 @@ class RequestExecutionService(
         textsToScan.add(request.url)
         request.headers.forEach { textsToScan.add(it.value) }
         request.queryParams.forEach { textsToScan.add(it.value) }
-        when (val body = request.body) {
-            is RequestBody -> body.content?.let { textsToScan.add(it) }
-            else -> Unit
-        }
+        request.body?.content?.let { textsToScan.add(it) }
         val secretMap = resolveSecrets(
             texts = textsToScan,
             externalSecrets = externalSecrets,
@@ -149,6 +148,27 @@ class RequestExecutionService(
                 requestItem = requestItem,
                 parentHierarchy = parentHierarchy,
                 collectionRoot = collectionRoot
+            )
+        }
+        return apiClient.execute(request, layers)
+    }
+
+    fun execute(
+        requestItem: GraphQLRequestItem,
+        parentHierarchy: List<FolderItem> = emptyList(),
+        collectionRoot: OpenCollectionDocument? = null,
+        variableLayers: List<Map<String, String>> = emptyList()
+    ): Flow<NetworkEvent> {
+        val request = adapter.toExecutableRequest(requestItem, parentHierarchy, collectionRoot)
+        val layers = if (variableLayers.isNotEmpty()) {
+            variableLayers
+        } else {
+            adapter.buildVariableLayers(
+                runtimeVariables = requestItem.runtime?.variables?.mapNotNull { v ->
+                    (v as? RegularVariable)?.let { it.name to (it.value?.asString ?: "") }
+                }?.toMap() ?: emptyMap(),
+                parentHierarchy = parentHierarchy,
+                collectionRoot = collectionRoot,
             )
         }
         return apiClient.execute(request, layers)

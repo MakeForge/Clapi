@@ -187,4 +187,56 @@ class OpenCollectionRoundTripE2ETest {
         assertEquals("Round Trip", loaded1.info.name)
         assertEquals("Second Collection", loaded2.info.name)
     }
+
+    @Test
+    fun graphqlRoundTripPreservesBothSingleAndVariantBodies() = runBlocking {
+        val dir = tempDir.root.absolutePath
+        val repo = DefaultCanonicalCollectionRepository(baseDirectory = dir)
+
+        val fixtureCandidates = listOf(
+            File("qa-tests/fixtures/graphql-test-collection.json"),
+            File("fixtures/graphql-test-collection.json"),
+            File("../qa-tests/fixtures/graphql-test-collection.json"),
+        )
+        val fixtureFile = fixtureCandidates.firstOrNull { it.exists() }
+            ?: error("graphql-test-collection.json fixture not found")
+        val fixtureGql = fixtureFile.readText()
+        val imported = repo.importCollection(fixtureGql)
+
+        assertEquals("GraphQL Test Suite", imported.info.name)
+        assertEquals(2, imported.items.size)
+
+        val singleReq = assertIs<io.github.crustack.clapi.core.model.opencollection.GraphQLRequestItem>(imported.items[0])
+        assertEquals("Single Body GraphQL Query", singleReq.info.name)
+        assertEquals("POST", singleReq.graphql.method)
+        assertEquals("{{baseUrl}}/graphql", singleReq.graphql.url)
+        val singleBody = assertIs<io.github.crustack.clapi.core.model.opencollection.GraphQLBodyPayload.Single>(singleReq.graphql.body)
+        assertTrue(singleBody.body.query.contains("GetUser"))
+        assertEquals("{\n  \"id\": \"123\"\n}", singleBody.body.variables)
+        assertEquals("# User Details Query\nFetches user details by ID.", singleReq.docs)
+
+        val multiReq = assertIs<io.github.crustack.clapi.core.model.opencollection.GraphQLRequestItem>(imported.items[1])
+        assertEquals("Multi Variant GraphQL Operations", multiReq.info.name)
+        val variantsPayload = assertIs<io.github.crustack.clapi.core.model.opencollection.GraphQLBodyPayload.Variants>(multiReq.graphql.body)
+        assertEquals(2, variantsPayload.variants.size)
+        assertEquals("All Users", variantsPayload.variants[0].title)
+        assertEquals(true, variantsPayload.variants[0].selected)
+        assertEquals("User by ID", variantsPayload.variants[1].title)
+
+        // Save and reload
+        repo.saveCollection(imported)
+        val reloaded = DefaultCanonicalCollectionRepository(baseDirectory = dir).getCollection("GraphQL Test Suite")
+        assertNotNull(reloaded)
+        assertEquals(imported.items, reloaded.items)
+
+        // YAML export and import
+        val yaml = repo.exportCollection(reloaded, ExportFormat.YAML)
+        val fromYaml = repo.importCollection(yaml)
+        assertEquals(imported.items, fromYaml.items)
+
+        // JSON export and import
+        val jsonStr = repo.exportCollection(reloaded, ExportFormat.JSON)
+        val fromJson = repo.importCollection(jsonStr)
+        assertEquals(imported.items, fromJson.items)
+    }
 }

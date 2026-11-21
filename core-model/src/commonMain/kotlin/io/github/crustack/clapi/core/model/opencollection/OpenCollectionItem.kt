@@ -374,6 +374,147 @@ data class WebSocketRequestItem(
     @Transient override val extensions: Map<String, JsonElement> = emptyMap(),
 ) : OpenCollectionItem
 
+@Serializable
+data class GraphQLBody(
+    val query: String = "",
+    val variables: String? = null,
+)
+
+@Serializable
+data class GraphQLBodyVariant(
+    val title: String,
+    val selected: Boolean? = null,
+    val body: GraphQLBody,
+)
+
+@Serializable(with = GraphQLBodyPayloadSerializer::class)
+sealed interface GraphQLBodyPayload {
+    val singleBody: GraphQLBody? get() = (this as? Single)?.body
+    val variantList: List<GraphQLBodyVariant> get() = when (this) {
+        is Single -> listOf(GraphQLBodyVariant(title = "Default", selected = true, body = body))
+        is Variants -> variants
+    }
+
+    @Serializable
+    data class Single(val body: GraphQLBody) : GraphQLBodyPayload
+
+    @Serializable
+    data class Variants(val variants: List<GraphQLBodyVariant>) : GraphQLBodyPayload
+}
+
+object GraphQLBodyPayloadSerializer : KSerializer<GraphQLBodyPayload> {
+    override val descriptor: SerialDescriptor =
+        buildClassSerialDescriptor("io.github.crustack.clapi.core.model.opencollection.GraphQLBodyPayload")
+
+    override fun deserialize(decoder: Decoder): GraphQLBodyPayload {
+        if (decoder is JsonDecoder) {
+            val element = decoder.decodeJsonElement()
+            return when (element) {
+                is JsonArray -> {
+                    val variants = decoder.json.decodeFromJsonElement(
+                        ListSerializer(GraphQLBodyVariant.serializer()),
+                        element
+                    )
+                    GraphQLBodyPayload.Variants(variants)
+                }
+                is JsonObject -> {
+                    val body = decoder.json.decodeFromJsonElement(
+                        GraphQLBody.serializer(),
+                        element
+                    )
+                    GraphQLBodyPayload.Single(body)
+                }
+                else -> throw IllegalArgumentException("Expected JsonObject or JsonArray for GraphQLBodyPayload, got $element")
+            }
+        }
+        throw UnsupportedOperationException("GraphQLBodyPayloadSerializer only supports JSON decoding")
+    }
+
+    override fun serialize(encoder: Encoder, value: GraphQLBodyPayload) {
+        if (encoder is JsonEncoder) {
+            when (value) {
+                is GraphQLBodyPayload.Single -> {
+                    encoder.encodeSerializableValue(GraphQLBody.serializer(), value.body)
+                }
+                is GraphQLBodyPayload.Variants -> {
+                    encoder.encodeSerializableValue(
+                        ListSerializer(GraphQLBodyVariant.serializer()),
+                        value.variants
+                    )
+                }
+            }
+        } else {
+            when (value) {
+                is GraphQLBodyPayload.Single -> encoder.encodeSerializableValue(GraphQLBody.serializer(), value.body)
+                is GraphQLBodyPayload.Variants -> encoder.encodeSerializableValue(
+                    ListSerializer(GraphQLBodyVariant.serializer()),
+                    value.variants
+                )
+            }
+        }
+    }
+}
+
+@Serializable
+data class GraphQLRequestInfo(
+    override val name: String,
+    override val description: Description? = null,
+    override val type: ItemType = ItemType.GRAPHQL,
+    override val seq: Double? = null,
+    override val tags: List<String> = emptyList(),
+) : ItemInfo {
+    constructor(
+        name: String,
+        description: Description? = null,
+        type: String,
+        seq: Double? = null,
+        tags: List<String> = emptyList()
+    ) : this(
+        name = name,
+        description = description,
+        type = ItemType.fromValue(type) ?: ItemType.GRAPHQL,
+        seq = seq,
+        tags = tags
+    )
+}
+
+@Serializable
+data class GraphQLRequestDetails(
+    val method: String? = "POST",
+    val url: String,
+    val headers: List<HttpRequestHeader> = emptyList(),
+    val params: List<HttpRequestParam> = emptyList(),
+    val body: GraphQLBodyPayload? = null,
+    val auth: AuthConfig? = null,
+)
+
+@Serializable
+data class GraphQLRequestSettings(
+    val encodeUrl: JsonElement? = null,
+    val timeout: JsonElement? = null,
+    val followRedirects: JsonElement? = null,
+    val forwardAuthorizationHeader: JsonElement? = null,
+    val maxRedirects: JsonElement? = null,
+)
+
+@Serializable
+data class GraphQLRequestRuntime(
+    val variables: List<VariableEntry> = emptyList(),
+    val scripts: List<Script> = emptyList(),
+    val assertions: List<Assertion> = emptyList(),
+    val actions: List<ActionSetVariable> = emptyList(),
+)
+
+@Serializable
+data class GraphQLRequestItem(
+    override val info: GraphQLRequestInfo,
+    val graphql: GraphQLRequestDetails,
+    val runtime: GraphQLRequestRuntime? = null,
+    val settings: GraphQLRequestSettings? = null,
+    val docs: String? = null,
+    @Transient override val extensions: Map<String, JsonElement> = emptyMap(),
+) : OpenCollectionItem
+
 object OpenCollectionItemSerializer : JsonContentPolymorphicSerializer<OpenCollectionItem>(OpenCollectionItem::class) {
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<OpenCollectionItem> {
         val obj = element.jsonObject
@@ -386,6 +527,9 @@ object OpenCollectionItemSerializer : JsonContentPolymorphicSerializer<OpenColle
         if (obj.containsKey("websocket")) {
             return WebSocketRequestItem.serializer()
         }
+        if (obj.containsKey("graphql")) {
+            return GraphQLRequestItem.serializer()
+        }
         val infoObj = obj["info"]?.jsonObject
         val typeStr = infoObj?.get("type")?.jsonPrimitive?.content
         val type = ItemType.fromValue(typeStr)
@@ -397,6 +541,9 @@ object OpenCollectionItemSerializer : JsonContentPolymorphicSerializer<OpenColle
         }
         if (type == ItemType.WEBSOCKET) {
             return WebSocketRequestItem.serializer()
+        }
+        if (type == ItemType.GRAPHQL) {
+            return GraphQLRequestItem.serializer()
         }
         return FolderItem.serializer()
     }

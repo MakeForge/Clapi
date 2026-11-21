@@ -4,6 +4,7 @@ import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.core.model.BodyType
 import io.github.crustack.clapi.core.model.FormDataEntry
 import io.github.crustack.clapi.core.model.FormEntryType
+import io.github.crustack.clapi.core.model.GraphQlBody
 import io.github.crustack.clapi.core.model.HttpMethodType
 import io.github.crustack.clapi.core.model.KeyValueEntry
 import io.github.crustack.clapi.core.model.RequestBody
@@ -19,6 +20,8 @@ import io.github.crustack.clapi.core.model.opencollection.Environment
 import io.github.crustack.clapi.core.model.opencollection.FileBody
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
 import io.github.crustack.clapi.core.model.opencollection.FormUrlEncodedBody
+import io.github.crustack.clapi.core.model.opencollection.GraphQLBodyPayload
+import io.github.crustack.clapi.core.model.opencollection.GraphQLRequestItem
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestBody
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestHeader
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestItem
@@ -49,6 +52,12 @@ interface HttpExecutionAdapter {
      */
     fun toExecutableRequest(
         requestItem: HttpRequestItem,
+        parentHierarchy: List<FolderItem> = emptyList(),
+        collectionRoot: OpenCollectionDocument? = null,
+    ): RequestDefinition
+
+    fun toExecutableRequest(
+        requestItem: GraphQLRequestItem,
         parentHierarchy: List<FolderItem> = emptyList(),
         collectionRoot: OpenCollectionDocument? = null,
     ): RequestDefinition
@@ -130,6 +139,91 @@ object DefaultHttpExecutionAdapter : HttpExecutionAdapter {
             name = requestItem.info.name,
             method = httpMethod,
             url = requestItem.http.url,
+            queryParams = queryParams,
+            headers = effectiveHeaders,
+            cookies = emptyList(),
+            auth = effectiveAuth,
+            body = effectiveBody,
+            tags = requestItem.info.tags,
+            createdAtEpochMillis = 0L,
+            updatedAtEpochMillis = 0L,
+        )
+    }
+
+    override fun toExecutableRequest(
+        requestItem: GraphQLRequestItem,
+        parentHierarchy: List<FolderItem>,
+        collectionRoot: OpenCollectionDocument?,
+    ): RequestDefinition {
+        val rootFirstFolders = normalizeToRootFirst(parentHierarchy)
+        val leafFirstFolders = rootFirstFolders.reversed()
+
+        val httpMethod = if (requestItem.graphql.method.equals("GET", ignoreCase = true)) {
+            HttpMethodType.GET
+        } else {
+            HttpMethodType.POST
+        }
+
+        val queryParams = requestItem.graphql.params
+            .filter { it.disabled != true }
+            .map { KeyValueEntry(key = it.name, value = it.value, enabled = true) }
+            .toMutableList()
+
+        val effectiveHeaders = mergeHeaders(
+            collectionHeaders = collectionRoot?.request?.headers,
+            folderHeaders = rootFirstFolders.mapNotNull { it.request?.headers },
+            requestHeaders = requestItem.graphql.headers,
+        ).toMutableList()
+
+        val effectiveAuth = resolveAuth(
+            requestAuth = requestItem.graphql.auth,
+            parentFolders = leafFirstFolders,
+            collectionRoot = collectionRoot,
+            requestItem = null,
+        )
+
+        val activeQuery: String
+        val activeVariables: String?
+        when (val body = requestItem.graphql.body) {
+            is GraphQLBodyPayload.Single -> {
+                activeQuery = body.body.query
+                activeVariables = body.body.variables
+            }
+            is GraphQLBodyPayload.Variants -> {
+                val selected = body.variants.firstOrNull { it.selected == true } ?: body.variants.firstOrNull()
+                activeQuery = selected?.body?.query.orEmpty()
+                activeVariables = selected?.body?.variables
+            }
+            null -> {
+                activeQuery = ""
+                activeVariables = null
+            }
+        }
+
+        val effectiveBody: RequestBody
+        if (httpMethod == HttpMethodType.GET) {
+            effectiveBody = RequestBody(type = BodyType.NONE)
+            if (activeQuery.isNotBlank()) {
+                queryParams.add(KeyValueEntry("query", activeQuery))
+            }
+            if (!activeVariables.isNullOrBlank() && activeVariables.trim() != "{}") {
+                queryParams.add(KeyValueEntry("variables", activeVariables))
+            }
+        } else {
+            if (effectiveHeaders.none { it.key.equals("Content-Type", ignoreCase = true) }) {
+                effectiveHeaders.add(KeyValueEntry("Content-Type", "application/json"))
+            }
+            effectiveBody = RequestBody(
+                type = BodyType.GRAPHQL,
+                graphQl = GraphQlBody(query = activeQuery, variablesJson = activeVariables),
+            )
+        }
+
+        return RequestDefinition(
+            id = requestItem.info.name,
+            name = requestItem.info.name,
+            method = httpMethod,
+            url = requestItem.graphql.url,
             queryParams = queryParams,
             headers = effectiveHeaders,
             cookies = emptyList(),
@@ -280,7 +374,7 @@ object DefaultHttpExecutionAdapter : HttpExecutionAdapter {
         requestAuth: AuthConfig?,
         parentFolders: List<FolderItem>,
         collectionRoot: OpenCollectionDocument?,
-        requestItem: HttpRequestItem,
+        requestItem: HttpRequestItem? = null,
     ): io.github.crustack.clapi.core.model.AuthConfig {
         val effectiveAuth = when {
             requestAuth != null && requestAuth !is AuthInherit -> requestAuth
@@ -302,7 +396,7 @@ object DefaultHttpExecutionAdapter : HttpExecutionAdapter {
 
     private fun mapToModelAuthConfig(
         auth: AuthConfig?,
-        requestItem: HttpRequestItem,
+        requestItem: HttpRequestItem? = null,
         collectionRoot: OpenCollectionDocument?,
     ): io.github.crustack.clapi.core.model.AuthConfig {
         if (auth == null || auth is AuthInherit) {
@@ -330,9 +424,11 @@ object DefaultHttpExecutionAdapter : HttpExecutionAdapter {
                 params = buildMap {
                     val rootClapi = collectionRoot?.extensions?.get("clapi") as? JsonObject
                     val rootRequests = rootClapi?.get("requests") as? JsonObject
-                    val reqMeta = rootRequests?.get(requestItem.info.name) as? JsonObject
-                        ?: rootRequests?.get(extractRequestId(requestItem, collectionRoot)) as? JsonObject
-                    val itemClapi = requestItem.extensions["clapi"] as? JsonObject
+                    val reqMeta = requestItem?.let {
+                        (rootRequests?.get(it.info.name) as? JsonObject)
+                            ?: (rootRequests?.get(extractRequestId(it, collectionRoot)) as? JsonObject)
+                    }
+                    val itemClapi = requestItem?.extensions?.get("clapi") as? JsonObject
                     val token = itemClapi?.get("authOAuth2AccessToken")?.jsonPrimitive?.contentOrNull
                         ?: reqMeta?.get("authOAuth2AccessToken")?.jsonPrimitive?.contentOrNull
                         ?: auth.tokenConfig?.id
@@ -356,7 +452,8 @@ object DefaultHttpExecutionAdapter : HttpExecutionAdapter {
         }
     }
 
-    private fun isJwtAuth(requestItem: HttpRequestItem, collectionRoot: OpenCollectionDocument?): Boolean {
+    private fun isJwtAuth(requestItem: HttpRequestItem?, collectionRoot: OpenCollectionDocument?): Boolean {
+        if (requestItem == null) return false
         val rootClapi = collectionRoot?.extensions?.get("clapi") as? JsonObject
         val rootRequests = rootClapi?.get("requests") as? JsonObject
         val reqMeta = rootRequests?.get(requestItem.info.name) as? JsonObject

@@ -7,6 +7,7 @@ Clapi is a desktop-first API testing tool built with Kotlin and Compose Multipla
 Clapi supports end-to-end API testing with:
 
 - HTTP request authoring and execution
+- GraphQL request authoring, payload variants, and execution
 - WebSocket request authoring, message variants, and live bi-directional streaming
 - Pre-request scripting
 - Post-request scripting
@@ -35,6 +36,21 @@ Clapi supports end-to-end API testing with:
 - HTTP streaming for SSE (`text/event-stream`) and NDJSON (OpenAI-style `"stream": true`). Items with `Accept: text/event-stream` show an **SSE** badge in the HTTP method color; folder ⋮ → **New SSE Request**.
 - **MCP client** for Streamable HTTP (2025-06-18), legacy HTTP+SSE, and desktop stdio. Tools (Form/JSON arguments), resources (read + subscribe), prompts, Activity JSON-RPC inspector, sampling/roots/elicitation, and auth (None, Basic, Bearer, API Key, JWT) match the REST workspace. See [docs/mcp.md](docs/mcp.md).
 - Copy request as `curl`
+
+### GraphQL Request Authoring and Execution
+
+- First-class GraphQL request type (`RequestKind.GRAPHQL`) with dedicated `GQL` magenta badge (`#e10098`) across sidebar tree nodes, tab headers, and creation dialogs.
+- Full OpenCollection v1.0.0 compliance with bidirectional import/export round-trip (`GraphQLRequestItem`, `GraphQLRequestDetails`, `GraphQLBodyPayload`, `GraphQLBody`, `GraphQLBodyVariant`, `GraphQLRequestSettings`).
+- Legacy HTTP requests with GraphQL bodies automatically upgraded to first-class GraphQL requests.
+- Protocol options: POST (JSON envelope with `query`, `variables`, and `operationName`) or GET (URL query parameters).
+- Dedicated multi-tab authoring workspace:
+  - **Params & Headers**: URL query parameter table and custom header key-value editors with interpolation.
+  - **Auth**: None, Basic, Bearer, API Key, OAuth 2.0, and Inherit modes.
+  - **Body**: Dual syntax-highlighted editor with line numbers for GraphQL query (`highlightGraphql`) and JSON variables (`highlightJson`), brace folding, and query formatting ("Prettify").
+  - **Body Variants**: Reusable named query/variables variants with variant creation, deletion, renaming, selection, and persistent active state.
+  - **Scripts**: Pre-request and post-response test scripts and assertions execution.
+  - **Settings & Docs**: Timeout, URL encoding, redirects controls, and Markdown documentation.
+- Integrated execution and response inspection via `ResponseViewer` displaying status code, latency timing, response headers, and formatted JSON data.
 
 ### WebSocket Request Authoring and Execution
 

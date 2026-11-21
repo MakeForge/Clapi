@@ -85,6 +85,17 @@ fun RequestEditor(
         return
     }
 
+    if (tab.kind == RequestKind.GRAPHQL) {
+        GraphQLRequestEditor(
+            tab = tab,
+            state = state,
+            onSend = onSend,
+            onSave = onSave,
+            onCancel = onCancel,
+        )
+        return
+    }
+
     val markDirty = { tab.markDirty() }
 
     Column(
