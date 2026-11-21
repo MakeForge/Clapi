@@ -550,5 +550,13 @@
   "unknown_error": "Erreur inconnue",
   "unsaved_changes": "Modifications non enregistrées",
   "value_upper": "VALEUR",
-  "workspace_exported": "Espace de travail exporté → workspace-backup.json"
+  "workspace_exported": "Espace de travail exporté → workspace-backup.json",
+  "snackbar_auto_dismiss_seconds": "Fermeture automatique des notifications (secondes)",
+  "settings_snackbar_auto_dismiss_desc": "Durée d'affichage des notifications d'action avant fermeture automatique (1–60 secondes)",
+  "snackbar_deleted_item": "« {name} » supprimé",
+  "snackbar_deleted_items": "{count} éléments supprimés",
+  "snackbar_moved_item": "« {name} » déplacé",
+  "snackbar_moved_items": "{count} éléments déplacés",
+  "snackbar_renamed_item": "« {oldName} » renommé en « {newName} »",
+  "snackbar_undo_failed": "Impossible d'annuler l'action"
 }

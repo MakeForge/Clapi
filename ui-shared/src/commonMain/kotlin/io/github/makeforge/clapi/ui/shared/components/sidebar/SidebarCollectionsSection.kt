@@ -18,7 +18,9 @@ import io.github.makeforge.clapi.ui.shared.persistence.ImportExportRepository
 import io.github.makeforge.clapi.ui.shared.platform.saveFileForExport
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.state.CollectionNode
+import io.github.makeforge.clapi.ui.shared.state.DeletedNodeSnapshot
 import io.github.makeforge.clapi.ui.shared.state.LogLevel
+import io.github.makeforge.clapi.ui.shared.state.UndoableWorkspaceActions
 import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -145,9 +147,14 @@ internal fun LazyListScope.sidebarCollectionsSection(
             val toDelete = pruneRedundantDescendantFolders(state.collections, state.selectedFolderIds.toList())
             val action = {
                 val allRequestIdsToClose = mutableListOf<String>()
+                val deletedSnapshots = mutableListOf<DeletedNodeSnapshot>()
                 for (id in toDelete) {
+                    val placement = findNodePlacement(state.collections, id)
                     val deleted = deleteFolderFromCollections(state.collections, id)
                     if (deleted != null) {
+                        if (placement != null) {
+                            deletedSnapshots.add(DeletedNodeSnapshot(deleted, placement.parentId, placement.index))
+                        }
                         allRequestIdsToClose.addAll(collectAllRequestIds(deleted))
                     }
                 }
@@ -155,6 +162,7 @@ internal fun LazyListScope.sidebarCollectionsSection(
                 state.clearSidebarSelection()
                 state.notifyCollectionsChanged()
                 persistWorkspaceAsync()
+                UndoableWorkspaceActions.showDeletedNodesSnackbar(state, deletedSnapshots, persistWorkspaceAsync)
                 state.log("Folder(s) deleted: ${toDelete.size}", LogLevel.INFO)
             }
             if (state.settings.confirmBeforeDelete) {
@@ -181,13 +189,19 @@ internal fun LazyListScope.sidebarCollectionsSection(
         val onDeleteSelectedRequests: () -> Unit = {
             val toDelete = state.selectedRequestIds.distinct()
             val action = {
+                val deletedSnapshots = mutableListOf<DeletedNodeSnapshot>()
                 for (id in toDelete) {
-                    deleteRequestFromCollections(state.collections, id)
+                    val placement = findNodePlacement(state.collections, id)
+                    val removed = extractNodeById(state.collections, id)
+                    if (removed != null && placement != null) {
+                        deletedSnapshots.add(DeletedNodeSnapshot(removed, placement.parentId, placement.index))
+                    }
                 }
                 state.closeTabsByIds(toDelete)
                 state.clearSidebarSelection()
                 state.notifyCollectionsChanged()
                 persistWorkspaceAsync()
+                UndoableWorkspaceActions.showDeletedNodesSnackbar(state, deletedSnapshots, persistWorkspaceAsync)
                 state.log("Request(s) deleted: ${toDelete.size}", LogLevel.INFO)
             }
             if (state.settings.confirmBeforeDelete) {
@@ -249,10 +263,18 @@ internal fun LazyListScope.sidebarCollectionsSection(
                     onDeleteCollection = { target ->
                         if (target.isCollection) {
                             val action = {
+                                val placement = findNodePlacement(state.collections, target.id)
                                 val removedIds = collectAllRequestIds(target)
-                                state.deleteCollection(target.id)
+                                val removed = state.deleteCollection(target.id)
                                 state.pruneSidebarSelection(removedIds)
                                 persistWorkspaceAsync()
+                                if (removed != null && placement != null) {
+                                    UndoableWorkspaceActions.showDeletedNodesSnackbar(
+                                        state,
+                                        listOf(DeletedNodeSnapshot(removed, placement.parentId, placement.index)),
+                                        persistWorkspaceAsync,
+                                    )
+                                }
                                 state.log("Collection deleted: ${target.name}", LogLevel.INFO)
                             }
                             if (state.settings.confirmBeforeDelete) {
@@ -267,6 +289,7 @@ internal fun LazyListScope.sidebarCollectionsSection(
                         } else {
                             val requestCount = countRequestsInFolder(target)
                             val action = {
+                                val placement = findNodePlacement(state.collections, target.id)
                                 val deleted = deleteFolderFromCollections(state.collections, target.id)
                                 if (deleted != null) {
                                     val deletedIds = collectAllRequestIds(deleted)
@@ -274,6 +297,13 @@ internal fun LazyListScope.sidebarCollectionsSection(
                                     state.pruneSidebarSelection(deletedIds)
                                     state.notifyCollectionsChanged()
                                     persistWorkspaceAsync()
+                                    if (placement != null) {
+                                        UndoableWorkspaceActions.showDeletedNodesSnackbar(
+                                            state,
+                                            listOf(DeletedNodeSnapshot(deleted, placement.parentId, placement.index)),
+                                            persistWorkspaceAsync,
+                                        )
+                                    }
                                     state.log("Folder deleted: ${target.name}", LogLevel.INFO)
                                 }
                             }
@@ -323,11 +353,19 @@ internal fun LazyListScope.sidebarCollectionsSection(
                     },
                     onDeleteRequest = { target ->
                         val action = {
-                            deleteRequestFromCollections(state.collections, target.id)
+                            val placement = findNodePlacement(state.collections, target.id)
+                            val removed = extractNodeById(state.collections, target.id)
                             state.closeTabsByIds(listOf(target.id))
                             state.pruneSidebarSelection(listOf(target.id))
                             state.notifyCollectionsChanged()
                             persistWorkspaceAsync()
+                            if (removed != null && placement != null) {
+                                UndoableWorkspaceActions.showDeletedNodesSnackbar(
+                                    state,
+                                    listOf(DeletedNodeSnapshot(removed, placement.parentId, placement.index)),
+                                    persistWorkspaceAsync,
+                                )
+                            }
                             state.log("Request deleted: ${target.name}", LogLevel.INFO)
                         }
                         if (state.settings.confirmBeforeDelete) {
@@ -341,9 +379,17 @@ internal fun LazyListScope.sidebarCollectionsSection(
                         }
                     },
                     onMoveRequest = { requestId, direction ->
+                        val beforePlacements = captureNodePlacements(state.collections, listOf(requestId))
+                        val movedNames = listOfNotNull(UndoableWorkspaceActions.findNodeNameById(state.collections, requestId))
                         if (moveRequestInCollections(state.collections, requestId, direction)) {
                             state.notifyCollectionsChanged()
                             persistWorkspaceAsync()
+                            UndoableWorkspaceActions.showMovedNodesSnackbar(
+                                state,
+                                beforePlacements,
+                                movedNames,
+                                persistWorkspaceAsync,
+                            )
                         }
                     },
                     onDuplicateSelectedFolders = onDuplicateSelectedFolders,
@@ -404,6 +450,10 @@ internal fun LazyListScope.sidebarCollectionsSection(
                         val targetRequestId = dragState.dropTargetRequestId
                         val targetCollectionId = dragState.dropTargetCollectionId
                         if (movingRequestIds.isNotEmpty()) {
+                            val beforePlacements = captureNodePlacements(state.collections, movingRequestIds)
+                            val movedNames = movingRequestIds.distinct().mapNotNull { id ->
+                                UndoableWorkspaceActions.findNodeNameById(state.collections, id)
+                            }
                             val moved = when {
                                 targetRequestId != null && targetRequestId !in movingRequestIds ->
                                     if (dragState.dropInsertAfter) {
@@ -418,6 +468,12 @@ internal fun LazyListScope.sidebarCollectionsSection(
                             if (moved) {
                                 state.notifyCollectionsChanged()
                                 persistWorkspaceAsync()
+                                UndoableWorkspaceActions.showMovedNodesSnackbar(
+                                    state,
+                                    beforePlacements,
+                                    movedNames,
+                                    persistWorkspaceAsync,
+                                )
                             }
                         }
                         dragState.cancelDrag()
@@ -486,6 +542,11 @@ internal fun LazyListScope.sidebarCollectionsSection(
                             emptyList()
                         }
                         if (movingFolderIds.isNotEmpty() && targetId != null && targetId !in movingFolderIds) {
+                            val effectiveIds = pruneRedundantDescendantFolders(state.collections, movingFolderIds)
+                            val beforePlacements = captureNodePlacements(state.collections, effectiveIds)
+                            val movedNames = effectiveIds.mapNotNull { id ->
+                                UndoableWorkspaceActions.findNodeNameById(state.collections, id)
+                            }
                             val moved = if (dragState.dropCollectionInsertAfter) {
                                 moveFoldersAfterFolder(state.collections, movingFolderIds, targetId)
                             } else {
@@ -494,6 +555,12 @@ internal fun LazyListScope.sidebarCollectionsSection(
                             if (moved) {
                                 state.notifyCollectionsChanged()
                                 persistWorkspaceAsync()
+                                UndoableWorkspaceActions.showMovedNodesSnackbar(
+                                    state,
+                                    beforePlacements,
+                                    movedNames,
+                                    persistWorkspaceAsync,
+                                )
                             }
                         }
                         dragState.cancelDrag()

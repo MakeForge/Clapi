@@ -241,25 +241,47 @@ internal fun SettingToggle(
 }
 
 @Composable
-internal fun SettingNumberField(label: String, value: Int, onValueChange: (Int) -> Unit) {
+internal fun SettingNumberField(
+    label: String,
+    value: Int,
+    description: String = "",
+    minValue: Int? = null,
+    maxValue: Int? = null,
+    tag: String = "",
+    onValueChange: (Int) -> Unit,
+) {
     // M-10: Maintain local text state so mid-edit values (e.g. empty string
     // while the user is deleting digits) are never silently discarded.
-    // A red border signals that the current text cannot be parsed as a number.
+    // A red border signals that the current text cannot be parsed as a valid in-range number.
     var localText by remember(value) { mutableStateOf(value.toString()) }
-    val isValid = localText.toIntOrNull() != null
+    val parsed = localText.toIntOrNull()
+    val isValid = parsed != null &&
+        (minValue == null || parsed >= minValue) &&
+        (maxValue == null || parsed <= maxValue)
 
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(label, fontSize = 13.sp, color = ClapiColors.OnSurface, modifier = Modifier.weight(1f))
+        Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+            Text(label, fontSize = 13.sp, color = ClapiColors.OnSurface)
+            if (description.isNotEmpty()) {
+                Text(description, fontSize = 11.sp, color = ClapiColors.OnSurfaceDim)
+            }
+        }
         BasicTextField(
             value = localText,
             onValueChange = { newText ->
-                // Allow any text while typing; only commit valid integers.
+                // Allow any text while typing; only commit valid integers within bounds.
                 localText = newText
-                newText.toIntOrNull()?.let(onValueChange)
+                val candidate = newText.toIntOrNull()
+                if (candidate != null &&
+                    (minValue == null || candidate >= minValue) &&
+                    (maxValue == null || candidate <= maxValue)
+                ) {
+                    onValueChange(candidate)
+                }
             },
             singleLine = true,
             textStyle = TextStyle(color = ClapiColors.OnSurface, fontSize = 13.sp, fontFamily = CodeFontFamily),
@@ -274,7 +296,8 @@ internal fun SettingNumberField(label: String, value: Int, onValueChange: (Int) 
                     if (isValid) ClapiColors.Border else ClapiColors.Error,
                     RoundedCornerShape(4.dp),
                 )
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .padding(horizontal = 8.dp, vertical = 6.dp)
+                .then(if (tag.isNotEmpty()) Modifier.testTag(tag) else Modifier),
         )
     }
 }

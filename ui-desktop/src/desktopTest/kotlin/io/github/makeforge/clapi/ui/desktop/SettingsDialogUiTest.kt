@@ -10,6 +10,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextInput
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.i18n.AppLanguage
 import io.github.makeforge.clapi.ui.shared.theme.ClapiTheme
@@ -345,5 +347,36 @@ class SettingsDialogUiTest {
         composeRule.waitForIdle()
 
         kotlin.test.assertEquals(expectedLogPath, openedPath)
+    }
+
+    @Test
+    fun general_settings_exposes_snackbar_auto_dismiss_duration_with_bounds_validation() {
+        val state = AppState(openDefaultTab = false)
+        composeRule.setContent { MainScreen(state) }
+
+        composeRule.onNodeWithTag("settings-button", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        val input = composeRule.onNodeWithTag("snackbar-auto-dismiss-input", useUnmergedTree = true)
+        input.assertIsDisplayed()
+        kotlin.test.assertEquals(5, state.settings.snackbarAutoDismissSec)
+
+        // Valid update
+        input.performTextClearance()
+        input.performTextInput("12")
+        composeRule.waitForIdle()
+        kotlin.test.assertEquals(12, state.settings.snackbarAutoDismissSec)
+
+        // Out-of-range value (0) should NOT commit
+        input.performTextClearance()
+        input.performTextInput("0")
+        composeRule.waitForIdle()
+        kotlin.test.assertEquals(12, state.settings.snackbarAutoDismissSec)
+
+        // Out-of-range value (99) should NOT commit
+        input.performTextClearance()
+        input.performTextInput("99")
+        composeRule.waitForIdle()
+        kotlin.test.assertEquals(12, state.settings.snackbarAutoDismissSec)
     }
 }

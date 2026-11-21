@@ -575,3 +575,100 @@ private fun containsFolderId(node: CollectionNode, folderId: String): Boolean {
     }
     return false
 }
+
+// ── Undo placement & re-insertion helpers ───────────────────────────────────
+
+/** Captures the exact location of a request, folder, or root collection inside the tree. */
+data class NodePlacement(
+    val nodeId: String,
+    val parentId: String?,
+    val index: Int,
+)
+
+/** Finds the parent folder ID (`null` for root collections) and zero-based index of [nodeId]. */
+fun findNodePlacement(
+    collections: List<CollectionNode>,
+    nodeId: String,
+    parentId: String? = null,
+): NodePlacement? {
+    collections.forEachIndexed { index, node ->
+        if (node.id == nodeId) {
+            return NodePlacement(nodeId = nodeId, parentId = parentId, index = index)
+        }
+        if (node.isFolder && node.children.isNotEmpty()) {
+            val found = findNodePlacement(node.children, nodeId, parentId = node.id)
+            if (found != null) return found
+        }
+    }
+    return null
+}
+
+/** Captures placements for all [nodeIds] currently present in [collections]. */
+fun captureNodePlacements(
+    collections: List<CollectionNode>,
+    nodeIds: List<String>,
+): List<NodePlacement> = nodeIds.distinct().mapNotNull { id -> findNodePlacement(collections, id) }
+
+/** Extracts and returns any node (folder or request) matching [nodeId] from [collections]. */
+fun extractNodeById(collections: MutableList<CollectionNode>, nodeId: String): CollectionNode? {
+    val index = collections.indexOfFirst { it.id == nodeId }
+    if (index >= 0) return collections.removeAt(index)
+    for (node in collections) {
+        if (node.isFolder && node.children.isNotEmpty()) {
+            val extracted = extractNodeById(node.children, nodeId)
+            if (extracted != null) return extracted
+        }
+    }
+    return null
+}
+
+/**
+ * Re-inserts [node] into the parent container identified by [parentId] (`null` for root [collections])
+ * at [index] (clamped to valid bounds). Returns `false` if [parentId] no longer exists.
+ */
+fun reinsertNodeAt(
+    collections: MutableList<CollectionNode>,
+    node: CollectionNode,
+    parentId: String?,
+    index: Int,
+): Boolean {
+    val targetList = if (parentId == null) {
+        collections
+    } else {
+        findCollectionById(collections, parentId)?.children ?: return false
+    }
+    if (targetList.any { it.id == node.id }) return false
+    val clampedIndex = index.coerceIn(0, targetList.size)
+    targetList.add(clampedIndex, node)
+    return true
+}
+
+/**
+ * Restores a list of moved nodes to their previously captured [placements].
+ * Returns `true` if all nodes were found and re-inserted into their original containers.
+ */
+fun restoreNodePlacements(
+    collections: MutableList<CollectionNode>,
+    placements: List<NodePlacement>,
+): Boolean {
+    if (placements.isEmpty()) return false
+    val extracted = mutableListOf<Pair<NodePlacement, CollectionNode>>()
+    for (placement in placements) {
+        val node = extractNodeById(collections, placement.nodeId)
+        if (node == null) {
+            // Roll back any already-extracted nodes before failing
+            extracted.sortedBy { it.first.index }.forEach { (p, n) ->
+                reinsertNodeAt(collections, n, p.parentId, p.index)
+            }
+            return false
+        }
+        extracted.add(placement to node)
+    }
+    var allRestored = true
+    for ((placement, node) in extracted.sortedBy { it.first.index }) {
+        if (!reinsertNodeAt(collections, node, placement.parentId, placement.index)) {
+            allRestored = false
+        }
+    }
+    return allRestored
+}

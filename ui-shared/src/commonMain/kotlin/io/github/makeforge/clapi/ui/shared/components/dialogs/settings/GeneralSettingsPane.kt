@@ -79,6 +79,16 @@ internal fun GeneralSettings(s: AppSettings) {
         onValueChange = { s.defaultTimeoutSec = it },
     )
     SettingsDivider()
+    SettingNumberField(
+        label = Strings.snackbarAutoDismissSeconds,
+        description = Strings.settingsSnackbarAutoDismissDesc,
+        value = s.snackbarAutoDismissSec,
+        onValueChange = { s.snackbarAutoDismissSec = it },
+        minValue = MIN_SNACKBAR_AUTO_DISMISS_SEC,
+        maxValue = MAX_SNACKBAR_AUTO_DISMISS_SEC,
+        tag = "snackbar-auto-dismiss-input",
+    )
+    SettingsDivider()
     SettingChoice(
         label = Strings.responseLayout,
         description = Strings.t("settings_response_layout_desc"),
