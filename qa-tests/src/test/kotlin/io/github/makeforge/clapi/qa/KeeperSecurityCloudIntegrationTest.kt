@@ -92,7 +92,8 @@ class KeeperSecurityCloudIntegrationTest {
                     File("qa-tests/src/test/resources/secrets/keeper/test-records.json"),
                     File("src/test/resources/secrets/keeper/test-records.json"),
                     File("../qa-tests/src/test/resources/secrets/keeper/test-records.json"),
-                ).first { it.exists() }.readText()
+                ).firstOrNull { it.exists() }?.readText()
+                ?: error("Could not find test-records.json on classpath or disk")
 
             val jsonArr = Json.parseToJsonElement(recordsJson).jsonArray
             return jsonArr.map { elem ->

@@ -3,23 +3,26 @@ package io.github.makeforge.clapi.ui.desktop.logging
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import org.tinylog.provider.ProviderRegistry
 import java.io.File
 import kotlin.test.assertTrue
 
 class CrashHandlerIntegrationTest {
 
     private lateinit var testDir: File
+    private var originalHandler: Thread.UncaughtExceptionHandler? = null
 
     @Before
     fun setup() {
+        originalHandler = Thread.getDefaultUncaughtExceptionHandler()
+        GlobalCrashHandler.showDialogOnException = false
         testDir = File(System.getProperty("java.io.tmpdir"), "clapi-test-logs")
         testDir.mkdirs()
     }
 
     @After
     fun tearDown() {
-        // Do not delete directory during test suite run as Tinylog holds background file handles
+        GlobalCrashHandler.showDialogOnException = true
+        Thread.setDefaultUncaughtExceptionHandler(originalHandler)
     }
 
     @Test
@@ -35,6 +38,7 @@ class CrashHandlerIntegrationTest {
         // Invoke the handler directly to simulate an unhandled thread exception
         handler.uncaughtException(dummyThread, exception)
         Thread.sleep(300)
+        ClapiRollingFileWriter.flushCurrent()
 
         val effectiveLogDir = File(System.getProperty("clapi.log.dir") ?: logDir.absolutePath)
         val logFiles = effectiveLogDir.listFiles { _, name -> name.startsWith("clapi") } ?: emptyArray()

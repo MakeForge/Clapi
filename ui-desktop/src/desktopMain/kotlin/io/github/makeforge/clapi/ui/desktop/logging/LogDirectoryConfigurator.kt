@@ -14,6 +14,7 @@ object LogDirectoryConfigurator {
         logDir.mkdirs()
 
         System.setProperty("clapi.log.dir", logDir.absolutePath)
+        ClapiRollingFileWriter.reconfigure(logDir)
         if (!Configuration.isFrozen()) {
             Configuration.set("writer2.file", "${logDir.absolutePath}/clapi.{date:yyyy-MM-dd}.{count}.log")
             Configuration.set("writer2.latest", "${logDir.absolutePath}/clapi.log")
@@ -24,7 +25,9 @@ object LogDirectoryConfigurator {
             runCatching {
                 GlobalCrashHandler.handleException(throwable, thread.name)
             }
-            previousHandler?.uncaughtException(thread, throwable)
+            if (previousHandler != null && !throwable.message.orEmpty().startsWith("SYNTHETIC_CRASH_EXCEPTION")) {
+                previousHandler.uncaughtException(thread, throwable)
+            }
         }
 
         return logDir
@@ -32,6 +35,7 @@ object LogDirectoryConfigurator {
 
     fun shutdown() {
         runCatching {
+            ClapiRollingFileWriter.flushCurrent()
             ProviderRegistry.getLoggingProvider().shutdown()
         }
     }
