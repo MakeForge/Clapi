@@ -3,6 +3,7 @@ package io.github.crustack.clapi.ui.shared.state
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
+import io.github.crustack.clapi.core.model.opencollection.ExternalSecretType
 import io.github.crustack.clapi.ui.shared.i18n.AppLanguage
 import kotlinx.coroutines.launch
 
@@ -56,7 +57,7 @@ class AppSettings {
     var environmentDialogHeightDp by mutableStateOf(DEFAULT_ENVIRONMENT_DIALOG_HEIGHT_DP)
 
     // Secrets Manager (HashiCorp Vault)
-    var vaultProviderType    by mutableStateOf("hashicorp-vault-server")
+    var vaultProviderType    by mutableStateOf(ExternalSecretType.HASHICORP_VAULT_SERVER)
     var vaultServerUrl       by mutableStateOf("")
     var vaultMountPath       by mutableStateOf("secret")
     var vaultNamespace       by mutableStateOf("")

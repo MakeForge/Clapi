@@ -1,5 +1,6 @@
 package io.github.crustack.clapi.ui.desktop.persistence
 
+import io.github.crustack.clapi.core.model.opencollection.ExternalSecretType
 import io.github.crustack.clapi.ui.shared.persistence.SettingsRepository
 import io.github.crustack.clapi.ui.shared.platform.PlatformStorage
 import io.github.crustack.clapi.ui.shared.state.AppSettings
@@ -41,7 +42,7 @@ class SettingsRepositorySecretsTest {
         val settings = AppSettings()
         SettingsRepository.load(settings)
 
-        assertEquals("hashicorp-vault-server", settings.vaultProviderType)
+        assertEquals(ExternalSecretType.HASHICORP_VAULT_SERVER, settings.vaultProviderType)
         assertEquals("", settings.vaultServerUrl)
         assertEquals("secret", settings.vaultMountPath)
         assertEquals("", settings.vaultNamespace)
@@ -51,7 +52,7 @@ class SettingsRepositorySecretsTest {
     @Test
     fun save_and_load_roundtrips_vault_settings() {
         val original = AppSettings().apply {
-            vaultProviderType = "hashicorp-vault-server"
+            vaultProviderType = ExternalSecretType.HASHICORP_VAULT_SERVER
             vaultServerUrl = "https://vault.corp.internal:8200"
             vaultMountPath = "custom-secrets"
             vaultNamespace = "finance/billing"
@@ -124,7 +125,7 @@ class SettingsRepositorySecretsTest {
     @Test
     fun save_and_load_roundtrips_aws_settings() {
         val original = AppSettings().apply {
-            vaultProviderType = "aws-secrets-manager"
+            vaultProviderType = ExternalSecretType.AWS_SECRETS_MANAGER
             awsRegion = "eu-central-1"
             awsAccessKeyId = "AKIAEXAMPLE123"
             awsSecretAccessKey = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
@@ -138,7 +139,7 @@ class SettingsRepositorySecretsTest {
         val restored = AppSettings()
         SettingsRepository.load(restored)
 
-        assertEquals("aws-secrets-manager", restored.vaultProviderType)
+        assertEquals(ExternalSecretType.AWS_SECRETS_MANAGER, restored.vaultProviderType)
         assertEquals("eu-central-1", restored.awsRegion)
         assertEquals("AKIAEXAMPLE123", restored.awsAccessKeyId)
         assertEquals("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", restored.awsSecretAccessKey)

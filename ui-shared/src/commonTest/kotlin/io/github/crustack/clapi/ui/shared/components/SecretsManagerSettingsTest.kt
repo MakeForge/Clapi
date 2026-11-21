@@ -1,5 +1,6 @@
 package io.github.crustack.clapi.ui.shared.components
 
+import io.github.crustack.clapi.core.model.opencollection.ExternalSecretType
 import io.github.crustack.clapi.core.network.keepassxc.KeePassXcClient
 import io.github.crustack.clapi.core.network.keepassxc.KeePassXcEntry
 import io.github.crustack.clapi.core.network.keepassxc.KeePassXcStatus
@@ -37,16 +38,16 @@ class SecretsManagerSettingsTest {
     @Test
     fun secrets_manager_settings_toggle_switches_provider() {
         val settings = AppSettings()
-        assertEquals("hashicorp-vault-server", settings.vaultProviderType)
+        assertEquals(ExternalSecretType.HASHICORP_VAULT_SERVER, settings.vaultProviderType)
 
-        settings.vaultProviderType = "keepassxc"
-        assertEquals("keepassxc", settings.vaultProviderType)
+        settings.vaultProviderType = ExternalSecretType.KEEPASSXC
+        assertEquals(ExternalSecretType.KEEPASSXC, settings.vaultProviderType)
 
-        settings.vaultProviderType = "aws-secrets-manager"
-        assertEquals("aws-secrets-manager", settings.vaultProviderType)
+        settings.vaultProviderType = ExternalSecretType.AWS_SECRETS_MANAGER
+        assertEquals(ExternalSecretType.AWS_SECRETS_MANAGER, settings.vaultProviderType)
 
-        settings.vaultProviderType = "hashicorp-vault-server"
-        assertEquals("hashicorp-vault-server", settings.vaultProviderType)
+        settings.vaultProviderType = ExternalSecretType.HASHICORP_VAULT_SERVER
+        assertEquals(ExternalSecretType.HASHICORP_VAULT_SERVER, settings.vaultProviderType)
     }
 
     @Test
