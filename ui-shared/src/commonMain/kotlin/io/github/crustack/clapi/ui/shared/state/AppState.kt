@@ -771,6 +771,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     var showHelpDialog       by mutableStateOf(false)
     var showEnvEditDialog    by mutableStateOf(false)
     var editingEnvIndex      by mutableStateOf(-1)      // index into environments
+    var showImportSpecificationDialog by mutableStateOf(false)
 
     // ── import/export operation dialog ──
     var showOperationDialog  by mutableStateOf(false)

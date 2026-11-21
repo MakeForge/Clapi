@@ -304,5 +304,18 @@
   "mcp_elicit_accept": "Aceptar",
   "mcp_elicit_decline": "Rechazar",
   "new_mcp_connection": "Nueva conexión MCP",
-  "new_sse_request": "Nueva petición SSE"
+  "new_sse_request": "Nueva petición SSE",
+  "import_dialog_title": "Importar OpenAPI / OpenCollection",
+  "import_tab_file": "Archivo",
+  "import_tab_clipboard": "Portapapeles",
+  "import_drop_files_here": "Arrastra archivos aquí o",
+  "import_choose_files": "Elegir archivos",
+  "import_supported_formats": "Formatos admitidos: OpenAPI 3.0+ (JSON/YAML) y OpenCollection (YAML)",
+  "import_clipboard_desc": "Importar directamente desde el portapapeles del sistema.",
+  "import_clipboard_empty": "El portapapeles está vacío",
+  "import_scan": "Escanear",
+  "import_scanning": "Escaneando...",
+  "import_select_items": "Seleccionar elementos para importar",
+  "import_overwrite_warning": "Sobrescribe el elemento existente",
+  "import_action": "Importar"
 }

@@ -68,12 +68,14 @@ expect fun Modifier.platformDiagonalResizeCursorStyle(isNwSe: Boolean): Modifier
 // ── File I/O ────────────────────────────────────────────────────
 
 /**
- * Pick a file from the filesystem and deliver its text content to [onResult].
+ * Pick a file from the filesystem and deliver its file name and text content to [onResult].
  * On desktop this opens a JFileChooser starting at the last imported/exported
  * folder (user home on first use). On web it triggers an `<input type=file>`;
  * browsers do not allow setting that dialog's start directory.
  */
-expect fun pickFileForImport(onResult: (String) -> Unit)
+expect fun pickFileForImport(onResult: (fileName: String, content: String) -> Unit)
+
+fun pickFileForImport(onResult: (String) -> Unit) = pickFileForImport { _, content -> onResult(content) }
 
 /**
  * Pick any binary/text file from the filesystem and deliver filename + base64 bytes.

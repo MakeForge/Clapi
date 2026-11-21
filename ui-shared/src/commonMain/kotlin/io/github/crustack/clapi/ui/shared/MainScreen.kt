@@ -49,6 +49,7 @@ import io.github.crustack.clapi.ui.shared.components.EnvironmentEditDialog
 import io.github.crustack.clapi.ui.shared.components.ErrorMessageDialog
 import io.github.crustack.clapi.ui.shared.components.FolderEditor
 import io.github.crustack.clapi.ui.shared.components.GlobalVariablesDialog
+import io.github.crustack.clapi.ui.shared.components.ImportSpecificationDialog
 import io.github.crustack.clapi.ui.shared.components.GraphQLPanel
 import io.github.crustack.clapi.ui.shared.components.HelpAboutDialog
 import io.github.crustack.clapi.ui.shared.components.HorizontalSplitPane
@@ -247,6 +248,12 @@ fun MainScreen(state: AppState = remember { AppState() }) {
         SettingsDialog(state)
         HelpAboutDialog(state)
         GlobalVariablesDialog(state)
+        if (state.showImportSpecificationDialog) {
+            ImportSpecificationDialog(
+                state = state,
+                onDismiss = { state.showImportSpecificationDialog = false }
+            )
+        }
         if (state.showConfirmDialog) {
             ConfirmDeleteDialog(
                 title   = state.confirmDialogTitle,
