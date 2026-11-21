@@ -44,13 +44,13 @@ class ImportExportUiTest {
     }
 
     @Test
-    fun environment_actions_menu_shows_export_duplicate_delete() {
+    fun environment_actions_menu_shows_duplicate_delete_and_not_export() {
         composeRule.setContent { MainScreen(AppState(withDemoData = true)) }
 
         composeRule.onNodeWithTag("env-actions-Development", useUnmergedTree = true).performClick()
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("Export Environment").assertIsDisplayed()
+        composeRule.onNodeWithText("Export Environment").assertDoesNotExist()
         composeRule.onNodeWithText("Duplicate Environment").assertIsDisplayed()
         composeRule.onNodeWithText("Delete Environment").assertIsDisplayed()
     }

@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -55,13 +56,17 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.UnfoldLess
 import androidx.compose.material.icons.filled.UnfoldMore
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -117,6 +122,7 @@ import io.github.crustack.clapi.ui.shared.theme.ClapiColors
 import io.github.crustack.clapi.ui.shared.theme.httpMethodColor
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.material.icons.filled.UploadFile
 import io.github.crustack.clapi.core.model.RequestKind
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -165,6 +171,7 @@ private fun normalizeSidebarSearchQuery(raw: String): String {
         .trim()
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun Sidebar(state: AppState) {
     SharedTooltipCoordinator()
@@ -392,6 +399,121 @@ fun Sidebar(state: AppState) {
                 modifier = Modifier.padding(8.dp),
             )
 
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
+                    .padding(bottom = 6.dp)
+                    .testTag("sidebar-button-bar"),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        state.showImportSpecificationDialog = true
+                    },
+                    modifier = Modifier.weight(1f).height(30.dp).testTag("collection-import-button"),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(6.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = ClapiColors.OnSurface,
+                    ),
+                    border = BorderStroke(1.dp, ClapiColors.Border),
+                ) {
+                    Icon(
+                        Icons.Default.Download,
+                        contentDescription = "Import",
+                        modifier = Modifier.size(14.dp).testTag("collection-import-icon"),
+                        tint = ClapiColors.OnSurfaceDim,
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = "Import",
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                    )
+                }
+
+                Box(modifier = Modifier.weight(1f)) {
+                    var showExportMenu by remember { mutableStateOf(false) }
+
+                    OutlinedButton(
+                        onClick = { showExportMenu = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(30.dp)
+                            .testTag("sidebar-export-button")
+                            .onPointerEvent(PointerEventType.Press) {
+                                if (it.buttons.isSecondaryPressed) showExportMenu = true
+                            },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(6.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = ClapiColors.OnSurface,
+                        ),
+                        border = BorderStroke(1.dp, ClapiColors.Border),
+                    ) {
+                        Icon(
+                            Icons.Default.Upload,
+                            contentDescription = "Export",
+                            modifier = Modifier.size(14.dp),
+                            tint = ClapiColors.OnSurfaceDim,
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = "Export",
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showExportMenu,
+                        onDismissRequest = { showExportMenu = false },
+                        modifier = Modifier.testTag("sidebar-export-menu"),
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("OpenCollection YAML Format") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Upload, contentDescription = null, modifier = Modifier.size(16.dp))
+                            },
+                            onClick = {
+                                showExportMenu = false
+                                scope.launch {
+                                    launchTracked("Exporting OpenCollection", "Exporting workspace as OpenCollection YAML...") {
+                                        val yamlStr = ImportExportRepository.exportWorkspaceToOpenCollectionYaml(state)
+                                        withContext(Dispatchers.Main) {
+                                            saveFileForExport(yamlStr, "opencollection.yaml")
+                                            state.log("Exported OpenCollection YAML", LogLevel.SUCCESS)
+                                        }
+                                    }
+                                }
+                            },
+                            modifier = Modifier.testTag("export-opencollection-yaml-item"),
+                        )
+                        DropdownMenuItem(
+                            text = { Text("OpenAPI YAML") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Upload, contentDescription = null, modifier = Modifier.size(16.dp))
+                            },
+                            onClick = {
+                                showExportMenu = false
+                                scope.launch {
+                                    launchTracked("Exporting OpenAPI", "Exporting workspace as OpenAPI YAML...") {
+                                        val yamlStr = ImportExportRepository.exportWorkspaceToOpenApiYaml(state)
+                                        withContext(Dispatchers.Main) {
+                                            saveFileForExport(yamlStr, "openapi.yaml")
+                                            state.log("Exported OpenAPI YAML", LogLevel.SUCCESS)
+                                        }
+                                    }
+                                }
+                            },
+                            modifier = Modifier.testTag("export-openapi-yaml-item"),
+                        )
+                    }
+                }
+            }
+
             LazyColumn(
                 state = lazyListState,
                 modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
@@ -435,19 +557,6 @@ fun Sidebar(state: AppState) {
                     },
                     trailing = {
                         Row {
-                            IconButton(
-                                onClick = {
-                                    state.showImportSpecificationDialog = true
-                                },
-                                modifier = Modifier.size(24.dp).testTag("collection-import-button"),
-                            ) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.Input,
-                                    contentDescription = Strings.importFolder,
-                                    tint = ClapiColors.OnSurfaceDim,
-                                    modifier = Modifier.size(14.dp).testTag("collection-import-icon"),
-                                )
-                            }
                             IconButton(
                                 onClick = {
                                     val names = state.collections.map { it.name }.toSet()
@@ -907,17 +1016,6 @@ fun Sidebar(state: AppState) {
                                 state.openEnvEdit(index)
                             },
                             onEdit = { state.openEnvEdit(index) },
-                            onExport = {
-                                scope.launch {
-                                    launchTracked("Exporting environment", "Exporting ${env.name}...") {
-                                        val jsonStr = ImportExportRepository.exportEnvironmentToString(env)
-                                        withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                            saveFileForExport(jsonStr, "${env.name}.json")
-                                            state.log("Environment exported: ${env.name}.json", LogLevel.SUCCESS)
-                                        }
-                                    }
-                                }
-                            },
                             onDuplicate = {
                                 val names = state.environments.map { it.name }.toSet()
                                 val uniqueName = ImportExportNaming.generateUniqueEnvironmentName(env.name, names)
@@ -1961,7 +2059,6 @@ private fun EnvironmentRow(
     onClick: () -> Unit,
     onDoubleClick: () -> Unit,
     onEdit: () -> Unit,
-    onExport: () -> Unit,
     onDuplicate: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
@@ -2060,13 +2157,6 @@ private fun EnvironmentRow(
                     onClick = {
                     showMenu = false
                     onEdit()
-                })
-                DropdownMenuItem(
-                    text = { Text(Strings.t("export_environment")) },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.Input, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                    onClick = {
-                    showMenu = false
-                    onExport()
                 })
                 DropdownMenuItem(
                     text = { Text(Strings.t("duplicate_environment")) },

@@ -450,7 +450,7 @@ class EditorViewModelFixTest {
         // All 4 chars of "true" should currently be KEYWORD
         for (i in 0 until 4) {
             assertEquals(
-                io.github.crustack.editor.core.TokenType.KEYWORD,
+                io.github.crustack.clapi.editor.core.TokenType.KEYWORD,
                 v.styleBuffer.styleAt(trueStart + i),
                 "Before edit: char $i of 'true' must be KEYWORD"
             )
@@ -470,7 +470,7 @@ class EditorViewModelFixTest {
         // All 5 chars of "false" must now be KEYWORD (not stale/ERROR)
         for (i in 0 until 5) {
             assertEquals(
-                io.github.crustack.editor.core.TokenType.KEYWORD,
+                io.github.crustack.clapi.editor.core.TokenType.KEYWORD,
                 v.styleBuffer.styleAt(falseStart + i),
                 "After edit: char $i of 'false' must be KEYWORD (was stale before fix)"
             )
@@ -494,7 +494,7 @@ class EditorViewModelFixTest {
         // "tru" is not a valid JSON keyword → at least the 't' should be ERROR
         val styleAtT = v.styleBuffer.styleAt(trueStart)
         assertEquals(
-            io.github.crustack.editor.core.TokenType.ERROR,
+            io.github.crustack.clapi.editor.core.TokenType.ERROR,
             styleAtT,
             "Partial 'tru' must be highlighted as ERROR, not KEYWORD (stale highlight bug)"
         )
@@ -641,7 +641,7 @@ class EditorFirstPaintStyleTest {
                 "First paint must style a small JSON document synchronously; endStyled=${v.styleBuffer.endStyled}",
             )
             assertEquals(
-                io.github.crustack.editor.core.TokenType.PUNCTUATION,
+                io.github.crustack.clapi.editor.core.TokenType.PUNCTUATION,
                 v.styleBuffer.styleAt(0),
                 "Opening brace must be a punctuation token on first paint, not unstyled PLAIN",
             )

@@ -18,7 +18,7 @@ import io.github.crustack.clapi.editor.ui.applySearchHighlights as editorApplySe
 
 /**
  * Re-exports editor-ui's [EditorSyntaxColors] for backward compatibility.
- * New code should import [io.github.crustack.editor.ui.SyntaxColors] directly.
+ * New code should import [io.github.crustack.clapi.editor.ui.SyntaxColors] directly.
  */
 object SyntaxColors {
     // JSON

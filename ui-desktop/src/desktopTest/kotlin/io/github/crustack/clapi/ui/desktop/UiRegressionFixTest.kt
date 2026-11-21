@@ -102,13 +102,13 @@ class UiRegressionFixTest {
 
         listOf(
             "Edit Environment",
-            "Export Environment",
             "Duplicate Environment",
             "Rename Environment",
             "Delete Environment",
         ).forEach { label ->
             composeRule.onNodeWithText(label, useUnmergedTree = true).assertIsDisplayed()
         }
+        composeRule.onNodeWithText("Export Environment", useUnmergedTree = true).assertDoesNotExist()
     }
 
     // ── Issue 3: neutral light-theme palette ─────────────────────────────
