@@ -5,6 +5,8 @@ package helloworld;
 option java_package = "io.github.crustack.clapi.qa.grpc";
 option java_multiple_files = true;
 
+import "protobuf/common/metadata.proto";
+
 service Greeter {
   rpc SayHello (HelloRequest) returns (HelloReply) {}
   rpc SayHelloAgain (HelloRequest) returns (HelloReply) {}
@@ -17,4 +19,5 @@ message HelloRequest {
 message HelloReply {
   string message = 1;
   string received_meta = 2;
+  clapi.common.RequestMetadata ack_metadata = 3;
 }

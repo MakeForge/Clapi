@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package clapi.common;
+
+option java_package = "io.github.crustack.clapi.qa.grpc.common";
+option java_multiple_files = true;
+
+// Custom metadata structure
+message RequestMetadata {
+  string trace_id = 1;
+  string client_version = 2;
+  int64 timestamp_epoch_ms = 3;
+}
