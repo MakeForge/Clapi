@@ -602,11 +602,11 @@ internal fun CollectionTreeNode(
                 Box {
                     IconButtonWithTooltip(
                         onClick = { showAddMenu = true },
-                        tooltip = Strings.t("add_request"),
+                        tooltip = Strings.add,
                         modifier = Modifier.size(20.dp).testTag("collection-add-${node.id}"),
                     ) {
                         Icon(painter = painterResource(Res.drawable.ic_add),
-                            contentDescription = Strings.t("add_request"),
+                            contentDescription = Strings.add,
                             tint = ClapiColors.OnSurfaceDim,
                             modifier = Modifier.size(14.dp),
                         )

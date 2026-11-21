@@ -3,6 +3,7 @@ package io.github.makeforge.clapi.core.network
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlinx.datetime.Clock
 
 class VariableResolverTest {
 
@@ -115,5 +116,33 @@ class VariableResolverTest {
     fun blank_value_is_returned_as_is() {
         assertEquals("", VariableResolver.resolve("", emptyList()))
         assertEquals("   ", VariableResolver.resolve("   ", emptyList()))
+    }
+
+    @Test
+    fun resolves_guid_and_uuid_tokens() {
+        val resolved = VariableResolver.resolve(
+            value = "id1={{\$guid}};id2={{\$uuid}}",
+            variableLayers = emptyList(),
+        )
+        val parts = resolved.split(";")
+        val id1 = parts[0].substringAfter("id1=")
+        val id2 = parts[1].substringAfter("id2=")
+        assertEquals(36, id1.length)
+        assertEquals(36, id2.length)
+    }
+
+    @Test
+    fun dynamic_variables_metadata_and_token_checks() {
+        assertTrue(VariableResolver.isDynamicToken("\$timestamp"))
+        assertTrue(VariableResolver.isDynamicToken("timestamp"))
+        assertTrue(VariableResolver.isDynamicToken("\$isoTimestamp"))
+        assertTrue(VariableResolver.isDynamicToken("\$randomInt"))
+        assertTrue(VariableResolver.isDynamicToken("\$randomInt(1, 10)"))
+        assertTrue(VariableResolver.isDynamicToken("\$guid"))
+        assertTrue(VariableResolver.dynamicVariables.size >= 5)
+        assertEquals(
+            Clock.System.now().toEpochMilliseconds().toString().take(6),
+            VariableResolver.resolveDynamicToken("\$timestamp")?.take(6)
+        )
     }
 }

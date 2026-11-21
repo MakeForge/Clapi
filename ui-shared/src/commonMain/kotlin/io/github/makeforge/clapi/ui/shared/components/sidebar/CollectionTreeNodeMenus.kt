@@ -1,12 +1,15 @@
 package io.github.makeforge.clapi.ui.shared.components.sidebar
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -51,8 +54,12 @@ fun CollectionTreeNodeAddMenu(
         modifier = modifier.testTag("folder-add-menu-${node.id}"),
     ) {
         DropdownMenuItem(
-            text = { Text(Strings.t("add_folder")) },
-            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_folder), contentDescription = null, modifier = Modifier.size(16.dp)) },
+            text = { Text(Strings.folder) },
+            leadingIcon = {
+                Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
+                    Icon(painter = painterResource(Res.drawable.ic_folder), contentDescription = null, modifier = Modifier.size(16.dp))
+                }
+            },
             onClick = {
                 onDismissRequest()
                 onAddFolder(node)
@@ -60,8 +67,12 @@ fun CollectionTreeNodeAddMenu(
             modifier = Modifier.testTag("folder-menu-new-folder"),
         )
         DropdownMenuItem(
-            text = { Text(Strings.t("new_http_request")) },
-            leadingIcon = { HttpBadge(compact = true) },
+            text = { Text(Strings.httpRequest) },
+            leadingIcon = {
+                Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
+                    HttpBadge(compact = true)
+                }
+            },
             onClick = {
                 onDismissRequest()
                 onAddRequest(node)
@@ -69,8 +80,12 @@ fun CollectionTreeNodeAddMenu(
             modifier = Modifier.testTag("folder-menu-new-http"),
         )
         DropdownMenuItem(
-            text = { Text(Strings.t("new_grpc_request")) },
-            leadingIcon = { GrpcBadge(compact = true) },
+            text = { Text(Strings.grpcRequest) },
+            leadingIcon = {
+                Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
+                    GrpcBadge(compact = true)
+                }
+            },
             onClick = {
                 onDismissRequest()
                 onAddGrpcRequest(node)
@@ -78,8 +93,12 @@ fun CollectionTreeNodeAddMenu(
             modifier = Modifier.testTag("folder-menu-new-grpc"),
         )
         DropdownMenuItem(
-            text = { Text(Strings.t("new_websocket_request")) },
-            leadingIcon = { WebSocketBadge(compact = true) },
+            text = { Text(Strings.websocketRequest) },
+            leadingIcon = {
+                Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
+                    WebSocketBadge(compact = true)
+                }
+            },
             onClick = {
                 onDismissRequest()
                 onAddWebSocketRequest(node)
@@ -87,8 +106,12 @@ fun CollectionTreeNodeAddMenu(
             modifier = Modifier.testTag("folder-menu-new-websocket"),
         )
         DropdownMenuItem(
-            text = { Text(Strings.t("new_graphql_request")) },
-            leadingIcon = { GraphQLBadge(compact = true) },
+            text = { Text(Strings.graphqlRequest) },
+            leadingIcon = {
+                Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
+                    GraphQLBadge(compact = true)
+                }
+            },
             onClick = {
                 onDismissRequest()
                 onAddGraphQLRequest(node)
@@ -199,7 +222,11 @@ fun CollectionTreeNodeContextMenu(
             )
             DropdownMenuItem(
                 text = { Text(Strings.expandAll) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_folder_open), contentDescription = null, modifier = Modifier.size(16.dp)) },
+                leadingIcon = {
+                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
+                        Icon(painter = painterResource(Res.drawable.ic_folder_open), contentDescription = null, modifier = Modifier.size(16.dp))
+                    }
+                },
                 onClick = {
                     onDismissRequest()
                     state.expandAllCollections()
@@ -207,7 +234,11 @@ fun CollectionTreeNodeContextMenu(
             )
             DropdownMenuItem(
                 text = { Text(Strings.collapseAll) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_folder), contentDescription = null, modifier = Modifier.size(16.dp)) },
+                leadingIcon = {
+                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
+                        Icon(painter = painterResource(Res.drawable.ic_folder), contentDescription = null, modifier = Modifier.size(16.dp))
+                    }
+                },
                 onClick = {
                     onDismissRequest()
                     state.collapseAllCollections()
@@ -215,31 +246,51 @@ fun CollectionTreeNodeContextMenu(
             )
             DropdownMenuItem(
                 text = { Text(Strings.t("add_request")) },
-                leadingIcon = { HttpBadge(compact = true) },
+                leadingIcon = {
+                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
+                        HttpBadge(compact = true)
+                    }
+                },
                 onClick = { onDismissRequest(); onAddRequest(node) },
                 modifier = Modifier.testTag("collection-menu-add-request"),
             )
             DropdownMenuItem(
-                text = { Text(Strings.t("new_grpc_request")) },
-                leadingIcon = { GrpcBadge(compact = true) },
+                text = { Text(Strings.grpcRequest) },
+                leadingIcon = {
+                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
+                        GrpcBadge(compact = true)
+                    }
+                },
                 onClick = { onDismissRequest(); onAddGrpcRequest(node) },
                 modifier = Modifier.testTag("collection-menu-new-grpc"),
             )
             DropdownMenuItem(
-                text = { Text(Strings.t("new_websocket_request")) },
-                leadingIcon = { WebSocketBadge(compact = true) },
+                text = { Text(Strings.websocketRequest) },
+                leadingIcon = {
+                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
+                        WebSocketBadge(compact = true)
+                    }
+                },
                 onClick = { onDismissRequest(); onAddWebSocketRequest(node) },
                 modifier = Modifier.testTag("collection-menu-new-websocket"),
             )
             DropdownMenuItem(
-                text = { Text(Strings.t("new_graphql_request")) },
-                leadingIcon = { GraphQLBadge(compact = true) },
+                text = { Text(Strings.graphqlRequest) },
+                leadingIcon = {
+                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
+                        GraphQLBadge(compact = true)
+                    }
+                },
                 onClick = { onDismissRequest(); onAddGraphQLRequest(node) },
                 modifier = Modifier.testTag("collection-menu-new-graphql"),
             )
             DropdownMenuItem(
                 text = { Text(Strings.t("new_mcp_connection")) },
-                leadingIcon = { McpMethodBadge(compact = true) },
+                leadingIcon = {
+                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
+                        McpMethodBadge(compact = true)
+                    }
+                },
                 onClick = {
                     onDismissRequest()
                     onAddMcpConnection(node)
@@ -248,7 +299,11 @@ fun CollectionTreeNodeContextMenu(
             )
             DropdownMenuItem(
                 text = { Text(Strings.t("new_sse_request")) },
-                leadingIcon = { MethodBadge(HttpMethodType.GET, compact = true, sse = true) },
+                leadingIcon = {
+                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
+                        MethodBadge(HttpMethodType.GET, compact = true, sse = true)
+                    }
+                },
                 onClick = {
                     onDismissRequest()
                     onAddSseRequest(node)

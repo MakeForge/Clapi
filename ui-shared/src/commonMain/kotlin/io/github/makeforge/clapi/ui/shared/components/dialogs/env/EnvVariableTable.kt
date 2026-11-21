@@ -149,12 +149,12 @@ internal fun EnvVariableRow(
         // Value field (masked if secret)
         EnvTextField(
             value = kv.value,
-            onValueChange = { kv.value = it },
-            placeholder = if (kv.secret) "••••••••" else Strings.value,
-            masked = kv.secret && !showValue,
+            onValueChange = { if (!kv.secret) kv.value = it },
+            placeholder = if (kv.secret) "-" else Strings.value,
+            masked = kv.secret && !showValue && kv.value.isNotEmpty(),
             tag = "env-var-value-$index",
             modifier = Modifier.weight(1f),
-            state = state,
+            state = if (kv.secret) null else state,
             extraVariables = extraVars,
             excludeVariables = excludeVars,
         )
@@ -172,7 +172,13 @@ internal fun EnvVariableRow(
                 modifier = Modifier
                     .clip(RoundedCornerShape(4.dp))
                     .background(if (kv.secret) ClapiColors.Tertiary.copy(alpha = 0.1f) else Color.Transparent)
-                    .clickable { kv.secret = !kv.secret; if (kv.secret) showValue = false }
+                    .clickable {
+                        kv.secret = !kv.secret
+                        if (kv.secret) {
+                            showValue = false
+                            kv.value = ""
+                        }
+                    }
                     .padding(horizontal = 4.dp, vertical = 2.dp),
             )
         }
@@ -291,7 +297,7 @@ internal fun EnvTextField(
                 .then(if (tag.isNotEmpty()) Modifier.testTag(tag) else Modifier),
             decorationBox = { inner ->
                 Box(modifier = Modifier.fillMaxWidth()) {
-                    if (value.isEmpty() && !masked) {
+                    if (value.isEmpty()) {
                         Text(placeholder, color = ClapiColors.OnSurfaceDim, fontSize = 13.sp)
                     }
                     inner()

@@ -82,6 +82,7 @@ import io.github.makeforge.clapi.ui.shared.shortcuts.hotkeys
 import io.github.makeforge.clapi.ui.shared.shortcuts.onSaveHotkey
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.state.RequestTabState
+import io.github.makeforge.clapi.ui.shared.state.ResponseLayout
 import io.github.makeforge.clapi.ui.shared.state.WebSocketEditorTab
 import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
 import io.github.makeforge.clapi.ui.shared.theme.CodeFontFamily
@@ -150,26 +151,48 @@ fun WebSocketRequestEditor(
         )
 
         // ── Split Pane (Left = Configuration, Right = Timeline) ─────
-        HorizontalSplitPane(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            splitFraction = splitFraction,
-            onSplitChanged = { splitFraction = it },
-            hairline = true,
-            first = {
-                WebSocketLeftPane(
-                    tab = tab,
-                    state = state,
-                    markDirty = markDirty,
-                    onSend = { sendWebSocketMessage(scope, state, tab) },
-                )
-            },
-            second = {
-                WebSocketTimelinePane(
-                    messages = tab.webSocketLogMessages,
-                    onClear = { tab.webSocketLogMessages.clear() },
-                )
-            },
-        )
+        if (state.settings.responseLayout == ResponseLayout.BOTTOM) {
+            VerticalSplitPane(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                splitFraction = splitFraction,
+                onSplitChanged = { splitFraction = it },
+                first = {
+                    WebSocketLeftPane(
+                        tab = tab,
+                        state = state,
+                        markDirty = markDirty,
+                        onSend = { sendWebSocketMessage(scope, state, tab) },
+                    )
+                },
+                second = {
+                    WebSocketTimelinePane(
+                        messages = tab.webSocketLogMessages,
+                        onClear = { tab.webSocketLogMessages.clear() },
+                    )
+                },
+            )
+        } else {
+            HorizontalSplitPane(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                splitFraction = splitFraction,
+                onSplitChanged = { splitFraction = it },
+                hairline = true,
+                first = {
+                    WebSocketLeftPane(
+                        tab = tab,
+                        state = state,
+                        markDirty = markDirty,
+                        onSend = { sendWebSocketMessage(scope, state, tab) },
+                    )
+                },
+                second = {
+                    WebSocketTimelinePane(
+                        messages = tab.webSocketLogMessages,
+                        onClear = { tab.webSocketLogMessages.clear() },
+                    )
+                },
+            )
+        }
     }
 }
 

@@ -1,5 +1,6 @@
 package io.github.makeforge.clapi.ui.shared.components
 
+import io.github.makeforge.clapi.core.network.VariableResolver
 import io.github.makeforge.clapi.ui.shared.components.variable.VariableDropdownList as VariableDropdownListImpl
 import io.github.makeforge.clapi.ui.shared.components.variable.VariableEditorPopup as VariableEditorPopupImpl
 import io.github.makeforge.clapi.ui.shared.components.variable.VariableSourceInfo
@@ -304,6 +305,10 @@ fun VariableAwareTextField(
                     if (effectiveAuthType == AuthType.OAUTH2) {
                         set.add("_auth.oauth2.accessToken")
                     }
+                    VariableResolver.dynamicVariables.forEach { dv ->
+                        set.add(dv.name)
+                        set.add(dv.name.removePrefix("$"))
+                    }
                     set
                 } else {
                     mutableSetOf()
@@ -598,52 +603,63 @@ private fun KeyEvent.isUndoEvent(): Boolean =
  * formatted as `_secret.<name>` ordered alphabetically.
  */
 fun getAvailableVariables(state: AppState?, tab: RequestTabState?): List<Pair<String, String>> {
-    if (state == null) return emptyList()
-    val layers = state.activeVariableLayers(tab)
-    val regularMap = linkedMapOf<String, String>()
-    for (layer in layers) {
-        for ((k, v) in layer) {
-            if (k.isNotBlank() && !regularMap.containsKey(k)) {
-                regularMap[k] = v
-            }
-        }
-    }
-    val regularVars = regularMap.entries.map { it.key to it.value }.sortedBy { it.first }
-
-    val secretMap = linkedMapOf<String, String>()
-    val env = state.selectedEnvironment
-    if (env != null) {
-        for (secret in env.externalSecrets) {
-            if (secret.enabled && secret.name.isNotBlank()) {
-                val secretKey = "_secret.${secret.name.trim()}"
-                if (!secretMap.containsKey(secretKey)) {
-                    val detail = when {
-                        secret.path.isNotBlank() && secret.url.isNotBlank() -> "${secret.url.trim()}/${secret.path.trim()}"
-                        secret.path.isNotBlank() -> secret.path.trim()
-                        else -> secret.url.trim()
-                    }
-                    secretMap[secretKey] = detail
+    val regularVars = if (state != null) {
+        val layers = state.activeVariableLayers(tab)
+        val regularMap = linkedMapOf<String, String>()
+        for (layer in layers) {
+            for ((k, v) in layer) {
+                if (k.isNotBlank() && !regularMap.containsKey(k)) {
+                    regularMap[k] = v
                 }
             }
         }
+        regularMap.entries.map { it.key to it.value }.sortedBy { it.first }
+    } else {
+        emptyList()
     }
-    val secretVars = secretMap.entries.map { it.key to it.value }.sortedBy { it.first }
+
+    val secretVars = if (state != null) {
+        val secretMap = linkedMapOf<String, String>()
+        val env = state.selectedEnvironment
+        if (env != null) {
+            for (secret in env.externalSecrets) {
+                if (secret.enabled && secret.name.isNotBlank()) {
+                    val secretKey = "_secret.${secret.name.trim()}"
+                    if (!secretMap.containsKey(secretKey)) {
+                        val detail = when {
+                            secret.path.isNotBlank() && secret.url.isNotBlank() -> "${secret.url.trim()}/${secret.path.trim()}"
+                            secret.path.isNotBlank() -> secret.path.trim()
+                            else -> secret.url.trim()
+                        }
+                        secretMap[secretKey] = detail
+                    }
+                }
+            }
+        }
+        secretMap.entries.map { it.key to it.value }.sortedBy { it.first }
+    } else {
+        emptyList()
+    }
 
     val authVars = mutableListOf<Pair<String, String>>()
-    val effectiveAuthType = if (tab != null) {
-        if (tab.authType == AuthType.INHERIT) {
-            state.resolveInheritedAuth(tab)?.authType ?: AuthType.NONE
+    if (state != null) {
+        val effectiveAuthType = if (tab != null) {
+            if (tab.authType == AuthType.INHERIT) {
+                state.resolveInheritedAuth(tab)?.authType ?: AuthType.NONE
+            } else {
+                tab.authType
+            }
         } else {
-            tab.authType
+            AuthType.NONE
         }
-    } else {
-        AuthType.NONE
-    }
-    if (effectiveAuthType == AuthType.OAUTH2) {
-        authVars.add("_auth.oauth2.accessToken" to "OAuth2 Access Token")
+        if (effectiveAuthType == AuthType.OAUTH2) {
+            authVars.add("_auth.oauth2.accessToken" to "OAuth2 Access Token")
+        }
     }
 
-    return regularVars + secretVars + authVars
+    val dynamicVars = VariableResolver.dynamicVariables.map { it.name to it.description }
+
+    return regularVars + secretVars + authVars + dynamicVars
 }
 
 @Composable
