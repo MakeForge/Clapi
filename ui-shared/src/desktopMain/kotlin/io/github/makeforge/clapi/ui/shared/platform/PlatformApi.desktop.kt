@@ -409,7 +409,7 @@ private var lastClickTargetId: String? = null
 private var lastClickTimestampMs: Long = 0L
 private const val DOUBLE_CLICK_TIMEOUT_MS = 400L
 
-fun resetPointerDoubleClickState() {
+actual fun resetPointerDoubleClickState() {
     lastClickTargetId = null
     lastClickTimestampMs = 0L
 }

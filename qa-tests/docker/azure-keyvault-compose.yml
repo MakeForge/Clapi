@@ -24,10 +24,10 @@ services:
       - /bin/sh
       - -c
       - |
-        echo "Creating vault in Lowkey Vault..."
-        curl -k -f -s -X POST "https://azure-keyvault:8443/management/vault" \
+        echo "Ensuring vault exists in Lowkey Vault..."
+        curl -k -s -X POST "https://azure-keyvault:8443/management/vault" \
           -H "Content-Type: application/json" \
-          -d '{"baseUri": "https://localhost:8443", "recoveryLevel": "Purgeable"}'
+          -d '{"baseUri": "https://localhost:8443", "recoveryLevel": "Purgeable"}' || true
 
         echo "Seeding JSON secret..."
         curl -k -f -s -X PUT "https://azure-keyvault:8443/secrets/payment-foo?api-version=7.4" \

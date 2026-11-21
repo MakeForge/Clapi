@@ -47,12 +47,14 @@ import io.ktor.client.plugins.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -141,7 +143,7 @@ class McpClient(
         try {
             val created = createTransport(config)
             transport = created
-            inboundJob = workerScope.launch { created.incoming.collect { routeInbound(it) } }
+            startInboundCollector(created)
             created.start()
             val result = handshake(created)
             created.onHandshakeComplete()
@@ -325,13 +327,27 @@ class McpClient(
             runCatching { active.close() }
             val legacy = LegacyHttpSseTransport(httpClient, config.copy(url = config.url), workerScope)
             transport = legacy
+            startInboundCollector(legacy)
             legacy.start()
-            inboundJob = workerScope.launch { legacy.incoming.collect { routeInbound(it) } }
             request("initialize", encodeParams(params))
         }
         transport?.protocolVersion = result.protocolVersion.ifBlank { MCP_PROTOCOL_VERSION }
         notify("notifications/initialized", null)
         return result
+    }
+
+    /**
+     * Subscribes to [target.incoming] before any traffic is sent or received so fast responses
+     * cannot be dropped by a zero-replay [SharedFlow] before the collector attaches.
+     */
+    private suspend fun startInboundCollector(target: McpTransport) {
+        val subscribed = CompletableDeferred<Unit>()
+        inboundJob = workerScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            target.incoming
+                .onSubscription { subscribed.complete(Unit) }
+                .collect { routeInbound(it) }
+        }
+        subscribed.await()
     }
 
     private suspend fun createTransport(cfg: McpConnectionConfig): McpTransport {

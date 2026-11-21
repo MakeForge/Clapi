@@ -1,6 +1,10 @@
 package io.github.makeforge.clapi.ui.desktop
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -228,6 +232,11 @@ class TabDragDropUiTest {
         composeRule.onNodeWithTag("tab-ctx-close").assertExists()
     }
 
+    private fun tabUnclippedCenterX(tabId: String): Float {
+        val node = composeRule.onNodeWithTag("tab-chip-$tabId").fetchSemanticsNode()
+        return node.positionInRoot.x + node.size.width / 2f
+    }
+
     private fun createFiveTabsState(): AppState = AppState().apply {
         openTabs[0].name = "Tab 0"
         addTab(name = "Tab 1", method = HttpMethodType.POST)
@@ -244,12 +253,12 @@ class TabDragDropUiTest {
         composeRule.waitForIdle()
 
         // Drag t0 (index 0) 1 to the right across t1
-        val t0Center = composeRule.onNodeWithTag("tab-chip-$t0").fetchSemanticsNode().boundsInRoot.center
-        val t1Center = composeRule.onNodeWithTag("tab-chip-$t1").fetchSemanticsNode().boundsInRoot.center
+        val t0CenterX = tabUnclippedCenterX(t0)
+        val t1CenterX = tabUnclippedCenterX(t1)
         composeRule.onNodeWithTag("tab-chip-$t0").performMouseInput {
             moveTo(center)
             press()
-            moveBy(Offset(t1Center.x - t0Center.x + 20f, 0f))
+            moveBy(Offset(t1CenterX - t0CenterX + 20f, 0f))
             release()
         }
         composeRule.waitForIdle()
@@ -265,12 +274,12 @@ class TabDragDropUiTest {
         composeRule.waitForIdle()
 
         // Drag t0 (index 0) all the way to the other end (past t4)
-        val t0Center = composeRule.onNodeWithTag("tab-chip-$t0").fetchSemanticsNode().boundsInRoot.center
-        val t4Center = composeRule.onNodeWithTag("tab-chip-$t4").fetchSemanticsNode().boundsInRoot.center
+        val t0CenterX = tabUnclippedCenterX(t0)
+        val t4CenterX = tabUnclippedCenterX(t4)
         composeRule.onNodeWithTag("tab-chip-$t0").performMouseInput {
             moveTo(center)
             press()
-            moveBy(Offset(t4Center.x - t0Center.x + 50f, 0f))
+            moveBy(Offset(t4CenterX - t0CenterX + 50f, 0f))
             release()
         }
         composeRule.waitForIdle()
@@ -286,12 +295,12 @@ class TabDragDropUiTest {
         composeRule.waitForIdle()
 
         // Drag t4 (index 4) 1 to the left across t3
-        val t4Center = composeRule.onNodeWithTag("tab-chip-$t4").fetchSemanticsNode().boundsInRoot.center
-        val t3Center = composeRule.onNodeWithTag("tab-chip-$t3").fetchSemanticsNode().boundsInRoot.center
+        val t4CenterX = tabUnclippedCenterX(t4)
+        val t3CenterX = tabUnclippedCenterX(t3)
         composeRule.onNodeWithTag("tab-chip-$t4").performMouseInput {
             moveTo(center)
             press()
-            moveBy(Offset(t3Center.x - t4Center.x - 20f, 0f))
+            moveBy(Offset(t3CenterX - t4CenterX - 20f, 0f))
             release()
         }
         composeRule.waitForIdle()
@@ -307,12 +316,12 @@ class TabDragDropUiTest {
         composeRule.waitForIdle()
 
         // Drag t4 (index 4) all the way to the other end (past t0)
-        val t4Center = composeRule.onNodeWithTag("tab-chip-$t4").fetchSemanticsNode().boundsInRoot.center
-        val t0Center = composeRule.onNodeWithTag("tab-chip-$t0").fetchSemanticsNode().boundsInRoot.center
+        val t4CenterX = tabUnclippedCenterX(t4)
+        val t0CenterX = tabUnclippedCenterX(t0)
         composeRule.onNodeWithTag("tab-chip-$t4").performMouseInput {
             moveTo(center)
             press()
-            moveBy(Offset(t0Center.x - t4Center.x - 50f, 0f))
+            moveBy(Offset(t0CenterX - t4CenterX - 50f, 0f))
             release()
         }
         composeRule.waitForIdle()
@@ -328,12 +337,12 @@ class TabDragDropUiTest {
         composeRule.waitForIdle()
 
         // Drag t2 (index 2) 1 to the left across t1
-        val t2Center = composeRule.onNodeWithTag("tab-chip-$t2").fetchSemanticsNode().boundsInRoot.center
-        val t1Center = composeRule.onNodeWithTag("tab-chip-$t1").fetchSemanticsNode().boundsInRoot.center
+        val t2CenterX = tabUnclippedCenterX(t2)
+        val t1CenterX = tabUnclippedCenterX(t1)
         composeRule.onNodeWithTag("tab-chip-$t2").performMouseInput {
             moveTo(center)
             press()
-            moveBy(Offset(t1Center.x - t2Center.x - 20f, 0f))
+            moveBy(Offset(t1CenterX - t2CenterX - 20f, 0f))
             release()
         }
         composeRule.waitForIdle()
@@ -349,12 +358,12 @@ class TabDragDropUiTest {
         composeRule.waitForIdle()
 
         // Drag t2 (index 2) 1 to the right across t3
-        val t2Center = composeRule.onNodeWithTag("tab-chip-$t2").fetchSemanticsNode().boundsInRoot.center
-        val t3Center = composeRule.onNodeWithTag("tab-chip-$t3").fetchSemanticsNode().boundsInRoot.center
+        val t2CenterX = tabUnclippedCenterX(t2)
+        val t3CenterX = tabUnclippedCenterX(t3)
         composeRule.onNodeWithTag("tab-chip-$t2").performMouseInput {
             moveTo(center)
             press()
-            moveBy(Offset(t3Center.x - t2Center.x + 20f, 0f))
+            moveBy(Offset(t3CenterX - t2CenterX + 20f, 0f))
             release()
         }
         composeRule.waitForIdle()
@@ -370,12 +379,12 @@ class TabDragDropUiTest {
         composeRule.waitForIdle()
 
         // Drag t3 (index 3) 2 to the left past t1
-        val t3Center = composeRule.onNodeWithTag("tab-chip-$t3").fetchSemanticsNode().boundsInRoot.center
-        val t1Center = composeRule.onNodeWithTag("tab-chip-$t1").fetchSemanticsNode().boundsInRoot.center
+        val t3CenterX = tabUnclippedCenterX(t3)
+        val t1CenterX = tabUnclippedCenterX(t1)
         composeRule.onNodeWithTag("tab-chip-$t3").performMouseInput {
             moveTo(center)
             press()
-            moveBy(Offset(t1Center.x - t3Center.x - 20f, 0f))
+            moveBy(Offset(t1CenterX - t3CenterX - 20f, 0f))
             release()
         }
         composeRule.waitForIdle()
@@ -391,12 +400,12 @@ class TabDragDropUiTest {
         composeRule.waitForIdle()
 
         // Drag t1 (index 1) 2 to the right past t3
-        val t1Center = composeRule.onNodeWithTag("tab-chip-$t1").fetchSemanticsNode().boundsInRoot.center
-        val t3Center = composeRule.onNodeWithTag("tab-chip-$t3").fetchSemanticsNode().boundsInRoot.center
+        val t1CenterX = tabUnclippedCenterX(t1)
+        val t3CenterX = tabUnclippedCenterX(t3)
         composeRule.onNodeWithTag("tab-chip-$t1").performMouseInput {
             moveTo(center)
             press()
-            moveBy(Offset(t3Center.x - t1Center.x + 20f, 0f))
+            moveBy(Offset(t3CenterX - t1CenterX + 20f, 0f))
             release()
         }
         composeRule.waitForIdle()
@@ -417,9 +426,9 @@ class TabDragDropUiTest {
         composeRule.waitForIdle()
 
         fun dragTabTo(sourceId: String, targetId: String, extraDelta: Float = 0f) {
-            val sourceCenter = composeRule.onNodeWithTag("tab-chip-$sourceId").fetchSemanticsNode().boundsInRoot.center
-            val targetCenter = composeRule.onNodeWithTag("tab-chip-$targetId").fetchSemanticsNode().boundsInRoot.center
-            val deltaX = targetCenter.x - sourceCenter.x
+            val sourceCenterX = tabUnclippedCenterX(sourceId)
+            val targetCenterX = tabUnclippedCenterX(targetId)
+            val deltaX = targetCenterX - sourceCenterX
             val extra = if (extraDelta != 0f) extraDelta else if (deltaX > 0) 15f else -15f
             composeRule.onNodeWithTag("tab-chip-$sourceId").performMouseInput {
                 moveTo(center)
@@ -461,5 +470,49 @@ class TabDragDropUiTest {
         // 8. Drag 2nd tab 2 to the right (2nd is t0 at index 1, drag to t3 at index 3)
         dragTabTo(t0, t3)
         assertEquals(listOf(t4, t2, t3, t0, t1), state.openTabs.map { it.id })
+    }
+
+    @Test
+    fun scenario10_dragging_first_tab_right_in_overflowing_tab_bar_keeps_leftmost_tab_interactive() {
+        val state = createFiveTabsState()
+        val (t0, t1, t2, t3, t4) = state.openTabs.map { it.id }
+
+        // Force a narrower root width so the 5 tabs overflow horizontally, matching CI font metrics.
+        composeRule.setContent {
+            Box(modifier = Modifier.size(width = 780.dp, height = 600.dp)) {
+                MainScreen(state)
+            }
+        }
+        composeRule.waitForIdle()
+
+        fun dragTabTo(sourceId: String, targetId: String, extraDelta: Float = 0f) {
+            val sourceCenterX = tabUnclippedCenterX(sourceId)
+            val targetCenterX = tabUnclippedCenterX(targetId)
+            val deltaX = targetCenterX - sourceCenterX
+            val extra = if (extraDelta != 0f) extraDelta else if (deltaX > 0) 15f else -15f
+            composeRule.onNodeWithTag("tab-chip-$sourceId").performMouseInput {
+                moveTo(center)
+                press()
+                moveBy(Offset(deltaX + extra, 2f))
+                release()
+            }
+            composeRule.waitForIdle()
+        }
+
+        // Step 1 moves t0 past t1 -> activeTabIndex becomes 1; t1 must remain visible and draggable at index 0.
+        dragTabTo(t0, t1)
+        assertEquals(listOf(t1, t0, t2, t3, t4), state.openTabs.map { it.id })
+
+        // Step 2 drags t1 from index 0 all the way past t4 (even though t4 is clipped off-screen).
+        dragTabTo(t1, t4, extraDelta = 50f)
+        assertEquals(listOf(t0, t2, t3, t4, t1), state.openTabs.map { it.id })
+
+        // Step 3 drags t1 (now scrolled into view at index 4) 1 to the left before t4.
+        dragTabTo(t1, t4)
+        assertEquals(listOf(t0, t2, t3, t1, t4), state.openTabs.map { it.id })
+
+        // Step 4 drags t4 all the way back to index 0 (even though t0 is clipped left).
+        dragTabTo(t4, t0, extraDelta = -50f)
+        assertEquals(listOf(t4, t0, t2, t3, t1), state.openTabs.map { it.id })
     }
 }

@@ -435,7 +435,11 @@ class McpHttpE2ETest {
     @Test
     fun stdio_command_line_splits_and_launches_sample_server() = runBlocking {
         val transport = createStdioTransport(
-            McpConnectionConfig(transport = McpTransportType.STDIO, command = repoMcpStdioLauncher()),
+            McpConnectionConfig(
+                transport = McpTransportType.STDIO,
+                command = repoMcpStdioLauncher(),
+                env = mapOf("JAVA_HOME" to System.getProperty("java.home")),
+            ),
         )
         try {
             val client = McpClient(this, stdioFactory = { transport }, callTimeoutMs = 30_000)

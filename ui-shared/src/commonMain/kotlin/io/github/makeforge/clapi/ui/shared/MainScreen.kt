@@ -81,6 +81,7 @@ import io.github.makeforge.clapi.ui.shared.persistence.SettingsRepository
 import io.github.makeforge.clapi.ui.shared.persistence.TabsRepository
 import io.github.makeforge.clapi.ui.shared.persistence.WorkspaceRepository
 import io.github.makeforge.clapi.ui.shared.platform.ioDispatcher
+import io.github.makeforge.clapi.ui.shared.platform.resetPointerDoubleClickState
 import io.github.makeforge.clapi.ui.shared.shortcuts.AppHotkeys
 import io.github.makeforge.clapi.ui.shared.shortcuts.hotkeys
 import io.github.makeforge.clapi.ui.shared.state.AppAlert
@@ -112,7 +113,11 @@ fun MainScreen(
     var lastActiveTabId by remember(state) { mutableStateOf(state.activeTab?.id) }
 
     DisposableEffect(state) {
-        onDispose { state.dispose() }
+        resetPointerDoubleClickState()
+        onDispose {
+            resetPointerDoubleClickState()
+            state.dispose()
+        }
     }
 
     val forceCloseByIds: (List<String>) -> Unit = { ids ->

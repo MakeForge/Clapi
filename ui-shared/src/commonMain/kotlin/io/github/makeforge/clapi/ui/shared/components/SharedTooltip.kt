@@ -177,9 +177,13 @@ fun IconButtonWithTooltip(
 ) {
     val isHovered by interactionSource.collectIsHoveredAsState()
     var tooltipVisible by remember { mutableStateOf(false) }
+    var dismissedByClick by remember { mutableStateOf(false) }
 
-    LaunchedEffect(isHovered, enabled, tooltip) {
-        if (isHovered && enabled && tooltip.isNotBlank()) {
+    LaunchedEffect(isHovered, enabled, tooltip, dismissedByClick) {
+        if (!isHovered) {
+            dismissedByClick = false
+            tooltipVisible = false
+        } else if (!dismissedByClick && enabled && tooltip.isNotBlank()) {
             delay(delayMillis)
             tooltipVisible = true
         } else {
@@ -190,6 +194,7 @@ fun IconButtonWithTooltip(
     Box {
         IconButton(
             onClick = {
+                dismissedByClick = true
                 tooltipVisible = false
                 onClick()
             },

@@ -102,6 +102,7 @@ import io.github.makeforge.clapi.ui.shared.generated.resources.ic_unfold_less
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_unfold_more
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
 import io.github.makeforge.clapi.ui.shared.platform.isPointerDoubleClick
+import io.github.makeforge.clapi.ui.shared.platform.resetPointerDoubleClickState
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.state.CollectionNode
 import io.github.makeforge.clapi.ui.shared.state.hasSseAccept
@@ -335,7 +336,10 @@ internal fun CollectionTreeNode(
                 .pointerInput(node.id, isRequest, isFolderNode) {
                     when {
                         isRequest -> detectDragGestures(
-                            onDragStart = { onDragStart(node.id) },
+                            onDragStart = {
+                                resetPointerDoubleClickState()
+                                onDragStart(node.id)
+                            },
                             onDragEnd = { onDragEnd() },
                             onDragCancel = { onDragEnd() },
                             onDrag = { change, _ ->
@@ -344,7 +348,10 @@ internal fun CollectionTreeNode(
                             },
                         )
                         isFolderNode -> detectDragGestures(
-                            onDragStart = { onCollectionDragStart(node.id) },
+                            onDragStart = {
+                                resetPointerDoubleClickState()
+                                onCollectionDragStart(node.id)
+                            },
                             onDragEnd = { onCollectionDragEnd() },
                             onDragCancel = { onCollectionDragEnd() },
                             onDrag = { change, _ ->

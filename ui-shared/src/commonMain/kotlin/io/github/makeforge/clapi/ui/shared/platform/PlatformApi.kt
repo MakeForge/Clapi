@@ -164,6 +164,11 @@ expect fun pickDirectory(onResult: (directoryPath: String) -> Unit)
 expect fun isPointerDoubleClick(targetId: String, event: androidx.compose.ui.input.pointer.PointerEvent): Boolean
 
 /**
+ * Resets synthetic pointer double-click tracking state (e.g. on drag start or screen mount/dispose).
+ */
+expect fun resetPointerDoubleClickState()
+
+/**
  * Flag used in Compose unit tests to simulate a double-click when AWT mouse events are not present.
  */
 expect var testDoubleClickActive: Boolean

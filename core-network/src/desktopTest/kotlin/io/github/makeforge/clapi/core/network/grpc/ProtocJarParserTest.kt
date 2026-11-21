@@ -94,7 +94,33 @@ class ProtocJarParserTest {
                 parser.parseProtoFile(tempFile)
             }
             assertTrue(ex.message!!.contains("Failed to compile"))
-            assertNotNull(ex.stderr)
+            val stderr = assertNotNull(ex.stderr)
+            assertTrue(stderr.isNotBlank())
+        } finally {
+            tempFile.delete()
+        }
+    }
+
+    @Test
+    fun `reliably captures protoc stderr across repeated syntax error parses`() = runTest {
+        val tempFile = File.createTempFile("invalid_repeat_test_", ".proto")
+        try {
+            tempFile.writeText(
+                """
+                syntax = "proto3";
+                package broken;
+                service BrokenService {
+                  rpc BadMethod (UndefinedInput) returns (UndefinedOutput)
+                """.trimIndent()
+            )
+
+            repeat(15) { attempt ->
+                val ex = assertFailsWith<ProtoParseException> {
+                    parser.parseProtoFile(tempFile)
+                }
+                val stderr = assertNotNull(ex.stderr, "Expected non-null stderr on attempt ${attempt + 1}")
+                assertTrue(stderr.isNotBlank(), "Expected non-blank stderr on attempt ${attempt + 1}")
+            }
         } finally {
             tempFile.delete()
         }
