@@ -250,7 +250,7 @@ jobs:
 
       # ── 9. Upload per-platform artifacts ──────────────────────────────────────
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: clapi-${{ matrix.platform }}-${{ github.sha }}
           path: ui-desktop/build/distribute/
