@@ -32,6 +32,7 @@ import io.github.makeforge.clapi.mcp.server.backend.TestSuiteResultDto
 import io.github.makeforge.clapi.mcp.server.backend.UpsertEnvironmentInput
 import io.github.makeforge.clapi.mcp.server.backend.UpsertRequestInput
 import io.github.makeforge.clapi.mcp.server.backend.WorkspaceTreeNodeDto
+import io.github.makeforge.clapi.ui.shared.network.NetworkClientFactory
 import io.github.makeforge.clapi.ui.shared.persistence.WorkspaceRepository
 import io.github.makeforge.clapi.ui.shared.persistence.toGlobalOpenCollectionDocument
 import io.github.makeforge.clapi.ui.shared.state.AppState
@@ -62,6 +63,7 @@ class AppStateWorkspaceBackend(
 
     private var cachedDelegate: HeadlessWorkspaceBackend? = null
     private val customApiClient: ApiClient = apiClient
+    private var lastSyncedGlobalDoc: io.github.makeforge.clapi.core.model.opencollection.OpenCollectionDocument? = null
 
     private fun createDelegate(): HeadlessWorkspaceBackend {
         val repo = WorkspaceRepository.canonicalRepository
@@ -70,13 +72,17 @@ class AppStateWorkspaceBackend(
             baseDirectory = baseDir,
             canonicalRepository = repo,
             apiClient = customApiClient,
+            grpcClient = NetworkClientFactory.buildGrpcClient(appState.settings),
             gitRepositoryManager = appState.gitRepositoryManager,
         )
     }
 
     private suspend fun syncFromAppStateToDelegate() {
         val globalDoc = appState.toGlobalOpenCollectionDocument()
-        delegate.canonicalRepository.saveGlobalCollection(globalDoc)
+        if (globalDoc != lastSyncedGlobalDoc) {
+            delegate.canonicalRepository.saveGlobalCollection(globalDoc)
+            lastSyncedGlobalDoc = globalDoc
+        }
         val activeEnvName = appState.environments.getOrNull(appState.selectedEnvIndex)?.name
         if (activeEnvName != null) {
             runCatching { delegate.setActiveEnvironment(activeEnvName) }
@@ -153,6 +159,7 @@ class AppStateWorkspaceBackend(
 
         appState.notifyCollectionsChanged()
         WorkspaceRepository.save(appState)
+        lastSyncedGlobalDoc = appState.toGlobalOpenCollectionDocument()
     }
 
     override suspend fun listTree(

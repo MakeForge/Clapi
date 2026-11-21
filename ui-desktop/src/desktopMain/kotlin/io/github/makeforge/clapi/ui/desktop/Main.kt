@@ -53,6 +53,7 @@ import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
 import io.github.makeforge.clapi.ui.shared.theme.ClapiTheme
 import io.github.vinceglb.filekit.FileKit
 import java.io.File
+import java.util.concurrent.CountDownLatch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -90,6 +91,19 @@ internal fun formatDetachedResponseTitle(activeTabName: String?): String {
     return if (trimmed.isNullOrEmpty()) "Clapi - Response" else "$trimmed - Response - Clapi"
 }
 
+private fun parseMcpPortArg(args: Array<String>): Int {
+    for (i in args.indices) {
+        val arg = args[i]
+        if (arg == "--mcp-port" && i + 1 < args.size) {
+            return args[i + 1].trim().toIntOrNull() ?: 0
+        }
+        if (arg.startsWith("--mcp-port=")) {
+            return arg.removePrefix("--mcp-port=").trim().toIntOrNull() ?: 0
+        }
+    }
+    return 0
+}
+
 /**
  * Starts Clapi, or runs the headless packaged-runtime shutdown smoke test.
  *
@@ -120,6 +134,54 @@ fun main(args: Array<String>) {
     if ("--shutdown-smoke-test" in args) {
         runBlocking {
             AppState(openDefaultTab = false).disposeAndAwait()
+        }
+        return
+    }
+
+    if ("--mcp-http-headless" in args) {
+        val requestedPort = parseMcpPortArg(args)
+        val state = AppState(openDefaultTab = false).also {
+            SettingsRepository.load(it.settings)
+            WorkspaceRepository.load(it)
+            UiLogDispatcher.bind(it.diagnostics)
+        }
+        val started = state.embeddedMcpServerController.start(requestedPort)
+        if (!started) {
+            System.err.println("Failed to start embedded MCP server: ${state.embeddedMcpServerController.lastError}")
+            runBlocking { state.disposeAndAwait() }
+            LogDirectoryConfigurator.shutdown()
+            kotlin.system.exitProcess(1)
+        }
+
+        val shutdownLatch = CountDownLatch(1)
+        val shutdownHook = Thread {
+            shutdownLatch.countDown()
+        }
+        Runtime.getRuntime().addShutdownHook(shutdownHook)
+
+        // Also release on stdin EOF so parent test drivers can trigger clean shutdown cleanly.
+        Thread({
+            runCatching {
+                while (System.`in`.read() != -1) {
+                    // Wait for EOF
+                }
+            }
+            shutdownLatch.countDown()
+        }, "clapi-mcp-headless-stdin-watcher").apply {
+            isDaemon = true
+            start()
+        }
+
+        println("CLAPI_MCP_READY url=${state.embeddedMcpServerController.endpointUrl} pid=${ProcessHandle.current().pid()}")
+        System.out.flush()
+
+        try {
+            shutdownLatch.await()
+        } finally {
+            runCatching { Runtime.getRuntime().removeShutdownHook(shutdownHook) }
+            UiLogDispatcher.unbind()
+            runBlocking { state.disposeAndAwait() }
+            LogDirectoryConfigurator.shutdown()
         }
         return
     }

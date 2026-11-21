@@ -94,13 +94,13 @@ class ResponseSnapshotCache(
                 )
             }
 
-            val bodyBytes = snapshot.sanitizedBodyText.encodeToByteArray()
-            val totalBytes = bodyBytes.size.toLong()
-            val truncated = bodyBytes.size > budget
+            val bodyText = snapshot.sanitizedBodyText
+            val totalBytes = utf8ByteLength(bodyText)
+            val truncated = totalBytes > budget
             val preview = if (truncated) {
-                bodyBytes.decodeToString(0, budget)
+                takeUtf8Prefix(bodyText, budget)
             } else {
-                snapshot.sanitizedBodyText
+                bodyText
             }
             val hint = if (truncated) {
                 "Response body truncated to $budget of $totalBytes bytes. Use clapi_inspect_response with requestId='${snapshot.requestId}', jsonPath, or byteOffset/length to inspect further."
@@ -127,6 +127,67 @@ class ResponseSnapshotCache(
                 _totalBytes = totalBytes,
                 _hint = hint,
             )
+        }
+
+        private fun utf8ByteLength(s: String): Long {
+            var bytes = 0L
+            var i = 0
+            val len = s.length
+            while (i < len) {
+                val c = s[i].code
+                when {
+                    c < 0x80 -> {
+                        bytes += 1
+                        i += 1
+                    }
+                    c < 0x800 -> {
+                        bytes += 2
+                        i += 1
+                    }
+                    c in 0xD800..0xDBFF && i + 1 < len && s[i + 1].code in 0xDC00..0xDFFF -> {
+                        bytes += 4
+                        i += 2
+                    }
+                    else -> {
+                        bytes += 3
+                        i += 1
+                    }
+                }
+            }
+            return bytes
+        }
+
+        private fun takeUtf8Prefix(s: String, maxBytes: Int): String {
+            var bytes = 0
+            var i = 0
+            val len = s.length
+            while (i < len) {
+                val c = s[i].code
+                val charBytes: Int
+                val charStep: Int
+                when {
+                    c < 0x80 -> {
+                        charBytes = 1
+                        charStep = 1
+                    }
+                    c < 0x800 -> {
+                        charBytes = 2
+                        charStep = 1
+                    }
+                    c in 0xD800..0xDBFF && i + 1 < len && s[i + 1].code in 0xDC00..0xDFFF -> {
+                        charBytes = 4
+                        charStep = 2
+                    }
+                    else -> {
+                        charBytes = 3
+                        charStep = 1
+                    }
+                }
+                if (bytes + charBytes > maxBytes) break
+                bytes += charBytes
+                i += charStep
+            }
+            return s.substring(0, i)
         }
     }
 }

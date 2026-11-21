@@ -3,11 +3,13 @@ title: Migrating to Clapi
 description: Import your existing work from other tools into Clapi.
 ---
 
-## Migrating from Postman or Insomnia
+# Migrating from Postman or Insomnia
 
 <p class="badges">
   <span class="badge badge-protocol">Tutorial</span>
 </p>
+
+---
 
 Already have API collections in **Postman** or **Insomnia**, or an **OpenAPI Schema**? You can import them into Clapi in seconds:
 

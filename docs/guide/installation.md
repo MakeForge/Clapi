@@ -65,12 +65,6 @@ cd Clapi
 2. Open the `.dmg` file and drag **Clapi** into your `/Applications` directory.
 3. Launch Clapi from Spotlight (`⌘ + Space`) or Finder.
 
-::: tip Homebrew (Coming Soon)
-```bash
-brew install --cask clapi
-```
-:::
-
 ## Standalone Fat JAR (Universal)
 
 If you prefer running via a system JVM (JDK 17 or JDK 21+):
@@ -79,7 +73,3 @@ If you prefer running via a system JVM (JDK 17 or JDK 21+):
 # Download Clapi-<version>.jar and run directly
 java -jar Clapi-<version>.jar
 ```
-
-::: tip Verified JREs
-Tested and optimized on **Eclipse Temurin JDK 21**.
-:::
