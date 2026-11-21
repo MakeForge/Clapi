@@ -10,6 +10,7 @@ import io.github.crustack.clapi.ui.shared.state.FormDataEntryState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -282,7 +283,7 @@ class ImportExportFormDataTest {
     }
 
     @Test
-    fun folderRequestDefaults_roundtrip_preserves_headers_params_auth_and_scripts() {
+    fun folderRequestDefaults_roundtrip_preserves_headers_variables_auth_and_scripts() {
         val folderNode = CollectionNode(
             id = "folder-defaults-1",
             name = "Folder With Defaults",
@@ -291,8 +292,9 @@ class ImportExportFormDataTest {
                 KeyValueEntry("X-Folder-Api", "v1.2", enabled = true),
                 KeyValueEntry("X-Disabled", "off", enabled = false),
             ),
-            queryEntries = listOf(
-                KeyValueEntry("locale", "en-US", enabled = true),
+            variableEntries = listOf(
+                KeyValueEntry("baseUrl", "https://api.example.com", enabled = true),
+                KeyValueEntry("apiKey", "secret-key-123", enabled = true),
             ),
             authType = io.github.crustack.clapi.core.model.AuthType.BEARER,
             authToken = "folder-bearer-secret",
@@ -329,10 +331,14 @@ class ImportExportFormDataTest {
         assertEquals("off", disabledHeader?.value)
         assertEquals(false, disabledHeader?.enabled)
 
-        assertNotNull(importedFolder.queryEntries)
-        assertEquals(1, importedFolder.queryEntries?.size)
-        assertEquals("locale", importedFolder.queryEntries?.first()?.key)
-        assertEquals("en-US", importedFolder.queryEntries?.first()?.value)
+        assertNull(importedFolder.queryEntries)
+        assertNotNull(importedFolder.variableEntries)
+        assertEquals(2, importedFolder.variableEntries?.size)
+        assertEquals("baseUrl", importedFolder.variableEntries?.first()?.key)
+        assertEquals("https://api.example.com", importedFolder.variableEntries?.first()?.value)
+        assertEquals(true, importedFolder.variableEntries?.first()?.enabled)
+        assertEquals("apiKey", importedFolder.variableEntries?.last()?.key)
+        assertEquals("secret-key-123", importedFolder.variableEntries?.last()?.value)
 
         assertEquals(io.github.crustack.clapi.core.model.AuthType.BEARER, importedFolder.authType)
         assertEquals("folder-bearer-secret", importedFolder.authToken)

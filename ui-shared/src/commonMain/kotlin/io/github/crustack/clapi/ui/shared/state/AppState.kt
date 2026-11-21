@@ -38,7 +38,8 @@ import io.github.crustack.clapi.ui.shared.i18n.AppLanguage
 
 enum class RequestEditorTab(val label: String) {
     PARAMS("Params"), HEADERS("Headers"), BODY("Body"),
-    AUTH("Auth"), PRE_REQUEST("Pre-request"), TESTS("Post-request")
+    AUTH("Auth"), PRE_REQUEST("Pre-request"), TESTS("Post-request"),
+    VARIABLES("Variables")
 }
 
 enum class ResponseTab(val label: String) {
@@ -130,6 +131,7 @@ data class CollectionNode(
     val requestRef: String? = null,
     val kind: RequestKind = RequestKind.HTTP,
     val mcpConfig: McpConnectionConfig? = null,
+    val variableEntries: List<KeyValueEntry>? = null,
 )
 
 /**
@@ -323,6 +325,7 @@ class RequestTabState(
     var selectedEditorTab by mutableStateOf(RequestEditorTab.PARAMS)
 
     val params  = mutableStateListOf<MutableKeyValue>()
+    val variables = mutableStateListOf<MutableKeyValue>()
     val headers = mutableStateListOf(
         MutableKeyValue(SystemHeaderRules.CONTENT_TYPE, "application/json", kind = HeaderKind.SYSTEM, keyLocked = true),
         MutableKeyValue(SystemHeaderRules.ACCEPT, "application/json", kind = HeaderKind.SYSTEM, keyLocked = true),
@@ -439,6 +442,7 @@ class RequestTabState(
     init {
         if (kind == RequestKind.FOLDER) {
             headers.clear()
+            selectedEditorTab = RequestEditorTab.VARIABLES
         }
         savedSnapshot = currentSnapshotForDirtyTracking()
     }
@@ -449,6 +453,9 @@ class RequestTabState(
         val paramsSnapshot = params
             .filter { it.kind != HeaderKind.INHERITED }
             .joinToString(";") { p -> "${p.key}|${p.value}|${p.enabled}|${p.secret}" }
+        val variablesSnapshot = variables
+            .filter { it.kind != HeaderKind.INHERITED }
+            .joinToString(";") { v -> "${v.key}|${v.value}|${v.enabled}|${v.secret}" }
         val headersSnapshot = headers
             .filter { it.kind != HeaderKind.INHERITED }
             .joinToString(";") { h -> "${h.key}|${h.value}|${h.enabled}|${h.secret}|${h.kind}|${h.keyLocked}" }
@@ -477,6 +484,7 @@ class RequestTabState(
             retryCount.toString(),
             retryDelayMs.toString(),
             paramsSnapshot,
+            variablesSnapshot,
             headersSnapshot,
             formRowsSnapshot,
             urlencodedRowsSnapshot,
@@ -566,6 +574,7 @@ class RequestTabState(
             .sortedBy { it.key.name }
             .joinToString(";") { "${it.key.name}:${it.value.length}" }
         val paramsCount = params.size
+        val variablesCount = variables.size
         val headersCount = headers.size
         val formCount = formRows.size
         val urlEncodedCount = urlencodedRows.size
@@ -582,6 +591,7 @@ class RequestTabState(
             retryCount.toString(),
             retryDelayMs.toString(),
             paramsCount.toString(),
+            variablesCount.toString(),
             headersCount.toString(),
             formCount.toString(),
             urlEncodedCount.toString(),
@@ -852,15 +862,50 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
 
     /**
      * Variable layers for the active environment (used in request variable resolution).
-        * Resolution priority (first match wins): Environment → Collection → Global.
-        * Environment variables override collection and global variables.
+     * Resolution priority (first match wins): Environment → Folder (leaf-to-root) → Collection → Global.
+     * Environment variables override folder, collection, and global variables.
      */
-    fun activeVariableLayers(): List<Map<String, String>> =
-        listOf(
-            selectedEnvironment?.toVariableMap().orEmpty(),
-            collectionVariables.toMap(),
-            globalVariables.filter { it.enabled }.associate { it.key to it.value },
-        )
+    fun activeVariableLayers(tab: RequestTabState? = activeTab): List<Map<String, String>> {
+        val layers = mutableListOf<Map<String, String>>()
+        layers.add(selectedEnvironment?.toVariableMap().orEmpty())
+
+        if (tab != null) {
+            val ancestors = getAncestorFolders(tab).asReversed()
+            for (folder in ancestors) {
+                val openFolderTab = openTabs.firstOrNull { it.id == folder.id && it.isFolderTab }
+                val fVars = if (openFolderTab != null) {
+                    openFolderTab.variables
+                        .filter { it.enabled && it.key.isNotBlank() }
+                        .associate { it.key to it.value }
+                } else {
+                    folder.variableEntries
+                        ?.filter { it.enabled && it.key.isNotBlank() }
+                        ?.associate { it.key to it.value }
+                        .orEmpty()
+                }
+                if (fVars.isNotEmpty()) {
+                    layers.add(fVars)
+                }
+            }
+            if (tab.isFolderTab) {
+                val tabVars = tab.variables
+                    .filter { it.enabled && it.key.isNotBlank() }
+                    .associate { it.key to it.value }
+                if (tabVars.isNotEmpty()) {
+                    layers.add(tabVars)
+                }
+            }
+        }
+
+        if (collectionVariables.isNotEmpty()) {
+            layers.add(collectionVariables.toMap())
+        }
+        val globals = globalVariables.filter { it.enabled }.associate { it.key to it.value }
+        if (globals.isNotEmpty()) {
+            layers.add(globals)
+        }
+        return layers
+    }
 
     /**
      * Merges variables set by a pre-request or post-request script into the active environment.
@@ -1063,10 +1108,11 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
             collectionId = cId,
             folderPath = pathWithoutNode,
         )
+        tab.selectedEditorTab = RequestEditorTab.VARIABLES
 
-        folderNode.queryEntries?.let { entries ->
-            tab.params.clear()
-            tab.params.addAll(entries.map { MutableKeyValue(it.key, it.value, it.enabled, it.secret) })
+        folderNode.variableEntries?.let { entries ->
+            tab.variables.clear()
+            tab.variables.addAll(entries.map { MutableKeyValue(it.key, it.value, it.enabled, it.secret) })
         }
         folderNode.headerEntries?.let { entries ->
             tab.headers.clear()
@@ -1195,33 +1241,8 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
             }
         }
 
-        // 2. Cascade query parameters (root-to-leaf: closer ancestor overrides distant ancestor)
-        val resolvedParams = mutableMapOf<String, KeyValueEntry>()
-        for (folder in ancestors) {
-            val entries = folder.queryEntries ?: emptyList()
-            for (entry in entries) {
-                if (entry.enabled && entry.key.isNotBlank()) {
-                    resolvedParams[entry.key.lowercase()] = entry
-                }
-            }
-        }
-
+        // Folder settings no longer define query parameters; ensure inherited query params are cleared.
         tab.params.removeAll { it.kind == HeaderKind.INHERITED }
-
-        for (entry in resolvedParams.values) {
-            val alreadyExists = tab.params.any { it.key.equals(entry.key, ignoreCase = true) }
-            if (!alreadyExists) {
-                tab.params.add(
-                    MutableKeyValue(
-                        key = entry.key,
-                        value = entry.value,
-                        enabled = true,
-                        kind = HeaderKind.INHERITED,
-                        keyLocked = true,
-                    )
-                )
-            }
-        }
     }
 
     fun refreshInheritedDefaultsForOpenTabs() {
@@ -1939,7 +1960,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         nodes.indices.forEach { index ->
             val node = nodes[index]
             if (node.isFolder && node.id == tab.id) {
-                val queryEntriesSnapshot = tab.params
+                val variableEntriesSnapshot = tab.variables
                     .filter { it.kind != HeaderKind.INHERITED }
                     .map { KeyValueEntry(it.key, it.value, it.enabled, it.secret) }
                 val headerEntriesSnapshot = tab.headers
@@ -1950,7 +1971,8 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                     .map { it.key to it.value }
                 nodes[index] = node.copy(
                     name = tab.name,
-                    queryEntries = queryEntriesSnapshot,
+                    variableEntries = variableEntriesSnapshot,
+                    queryEntries = null,
                     headerEntries = headerEntriesSnapshot,
                     userHeaders = userHeadersSnapshot,
                     authType = tab.authType.takeIf { it != AuthType.NONE },

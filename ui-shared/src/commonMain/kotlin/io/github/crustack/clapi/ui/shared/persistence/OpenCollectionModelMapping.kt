@@ -65,18 +65,6 @@ private fun collectClapiMetadata(
 ) {
     if (node.isFolder) {
         val folderMeta = mutableMapOf<String, JsonElement>()
-        if (node.queryEntries != null) {
-            folderMeta["queryEntries"] = buildJsonArray {
-                node.queryEntries.forEach { entry ->
-                    add(buildJsonObject {
-                        put("key", entry.key)
-                        put("value", entry.value)
-                        put("enabled", entry.enabled)
-                        put("secret", entry.secret)
-                    })
-                }
-            }
-        }
         if (node.authApiPlacement != null) {
             folderMeta["authApiPlacement"] = JsonPrimitive(node.authApiPlacement)
         }
@@ -339,10 +327,18 @@ internal fun CollectionNode.toRequestDefaults(): RequestDefaults? {
     if (!testScript.isNullOrBlank()) {
         scripts.add(Script(type = "after-response", code = testScript))
     }
-    return if (effectiveHeaders.isNotEmpty() || authConfig != null || scripts.isNotEmpty()) {
+    val vars = (variableEntries ?: emptyList()).filter { it.key.isNotBlank() }.map {
+        RegularVariable(
+            name = it.key,
+            value = VariableValue.of(it.value),
+            disabled = if (it.enabled) null else true,
+        )
+    }
+    return if (effectiveHeaders.isNotEmpty() || authConfig != null || scripts.isNotEmpty() || vars.isNotEmpty()) {
         RequestDefaults(
             headers = effectiveHeaders,
             auth = authConfig,
+            variables = vars,
             scripts = scripts,
         )
     } else {
@@ -357,18 +353,6 @@ fun CollectionNode.toOpenCollectionItem(): OpenCollectionItem {
         val clapiFields = mutableMapOf<String, JsonElement>()
         if (authType == AuthType.JWT) {
             clapiFields["authType"] = JsonPrimitive("jwt")
-        }
-        if (!queryEntries.isNullOrEmpty()) {
-            clapiFields["queryEntries"] = buildJsonArray {
-                queryEntries.forEach { e ->
-                    add(buildJsonObject {
-                        put("key", e.key)
-                        put("value", e.value)
-                        put("enabled", e.enabled)
-                        put("secret", e.secret)
-                    })
-                }
-            }
         }
         if (clapiFields.isNotEmpty()) {
             ext["clapi"] = JsonObject(clapiFields)
@@ -555,20 +539,26 @@ fun OpenCollectionItem.toCollectionNode(
                 ?: clapiRequests?.get(info.name) as? JsonObject
                 ?: clapiRequests?.get(folderId) as? JsonObject
 
-            var queryParams: List<KeyValueEntry>? = null
             if (meta != null) {
-                meta["queryEntries"]?.jsonArray?.let { arr ->
-                    queryParams = arr.mapNotNull { it as? JsonObject }.map { entryObj ->
-                        KeyValueEntry(
-                            key = entryObj["key"]?.jsonPrimitive?.content ?: "",
-                            value = entryObj["value"]?.jsonPrimitive?.content ?: "",
-                            enabled = entryObj["enabled"]?.jsonPrimitive?.booleanOrNull ?: true,
-                            secret = entryObj["secret"]?.jsonPrimitive?.booleanOrNull ?: false
-                        )
-                    }
-                }
                 meta["authApiPlacement"]?.jsonPrimitive?.contentOrNull?.let {
                     authApiPlacement = it
+                }
+            }
+
+            val folderVariables = req?.variables?.map { v ->
+                when (v) {
+                    is RegularVariable -> KeyValueEntry(
+                        key = v.name,
+                        value = v.value?.asString ?: "",
+                        enabled = v.disabled != true,
+                        secret = false,
+                    )
+                    is SecretVariable -> KeyValueEntry(
+                        key = v.name,
+                        value = "",
+                        enabled = v.disabled != true,
+                        secret = true,
+                    )
                 }
             }
 
@@ -578,7 +568,8 @@ fun OpenCollectionItem.toCollectionNode(
                 isFolder = true,
                 headerEntries = headers,
                 userHeaders = userHeaders,
-                queryEntries = queryParams,
+                variableEntries = folderVariables,
+                queryEntries = null,
                 authType = authType,
                 authUsername = authUsername,
                 authPassword = authPassword,

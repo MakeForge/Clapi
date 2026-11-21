@@ -12,6 +12,7 @@ import io.github.crustack.clapi.ui.shared.components.enabledHeadersForSend
 import io.github.crustack.clapi.ui.shared.components.enabledQueryParamsForSend
 import io.github.crustack.clapi.ui.shared.components.moveRequestToCollection
 import io.github.crustack.clapi.ui.shared.components.prepareTabRequest
+import io.github.crustack.clapi.ui.shared.components.resolveVariableSourceInfo
 import io.github.crustack.clapi.ui.shared.components.sendRequest
 import io.github.crustack.clapi.ui.shared.persistence.ImportExportRepository
 import kotlinx.coroutines.runBlocking
@@ -1297,7 +1298,7 @@ class AppStateCollectionTest {
             name = "Leaf Request",
             isFolder = false,
             method = HttpMethodType.GET,
-            url = "https://api.example.com/items",
+            url = "{{baseUrl}}/{{version}}/items",
         )
 
         val grandchildFolder = CollectionNode(
@@ -1307,7 +1308,7 @@ class AppStateCollectionTest {
             headerEntries = listOf(
                 KeyValueEntry("X-Api-Grandchild", "g1", enabled = true),
             ),
-            queryEntries = listOf(
+            variableEntries = listOf(
                 KeyValueEntry("trace", "true", enabled = true),
             ),
             authType = AuthType.INHERIT,
@@ -1322,7 +1323,7 @@ class AppStateCollectionTest {
                 KeyValueEntry("X-Api-Child", "c1", enabled = true),
                 KeyValueEntry("X-Common", "child-common", enabled = true), // Overrides Root
             ),
-            queryEntries = listOf(
+            variableEntries = listOf(
                 KeyValueEntry("region", "eu-west", enabled = true), // Overrides Root
             ),
             authType = AuthType.INHERIT,
@@ -1337,9 +1338,10 @@ class AppStateCollectionTest {
                 KeyValueEntry("X-Api-Root", "r1", enabled = true),
                 KeyValueEntry("X-Common", "root-common", enabled = true),
             ),
-            queryEntries = listOf(
+            variableEntries = listOf(
                 KeyValueEntry("region", "us-east", enabled = true),
                 KeyValueEntry("version", "v1", enabled = true),
+                KeyValueEntry("baseUrl", "https://api.example.com", enabled = true),
             ),
             authType = AuthType.BASIC,
             authUsername = "root-admin",
@@ -1353,7 +1355,7 @@ class AppStateCollectionTest {
             requestId = "req-leaf-1",
             name = "Leaf Request",
             method = HttpMethodType.GET,
-            url = "https://api.example.com/items",
+            url = "{{baseUrl}}/{{version}}/items",
         )
 
         val tab = state.activeTab
@@ -1372,15 +1374,17 @@ class AppStateCollectionTest {
         assertEquals(4, inheritedHeaders.size)
         assertTrue(inheritedHeaders.all { it.keyLocked })
 
-        // Verify inherited query parameters in tab
-        val paramMap = tab.params.associate { it.key to it.value }
-        assertEquals("v1", paramMap["version"])
-        assertEquals("eu-west", paramMap["region"]) // Child overrides Root
-        assertEquals("true", paramMap["trace"])
-
+        // Folders define variables, NOT query params; verify no query params are inherited into tab.params
         val inheritedParams = tab.params.filter { it.kind == HeaderKind.INHERITED }
-        assertEquals(3, inheritedParams.size)
-        assertTrue(inheritedParams.all { it.keyLocked })
+        assertTrue(inheritedParams.isEmpty(), "Folder settings should not inject inherited query params")
+
+        // Verify folder variables are resolved for the request (e.g. baseUrl, version, region override)
+        val layers = state.activeVariableLayers(tab)
+        val resolvedUrl = io.github.crustack.clapi.core.network.VariableResolver.resolve(
+            "{{baseUrl}}/{{version}}/items?region={{region}}&trace={{trace}}",
+            layers,
+        )
+        assertEquals("https://api.example.com/v1/items?region=eu-west&trace=true", resolvedUrl)
 
         // Verify auth inheritance resolves up through child and grandchild to root
         tab.authType = AuthType.INHERIT
@@ -1466,6 +1470,9 @@ class AppStateCollectionTest {
             isFolder = false,
             method = HttpMethodType.GET,
             url = "https://api.example.com/items",
+            queryEntries = listOf(
+                KeyValueEntry("page", "1", enabled = true),
+            ),
         )
 
         val childFolder = CollectionNode(
@@ -1475,9 +1482,8 @@ class AppStateCollectionTest {
             headerEntries = listOf(
                 KeyValueEntry("X-Env", "staging", enabled = true),
             ),
-            queryEntries = listOf(
+            variableEntries = listOf(
                 KeyValueEntry("region", "eu-west", enabled = true),
-                KeyValueEntry("page", "1", enabled = true),
             ),
             children = mutableStateListOf(leafRequest),
         )
@@ -1504,7 +1510,7 @@ class AppStateCollectionTest {
         val tab = state.activeTab
         assertNotNull(tab)
 
-        // User overrides X-Env and region in the request tab
+        // User overrides X-Env and adds region in the request tab
         tab.headers.add(MutableKeyValue(key = "X-Env", value = "request-override", kind = HeaderKind.USER))
         tab.params.add(MutableKeyValue(key = "region", value = "ap-south", kind = HeaderKind.USER))
 
@@ -1517,6 +1523,163 @@ class AppStateCollectionTest {
         val wireParams = enabledQueryParamsForSend(tab).associate { it.key to it.value }
         assertEquals("ap-south", wireParams["region"])
         assertEquals("1", wireParams["page"])
+    }
+
+    @Test
+    fun folderSettings_editingVariablesPersistsToNodeAndExcludesParams() {
+        val state = AppState(openDefaultTab = false, withDemoData = false)
+
+        val folder = CollectionNode(
+            id = "f-vars-1",
+            name = "API Services",
+            isFolder = true,
+            variableEntries = listOf(
+                KeyValueEntry("baseUrl", "https://api.service.internal", enabled = true),
+            ),
+        )
+        state.collections.add(folder)
+
+        state.openFolder("f-vars-1")
+
+        val tab = state.activeTab
+        assertNotNull(tab)
+        assertEquals("f-vars-1", tab.id)
+        assertTrue(tab.isFolderTab)
+        assertEquals(RequestEditorTab.VARIABLES, tab.selectedEditorTab)
+
+        // Verify folder variables are loaded into tab.variables and tab.params is empty
+        assertEquals(1, tab.variables.size)
+        assertEquals("baseUrl", tab.variables[0].key)
+        assertEquals("https://api.service.internal", tab.variables[0].value)
+        assertTrue(tab.params.isEmpty(), "Folder tab params must be empty")
+
+        // Add a second folder variable
+        tab.variables.add(MutableKeyValue(key = "apiVersion", value = "v2", enabled = true))
+
+        // Sync tab to collection node
+        assertTrue(state.syncTabToCollectionNode(tab))
+
+        val savedNode = state.collections.first { it.id == "f-vars-1" }
+        assertNotNull(savedNode.variableEntries)
+        assertEquals(2, savedNode.variableEntries?.size)
+        assertEquals("baseUrl", savedNode.variableEntries?.get(0)?.key)
+        assertEquals("apiVersion", savedNode.variableEntries?.get(1)?.key)
+        assertEquals("v2", savedNode.variableEntries?.get(1)?.value)
+        assertNull(savedNode.queryEntries, "Folder node queryEntries must be null")
+    }
+
+    @Test
+    fun folderVariables_canBeUsedInRequestUrlAsBaseUrl() {
+        val state = AppState(openDefaultTab = false, withDemoData = false)
+
+        val requestNode = CollectionNode(
+            id = "req-base-1",
+            name = "Get Users",
+            isFolder = false,
+            method = HttpMethodType.GET,
+            url = "{{baseUrl}}/users",
+        )
+
+        val folder = CollectionNode(
+            id = "f-base-1",
+            name = "User Service",
+            isFolder = true,
+            variableEntries = listOf(
+                KeyValueEntry("baseUrl", "https://users.api.example.com", enabled = true),
+            ),
+            children = mutableStateListOf(requestNode),
+        )
+        state.collections.add(folder)
+
+        state.openRequest(
+            requestId = "req-base-1",
+            name = "Get Users",
+            method = HttpMethodType.GET,
+            url = "{{baseUrl}}/users",
+        )
+
+        val tab = state.activeTab
+        assertNotNull(tab)
+
+        val layers = state.activeVariableLayers(tab)
+        val resolvedUrl = io.github.crustack.clapi.core.network.VariableResolver.resolve(tab.url, layers)
+        assertEquals("https://users.api.example.com/users", resolvedUrl)
+    }
+
+    @Test
+    fun folderVariables_precedence_environmentOverridesFolder_folderOverridesGlobal() {
+        val state = AppState(openDefaultTab = false, withDemoData = false)
+
+        // Global variable
+        state.globalVariables.add(MutableKeyValue("baseUrl", "https://global.example.com", enabled = true))
+        state.globalVariables.add(MutableKeyValue("sharedGlobal", "global-val", enabled = true))
+
+        val requestNode = CollectionNode(
+            id = "req-layer-1",
+            name = "Layer Request",
+            isFolder = false,
+            method = HttpMethodType.GET,
+            url = "{{baseUrl}}/data",
+        )
+
+        val childFolder = CollectionNode(
+            id = "f-layer-child",
+            name = "Child Folder",
+            isFolder = true,
+            variableEntries = listOf(
+                KeyValueEntry("baseUrl", "https://child.example.com", enabled = true),
+            ),
+            children = mutableStateListOf(requestNode),
+        )
+
+        val rootFolder = CollectionNode(
+            id = "f-layer-root",
+            name = "Root Folder",
+            isFolder = true,
+            variableEntries = listOf(
+                KeyValueEntry("baseUrl", "https://root.example.com", enabled = true),
+                KeyValueEntry("rootOnly", "root-val", enabled = true),
+            ),
+            children = mutableStateListOf(childFolder),
+        )
+        state.collections.add(rootFolder)
+
+        state.openRequest(
+            requestId = "req-layer-1",
+            name = "Layer Request",
+            method = HttpMethodType.GET,
+            url = "{{baseUrl}}/data",
+        )
+        val tab = state.activeTab!!
+
+        // Without environment: Child folder baseUrl overrides Root folder and Global
+        var layers = state.activeVariableLayers(tab)
+        assertEquals(
+            "https://child.example.com/data",
+            io.github.crustack.clapi.core.network.VariableResolver.resolve(tab.url, layers),
+        )
+        assertEquals(
+            "root-val",
+            io.github.crustack.clapi.core.network.VariableResolver.resolve("{{rootOnly}}", layers),
+        )
+        assertEquals(
+            "global-val",
+            io.github.crustack.clapi.core.network.VariableResolver.resolve("{{sharedGlobal}}", layers),
+        )
+
+        // With environment: Environment baseUrl overrides Folder baseUrl
+        val env = EnvState(
+            name = "Staging",
+            variables = mutableStateListOf(MutableKeyValue("baseUrl", "https://staging.example.com", enabled = true)),
+        )
+        state.environments.add(env)
+        state.selectedEnvIndex = 0
+
+        layers = state.activeVariableLayers(tab)
+        assertEquals(
+            "https://staging.example.com/data",
+            io.github.crustack.clapi.core.network.VariableResolver.resolve(tab.url, layers),
+        )
     }
 
     @Test
@@ -1572,5 +1735,196 @@ class AppStateCollectionTest {
 
         // Verify request was skipped by execution.skipRequest() in the leaf script
         assertEquals(false, tab.isLoading)
+    }
+
+    @Test
+    fun variableSourceInfo_resolves_environmentPrecedenceOverFolder() {
+        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val env = EnvState(name = "Dev")
+        env.variables.add(MutableKeyValue("baseUrl", "https://env.example.com"))
+        state.environments.add(env)
+        state.selectedEnvIndex = 0
+
+        val reqNode = CollectionNode(
+            id = "req-1",
+            name = "Get Item",
+            isFolder = false,
+            method = HttpMethodType.GET,
+            url = "{{baseUrl}}/item",
+        )
+        val folderNode = CollectionNode(
+            id = "folder-1",
+            name = "API Folder",
+            isFolder = true,
+            variableEntries = listOf(KeyValueEntry("baseUrl", "https://folder.example.com")),
+            children = mutableStateListOf(reqNode),
+        )
+        state.collections.add(folderNode)
+
+        state.openRequest(requestId = "req-1", name = "Get Item", method = HttpMethodType.GET, url = "{{baseUrl}}/item")
+        val tab = state.activeTab
+        assertNotNull(tab)
+
+        val info = resolveVariableSourceInfo("baseUrl", state, tab)
+        assertEquals("baseUrl", info.cleanName)
+        assertEquals("Dev", info.environmentName)
+        assertEquals("https://env.example.com", info.environmentValue)
+        assertTrue(info.hasEnvironmentValue)
+        assertEquals("API Folder", info.folderName)
+        assertEquals("https://folder.example.com", info.folderValue)
+        assertTrue(info.hasFolderValue)
+        // Environment takes precedence for current value
+        assertEquals("https://env.example.com", info.currentResolvedValue)
+    }
+
+    @Test
+    fun variableSourceInfo_resolves_folderValueWhenNotInEnvironment() {
+        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val env = EnvState(name = "Dev")
+        state.environments.add(env)
+        state.selectedEnvIndex = 0
+
+        val reqNode = CollectionNode(
+            id = "req-2",
+            name = "Get Item",
+            isFolder = false,
+            method = HttpMethodType.GET,
+            url = "{{baseUrl}}/item",
+        )
+        val folderNode = CollectionNode(
+            id = "folder-2",
+            name = "Users Folder",
+            isFolder = true,
+            variableEntries = listOf(KeyValueEntry("baseUrl", "https://folder.example.com")),
+            children = mutableStateListOf(reqNode),
+        )
+        state.collections.add(folderNode)
+
+        state.openRequest(requestId = "req-2", name = "Get Item", method = HttpMethodType.GET, url = "{{baseUrl}}/item")
+        val tab = state.activeTab
+        assertNotNull(tab)
+
+        val info = resolveVariableSourceInfo("baseUrl", state, tab)
+        assertEquals("baseUrl", info.cleanName)
+        assertEquals("Dev", info.environmentName)
+        assertNull(info.environmentValue)
+        assertFalse(info.hasEnvironmentValue)
+        assertEquals("Users Folder", info.folderName)
+        assertEquals("https://folder.example.com", info.folderValue)
+        assertTrue(info.hasFolderValue)
+        // Folder value takes precedence when environment has no value
+        assertEquals("https://folder.example.com", info.currentResolvedValue)
+    }
+
+    @Test
+    fun variableSourceInfo_showsNeitherWhenUndefined() {
+        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val env = EnvState(name = "Dev")
+        state.environments.add(env)
+        state.selectedEnvIndex = 0
+
+        val reqNode = CollectionNode(
+            id = "req-3",
+            name = "Get Item",
+            isFolder = false,
+            method = HttpMethodType.GET,
+            url = "{{missingVar}}/item",
+        )
+        val folderNode = CollectionNode(
+            id = "folder-3",
+            name = "My Folder",
+            isFolder = true,
+            children = mutableStateListOf(reqNode),
+        )
+        state.collections.add(folderNode)
+
+        state.openRequest(requestId = "req-3", name = "Get Item", method = HttpMethodType.GET, url = "{{missingVar}}/item")
+        val tab = state.activeTab
+        assertNotNull(tab)
+
+        val info = resolveVariableSourceInfo("missingVar", state, tab)
+        assertFalse(info.hasEnvironmentValue)
+        assertNull(info.environmentValue)
+        assertEquals("My Folder", info.folderName)
+        assertFalse(info.hasFolderValue)
+        assertNull(info.folderValue)
+        assertNull(info.currentResolvedValue)
+    }
+
+    @Test
+    fun variableSourceInfo_settingValueInEnvironment_overridesFolder() {
+        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val env = EnvState(name = "Dev")
+        state.environments.add(env)
+        state.selectedEnvIndex = 0
+
+        val reqNode = CollectionNode(
+            id = "req-4",
+            name = "Get Item",
+            isFolder = false,
+            method = HttpMethodType.GET,
+            url = "{{baseUrl}}/item",
+        )
+        val folderNode = CollectionNode(
+            id = "folder-4",
+            name = "Auth Folder",
+            isFolder = true,
+            variableEntries = listOf(KeyValueEntry("baseUrl", "https://folder.example.com")),
+            children = mutableStateListOf(reqNode),
+        )
+        state.collections.add(folderNode)
+
+        state.openRequest(requestId = "req-4", name = "Get Item", method = HttpMethodType.GET, url = "{{baseUrl}}/item")
+        val tab = state.activeTab
+        assertNotNull(tab)
+
+        val beforeInfo = resolveVariableSourceInfo("baseUrl", state, tab)
+        assertEquals("https://folder.example.com", beforeInfo.currentResolvedValue)
+
+        // Simulate dialog setting value in the active environment
+        env.variables.add(MutableKeyValue(key = "baseUrl", value = "https://custom-env.example.com", enabled = true))
+
+        val afterInfo = resolveVariableSourceInfo("baseUrl", state, tab)
+        assertTrue(afterInfo.hasEnvironmentValue)
+        assertEquals("https://custom-env.example.com", afterInfo.environmentValue)
+        assertTrue(afterInfo.hasFolderValue)
+        assertEquals("https://folder.example.com", afterInfo.folderValue)
+        // Now environment takes precedence
+        assertEquals("https://custom-env.example.com", afterInfo.currentResolvedValue)
+    }
+
+    @Test
+    fun variableSourceInfo_liveFolderTabEditsAreReflected() {
+        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val reqNode = CollectionNode(
+            id = "req-5",
+            name = "Get Item",
+            isFolder = false,
+            method = HttpMethodType.GET,
+            url = "{{baseUrl}}/item",
+        )
+        val folderNode = CollectionNode(
+            id = "folder-5",
+            name = "Live Folder",
+            isFolder = true,
+            variableEntries = listOf(KeyValueEntry("baseUrl", "https://old-folder.example.com")),
+            children = mutableStateListOf(reqNode),
+        )
+        state.collections.add(folderNode)
+
+        state.openRequest(requestId = "req-5", name = "Get Item", method = HttpMethodType.GET, url = "{{baseUrl}}/item")
+        val reqTab = state.activeTab
+        assertNotNull(reqTab)
+
+        // Open folder tab with uncommitted edits
+        state.openFolder("folder-5")
+        val folderTab = state.openTabs.first { it.id == "folder-5" }
+        folderTab.variables.first().value = "https://edited-live.example.com"
+
+        val info = resolveVariableSourceInfo("baseUrl", state, reqTab)
+        assertEquals("Live Folder", info.folderName)
+        assertTrue(info.hasFolderValue)
+        assertEquals("https://edited-live.example.com", info.folderValue)
+        assertEquals("https://edited-live.example.com", info.currentResolvedValue)
     }
 }

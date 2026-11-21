@@ -92,6 +92,7 @@ fun RequestEditor(
             onRetryCountChanged = { tab.retryCount = it; markDirty() },
             onRetryDelayChanged = { tab.retryDelayMs = it; markDirty() },
             state = state,
+            tab = tab,
             urlUndoStack = tab.urlUndoStack,
         )
 
@@ -123,6 +124,7 @@ fun RequestEditor(
                     title           = "Post-request Script",
                     showCursorPosition = state.settings.showEditorPositionIndicator,
                 )
+                RequestEditorTab.VARIABLES   -> Unit
             }
         }
     }
@@ -223,7 +225,7 @@ private fun copyToClipboard(text: String) {
  * Variables from the active environment are resolved for "resolved" variants.
  */
 internal fun buildCopyFormats(tab: RequestTabState, state: AppState): List<CopyFormatOption> {
-    val layers = state.activeVariableLayers()
+    val layers = state.activeVariableLayers(tab)
     val fileReason = when {
         tab.bodyType == BodyType.BINARY -> "Embedded binary has no reusable file path"
         tab.bodyType == BodyType.FORM_DATA && tab.formRows.any { it.enabled && it.type == FormEntryType.FILE } ->
@@ -252,16 +254,27 @@ internal fun buildCopyFormats(tab: RequestTabState, state: AppState): List<CopyF
 
 // ── Editor Tab Bar ──────────────────────────────────────────────
 
+private val defaultRequestEditorTabs = listOf(
+    RequestEditorTab.PARAMS,
+    RequestEditorTab.HEADERS,
+    RequestEditorTab.BODY,
+    RequestEditorTab.AUTH,
+    RequestEditorTab.PRE_REQUEST,
+    RequestEditorTab.TESTS,
+)
+
 @Composable
 internal fun EditorTabBar(
     selectedTab: RequestEditorTab,
     onTabSelected: (RequestEditorTab) -> Unit,
-    paramCount: Int,
-    headerCount: Int,
-    availableTabs: List<RequestEditorTab> = RequestEditorTab.entries,
+    paramCount: Int = 0,
+    headerCount: Int = 0,
+    variableCount: Int = 0,
+    availableTabs: List<RequestEditorTab> = defaultRequestEditorTabs,
 ) {
     val icons = mapOf(
         RequestEditorTab.PARAMS      to null,
+        RequestEditorTab.VARIABLES   to null,
         RequestEditorTab.HEADERS     to null,
         RequestEditorTab.BODY        to Icons.Default.Code,
         RequestEditorTab.AUTH        to Icons.Default.Lock,
@@ -269,8 +282,9 @@ internal fun EditorTabBar(
         RequestEditorTab.TESTS       to Icons.Default.CheckCircle,
     )
     val counts = mapOf(
-        RequestEditorTab.PARAMS  to paramCount,
-        RequestEditorTab.HEADERS to headerCount,
+        RequestEditorTab.PARAMS    to paramCount,
+        RequestEditorTab.VARIABLES to variableCount,
+        RequestEditorTab.HEADERS   to headerCount,
     )
 
     Box(
@@ -291,6 +305,7 @@ internal fun EditorTabBar(
                 val selected = tab == selectedTab
                 val label = when (tab) {
                     RequestEditorTab.PARAMS -> Strings.params
+                    RequestEditorTab.VARIABLES -> Strings.variables
                     RequestEditorTab.HEADERS -> Strings.headers
                     RequestEditorTab.BODY -> Strings.body
                     RequestEditorTab.AUTH -> Strings.auth

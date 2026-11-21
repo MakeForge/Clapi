@@ -79,6 +79,7 @@ object TabsRepository {
                         put("snapshotFormat", 2)
                         put("isDirty",     tab.isDirty)
                         put("params",  kvListJson(tab.params))
+                        put("variables", kvListJson(tab.variables))
                         put("headers", kvListJson(tab.headers))
                         put("formRows", formRowListJson(tab.formRows))
                         put("urlencodedRows", formRowListJson(tab.urlencodedRows))
@@ -252,6 +253,9 @@ object TabsRepository {
 
                 obj["params"]?.jsonArray?.forEach { kv ->
                     tab.params.add(kvFromJson(kv.jsonObject))
+                }
+                obj["variables"]?.jsonArray?.forEach { kv ->
+                    tab.variables.add(kvFromJson(kv.jsonObject))
                 }
                 // Prepend saved headers (after the default pair already there)
                 val savedHeaders = obj["headers"]?.jsonArray?.map { kvFromJson(it.jsonObject) } ?: emptyList()
