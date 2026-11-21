@@ -191,6 +191,8 @@ nucleus.application {
 
     buildTypes.release.proguard {
         isEnabled.set(false)
+        optimize.set(false)
+        configurationFiles.from(project.file("proguard-rules.pro"))
     }
 
     nativeDistributions {
