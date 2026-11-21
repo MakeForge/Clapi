@@ -7,7 +7,7 @@ serialization = "1.8.1"
 datetime = "0.6.2"
 koin = "4.0.2"
 sqldelight = "2.0.2"
-graalvm = "24.1.1"
+javet = "6.0.3"
 networknt = "3.0.9"
 kaml = "0.104.0"
 swagger-parser = "2.1.48"
@@ -53,8 +53,12 @@ networknt-json-schema = { module = "com.networknt:json-schema-validator", versio
 kaml = { module = "com.charleskorn.kaml:kaml", version.ref = "kaml" }
 swagger-parser = { module = "io.swagger.parser.v3:swagger-parser", version.ref = "swagger-parser" }
 
-graalvm-polyglot = { module = "org.graalvm.polyglot:polyglot", version.ref = "graalvm" }
-graalvm-js = { module = "org.graalvm.polyglot:js-community", version.ref = "graalvm" }
+javet = { module = "com.caoccao.javet:javet", version.ref = "javet" }
+javet-v8-linux-x8664 = { module = "com.caoccao.javet:javet-v8-linux-x86_64", version.ref = "javet" }
+javet-v8-linux-arm64 = { module = "com.caoccao.javet:javet-v8-linux-arm64", version.ref = "javet" }
+javet-v8-macos-x8664 = { module = "com.caoccao.javet:javet-v8-macos-x86_64", version.ref = "javet" }
+javet-v8-macos-arm64 = { module = "com.caoccao.javet:javet-v8-macos-arm64", version.ref = "javet" }
+javet-v8-windows-x8664 = { module = "com.caoccao.javet:javet-v8-windows-x86_64", version.ref = "javet" }
 
 grpc-netty-shaded = { module = "io.grpc:grpc-netty-shaded", version.ref = "grpc" }
 grpc-okhttp = { module = "io.grpc:grpc-okhttp", version.ref = "grpc" }

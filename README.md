@@ -13,7 +13,7 @@
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey.svg)]()
 [![Kotlin](https://img.shields.io/badge/kotlin-2.1.21-purple.svg)](https://kotlinlang.org)
 [![Compose Multiplatform](https://img.shields.io/badge/compose--multiplatform-1.8.1-orange.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
-[![Build](https://github.com/snj07/clapi/actions/workflows/release.yml/badge.svg)](https://github.com/snj07/clapi/actions)
+[![Build](https://github.com/MakeForge/clapi/actions/workflows/release.yml/badge.svg)](https://github.com/MakeForge/clapi/actions)
 
 ---
 
@@ -37,7 +37,7 @@ Clapi is a Kotlin + Compose Multiplatform API client for desktop (macOS, Linux, 
 Requirements: JDK 17+ (JDK 21 recommended).
 
 ```bash
-git clone https://github.com/snj07/clapi.git
+git clone https://github.com/MakeForge/clapi.git
 cd clapi
 ./gradlew :ui-desktop:run
 ```
@@ -254,7 +254,7 @@ For larger changes, open an issue first to align on approach and scope.
 
 Clapi uses [GitHub Actions](https://github.com/features/actions) for CI. Push to `main` runs the quality gate; tags matching `v*` run the full desktop, network, web, and QA test gate, then build and publish a GitHub Release.
 
-See the workflow: [`.github/workflows/release.yml`](https://github.com/snj07/clapi/actions)
+See the workflow: [`.github/workflows/release.yml`](https://github.com/MakeForge/clapi/actions)
 
 ## License
 

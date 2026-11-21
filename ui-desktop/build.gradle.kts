@@ -51,14 +51,6 @@ configurations.named("desktopRuntimeClasspath") {
 
 private val strippedJarEntryPrefixes = listOf(
     "bin/2.",
-    "org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/brkitr/",
-    "org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/coll/",
-    "org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/lang/",
-    "org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/curr/",
-    "org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/unit/",
-    "org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/region/",
-    "org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/translit/",
-    "org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/rbnf/",
 )
 
 private fun stripEmbeddedJarBlobs(jarFile: File) {
@@ -97,7 +89,7 @@ tasks.matching { it.name == "createDistributable" || it.name == "createReleaseDi
         val binariesDir = layout.buildDirectory.dir("compose/binaries").get().asFile
         if (binariesDir.exists()) {
             binariesDir.walkTopDown()
-                .filter { it.isFile && it.extension == "jar" && (it.name.startsWith("protoc-jar-") || it.name.startsWith("icu4j-")) }
+                .filter { it.isFile && it.extension == "jar" && it.name.startsWith("protoc-jar-") }
                 .forEach { stripEmbeddedJarBlobs(it) }
         }
     }
@@ -211,22 +203,12 @@ tasks.register<org.gradle.jvm.tasks.Jar>("packageClapiJar") {
     }
 
     // Drop signature metadata that becomes invalid when jars are merged,
-    // strip obsolete protoc 2.x binaries (ProtocJarParser uses 3.11.4),
-    // and strip unused ICU4J dictionary/localization tables while preserving
-    // all .class files, root icudt74b resources, and zone/** tables.
+    // and strip obsolete protoc 2.x binaries (ProtocJarParser uses 3.11.4).
     exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
     exclude("bin/2.*/**")
-    exclude("org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/brkitr/**")
-    exclude("org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/coll/**")
-    exclude("org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/lang/**")
-    exclude("org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/curr/**")
-    exclude("org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/unit/**")
-    exclude("org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/region/**")
-    exclude("org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/translit/**")
-    exclude("org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/rbnf/**")
 
     // Collect and merge all META-INF/services entries from every input JAR so that all
-    // Truffle language providers (js, regex, icu, etc.) are present in the service loader.
+    // service providers are present in the service loader.
     doFirst {
         val outDir = mergedServicesDir.get().asFile
         outDir.deleteRecursively()
