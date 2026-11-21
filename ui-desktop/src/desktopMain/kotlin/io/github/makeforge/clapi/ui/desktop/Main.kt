@@ -19,6 +19,7 @@ import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.rememberWindowState
 import dev.nucleusframework.application.NucleusApplicationScope
+import dev.nucleusframework.application.aotTraining
 import dev.nucleusframework.application.nucleusApplication
 import dev.nucleusframework.window.material.MaterialDecoratedWindow
 import dev.nucleusframework.window.material.MaterialTitleBar
@@ -26,6 +27,7 @@ import dev.nucleusframework.window.tao.LocalWindowExceptionHandlerFactory
 import dev.nucleusframework.window.tao.WindowExceptionHandlerFactory
 import io.github.makeforge.clapi.core.storage.opencollection.DefaultCanonicalCollectionRepository
 import io.github.makeforge.clapi.mcp.server.transport.StdioMcpServerRunner
+import io.github.makeforge.clapi.ui.desktop.aot.AotTrainingRunner
 import io.github.makeforge.clapi.ui.desktop.logging.GlobalCrashHandler
 import io.github.makeforge.clapi.ui.desktop.logging.LogDirectoryConfigurator
 import io.github.makeforge.clapi.ui.desktop.logging.UiLogDispatcher
@@ -43,6 +45,27 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.seconds
+
+private fun initLinuxX11Threads() {
+    if (System.getProperty("os.name")?.contains("Linux", ignoreCase = true) == true) {
+        val result = runCatching {
+            val linker = java.lang.foreign.Linker.nativeLinker()
+            val lookup = java.lang.foreign.SymbolLookup.libraryLookup("libX11.so.6", java.lang.foreign.Arena.global())
+            lookup.find("XInitThreads").ifPresent { sym ->
+                val handle = linker.downcallHandle(
+                    sym,
+                    java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_INT),
+                )
+                val status = handle.invokeExact() as Int
+                println("Linux XInitThreads initialized: status=$status")
+            }
+        }
+        result.onFailure {
+            println("Linux XInitThreads initialization failed: ${it.message}")
+        }
+    }
+}
 
 /**
  * Starts Clapi, or runs the headless packaged-runtime shutdown smoke test.
@@ -53,6 +76,7 @@ import kotlinx.coroutines.withContext
  */
 @OptIn(ExperimentalComposeUiApi::class)
 fun main(args: Array<String>) {
+    initLinuxX11Threads()
     LogDirectoryConfigurator.configure(args)
 
     if ("--mcp" in args) {
@@ -81,6 +105,7 @@ fun main(args: Array<String>) {
 
     nucleusApplication(args) {
         val appScope: NucleusApplicationScope = this
+        aotTraining(duration = 15.seconds)
         val state = remember {
             AppState(openDefaultTab = false).also {
                 SettingsRepository.load(it.settings)
@@ -95,6 +120,12 @@ fun main(args: Array<String>) {
                 // Start embedded MCP server if enabled in settings
                 it.embeddedMcpServerController.applySettings()
                 UiLogDispatcher.bind(it.diagnostics)
+            }
+        }
+
+        if (isAotTraining) {
+            LaunchedEffect(Unit) {
+                AotTrainingRunner.runTrainingPass(state)
             }
         }
 

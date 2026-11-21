@@ -16,7 +16,7 @@ val generateI18nBundles by tasks.registering {
     outputs.dir(outputDir)
 
     doLast {
-        val outFile = outputDir.get().file("io/github/makeforge/ui/shared/i18n/GeneratedTranslationBundles.kt").asFile
+        val outFile = outputDir.get().file("io/github/makeforge/clapi/ui/shared/i18n/GeneratedTranslationBundles.kt").asFile
         outFile.parentFile.mkdirs()
 
         fun encodeKotlinString(raw: String): String {
@@ -68,7 +68,7 @@ val generateBuildInfo by tasks.registering {
     outputs.dir(outputDir)
 
     doLast {
-        val outFile = outputDir.get().file("io/github/makeforge/ui/shared/build/GeneratedBuildInfo.kt").asFile
+        val outFile = outputDir.get().file("io/github/makeforge/clapi/ui/shared/build/GeneratedBuildInfo.kt").asFile
         outFile.parentFile.mkdirs()
 
         outFile.writeText(

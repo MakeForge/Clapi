@@ -8,9 +8,10 @@ Everything you need to build, run, test, and contribute to Clapi.
 
 | Tool | Minimum | Recommended |
 |---|---|---|
-| JDK | 17 | 21 (tested with Zulu 21) |
+| JDK | 25 | 25 (tested with Temurin 25) |
 | OS | macOS / Linux / Windows | — |
 
+> JDK 25 is required for Ahead-Of-Time (AOT) cache support (`enableAotCache = true`) with Nucleus.
 > The Gradle Wrapper is bundled — no separate Gradle installation needed.
 
 ---
