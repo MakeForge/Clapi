@@ -9,6 +9,8 @@ import io.github.makeforge.clapi.mcp.server.backend.InspectResponseInput
 import io.github.makeforge.clapi.mcp.server.backend.InspectResponseResultDto
 import io.github.makeforge.clapi.mcp.server.backend.McpWorkspaceBackend
 import io.github.makeforge.clapi.mcp.server.backend.RunTestSuiteInput
+import io.github.makeforge.clapi.mcp.server.backend.SubscribeRabbitMqInput
+import io.github.makeforge.clapi.mcp.server.backend.SubscribeRabbitMqResultDto
 import io.github.makeforge.clapi.mcp.server.backend.TestSuiteResultDto
 import io.github.makeforge.clapi.mcp.server.tools.WorkspaceTools.okResult
 import io.github.makeforge.clapi.mcp.server.tools.WorkspaceTools.optBoolean
@@ -20,6 +22,7 @@ import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 
 object ExecutionTools {
@@ -35,7 +38,7 @@ object ExecutionTools {
         McpTool(
             name = "clapi_execute_request",
             title = "Execute Clapi Request",
-            description = "Executes a saved HTTP, gRPC, or GraphQL request with full variable interpolation, pre-request scripts, and post-request test assertions. Returns status, timing metrics, sanitized headers, a budgeted body preview (default 4KB), and test results.",
+            description = "Executes a saved HTTP, gRPC, GraphQL, or RabbitMQ (Publish or RPC) request with full variable interpolation, pre-request scripts, and post-request test assertions. Returns status, timing metrics, sanitized headers, a budgeted body preview (default 4KB), and test results.",
             inputSchema = buildJsonObject {
                 put("type", "object")
                 put("required", buildJsonArray { add(JsonPrimitive("requestId")) })
@@ -109,6 +112,41 @@ object ExecutionTools {
                 })
             },
         ),
+        McpTool(
+            name = "clapi_subscribe_rabbitmq",
+            title = "Subscribe RabbitMQ Queue (Bounded)",
+            description = "Performs a bounded RabbitMQ subscription on a saved Subscribe RabbitMQ request, collecting up to maxMessages (1..100) within timeoutMs (250..30000), then cleanly unsubscribing and returning secret-scrubbed messages.",
+            inputSchema = buildJsonObject {
+                put("type", "object")
+                put("required", buildJsonArray { add(JsonPrimitive("requestId")) })
+                put("properties", buildJsonObject {
+                    put("requestId", buildJsonObject {
+                        put("type", "string")
+                        put("description", "RabbitMQ Subscribe request UUID or slash path.")
+                    })
+                    put("maxMessages", buildJsonObject {
+                        put("type", "integer")
+                        put("description", "Maximum messages to collect (default 10, clamped to 1..100).")
+                    })
+                    put("timeoutMs", buildJsonObject {
+                        put("type", "integer")
+                        put("description", "Maximum time in milliseconds to wait for messages (default 5000, clamped to 250..30000).")
+                    })
+                    put("environmentName", buildJsonObject {
+                        put("type", "string")
+                        put("description", "Optional environment name override.")
+                    })
+                    put("transientVariables", buildJsonObject {
+                        put("type", "object")
+                        put("description", "Optional transient variable overrides.")
+                    })
+                    put("maxBodyLength", buildJsonObject {
+                        put("type", "integer")
+                        put("description", "Maximum UTF-8 bytes per message preview (default 4096, clamped to 256..65536).")
+                    })
+                })
+            },
+        ),
     )
 
     suspend fun handleToolCall(
@@ -164,6 +202,28 @@ object ExecutionTools {
                     )
                 )
                 okResult(json.encodeToJsonElement(TestSuiteResultDto.serializer(), result))
+            }
+            "clapi_subscribe_rabbitmq" -> {
+                val requestId = args.optString("requestId")
+                    ?: throw IllegalArgumentException("Missing required argument 'requestId'.")
+                val maxMessages = ((args["maxMessages"] as? JsonPrimitive)?.intOrNull ?: 10).coerceIn(1, 100)
+                val timeoutMs = ((args["timeoutMs"] as? JsonPrimitive)?.longOrNull ?: 5_000L).coerceIn(250L, 30_000L)
+                val envName = args.optString("environmentName")
+                val transientVars = (args["transientVariables"] as? JsonObject)?.entries?.mapNotNull { (k, v) ->
+                    (v as? JsonPrimitive)?.contentOrNull?.let { k to it }
+                }?.toMap().orEmpty()
+                val maxLen = (args["maxBodyLength"] as? JsonPrimitive)?.intOrNull ?: DEFAULT_MAX_BODY_LENGTH
+                val result = backend.subscribeRabbitMq(
+                    SubscribeRabbitMqInput(
+                        requestId = requestId,
+                        maxMessages = maxMessages,
+                        timeoutMs = timeoutMs,
+                        environmentName = envName,
+                        transientVariables = transientVars,
+                        maxBodyLength = maxLen,
+                    )
+                )
+                okResult(json.encodeToJsonElement(SubscribeRabbitMqResultDto.serializer(), result))
             }
             else -> null
         }

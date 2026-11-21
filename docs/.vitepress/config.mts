@@ -34,6 +34,7 @@ export default defineConfig({
           { text: 'GraphQL', link: '/request-types/graphql/' },
           { text: 'WebSocket', link: '/request-types/websocket/' },
           { text: 'gRPC', link: '/request-types/grpc/' },
+          { text: 'RabbitMQ (AMQP)', link: '/request-types/rabbitmq/' },
           { text: 'Model Context Protocol (MCP)', link: '/request-types/mcp/' },
           { text: 'Realtime Streams (SSE/MQTT)', link: '/request-types/realtime/' }
         ],
@@ -161,6 +162,16 @@ export default defineConfig({
             { text: 'JSON-to-Protobuf Composer', link: '/request-types/grpc/message-composer' },
             { text: 'Metadata & Headers', link: '/request-types/grpc/metadata' },
             { text: 'TLS & Client Certificates', link: '/request-types/grpc/tls' }
+          ]
+        },
+        {
+          text: 'RabbitMQ (AMQP)',
+          collapsed: false,
+          items: [
+            { text: 'RabbitMQ Overview', link: '/request-types/rabbitmq/' },
+            { text: 'Publish & Subscribe', link: '/request-types/rabbitmq/publish-subscribe' },
+            { text: 'RPC (Request-Reply)', link: '/request-types/rabbitmq/rpc' },
+            { text: 'Authentication & TLS', link: '/request-types/rabbitmq/auth' }
           ]
         },
         {

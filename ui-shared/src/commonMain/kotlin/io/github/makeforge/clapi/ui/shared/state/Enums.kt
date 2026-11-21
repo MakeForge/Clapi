@@ -34,6 +34,16 @@ enum class GraphQLEditorTab(val label: String) {
     DOCS("Docs")
 }
 
+enum class RabbitMqEditorTab(val label: String) {
+    MESSAGE("Message"),
+    AMQP("AMQP"),
+    HEADERS("Headers & Props"),
+    AUTH("Auth"),
+    SCRIPTS("Scripts"),
+    SETTINGS("Settings"),
+    DOCS("Docs")
+}
+
 enum class ResponseTab(val label: String) {
     BODY("Body"), HEADERS("Headers"), COOKIES("Cookies"), TIMING("Timing"), RAW("Raw")
 }

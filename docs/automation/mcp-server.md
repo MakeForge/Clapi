@@ -1,6 +1,6 @@
 # Clapi Model Context Protocol (MCP) Server
 
-Clapi includes a built-in **Model Context Protocol (MCP) Server** (`2025-06-18` Streamable HTTP & Stdio, plus `2024-11-05` Legacy SSE) that allows AI coding assistants (such as Claude Code, Claude Desktop, Cursor, Windsurf, and custom MCP agents) to browse collections, author multi-protocol requests (HTTP, gRPC, GraphQL, WebSocket), manage environments and typed variables, execute API calls and test suites, inspect large responses via JSONPath, and import/export specifications—all protected by a **Zero-Exfiltration Secret Sanitization Pipeline**.
+Clapi includes a built-in **Model Context Protocol (MCP) Server** (`2025-06-18` Streamable HTTP & Stdio, plus `2024-11-05` Legacy SSE) that allows AI coding assistants (such as Claude Code, Claude Desktop, Cursor, Windsurf, and custom MCP agents) to browse collections, author multi-protocol requests (HTTP, gRPC, GraphQL, WebSocket, RabbitMQ), manage environments and typed variables, execute API calls and test suites, inspect large responses via JSONPath, and import/export specifications—all protected by a **Zero-Exfiltration Secret Sanitization Pipeline**.
 
 ---
 
@@ -71,7 +71,7 @@ If a slash path matches multiple items with the same name, Clapi returns a disam
 | :--- | :--- |
 | `clapi://tree` | Compact hierarchical overview of all collections, folders, and requests (`id`, `name`, `kind`, `method`, `url`, `slashPath`). |
 | `clapi://collections/{collectionId}` | Sanitized collection details, default auth, headers, variables, scripts, `.proto` files/import paths, and Git config. |
-| `clapi://requests/{requestId}` | Complete sanitized request configuration across HTTP, gRPC, GraphQL, or WebSocket protocols. |
+| `clapi://requests/{requestId}` | Complete sanitized request configuration across HTTP, gRPC, GraphQL, WebSocket, or RabbitMQ protocols. |
 | `clapi://environments` | Active environment selection, sanitized global variables, and environment list with `extends` inheritance links. |
 | `clapi://environments/{envName}` | Effective variable projection for an environment (including inherited/overridden indicators and external secret declarations) with all secrets masked. |
 | `clapi://responses/{requestId}/latest` | Latest cached execution response snapshot (sanitized headers, budgeted body preview, timing metrics, and test assertion results). |
@@ -82,13 +82,13 @@ If a slash path matches multiple items with the same name, Clapi returns a disam
 ## 4. Available MCP Tools
 
 ### Workspace, Collections & Folders
-- **`clapi_list_tree`**: Browse the workspace hierarchy with optional `collection`, `kind` (`http`, `grpc`, `graphql`, `websocket`), and `query` filters.
+- **`clapi_list_tree`**: Browse the workspace hierarchy with optional `collection`, `kind` (`http`, `grpc`, `graphql`, `websocket`, `rabbitmq`), and `query` filters.
 - **`clapi_manage_collection`**: `create`, `update`, or `delete` (`confirm: true` required) a collection, including collection-level auth, headers, scripts, and `.proto` files/import paths.
 - **`clapi_manage_folder`**: `create`, `update` (including moving to a new `parentId`), or `delete` (`confirm: true` required) a folder and its folder-level defaults.
 
 ### Multi-Protocol Request Authoring
 - **`clapi_get_request`**: Retrieve a sanitized request definition by UUID or slash path.
-- **`clapi_upsert_request`**: Create or update an `http`, `grpc`, `graphql`, or `websocket` request (headers, query params, auth, body types, form-data entries, pre-request & test scripts, gRPC service/method/metadata/proto path, GraphQL variants, WebSocket variants).
+- **`clapi_upsert_request`**: Create or update an `http`, `grpc`, `graphql`, `websocket`, or `rabbitmq` request (headers, query params, auth, body types, form-data entries, pre-request & test scripts, gRPC service/method/metadata/proto path, GraphQL variants, WebSocket variants, RabbitMQ connection/exchange/queue/routing key/properties/RPC reply strategy).
 - **`clapi_delete_request`**: Delete a request (`confirm: true` required).
 
 ### Environments & Scoped Typed Variables
@@ -99,9 +99,10 @@ If a slash path matches multiple items with the same name, Clapi returns a disam
 - **`clapi_set_variable`**: Create, update, or delete a variable across `global`, `environment`, `collection`, or `folder` scopes with explicit `kind` (`regular`, `secret`, `dynamic`) and `variableType` (`string`, `number`, `boolean`, `object`), including JavaScript generator scripts and parameters for dynamic variables.
 
 ### Execution, Test Suites & Response Inspection
-- **`clapi_execute_request`**: Execute an HTTP, gRPC, or GraphQL request with optional `environmentName`, `transientVariables`, and `maxBodyLength` (default `4096` bytes).
+- **`clapi_execute_request`**: Execute an HTTP, gRPC, GraphQL, or RabbitMQ (`publish` / `rpc`) request with optional `environmentName`, `transientVariables`, and `maxBodyLength` (default `4096` bytes).
+- **`clapi_subscribe_rabbitmq`**: Perform a bounded RabbitMQ subscription on a saved Subscribe request, collecting up to `maxMessages` (`1..100`) within `timeoutMs` (`250..30000`), then cleanly unsubscribing and returning secret-scrubbed messages.
 - **`clapi_inspect_response`**: Query the cached sanitized response of a previously executed request using `jsonPath` (e.g., `$.data.items[0].id`, `$.users[*]`) and/or UTF-8 `byteOffset` and `length` slicing without re-executing the network request.
-- **`clapi_run_test_suite`**: Sequentially execute all requests in a collection or folder and return the aggregated test assertion pass/fail report.
+- **`clapi_run_test_suite`**: Sequentially execute all requests in a collection or folder (including RabbitMQ Publish & RPC; indefinite RabbitMQ Subscribe items are skipped) and return the aggregated test assertion pass/fail report.
 
 ### Specification Import, Export & Git Sync
 - **`clapi_import_specification`**: Import OpenAPI 3.0+, OpenCollection 1.0.0 (YAML/JSON), or Insomnia v4/v5 specifications from `rawContent` or `filePath`.

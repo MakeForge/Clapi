@@ -54,6 +54,7 @@ kotlin {
                 implementation(libs.junit4)
                 implementation(libs.keepassxc.proxy.access)
                 implementation(libs.keeper.secrets.manager.core)
+                implementation(libs.amqp.client)
             }
         }
     }

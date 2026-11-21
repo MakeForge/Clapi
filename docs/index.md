@@ -25,7 +25,7 @@ features:
     details: Easily import your existing work from other tools like Postman or Insomnia and get up and running with Clapi.
     link: /guide/migrate-to-clapi
   - title: 🌐 Multi-Protocol Support
-    details: First-class support for REST, GraphQL, WebSocket, SSE, gRPC unary/streaming, and Model Context Protocol (MCP).
+    details: First-class support for REST, GraphQL, WebSocket, SSE, gRPC unary/streaming, RabbitMQ (Publish/Subscribe & RPC), and Model Context Protocol (MCP).
     link: /request-types/http/
   - title: 🗂️ Organization
     details: Organize your requests via Collections and Folders to easily maintain a multitude of service endpoints of any protocol.

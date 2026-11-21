@@ -123,6 +123,9 @@ data class CollectionNode(
     val graphQlVariants: List<GraphQLBodyVariant> = emptyList(),
     val graphQlSettings: GraphQLRequestSettings? = null,
     val graphQlDocs: String? = null,
+    val rabbitMqDetails: io.github.makeforge.clapi.core.model.opencollection.RabbitMqRequestDetails? = null,
+    val rabbitMqSettings: io.github.makeforge.clapi.core.model.opencollection.RabbitMqRequestSettings? = null,
+    val rabbitMqDocs: String? = null,
 ) {
     val isCollection: Boolean get() = kind == RequestKind.COLLECTION
     val storageType: StorageType get() = storageExtension?.type ?: StorageType.LOCAL

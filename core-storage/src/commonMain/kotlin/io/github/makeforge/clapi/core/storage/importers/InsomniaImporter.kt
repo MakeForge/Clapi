@@ -1234,6 +1234,7 @@ class DefaultInsomniaImporter(
                 is GrpcRequestItem -> count++
                 is WebSocketRequestItem -> count++
                 is GraphQLRequestItem -> count++
+                is io.github.makeforge.clapi.core.model.opencollection.RabbitMqRequestItem -> count++
                 is FolderItem -> count += countRequests(item.items)
             }
         }

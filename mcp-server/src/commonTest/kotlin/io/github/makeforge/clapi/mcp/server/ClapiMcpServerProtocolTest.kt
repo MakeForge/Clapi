@@ -39,7 +39,7 @@ class ClapiMcpServerProtocolTest {
     private val json = Json { ignoreUnknownKeys = true }
 
     @Test
-    fun `exposes all 17 tools 3 static resources 4 resource templates and 3 prompts`() = runTest {
+    fun `exposes all 18 tools 3 static resources 4 resource templates and 3 prompts`() = runTest {
         val backend = HeadlessWorkspaceBackend()
         backend.manageCollection(ManageCollectionInput(action = "create", name = "Demo"))
         val req = backend.upsertRequest(
@@ -63,10 +63,10 @@ class ClapiMcpServerProtocolTest {
         assertNotNull(initRes.capabilities.resources)
         assertNotNull(initRes.capabilities.prompts)
 
-        // 2. Tools list (17 tools)
+        // 2. Tools list (18 tools including clapi_subscribe_rabbitmq)
         val toolsResp = server.handleJsonRpc("""{"jsonrpc":"2.0","id":2,"method":"tools/list"}""")
         val toolsRes = json.decodeFromJsonElement(McpListToolsResult.serializer(), toolsResp!!["result"]!!)
-        assertEquals(17, toolsRes.tools.size)
+        assertEquals(18, toolsRes.tools.size)
 
         // 3. Static resources & templates
         val resResp = server.handleJsonRpc("""{"jsonrpc":"2.0","id":3,"method":"resources/list"}""")

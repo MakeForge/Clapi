@@ -32,6 +32,7 @@ Clapi supports multiple first-class protocol types. You can create:
 - [GraphQL](/request-types/graphql/): Query, mutate, and introspect GraphQL endpoints with a dedicated query & variable editor.
 - [WebSocket](/request-types/websocket/): Connect to bidirectional WebSocket streams, inspect frame timelines, and send live messages.
 - [gRPC](/request-types/grpc/): Load Protocol Buffers or use Server Reflection to invoke unary and streaming RPC methods.
+- [RabbitMQ](/request-types/rabbitmq/): Publish to exchanges, subscribe to live queues with manual acknowledgments, and execute correlated RPC calls over AMQP 0-9-1.
 - [Model Context Protocol (MCP)](/request-types/mcp/): Connect to MCP servers, discover AI tools, read resources, and test prompts.
 
 ### Example: Creating an HTTP Request

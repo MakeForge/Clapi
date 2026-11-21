@@ -449,6 +449,21 @@ private fun RequestTabChip(
                 WebSocketBadge(compact = true, modifier = Modifier.testTag("tab-websocket-badge-${tab.id}"))
             } else if (tab.kind == RequestKind.GRAPHQL) {
                 GraphQLBadge(compact = true, modifier = Modifier.testTag("tab-graphql-badge-${tab.id}"))
+            } else if (tab.kind == RequestKind.RABBITMQ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    RabbitMqBadge(modeBadge = tab.rabbitMqMode.badge, compact = true, modifier = Modifier.testTag("tab-rabbitmq-badge-${tab.id}"))
+                    if (tab.rabbitMqConnectionStatus == io.github.makeforge.clapi.core.model.RabbitMqConnectionStatus.CONNECTED) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(ClapiColors.StatusSuccess)
+                        )
+                    }
+                }
             } else if (tab.kind == RequestKind.FOLDER) {
                 Icon(painter = painterResource(Res.drawable.ic_folder),
                     contentDescription = null,

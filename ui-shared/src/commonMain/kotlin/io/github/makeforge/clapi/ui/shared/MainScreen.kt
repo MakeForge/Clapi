@@ -70,6 +70,7 @@ import io.github.makeforge.clapi.ui.shared.components.ResponseViewer
 import io.github.makeforge.clapi.ui.shared.components.SettingsDialog
 import io.github.makeforge.clapi.ui.shared.components.SidebarResizeDivider
 import io.github.makeforge.clapi.ui.shared.components.VerticalSplitPane
+import io.github.makeforge.clapi.ui.shared.components.RabbitMqRequestEditor
 import io.github.makeforge.clapi.ui.shared.components.WebSocketRequestEditor
 import io.github.makeforge.clapi.ui.shared.components.executor.saveRequest
 import io.github.makeforge.clapi.ui.shared.components.executor.sendRequest
@@ -479,6 +480,15 @@ private fun ColumnScope.HttpWorkspaceContent(
                         } else if (tab.kind == RequestKind.WEBSOCKET) {
                             key(tab.id) {
                                 WebSocketRequestEditor(
+                                    tab = tab,
+                                    state = state,
+                                    onSave = { saveRequest(scope, state, tab) },
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+                        } else if (tab.kind == RequestKind.RABBITMQ) {
+                            key(tab.id) {
+                                RabbitMqRequestEditor(
                                     tab = tab,
                                     state = state,
                                     onSave = { saveRequest(scope, state, tab) },

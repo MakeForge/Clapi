@@ -153,6 +153,106 @@ data class WebSocketRequestConfigDto(
 )
 
 @Serializable
+data class RabbitMqConnectionDto(
+    val host: String = "localhost",
+    val port: Int? = 5672,
+    val vhost: String = "/",
+    val useTls: Boolean = false,
+)
+
+@Serializable
+data class RabbitMqExchangeDto(
+    val name: String = "",
+    val type: String = "direct",
+    val durable: Boolean = true,
+    val autoDelete: Boolean = false,
+)
+
+@Serializable
+data class RabbitMqQueueDto(
+    val name: String = "",
+    val durable: Boolean = true,
+    val exclusive: Boolean = false,
+    val autoDelete: Boolean = false,
+)
+
+@Serializable
+data class RabbitMqPropertiesDto(
+    val contentType: String? = "application/json",
+    val contentEncoding: String? = null,
+    val deliveryMode: Int? = 2,
+    val priority: Int? = null,
+    val correlationId: String? = null,
+    val replyTo: String? = null,
+    val expiration: String? = null,
+    val messageId: String? = null,
+    val type: String? = null,
+    val appId: String? = null,
+)
+
+@Serializable
+data class RabbitMqSettingsDto(
+    val connectionTimeoutMs: Long = 10_000L,
+    val heartbeatSeconds: Int = 30,
+    val publisherConfirms: Boolean = true,
+    val mandatory: Boolean = false,
+    val declareTopology: Boolean = false,
+    val ackMode: String = "auto",
+    val prefetchCount: Int = 50,
+    val maxTimelineMessages: Int = 1_000,
+    val rpcTimeoutMs: Long = 15_000L,
+    val replyStrategy: String = "direct_reply_to",
+    val useTlsClientCert: Boolean = false,
+)
+
+@Serializable
+data class RabbitMqRequestConfigDto(
+    val mode: String = "publish",
+    val connection: RabbitMqConnectionDto = RabbitMqConnectionDto(),
+    val exchange: RabbitMqExchangeDto? = null,
+    val queue: RabbitMqQueueDto? = null,
+    val routingKey: String = "",
+    val replyQueue: String? = null,
+    val properties: RabbitMqPropertiesDto? = null,
+    val variants: List<WebSocketVariantDto> = emptyList(),
+    val settings: RabbitMqSettingsDto = RabbitMqSettingsDto(),
+)
+
+@Serializable
+data class SubscribeRabbitMqInput(
+    val requestId: String,
+    val maxMessages: Int = 10,
+    val timeoutMs: Long = 5_000L,
+    val environmentName: String? = null,
+    val transientVariables: Map<String, String> = emptyMap(),
+    val maxBodyLength: Int = DEFAULT_MAX_BODY_LENGTH,
+)
+
+@Serializable
+data class SanitizedRabbitMqMessageDto(
+    val timestamp: Long,
+    val exchange: String,
+    val routingKey: String,
+    val contentType: String? = null,
+    val headers: Map<String, String> = emptyMap(),
+    val properties: RabbitMqPropertiesDto = RabbitMqPropertiesDto(),
+    val bodyPreview: String = "",
+    val byteLength: Long = 0L,
+    val isBinary: Boolean = false,
+    val _truncated: Boolean = false,
+)
+
+@Serializable
+data class SubscribeRabbitMqResultDto(
+    val requestId: String,
+    val elapsedMs: Long,
+    val messageCount: Int,
+    val truncated: Boolean = false,
+    val messages: List<SanitizedRabbitMqMessageDto> = emptyList(),
+    val error: String? = null,
+)
+
+@Serializable
 data class SanitizedRequestDto(
     val id: String,
     val name: String,
@@ -175,6 +275,7 @@ data class SanitizedRequestDto(
     val grpc: GrpcRequestConfigDto? = null,
     val graphql: GraphQlRequestConfigDto? = null,
     val websocket: WebSocketRequestConfigDto? = null,
+    val rabbitmq: RabbitMqRequestConfigDto? = null,
 )
 
 @Serializable
@@ -392,6 +493,7 @@ data class UpsertRequestInput(
     val grpc: GrpcRequestConfigDto? = null,
     val graphql: GraphQlRequestConfigDto? = null,
     val websocket: WebSocketRequestConfigDto? = null,
+    val rabbitmq: RabbitMqRequestConfigDto? = null,
 )
 
 @Serializable
@@ -490,6 +592,7 @@ interface McpWorkspaceBackend {
     suspend fun setVariable(input: SetVariableInput): SanitizedVariableDto
 
     suspend fun executeRequest(input: ExecuteRequestInput): ExecutionResultDto
+    suspend fun subscribeRabbitMq(input: SubscribeRabbitMqInput): SubscribeRabbitMqResultDto
     suspend fun inspectResponse(input: InspectResponseInput): InspectResponseResultDto
     suspend fun getLatestResponse(idOrPath: String, maxBodyLength: Int = DEFAULT_MAX_BODY_LENGTH): ExecutionResultDto?
     suspend fun runTestSuite(input: RunTestSuiteInput): TestSuiteResultDto

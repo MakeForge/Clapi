@@ -1,9 +1,9 @@
 import DefaultTheme from 'vitepress/theme';
 import ThemedScreenshot from './components/ThemedScreenshot.vue';
+import HeroProtocolIcons from './components/HeroProtocolIcons.vue';
 import './custom.css';
-import { h } from 'vue'
-import { VPButton } from 'vitepress/theme'
-import './custom.css'
+import { h } from 'vue';
+import { VPButton } from 'vitepress/theme';
 
 export default {
   extends: DefaultTheme,
@@ -50,6 +50,7 @@ export default {
   },
   Layout() {
     return h(DefaultTheme.Layout, null, {
+      'home-hero-info-after': () => h(HeroProtocolIcons),
       // Places the button right after the top nav links
       'nav-bar-content-before': () =>
           h(

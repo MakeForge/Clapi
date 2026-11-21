@@ -175,6 +175,26 @@ class RequestTabState(
     var graphQlForwardAuthHeader by mutableStateOf<String?>("inherit")
     var graphQlMaxRedirects by mutableStateOf<String?>("inherit")
 
+    // ── RabbitMQ state ───────────────────────────────────────────────────────
+    var selectedRabbitMqTab by mutableStateOf(RabbitMqEditorTab.MESSAGE)
+    var rabbitMqMode by mutableStateOf(io.github.makeforge.clapi.core.model.opencollection.RabbitMqOperationMode.PUBLISH)
+    var rabbitMqConnection by mutableStateOf(io.github.makeforge.clapi.core.model.opencollection.RabbitMqConnectionConfig())
+    var rabbitMqExchange by mutableStateOf(io.github.makeforge.clapi.core.model.opencollection.RabbitMqExchangeConfig())
+    var rabbitMqQueue by mutableStateOf(io.github.makeforge.clapi.core.model.opencollection.RabbitMqQueueConfig())
+    var rabbitMqRoutingKey by mutableStateOf("")
+    var rabbitMqReplyQueue by mutableStateOf("")
+    var rabbitMqProperties by mutableStateOf(io.github.makeforge.clapi.core.model.opencollection.AmqpMessageProperties())
+    var rabbitMqSettings by mutableStateOf(io.github.makeforge.clapi.core.model.opencollection.RabbitMqRequestSettings())
+    var rabbitMqDocs by mutableStateOf("")
+    var rabbitMqConnectionStatus by mutableStateOf(io.github.makeforge.clapi.core.model.RabbitMqConnectionStatus.DISCONNECTED)
+    var rabbitMqError by mutableStateOf<String?>(null)
+    val rabbitMqMessages = mutableStateListOf<io.github.makeforge.clapi.core.model.RabbitMqDeliveryMessage>()
+    var rabbitMqTimelineFilter by mutableStateOf("")
+    var rabbitMqLastPublishResult by mutableStateOf<io.github.makeforge.clapi.core.model.RabbitMqPublishResult?>(null)
+    var rabbitMqLastRpcResult by mutableStateOf<io.github.makeforge.clapi.core.model.RabbitMqRpcResult?>(null)
+    var rabbitMqIsExecuting by mutableStateOf(false)
+    var rabbitMqActiveSession: io.github.makeforge.clapi.core.network.rabbitmq.RabbitMqSubscriptionSession? = null
+
     val activeGraphQLVariant: GraphQLBodyVariant?
         get() = graphQlVariants.getOrNull(activeGraphQLVariantIndex)
 

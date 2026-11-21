@@ -1674,6 +1674,9 @@
           "$ref": "#/$defs/WebSocketRequest"
         },
         {
+          "$ref": "#/$defs/RabbitMqRequest"
+        },
+        {
           "$ref": "#/$defs/Folder"
         },
         {
@@ -2420,6 +2423,158 @@
           "description": "Documentation for this request"
         }
       },
+      "additionalProperties": false
+    },
+    "RabbitMqRequestInfo": {
+      "type": "object",
+      "description": "RabbitMQ request metadata",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the request"
+        },
+        "description": {
+          "$ref": "#/$defs/Description"
+        },
+        "type": {
+          "type": "string",
+          "const": "rabbitmq",
+          "description": "The type of request"
+        },
+        "seq": {
+          "$ref": "#/$defs/Sequence"
+        },
+        "tags": {
+          "type": "array",
+          "description": "Array of tags",
+          "items": {
+            "$ref": "#/$defs/Tag"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "RabbitMqConnectionConfig": {
+      "type": "object",
+      "properties": {
+        "host": { "type": "string" },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "vhost": { "type": "string" },
+        "useTls": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "RabbitMqExchangeConfig": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["default", "direct", "topic", "fanout", "headers"]
+        },
+        "durable": { "type": "boolean" },
+        "autoDelete": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "RabbitMqQueueConfig": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "durable": { "type": "boolean" },
+        "exclusive": { "type": "boolean" },
+        "autoDelete": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "AmqpMessageProperties": {
+      "type": "object",
+      "properties": {
+        "contentType": { "type": "string" },
+        "contentEncoding": { "type": "string" },
+        "deliveryMode": { "type": "integer" },
+        "priority": { "type": "integer" },
+        "correlationId": { "type": "string" },
+        "replyTo": { "type": "string" },
+        "expiration": { "type": "string" },
+        "messageId": { "type": "string" },
+        "type": { "type": "string" },
+        "appId": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "RabbitMqRequestDetails": {
+      "type": "object",
+      "description": "RabbitMQ AMQP 0-9-1 request details",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["publish", "subscribe", "rpc"]
+        },
+        "connection": {
+          "$ref": "#/$defs/RabbitMqConnectionConfig"
+        },
+        "exchange": {
+          "$ref": "#/$defs/RabbitMqExchangeConfig"
+        },
+        "queue": {
+          "$ref": "#/$defs/RabbitMqQueueConfig"
+        },
+        "routingKey": { "type": "string" },
+        "replyQueue": { "type": "string" },
+        "headers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/HttpRequestHeader" }
+        },
+        "properties": {
+          "$ref": "#/$defs/AmqpMessageProperties"
+        },
+        "message": {
+          "oneOf": [
+            { "$ref": "#/$defs/WebSocketMessage" },
+            {
+              "type": "array",
+              "items": { "$ref": "#/$defs/WebSocketMessageVariant" }
+            }
+          ]
+        },
+        "auth": {
+          "$ref": "#/$defs/Auth"
+        }
+      },
+      "additionalProperties": false
+    },
+    "RabbitMqRequestSettings": {
+      "type": "object",
+      "properties": {
+        "connectionTimeoutMs": { "type": "integer" },
+        "heartbeatSeconds": { "type": "integer" },
+        "publisherConfirms": { "type": "boolean" },
+        "mandatory": { "type": "boolean" },
+        "declareTopology": { "type": "boolean" },
+        "ackMode": { "type": "string", "enum": ["auto", "manual"] },
+        "prefetchCount": { "type": "integer" },
+        "maxTimelineMessages": { "type": "integer" },
+        "rpcTimeoutMs": { "type": "integer" },
+        "replyStrategy": {
+          "type": "string",
+          "enum": ["direct_reply_to", "temporary_queue", "named_queue"]
+        },
+        "useTlsClientCert": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "RabbitMqRequest": {
+      "type": "object",
+      "description": "RabbitMQ Publish/Subscribe/RPC request configuration",
+      "properties": {
+        "info": { "$ref": "#/$defs/RabbitMqRequestInfo" },
+        "rabbitmq": { "$ref": "#/$defs/RabbitMqRequestDetails" },
+        "runtime": { "$ref": "#/$defs/HttpRequestRuntime" },
+        "settings": { "$ref": "#/$defs/RabbitMqRequestSettings" },
+        "docs": { "type": "string" }
+      },
+      "required": ["info", "rabbitmq"],
       "additionalProperties": false
     },
     "FolderInfo": {

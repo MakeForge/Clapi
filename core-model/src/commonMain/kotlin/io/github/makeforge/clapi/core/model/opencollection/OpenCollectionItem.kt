@@ -30,7 +30,9 @@ enum class ItemType(val value: String) {
     @SerialName("graphql")
     GRAPHQL("graphql"),
     @SerialName("websocket")
-    WEBSOCKET("websocket");
+    WEBSOCKET("websocket"),
+    @SerialName("rabbitmq")
+    RABBITMQ("rabbitmq");
 
     override fun toString(): String = value
 
@@ -515,6 +517,39 @@ data class GraphQLRequestItem(
     @Transient override val extensions: Map<String, JsonElement> = emptyMap(),
 ) : OpenCollectionItem
 
+@Serializable
+data class RabbitMqRequestInfo(
+    override val name: String,
+    override val description: Description? = null,
+    override val type: ItemType = ItemType.RABBITMQ,
+    override val seq: Double? = null,
+    override val tags: List<String> = emptyList(),
+) : ItemInfo {
+    constructor(
+        name: String,
+        description: Description? = null,
+        type: String,
+        seq: Double? = null,
+        tags: List<String> = emptyList(),
+    ) : this(
+        name = name,
+        description = description,
+        type = ItemType.fromValue(type) ?: ItemType.RABBITMQ,
+        seq = seq,
+        tags = tags,
+    )
+}
+
+@Serializable
+data class RabbitMqRequestItem(
+    override val info: RabbitMqRequestInfo,
+    val rabbitmq: RabbitMqRequestDetails,
+    val runtime: HttpRequestRuntime? = null,
+    val settings: RabbitMqRequestSettings? = null,
+    val docs: String? = null,
+    @Transient override val extensions: Map<String, JsonElement> = emptyMap(),
+) : OpenCollectionItem
+
 object OpenCollectionItemSerializer : JsonContentPolymorphicSerializer<OpenCollectionItem>(OpenCollectionItem::class) {
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<OpenCollectionItem> {
         val obj = element.jsonObject
@@ -530,6 +565,9 @@ object OpenCollectionItemSerializer : JsonContentPolymorphicSerializer<OpenColle
         if (obj.containsKey("graphql")) {
             return GraphQLRequestItem.serializer()
         }
+        if (obj.containsKey("rabbitmq")) {
+            return RabbitMqRequestItem.serializer()
+        }
         val infoObj = obj["info"]?.jsonObject
         val typeStr = infoObj?.get("type")?.jsonPrimitive?.content
         val type = ItemType.fromValue(typeStr)
@@ -544,6 +582,9 @@ object OpenCollectionItemSerializer : JsonContentPolymorphicSerializer<OpenColle
         }
         if (type == ItemType.GRAPHQL) {
             return GraphQLRequestItem.serializer()
+        }
+        if (type == ItemType.RABBITMQ) {
+            return RabbitMqRequestItem.serializer()
         }
         return FolderItem.serializer()
     }

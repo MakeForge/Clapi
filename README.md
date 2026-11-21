@@ -25,7 +25,7 @@
 
 ## What is Clapi?
 
-Clapi is an API client for desktop (macOS, Linux, Windows), supports lots of protocols (HTTP, GraphQL, gRPC, WebSocket, SSE, MCP), external Secret Managers (AWS, Azure, HashiCorp Vault, GCP, KeepassXC, Keeper Security), git-sync with no cloud lock in or any features hidden behind a paywall.
+Clapi is an API client for desktop (macOS, Linux, Windows), supports lots of protocols (HTTP, GraphQL, gRPC, WebSocket, RabbitMQ, SSE, MCP), external Secret Managers (AWS, Azure, HashiCorp Vault, GCP, KeepassXC, Keeper Security), git-sync with no cloud lock in or any features hidden behind a paywall.
 
 ## Quick Start
 

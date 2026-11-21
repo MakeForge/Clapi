@@ -28,6 +28,7 @@ slf4j = "2.0.17"
 kotlin-logging = "8.0.7"
 nucleus = "2.5.18"
 filekit = "0.14.2"
+amqp-client = "5.37.1"
 
 [libraries]
 tinylog-api = { module = "org.tinylog:tinylog-api", version.ref = "tinylog" }
@@ -93,6 +94,7 @@ nucleus-core-runtime = { module = "dev.nucleusframework:nucleus.core-runtime", v
 nucleus-decorated-window-tao = { module = "dev.nucleusframework:nucleus.decorated-window-tao", version.ref = "nucleus" }
 nucleus-decorated-window-material3 = { module = "dev.nucleusframework:nucleus.decorated-window-material3", version.ref = "nucleus" }
 filekit-dialogs = { module = "io.github.vinceglb:filekit-dialogs", version.ref = "filekit" }
+amqp-client = { module = "com.rabbitmq:amqp-client", version.ref = "amqp-client" }
 
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

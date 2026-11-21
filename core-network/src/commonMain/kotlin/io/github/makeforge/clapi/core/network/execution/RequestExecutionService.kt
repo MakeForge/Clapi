@@ -14,6 +14,7 @@ import io.github.makeforge.clapi.core.model.opencollection.HashicorpVaultExterna
 import io.github.makeforge.clapi.core.model.opencollection.HttpRequestItem
 import io.github.makeforge.clapi.core.model.opencollection.KeeperSecurityExternalSecret
 import io.github.makeforge.clapi.core.model.opencollection.OpenCollectionDocument
+import io.github.makeforge.clapi.core.model.opencollection.RabbitMqRequestItem
 import io.github.makeforge.clapi.core.model.opencollection.RegularVariable
 import io.github.makeforge.clapi.core.model.opencollection.SecretVariable
 import io.github.makeforge.clapi.core.model.opencollection.VariableEntry
@@ -31,6 +32,14 @@ import io.github.makeforge.clapi.core.network.grpc.DynamicGrpcClient
 import io.github.makeforge.clapi.core.network.grpc.GrpcCallRequest
 import io.github.makeforge.clapi.core.network.grpc.GrpcCallResponse
 import io.github.makeforge.clapi.core.network.grpc.parseGrpcEndpoint
+import io.github.makeforge.clapi.core.network.rabbitmq.RabbitMqClient
+import io.github.makeforge.clapi.core.network.rabbitmq.RabbitMqRequestExecutor
+import io.github.makeforge.clapi.core.network.rabbitmq.RabbitMqSubscriptionSession
+import io.github.makeforge.clapi.core.network.rabbitmq.createDefaultRabbitMqClient
+import io.github.makeforge.clapi.core.model.RabbitMqPublishResult
+import io.github.makeforge.clapi.core.model.RabbitMqRpcResult
+import io.github.makeforge.clapi.core.model.opencollection.AuthConfig
+import io.github.makeforge.clapi.core.model.opencollection.ClientCertificate
 import io.github.makeforge.clapi.core.network.keeper.KeeperClient
 import io.github.makeforge.clapi.core.network.vault.AwsProviderConfig
 import io.github.makeforge.clapi.core.network.vault.AzureProviderConfig
@@ -49,6 +58,7 @@ class RequestExecutionService(
     private val grpcClient: DynamicGrpcClient? = null,
     private val secretResolutionService: SecretResolutionService = SecretResolutionService(),
     val dynamicVariableRegistry: DynamicVariableRegistry = DynamicVariableRegistry(),
+    private val rabbitMqClient: RabbitMqClient = createDefaultRabbitMqClient(),
 ) {
     private fun toDeclarations(externalSecrets: List<ExternalSecretVariable>): List<SecretDeclaration> =
         externalSecrets.mapNotNull { sec ->
@@ -609,5 +619,115 @@ class RequestExecutionService(
             ),
             variableLayers = emptyList(),
         )
+    }
+
+    suspend fun executeRabbitMqPublish(
+        requestItem: RabbitMqRequestItem,
+        parentHierarchy: List<FolderItem> = emptyList(),
+        collectionRoot: OpenCollectionDocument? = null,
+        variableLayers: List<Map<String, String>> = emptyList(),
+        environment: Environment? = null,
+        resolvedOAuth2Token: String? = null,
+    ): RabbitMqPublishResult {
+        val (layers, dynVars, ancestors, certs) = buildRabbitMqContext(
+            requestItem, parentHierarchy, collectionRoot, variableLayers, environment
+        )
+        return RabbitMqRequestExecutor(rabbitMqClient).publish(
+            item = requestItem,
+            variableLayers = layers,
+            ancestorAuthChain = ancestors,
+            clientCertificates = certs,
+            userDynamicVariables = dynVars,
+            resolvedOAuth2Token = resolvedOAuth2Token,
+        )
+    }
+
+    suspend fun executeRabbitMqSubscribe(
+        requestItem: RabbitMqRequestItem,
+        parentHierarchy: List<FolderItem> = emptyList(),
+        collectionRoot: OpenCollectionDocument? = null,
+        variableLayers: List<Map<String, String>> = emptyList(),
+        environment: Environment? = null,
+        resolvedOAuth2Token: String? = null,
+    ): RabbitMqSubscriptionSession {
+        val (layers, dynVars, ancestors, certs) = buildRabbitMqContext(
+            requestItem, parentHierarchy, collectionRoot, variableLayers, environment
+        )
+        return RabbitMqRequestExecutor(rabbitMqClient).subscribe(
+            item = requestItem,
+            variableLayers = layers,
+            ancestorAuthChain = ancestors,
+            clientCertificates = certs,
+            userDynamicVariables = dynVars,
+            resolvedOAuth2Token = resolvedOAuth2Token,
+        )
+    }
+
+    suspend fun executeRabbitMqRpc(
+        requestItem: RabbitMqRequestItem,
+        parentHierarchy: List<FolderItem> = emptyList(),
+        collectionRoot: OpenCollectionDocument? = null,
+        variableLayers: List<Map<String, String>> = emptyList(),
+        environment: Environment? = null,
+        resolvedOAuth2Token: String? = null,
+    ): RabbitMqRpcResult {
+        val (layers, dynVars, ancestors, certs) = buildRabbitMqContext(
+            requestItem, parentHierarchy, collectionRoot, variableLayers, environment
+        )
+        return RabbitMqRequestExecutor(rabbitMqClient).rpc(
+            item = requestItem,
+            variableLayers = layers,
+            ancestorAuthChain = ancestors,
+            clientCertificates = certs,
+            userDynamicVariables = dynVars,
+            resolvedOAuth2Token = resolvedOAuth2Token,
+        )
+    }
+
+    private data class RabbitMqResolvedContext(
+        val layers: List<Map<String, String>>,
+        val dynamicVars: List<DynamicVariable>,
+        val ancestorAuthChain: List<AuthConfig?>,
+        val clientCertificates: List<ClientCertificate>,
+    )
+
+    private fun buildRabbitMqContext(
+        requestItem: RabbitMqRequestItem,
+        parentHierarchy: List<FolderItem>,
+        collectionRoot: OpenCollectionDocument?,
+        variableLayers: List<Map<String, String>>,
+        environment: Environment?,
+    ): RabbitMqResolvedContext {
+        val runtimeVars = requestItem.runtime?.variables?.mapNotNull { v ->
+            (v as? RegularVariable)?.let { it.name to (it.value?.asString ?: "") }
+        }?.toMap() ?: emptyMap()
+        val layers = if (variableLayers.isNotEmpty()) {
+            variableLayers
+        } else {
+            adapter.buildVariableLayers(
+                runtimeVariables = runtimeVars,
+                environment = environment,
+                parentHierarchy = parentHierarchy,
+                collectionRoot = collectionRoot,
+            )
+        }
+        val dynVars = adapter.collectDynamicVariables(
+            runtimeVariables = runtimeVars,
+            environment = environment,
+            parentHierarchy = parentHierarchy,
+            collectionRoot = collectionRoot,
+        )
+        // Nearest parent folder first, then collection root
+        val ancestorAuths = buildList<AuthConfig?> {
+            for (folder in parentHierarchy.asReversed()) {
+                add(folder.request?.auth)
+            }
+            add(collectionRoot?.request?.auth)
+        }
+        val certs = buildList {
+            environment?.clientCertificates?.let { addAll(it) }
+            collectionRoot?.config?.clientCertificates?.let { addAll(it) }
+        }
+        return RabbitMqResolvedContext(layers, dynVars, ancestorAuths, certs)
     }
 }

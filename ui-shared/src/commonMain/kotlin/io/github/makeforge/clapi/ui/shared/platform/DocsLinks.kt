@@ -81,6 +81,9 @@ object DocsLinks {
     val websocket: String
         get() = url("/request-types/websocket/")
 
+    val rabbitmq: String
+        get() = url("/request-types/rabbitmq/")
+
     /** MCP (Model Context Protocol) documentation page. */
     val mcp: String
         get() = url("/request-types/mcp/")

@@ -41,6 +41,7 @@ kotlin {
                 implementation(libs.keepassxc.proxy.access)
                 implementation(libs.org.json)
                 implementation(libs.keeper.secrets.manager.core)
+                implementation(libs.amqp.client)
             }
         }
         val desktopTest by getting {

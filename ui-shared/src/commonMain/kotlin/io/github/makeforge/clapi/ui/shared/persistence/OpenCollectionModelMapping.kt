@@ -991,6 +991,44 @@ fun CollectionNode.toOpenCollectionItem(collectionDir: String? = null): OpenColl
             )
         }
 
+        if (kind == RequestKind.RABBITMQ) {
+            val effectiveHeaders = (headerEntries ?: userHeaders.map { KeyValueEntry(it.first, it.second) }).map {
+                io.github.makeforge.clapi.core.model.opencollection.HttpRequestHeader(
+                    name = it.key,
+                    value = it.value,
+                    disabled = if (it.enabled) null else true,
+                )
+            }
+            val rmqRuntime = if (scripts.isNotEmpty()) {
+                io.github.makeforge.clapi.core.model.opencollection.HttpRequestRuntime(scripts = scripts)
+            } else {
+                null
+            }
+            val baseDetails = rabbitMqDetails ?: io.github.makeforge.clapi.core.model.opencollection.RabbitMqRequestDetails()
+            val messagePayload = when {
+                webSocketVariants.isNotEmpty() -> io.github.makeforge.clapi.core.model.opencollection.WebSocketMessagePayload.Variants(webSocketVariants)
+                !bodyContent.isNullOrBlank() -> io.github.makeforge.clapi.core.model.opencollection.WebSocketMessagePayload.Single(
+                    io.github.makeforge.clapi.core.model.opencollection.WebSocketMessage(
+                        type = webSocketMessageFormat ?: io.github.makeforge.clapi.core.model.opencollection.WebSocketMessageType.JSON,
+                        data = bodyContent!!,
+                    )
+                )
+                else -> baseDetails.message
+            }
+            return io.github.makeforge.clapi.core.model.opencollection.RabbitMqRequestItem(
+                info = io.github.makeforge.clapi.core.model.opencollection.RabbitMqRequestInfo(name = name),
+                rabbitmq = baseDetails.copy(
+                    headers = effectiveHeaders,
+                    message = messagePayload,
+                    auth = auth ?: baseDetails.auth,
+                ),
+                runtime = rmqRuntime,
+                settings = rabbitMqSettings,
+                docs = rabbitMqDocs,
+                extensions = ext,
+            )
+        }
+
         if (kind == RequestKind.GRAPHQL) {
             val effectiveHeaders = (headerEntries ?: userHeaders.map { KeyValueEntry(it.first, it.second) }).map {
                 io.github.makeforge.clapi.core.model.opencollection.HttpRequestHeader(
@@ -1750,6 +1788,100 @@ fun OpenCollectionItem.toCollectionNode(
                 webSocketKeepAliveInterval = (settings?.keepAliveInterval as? JsonPrimitive)?.content,
                 webSocketDocs = docs,
                 webSocketMessageFormat = msgFormat,
+            )
+        }
+        is io.github.makeforge.clapi.core.model.opencollection.RabbitMqRequestItem -> {
+            val clapiExt = extensions["clapi"] as? JsonObject
+            val meta = clapiExt
+                ?: (if (path.isNotEmpty()) clapiRequests?.get(path) as? JsonObject else null)
+                ?: (extensions["id"] as? JsonPrimitive)?.content?.let { clapiRequests?.get(it) as? JsonObject }
+                ?: clapiRequests?.get(info.name) as? JsonObject
+
+            val candidateReqId = (meta?.get("id") as? JsonPrimitive)?.contentOrNull
+                ?: (extensions["id"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
+            val reqId = if (preserveIds && candidateReqId != null && candidateReqId !in existingIds) {
+                candidateReqId
+            } else {
+                generateUuid()
+            }
+            val reqRef = (meta?.get("requestRef") as? JsonPrimitive)?.contentOrNull
+                ?: (extensions["requestRef"] as? JsonPrimitive)?.content
+            val headerEntries: List<KeyValueEntry> = rabbitmq.headers.map {
+                KeyValueEntry(key = it.name, value = it.value, enabled = it.disabled != true)
+            }
+            val userHeaders = rabbitmq.headers.map { it.name to it.value }
+            val variants = when (val msg = rabbitmq.message) {
+                is io.github.makeforge.clapi.core.model.opencollection.WebSocketMessagePayload.Variants -> msg.variants
+                is io.github.makeforge.clapi.core.model.opencollection.WebSocketMessagePayload.Single -> listOf(
+                    io.github.makeforge.clapi.core.model.opencollection.WebSocketMessageVariant(
+                        title = "Default",
+                        selected = true,
+                        message = msg.message,
+                    )
+                )
+                null -> emptyList()
+            }
+            val firstMsg = when (val msg = rabbitmq.message) {
+                is io.github.makeforge.clapi.core.model.opencollection.WebSocketMessagePayload.Single -> msg.message.data
+                is io.github.makeforge.clapi.core.model.opencollection.WebSocketMessagePayload.Variants ->
+                    msg.variants.firstOrNull { it.selected == true }?.message?.data
+                        ?: msg.variants.firstOrNull()?.message?.data
+                null -> null
+            }
+            val msgFormat = when (val msg = rabbitmq.message) {
+                is io.github.makeforge.clapi.core.model.opencollection.WebSocketMessagePayload.Single -> msg.message.type
+                is io.github.makeforge.clapi.core.model.opencollection.WebSocketMessagePayload.Variants ->
+                    msg.variants.firstOrNull { it.selected == true }?.message?.type
+                        ?: msg.variants.firstOrNull()?.message?.type
+                null -> io.github.makeforge.clapi.core.model.opencollection.WebSocketMessageType.JSON
+            }
+            val preScript = runtime?.scripts?.firstOrNull { it.type == ScriptType.BEFORE_REQUEST }?.code
+            val postScript = runtime?.scripts?.firstOrNull { it.type == ScriptType.AFTER_RESPONSE || it.type == ScriptType.TESTS }?.code
+            var mappedAuthType: AuthType? = null
+            var mappedUsername: String? = null
+            var mappedPassword: String? = null
+            var mappedToken: String? = null
+            when (val a = rabbitmq.auth) {
+                is AuthBasic -> {
+                    mappedAuthType = AuthType.BASIC
+                    mappedUsername = a.username
+                    mappedPassword = a.password
+                }
+                is AuthBearer -> {
+                    mappedAuthType = AuthType.BEARER
+                    mappedToken = a.token
+                }
+                is AuthOAuth2 -> {
+                    mappedAuthType = AuthType.OAUTH2
+                }
+                is AuthInherit -> {
+                    mappedAuthType = AuthType.INHERIT
+                }
+                else -> Unit
+            }
+
+            CollectionNode(
+                id = reqId,
+                name = info.name,
+                isFolder = false,
+                url = "${if (rabbitmq.connection.useTls) "amqps" else "amqp"}://${rabbitmq.connection.host}:${rabbitmq.connection.effectivePort()}${rabbitmq.connection.vhost}",
+                method = HttpMethodType.POST,
+                headerEntries = headerEntries,
+                userHeaders = userHeaders,
+                bodyContent = firstMsg,
+                preRequestScript = preScript,
+                testScript = postScript,
+                authType = mappedAuthType,
+                authUsername = mappedUsername,
+                authPassword = mappedPassword,
+                authToken = mappedToken,
+                requestRef = reqRef ?: generateUuid(),
+                kind = RequestKind.RABBITMQ,
+                webSocketVariants = variants,
+                webSocketMessageFormat = msgFormat,
+                rabbitMqDetails = rabbitmq,
+                rabbitMqSettings = settings,
+                rabbitMqDocs = docs,
             )
         }
         is io.github.makeforge.clapi.core.model.opencollection.GraphQLRequestItem -> {
