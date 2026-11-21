@@ -1,6 +1,6 @@
 package io.github.makeforge.clapi.ui.desktop.preview
 
-import androidx.compose.desktop.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.runtime.Composable
 import io.github.makeforge.clapi.ui.shared.MainScreen
 import io.github.makeforge.clapi.ui.shared.state.AppState
