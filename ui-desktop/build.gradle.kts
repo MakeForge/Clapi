@@ -16,6 +16,18 @@ plugins {
     alias(libs.plugins.roborazzi)
 }
 
+// TODO: remove after https://github.com/NucleusFramework/Nucleus/issues/952 is fixed
+// Temporarily use the legacy AWT backend (decorated-window-jni) on Linux due to a
+// Tao X11 focus-transition flicker bug (Cairo transparent draw clearing EGL xwin).
+// macOS and Windows stay on Tao. Override with -Pclapi.windowBackend=tao|awt.
+val isLinuxHost = System.getProperty("os.name").lowercase().contains("linux")
+val windowBackend = (findProperty("clapi.windowBackend") as String?)?.lowercase()
+    ?: if (isLinuxHost) "awt" else "tao"
+require(windowBackend in setOf("awt", "tao")) {
+    "Unsupported clapi.windowBackend='$windowBackend' (expected 'awt' or 'tao')"
+}
+val useAwtBackend = windowBackend == "awt"
+
 kotlin {
     jvm("desktop") {
         mainRun {
@@ -25,6 +37,7 @@ kotlin {
 
     sourceSets {
         val desktopMain by getting {
+            kotlin.srcDir(if (useAwtBackend) "src/desktopAwtMain/kotlin" else "src/desktopTaoMain/kotlin")
             dependencies {
                 implementation(compose.desktop.currentOs)
                 implementation(compose.runtime)
@@ -33,7 +46,12 @@ kotlin {
                 implementation(libs.nucleus.application)
                 implementation(libs.nucleus.aot.runtime)
                 implementation(libs.nucleus.core.runtime)
-                implementation(libs.nucleus.decorated.window.tao)
+                if (useAwtBackend) {
+                    implementation(libs.nucleus.decorated.window.jni)
+                    implementation(libs.coroutines.swing)
+                } else {
+                    implementation(libs.nucleus.decorated.window.tao)
+                }
                 implementation(libs.nucleus.decorated.window.material3)
                 implementation(libs.filekit.dialogs)
                 implementation(project(":ui-shared"))

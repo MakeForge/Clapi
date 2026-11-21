@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -23,7 +22,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.WindowExceptionHandler
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.rememberWindowState
 import dev.nucleusframework.application.NucleusApplicationScope
@@ -31,8 +29,6 @@ import dev.nucleusframework.application.aotTraining
 import dev.nucleusframework.application.nucleusApplication
 import dev.nucleusframework.window.material.MaterialDecoratedWindow
 import dev.nucleusframework.window.material.MaterialTitleBar
-import dev.nucleusframework.window.tao.LocalWindowExceptionHandlerFactory
-import dev.nucleusframework.window.tao.WindowExceptionHandlerFactory
 import io.github.makeforge.clapi.core.storage.opencollection.DefaultCanonicalCollectionRepository
 import io.github.makeforge.clapi.mcp.server.transport.StdioMcpServerRunner
 import io.github.makeforge.clapi.ui.desktop.aot.AotTrainingRunner
@@ -240,16 +236,10 @@ fun main(args: Array<String>) {
             }
         }
 
-        val windowExceptionHandlerFactory = remember {
-            WindowExceptionHandlerFactory { _ ->
-                WindowExceptionHandler { throwable ->
-                    GlobalCrashHandler.handleException(throwable, Thread.currentThread().name)
-                }
-            }
-        }
-
-        CompositionLocalProvider(
-            LocalWindowExceptionHandlerFactory provides windowExceptionHandlerFactory,
+        ProvideWindowExceptionHandler(
+            onException = { throwable ->
+                GlobalCrashHandler.handleException(throwable, Thread.currentThread().name)
+            },
         ) {
             ClapiTheme(appTheme = state.settings.theme, language = state.settings.language) {
                 with(appScope) {
