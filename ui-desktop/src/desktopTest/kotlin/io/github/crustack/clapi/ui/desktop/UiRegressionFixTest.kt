@@ -88,8 +88,9 @@ class UiRegressionFixTest {
     }
 
     /**
-     * Environment row context menu items must all be present and consistently
-     * labelled after the icon-addition pass.
+     * Environment row context menu items: "Edit Environment" is moved out of the "..."
+     * menu to a dedicated button directly left of "...". Duplicate, Rename, and Delete
+     * remain in the "..." menu.
      */
     @Test
     fun environment_context_menu_has_all_expected_items() {
@@ -97,18 +98,35 @@ class UiRegressionFixTest {
         val envName = state.environments.first().name
         composeRule.setContent { MainScreen(state) }
 
+        // Dedicated edit button is present directly on the environment row
+        composeRule.onNodeWithTag("env-edit-$envName", useUnmergedTree = true).assertIsDisplayed()
+
         composeRule.onNodeWithTag("env-actions-$envName", useUnmergedTree = true).performClick()
         composeRule.waitForIdle()
 
         listOf(
-            "Edit Environment",
             "Duplicate Environment",
             "Rename Environment",
             "Delete Environment",
         ).forEach { label ->
             composeRule.onNodeWithText(label, useUnmergedTree = true).assertIsDisplayed()
         }
+        // "Edit Environment" is moved out to its own button, so it is not in the "..." dropdown menu
+        composeRule.onNodeWithText("Edit Environment", useUnmergedTree = true).assertDoesNotExist()
         composeRule.onNodeWithText("Export Environment", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun environment_edit_button_opens_edit_dialog() {
+        val state = AppState(withDemoData = true)
+        val envName = state.environments.first().name
+        composeRule.setContent { MainScreen(state) }
+
+        composeRule.onNodeWithTag("env-edit-$envName", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        // Opening edit should set editingEnvIndex to 0
+        assertEquals(0, state.editingEnvIndex)
     }
 
     // ── Issue 3: neutral light-theme palette ─────────────────────────────
