@@ -44,6 +44,26 @@ interface KeePassXcClient {
      * Cleanly closes the proxy connection and releases OS socket/named pipe handles.
      */
     suspend fun disconnect()
+
+    /**
+     * Retrieves the current stored association identifier, if any.
+     */
+    suspend fun getAssociateId(): String? = null
+
+    /**
+     * Initiates manual association with KeePassXC.
+     */
+    suspend fun associate(): String = throw UnsupportedOperationException("Association not supported")
+
+    /**
+     * Clears existing association credentials and disconnects.
+     */
+    suspend fun unassociate() {}
+
+    /**
+     * Returns the detected KeePassXC proxy socket or named pipe path on the host system.
+     */
+    fun getProxyPath(): String = ""
 }
 
 expect fun createKeePassXcClient(): KeePassXcClient

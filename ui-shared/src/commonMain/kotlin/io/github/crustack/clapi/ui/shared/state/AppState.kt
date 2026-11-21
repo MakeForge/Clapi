@@ -294,6 +294,18 @@ class MutableExternalSecret(
     var url by mutableStateOf(url)
     var targetField by mutableStateOf(targetField)
     val customFilters = mutableStateMapOf<String, String>().also { it.putAll(customFilters) }
+    val customFilterList = mutableStateListOf<MutableKeyValue>().also { list ->
+        customFilters.forEach { (k, v) -> list.add(MutableKeyValue(key = k, value = v)) }
+    }
+
+    fun syncCustomFiltersFromList() {
+        customFilters.clear()
+        customFilterList.forEach { kv ->
+            if (kv.key.isNotBlank()) {
+                customFilters[kv.key] = kv.value
+            }
+        }
+    }
 }
 
 class ProtoFileItemState(

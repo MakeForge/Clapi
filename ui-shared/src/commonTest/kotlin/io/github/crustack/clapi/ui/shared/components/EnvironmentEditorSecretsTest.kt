@@ -217,4 +217,80 @@ class EnvironmentEditorSecretsTest {
         assertEquals("login", k2.targetField)
         assertEquals(true, k2.disabled)
     }
+
+    @Test
+    fun mutable_external_secret_custom_filter_list_allows_key_renaming_and_syncing() {
+        val secret = MutableExternalSecret(
+            name = "test_sec",
+            url = "https://example.com",
+            customFilters = mapOf("initialKey" to "initialVal"),
+        )
+
+        assertEquals(1, secret.customFilterList.size)
+        assertEquals("initialKey", secret.customFilterList[0].key)
+        assertEquals("initialVal", secret.customFilterList[0].value)
+
+        // Edit key name
+        secret.customFilterList[0].key = "renamedKey"
+        secret.syncCustomFiltersFromList()
+
+        assertFalse(secret.customFilters.containsKey("initialKey"))
+        assertTrue(secret.customFilters.containsKey("renamedKey"))
+        assertEquals("initialVal", secret.customFilters["renamedKey"])
+
+        // Add new filter
+        secret.customFilterList.add(io.github.crustack.clapi.ui.shared.state.MutableKeyValue(key = "newField", value = "newVal"))
+        secret.syncCustomFiltersFromList()
+
+        assertEquals(2, secret.customFilters.size)
+        assertEquals("newVal", secret.customFilters["newField"])
+
+        // Remove filter
+        secret.customFilterList.removeAt(0)
+        secret.syncCustomFiltersFromList()
+
+        assertEquals(1, secret.customFilters.size)
+        assertFalse(secret.customFilters.containsKey("renamedKey"))
+        assertEquals("newVal", secret.customFilters["newField"])
+    }
+
+    @Test
+    fun excluded_variables_filters_out_currently_edited_secret_and_variable() {
+        val allVars = listOf(
+            "api_host" to "localhost",
+            "api_port" to "8080",
+            "_secret.my_keepass_secret" to "https://entry.url",
+            "_secret.other_secret" to "secret/path",
+        )
+
+        // Excluding the currently edited secret
+        val secretExcludes = setOf("my_keepass_secret", "_secret.my_keepass_secret")
+            .flatMap { listOf(it.trim(), it.trim().removePrefix("_secret."), "_secret.${it.trim().removePrefix("_secret.")}") }
+            .toSet()
+
+        val filteredForSecret = allVars.filter { (name, _) ->
+            val trimmed = name.trim()
+            trimmed !in secretExcludes && trimmed.removePrefix("_secret.") !in secretExcludes
+        }
+
+        assertEquals(3, filteredForSecret.size)
+        assertFalse(filteredForSecret.any { it.first == "_secret.my_keepass_secret" })
+        assertTrue(filteredForSecret.any { it.first == "_secret.other_secret" })
+        assertTrue(filteredForSecret.any { it.first == "api_host" })
+
+        // Excluding the currently edited variable
+        val varExcludes = setOf("api_host")
+            .flatMap { listOf(it.trim(), it.trim().removePrefix("_secret."), "_secret.${it.trim().removePrefix("_secret.")}") }
+            .toSet()
+
+        val filteredForVar = allVars.filter { (name, _) ->
+            val trimmed = name.trim()
+            trimmed !in varExcludes && trimmed.removePrefix("_secret.") !in varExcludes
+        }
+
+        assertEquals(3, filteredForVar.size)
+        assertFalse(filteredForVar.any { it.first == "api_host" })
+        assertTrue(filteredForVar.any { it.first == "api_port" })
+        assertTrue(filteredForVar.any { it.first == "_secret.my_keepass_secret" })
+    }
 }

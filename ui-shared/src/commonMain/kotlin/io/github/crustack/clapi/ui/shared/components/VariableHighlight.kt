@@ -95,7 +95,7 @@ import kotlin.math.roundToInt
  * non-brace content inside `{{...}}` and normalize surrounding whitespace.
  */
 private val VARIABLE_REGEX = Regex("""\{\{\s*([^{}\r\n]+?)\s*\}\}""")
-private const val VARIABLE_TAG = "variable"
+internal const val VARIABLE_TAG = "variable"
 private fun normalizeVariableDisplayName(rawName: String): String =
     rawName.trim().trim('{', '}').trim()
 
@@ -257,27 +257,52 @@ fun VariableAwareTextField(
     state: AppState? = null,
     tab: RequestTabState? = state?.activeTab,
     readOnly: Boolean = false,
+    extraVariables: List<Pair<String, String>> = emptyList(),
+    excludeVariables: Set<String> = emptySet(),
 ) {
+    val normalizedExcludes = remember(excludeVariables) {
+        if (excludeVariables.isEmpty()) emptySet()
+        else excludeVariables
+            .filter { it.isNotBlank() }
+            .flatMap {
+                val clean = it.trim().removeSurrounding("{{", "}}").trim()
+                val withoutSecret = clean.removePrefix("_secret.")
+                listOf(clean, withoutSecret, "_secret.$withoutSecret")
+            }
+            .toSet()
+    }
+
     // Resolved variable names from whatever environment/folder/collection layers are active.
     // Reading mutableState properties of AppState inside the composable body automatically
     // registers this composable for recomposition when the environment changes.
     val currentTab = tab ?: state?.activeTab
-    val definedNames: Set<String> = if (state != null) {
-        val vars = state.activeVariableLayers(currentTab).flatMap { it.keys }.toMutableSet()
-        state.selectedEnvironment?.externalSecrets?.filter { it.enabled && it.name.isNotBlank() }?.forEach {
-            vars.add("_secret.${it.name.trim()}")
-        }
-        val effectiveAuthType = if (currentTab != null) {
-            if (currentTab.authType == AuthType.INHERIT) {
-                state.resolveInheritedAuth(currentTab)?.authType ?: AuthType.NONE
-            } else {
-                currentTab.authType
+    val definedNames: Set<String> = if (state != null || extraVariables.isNotEmpty()) {
+        val vars = if (state != null) {
+            val set = state.activeVariableLayers(currentTab).flatMap { it.keys }.toMutableSet()
+            state.selectedEnvironment?.externalSecrets?.filter { it.enabled && it.name.isNotBlank() }?.forEach {
+                set.add("_secret.${it.name.trim()}")
             }
+            val effectiveAuthType = if (currentTab != null) {
+                if (currentTab.authType == AuthType.INHERIT) {
+                    state.resolveInheritedAuth(currentTab)?.authType ?: AuthType.NONE
+                } else {
+                    currentTab.authType
+                }
+            } else {
+                AuthType.NONE
+            }
+            if (effectiveAuthType == AuthType.OAUTH2) {
+                set.add("_auth.oauth2.accessToken")
+            }
+            set
         } else {
-            AuthType.NONE
+            mutableSetOf()
         }
-        if (effectiveAuthType == AuthType.OAUTH2) {
-            vars.add("_auth.oauth2.accessToken")
+        extraVariables.forEach { (k, _) ->
+            if (k.isNotBlank()) vars.add(k.trim())
+        }
+        if (normalizedExcludes.isNotEmpty()) {
+            vars.removeAll(normalizedExcludes)
         }
         vars
     } else {
@@ -288,7 +313,7 @@ fun VariableAwareTextField(
     var fieldValue by remember {
         mutableStateOf(
             TextFieldValue(
-                if (state != null) highlightVariablesWithStatus(value, definedNames)
+                if (state != null || extraVariables.isNotEmpty()) highlightVariablesWithStatus(value, definedNames)
                 else AnnotatedString(value),
             ),
         )
@@ -299,8 +324,29 @@ fun VariableAwareTextField(
     var popupVariable by remember { mutableStateOf<String?>(null) }
     var showVariableDropdown by remember { mutableStateOf(false) }
     var selectedVariableIndex by remember { mutableIntStateOf(0) }
-    val availableVariables = remember(state, currentTab, definedNames) {
-        getAvailableVariables(state, currentTab)
+    val availableVariables = remember(state, currentTab, definedNames, extraVariables, normalizedExcludes) {
+        val base = getAvailableVariables(state, currentTab)
+        val allVars = if (extraVariables.isEmpty()) {
+            base
+        } else {
+            val combinedMap = linkedMapOf<String, String>()
+            for ((k, v) in extraVariables) {
+                if (k.isNotBlank()) combinedMap[k] = v
+            }
+            for ((k, v) in base) {
+                if (!combinedMap.containsKey(k)) combinedMap[k] = v
+            }
+            combinedMap.entries.map { it.key to it.value }.sortedBy { it.first }
+        }
+        if (normalizedExcludes.isEmpty()) {
+            allVars
+        } else {
+            allVars.filter { (name, _) ->
+                val trimmed = name.trim()
+                trimmed !in normalizedExcludes &&
+                    trimmed.removePrefix("_secret.") !in normalizedExcludes
+            }
+        }
     }
 
     val insertVariableAtCursor: (String) -> Unit = { varName ->
@@ -314,7 +360,7 @@ fun VariableAwareTextField(
         val replaceStart = if (lastOpen != -1 && lastOpen > lastClose) lastOpen else selStart
         val newText = currentText.replaceRange(replaceStart, selEnd, token)
         val newCursor = replaceStart + token.length
-        val annotated = if (state != null) highlightVariablesWithStatus(newText, definedNames)
+        val annotated = if (state != null || extraVariables.isNotEmpty()) highlightVariablesWithStatus(newText, definedNames)
                         else AnnotatedString(newText)
         if (undoStack != null) {
             undoStack.addLast(currentText)
@@ -334,7 +380,7 @@ fun VariableAwareTextField(
     // that is out-of-range for the new value (e.g. switching request tabs).
     LaunchedEffect(value) {
         if (fieldValue.text != value) {
-            val annotated = if (state != null) highlightVariablesWithStatus(value, definedNames)
+            val annotated = if (state != null || extraVariables.isNotEmpty()) highlightVariablesWithStatus(value, definedNames)
                             else AnnotatedString(value)
             fieldValue = TextFieldValue(annotatedString = annotated, selection = TextRange(annotated.length))
         }
@@ -343,7 +389,7 @@ fun VariableAwareTextField(
     // Re-colour when the active environment/variables change without a text change
     // (e.g. user activates a different env or adds a new variable).
     LaunchedEffect(definedNames) {
-        if (state != null) {
+        if (state != null || extraVariables.isNotEmpty()) {
             val annotated = highlightVariablesWithStatus(fieldValue.text, definedNames)
             fieldValue = fieldValue.copy(annotatedString = annotated)
         }
@@ -371,7 +417,7 @@ fun VariableAwareTextField(
                     }
                 }
                 resetCtrlSpaceTrigger()
-                val annotated = if (state != null) highlightVariablesWithStatus(new.text, definedNames)
+                val annotated = if (state != null || extraVariables.isNotEmpty()) highlightVariablesWithStatus(new.text, definedNames)
                                 else AnnotatedString(new.text)
                 val newFieldValue = TextFieldValue(
                     annotatedString = annotated,
@@ -495,24 +541,24 @@ fun VariableAwareTextField(
                     onDismiss = { popupVariable = null },
                 )
             }
+        }
 
-            if (showVariableDropdown && availableVariables.isNotEmpty()) {
-                Popup(
-                    alignment = Alignment.TopStart,
-                    offset = IntOffset(0, 36),
-                    properties = PopupProperties(focusable = false),
-                    onDismissRequest = { showVariableDropdown = false },
-                ) {
-                    VariableDropdownList(
-                        variables = availableVariables,
-                        selectedIndex = selectedVariableIndex,
-                        onSelect = { varName ->
-                            insertVariableAtCursor(varName)
-                            showVariableDropdown = false
-                        },
-                        modifier = Modifier.testTag("variable-dropdown"),
-                    )
-                }
+        if (showVariableDropdown && availableVariables.isNotEmpty()) {
+            Popup(
+                alignment = Alignment.TopStart,
+                offset = IntOffset(0, 36),
+                properties = PopupProperties(focusable = false),
+                onDismissRequest = { showVariableDropdown = false },
+            ) {
+                VariableDropdownList(
+                    variables = availableVariables,
+                    selectedIndex = selectedVariableIndex,
+                    onSelect = { varName ->
+                        insertVariableAtCursor(varName)
+                        showVariableDropdown = false
+                    },
+                    modifier = Modifier.testTag("variable-dropdown"),
+                )
             }
         }
     }
@@ -1000,16 +1046,19 @@ fun VariableEditorPopup(
                                 color = ClapiColors.OnSurfaceDim,
                             )
                         }
-                        BasicTextField(
-                            value = editValue,
-                            onValueChange = { editValue = it },
+                        VariableAwareTextField(
+                            value = editValue.text,
+                            onValueChange = { editValue = TextFieldValue(it) },
                             singleLine = true,
+                            placeholder = Strings.t("enter_value"),
                             textStyle = TextStyle(
                                 color = ClapiColors.OnSurface,
                                 fontSize = 13.sp,
                                 fontFamily = CodeFontFamily,
                             ),
-                            cursorBrush = SolidColor(ClapiColors.Primary),
+                            state = state,
+                            tab = tab,
+                            excludeVariables = setOf(cleanName),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(8.dp))
@@ -1017,12 +1066,6 @@ fun VariableEditorPopup(
                                 .border(1.dp, ClapiColors.BorderLight, RoundedCornerShape(8.dp))
                                 .padding(horizontal = 10.dp, vertical = 8.dp)
                                 .testTag("variable-popup-value-input"),
-                            decorationBox = { inner ->
-                                if (editValue.text.isEmpty()) {
-                                    Text(Strings.t("enter_value"), color = ClapiColors.OnSurfaceDim, fontSize = 13.sp)
-                                }
-                                inner()
-                            },
                         )
                     }
 
