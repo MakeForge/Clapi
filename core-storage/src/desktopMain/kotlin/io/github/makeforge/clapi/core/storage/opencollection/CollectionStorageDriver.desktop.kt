@@ -14,6 +14,11 @@ actual fun deleteFile(path: String): Boolean = File(path).delete()
 
 actual fun fileExists(path: String): Boolean = File(path).exists()
 
+actual fun fileStamp(path: String): Pair<Long, Long>? {
+    val file = File(path)
+    return if (file.exists()) file.lastModified() to file.length() else null
+}
+
 actual fun getDefaultStorageBaseDirectory(): String = File(System.getProperty("user.home"), ".clapi/storage").absolutePath
 
 actual fun copyFileOrDirectory(sourcePath: String, destinationPath: String): Boolean {

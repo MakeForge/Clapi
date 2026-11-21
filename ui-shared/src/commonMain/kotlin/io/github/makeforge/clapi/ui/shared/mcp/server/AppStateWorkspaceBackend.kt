@@ -64,6 +64,9 @@ class AppStateWorkspaceBackend(
     private var cachedDelegate: HeadlessWorkspaceBackend? = null
     private val customApiClient: ApiClient = apiClient
     private var lastSyncedGlobalDoc: io.github.makeforge.clapi.core.model.opencollection.OpenCollectionDocument? = null
+    private var lastSyncedActiveEnv: String? = null
+    private var lastSyncedGlobalVars: Map<String, SetVariableInput> = emptyMap()
+    private var lastSyncedEnvSecrets: Map<Pair<String, String>, SetVariableInput> = emptyMap()
 
     private fun createDelegate(): HeadlessWorkspaceBackend {
         val repo = WorkspaceRepository.canonicalRepository
@@ -77,6 +80,53 @@ class AppStateWorkspaceBackend(
         )
     }
 
+    private fun snapshotGlobalVarsFromAppState(): Map<String, SetVariableInput> {
+        val map = linkedMapOf<String, SetVariableInput>()
+        for (gv in appState.globalVariables) {
+            if (gv.key.isBlank()) continue
+            val trimmedKey = gv.key.trim()
+            val kind = when {
+                gv.secret -> "secret"
+                gv.isDynamic -> "dynamic"
+                else -> "regular"
+            }
+            map[trimmedKey] = SetVariableInput(
+                scope = "global",
+                key = trimmedKey,
+                action = "upsert",
+                kind = kind,
+                variableType = gv.variableType.value,
+                value = gv.value,
+                enabled = gv.enabled,
+                dynamicScript = gv.dynamicScript,
+                dynamicParameters = gv.dynamicParameters.toList(),
+            )
+        }
+        return map
+    }
+
+    private fun snapshotEnvSecretsFromAppState(): Map<Pair<String, String>, SetVariableInput> {
+        val map = linkedMapOf<Pair<String, String>, SetVariableInput>()
+        for (env in appState.environments) {
+            for (v in env.variables) {
+                if (v.secret && v.key.isNotBlank() && v.value.isNotBlank()) {
+                    val trimmedKey = v.key.trim()
+                    map[env.name to trimmedKey] = SetVariableInput(
+                        scope = "environment",
+                        target = env.name,
+                        key = trimmedKey,
+                        action = "upsert",
+                        kind = "secret",
+                        variableType = v.variableType.value,
+                        value = v.value,
+                        enabled = v.enabled,
+                    )
+                }
+            }
+        }
+        return map
+    }
+
     private suspend fun syncFromAppStateToDelegate() {
         val globalDoc = appState.toGlobalOpenCollectionDocument()
         if (globalDoc != lastSyncedGlobalDoc) {
@@ -84,49 +134,42 @@ class AppStateWorkspaceBackend(
             lastSyncedGlobalDoc = globalDoc
         }
         val activeEnvName = appState.environments.getOrNull(appState.selectedEnvIndex)?.name
-        if (activeEnvName != null) {
-            runCatching { delegate.setActiveEnvironment(activeEnvName) }
-        }
-        // Sync global variables into delegate
-        for (gv in appState.globalVariables) {
-            if (gv.key.isBlank()) continue
-            val kind = when {
-                gv.secret -> "secret"
-                gv.isDynamic -> "dynamic"
-                else -> "regular"
+        if (activeEnvName != null && activeEnvName != lastSyncedActiveEnv) {
+            val synced = runCatching { delegate.setActiveEnvironment(activeEnvName) }.isSuccess
+            if (synced) {
+                lastSyncedActiveEnv = activeEnvName
             }
-            delegate.setVariable(
-                SetVariableInput(
-                    scope = "global",
-                    key = gv.key.trim(),
-                    action = "upsert",
-                    kind = kind,
-                    variableType = gv.variableType.value,
-                    value = gv.value,
-                    enabled = gv.enabled,
-                    dynamicScript = gv.dynamicScript,
-                    dynamicParameters = gv.dynamicParameters.toList(),
-                )
-            )
         }
-        // Sync in-memory environment secret values into delegate
-        for (env in appState.environments) {
-            for (v in env.variables) {
-                if (v.secret && v.key.isNotBlank() && v.value.isNotBlank()) {
-                    delegate.setVariable(
-                        SetVariableInput(
-                            scope = "environment",
-                            target = env.name,
-                            key = v.key.trim(),
-                            action = "upsert",
-                            kind = "secret",
-                            variableType = v.variableType.value,
-                            value = v.value,
-                            enabled = v.enabled,
-                        )
+        // Sync changed and deleted global variables into delegate
+        val currentGlobalVars = snapshotGlobalVarsFromAppState()
+        if (currentGlobalVars != lastSyncedGlobalVars) {
+            for (removedKey in lastSyncedGlobalVars.keys - currentGlobalVars.keys) {
+                delegate.setVariable(
+                    SetVariableInput(
+                        scope = "global",
+                        key = removedKey,
+                        action = "delete",
                     )
+                )
+            }
+            for ((key, input) in currentGlobalVars) {
+                if (lastSyncedGlobalVars[key] != input) {
+                    delegate.setVariable(input)
                 }
             }
+            lastSyncedGlobalVars = currentGlobalVars
+        }
+        // Sync only changed in-memory environment secret values into delegate
+        val currentEnvSecrets = snapshotEnvSecretsFromAppState()
+        if (currentEnvSecrets != lastSyncedEnvSecrets) {
+            for ((key, input) in currentEnvSecrets) {
+                if (lastSyncedEnvSecrets[key] != input) {
+                    delegate.setVariable(input)
+                }
+            }
+            lastSyncedEnvSecrets = currentEnvSecrets
+            // delegate.setVariable(scope="environment") persists the updated global doc
+            lastSyncedGlobalDoc = appState.toGlobalOpenCollectionDocument()
         }
     }
 
@@ -160,6 +203,9 @@ class AppStateWorkspaceBackend(
         appState.notifyCollectionsChanged()
         WorkspaceRepository.save(appState)
         lastSyncedGlobalDoc = appState.toGlobalOpenCollectionDocument()
+        lastSyncedActiveEnv = overview.activeEnvironment
+        lastSyncedGlobalVars = snapshotGlobalVarsFromAppState()
+        lastSyncedEnvSecrets = snapshotEnvSecretsFromAppState()
     }
 
     override suspend fun listTree(
@@ -279,6 +325,7 @@ class AppStateWorkspaceBackend(
                 if (idx >= 0) appState.globalVariables[idx] = kv else appState.globalVariables.add(kv)
             }
             WorkspaceRepository.save(appState)
+            lastSyncedGlobalVars = snapshotGlobalVarsFromAppState()
         } else {
             syncFromDelegateToAppState()
             if (scope == "environment" && input.kind == "secret" && input.value != MASKED_SECRET_PLACEHOLDER) {
@@ -287,6 +334,7 @@ class AppStateWorkspaceBackend(
                 env?.variables?.firstOrNull { it.key.trim() == input.key.trim() }?.let { v ->
                     v.value = input.value
                 }
+                lastSyncedEnvSecrets = snapshotEnvSecretsFromAppState()
             }
         }
         result

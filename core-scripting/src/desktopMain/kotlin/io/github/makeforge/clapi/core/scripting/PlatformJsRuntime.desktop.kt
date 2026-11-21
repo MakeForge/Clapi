@@ -96,6 +96,29 @@ private object PooledV8RuntimeHolder {
         }
     }
 
+    private val mallocTrimHandle: java.lang.invoke.MethodHandle? by lazy {
+        if (!System.getProperty("os.name").orEmpty().contains("Linux", ignoreCase = true)) {
+            return@lazy null
+        }
+        runCatching {
+            val linker = java.lang.foreign.Linker.nativeLinker()
+            val sym = linker.defaultLookup().find("malloc_trim").orElse(null) ?: return@runCatching null
+            linker.downcallHandle(
+                sym,
+                java.lang.foreign.FunctionDescriptor.of(
+                    java.lang.foreign.ValueLayout.JAVA_INT,
+                    java.lang.foreign.ValueLayout.JAVA_LONG,
+                ),
+            )
+        }.getOrNull()
+    }
+
+    private fun trimNativeHeapIfLinux() {
+        runCatching {
+            mallocTrimHandle?.invoke(0L)
+        }
+    }
+
     private fun scheduleIdleClose() {
         idleCloseTask = idleScheduler.schedule({
             synchronized(lock) {
@@ -106,6 +129,7 @@ private object PooledV8RuntimeHolder {
                 runtime = null
                 idleCloseTask = null
             }
+            trimNativeHeapIfLinux()
         }, IDLE_CLOSE_DELAY_MS, TimeUnit.MILLISECONDS)
     }
 }

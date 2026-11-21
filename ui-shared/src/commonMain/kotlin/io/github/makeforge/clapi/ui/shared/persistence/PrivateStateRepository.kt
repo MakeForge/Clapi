@@ -9,6 +9,9 @@ import io.github.makeforge.clapi.ui.shared.state.MutableKeyValue
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
 
 /**
  * Private store for global variables, request history, and expanded tree state.
@@ -37,11 +40,24 @@ class PrivateStateRepository(
     private var memory: String? = null
 
     fun save(state: PrivateWorkspaceState) {
-        val payload = json.encodeToString(state)
         val path = storagePath()
         if (path == null) {
-            memory = payload
+            memory = json.encodeToString(state)
         } else {
+            // Preserve sibling keys written by HeadlessWorkspaceBackend (e.g. activeEnvironment, scopedSecrets)
+            val existingObj = runCatching {
+                readText(path)?.let { json.parseToJsonElement(it).jsonObject }
+            }.getOrNull()
+            val payload = if (existingObj != null) {
+                val encoded = json.encodeToJsonElement(PrivateWorkspaceState.serializer(), state).jsonObject
+                val merged = buildJsonObject {
+                    existingObj.forEach { (k, v) -> put(k, v) }
+                    encoded.forEach { (k, v) -> put(k, v) }
+                }
+                json.encodeToString(JsonObject.serializer(), merged)
+            } else {
+                json.encodeToString(state)
+            }
             writeText(path, payload)
         }
     }
