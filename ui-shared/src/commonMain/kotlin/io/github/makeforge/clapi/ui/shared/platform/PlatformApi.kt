@@ -1,5 +1,6 @@
 package io.github.makeforge.clapi.ui.shared.platform
 
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerIcon
 import kotlinx.coroutines.CoroutineDispatcher
@@ -64,6 +65,21 @@ expect fun Modifier.platformResizeCursorStyle(isHorizontal: Boolean): Modifier
 
 /** Web fallback for diagonal CSS resize cursors; a no-op on desktop. */
 expect fun Modifier.platformDiagonalResizeCursorStyle(isNwSe: Boolean): Modifier
+
+/**
+ * Key used by Compose semantics to allow UI tests and platform integrations
+ * to drop a file into a dropzone.
+ */
+val FileDropSemanticsKey = androidx.compose.ui.semantics.SemanticsPropertyKey<(fileName: String, content: String) -> Unit>("FileDropAction")
+
+/**
+ * Modifier that attaches native file drag-and-drop listener to the drop target.
+ * When files are dropped, supported files (.json, .yaml, .yml) are read and delivered to [onFileDropped].
+ */
+@Composable
+expect fun Modifier.fileDropTarget(
+    onFileDropped: (fileName: String, content: String) -> Unit,
+): Modifier
 
 // ── File I/O ────────────────────────────────────────────────────
 

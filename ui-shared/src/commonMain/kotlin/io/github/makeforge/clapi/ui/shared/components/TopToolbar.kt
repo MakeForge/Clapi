@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import io.github.makeforge.clapi.ui.shared.components.dialogs.env.parseHexColor
 import io.github.makeforge.clapi.ui.shared.generated.resources.Res
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_help_outline
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_menu
@@ -239,11 +240,13 @@ private fun EnvironmentChip(state: AppState) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
+            val activeColor = selectedEnvironment?.color?.let { parseHexColor(it) } ?: ClapiColors.Secondary
             Box(
                 modifier = Modifier
                     .size(8.dp)
                     .clip(RoundedCornerShape(50))
-                    .background(ClapiColors.Secondary)
+                    .background(activeColor)
+                    .testTag("top-toolbar-env-color-dot"),
             )
             Text(
                 text = selectedEnvironment?.name ?: Strings.noEnvironmentsConfigured,
@@ -269,14 +272,27 @@ private fun EnvironmentChip(state: AppState) {
                         val created = EnvState(newEnvironmentLabel)
                         state.environments.add(created)
                         state.selectedEnvIndex = state.environments.lastIndex
+                        state.environmentsExpanded = true
+                        state.settings.environmentsExpanded = true
                         state.openEnvEdit(state.selectedEnvIndex)
                         menuExpanded = false
                     },
                 )
             } else {
                 state.environments.forEachIndexed { index, env ->
+                    val envColor = env.color?.let { parseHexColor(it) } ?: (if (index == state.selectedEnvIndex) ClapiColors.Secondary else ClapiColors.OnSurfaceDim)
                     DropdownMenuItem(
-                        text = { Text(env.name) },
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(RoundedCornerShape(50))
+                                        .background(envColor)
+                                )
+                                Text(env.name)
+                            }
+                        },
                         onClick = {
                             state.selectedEnvIndex = index
                             menuExpanded = false

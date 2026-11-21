@@ -74,6 +74,7 @@ import io.github.makeforge.clapi.ui.shared.persistence.WorkspaceRepository
 import io.github.makeforge.clapi.ui.shared.persistence.toCollectionNode
 import io.github.makeforge.clapi.ui.shared.persistence.toMutableKeyValue
 import io.github.makeforge.clapi.ui.shared.platform.PlatformLazyVerticalScrollbar
+import io.github.makeforge.clapi.ui.shared.platform.fileDropTarget
 import io.github.makeforge.clapi.ui.shared.platform.pickFileForImport
 import io.github.makeforge.clapi.ui.shared.platform.readFromClipboard
 import io.github.makeforge.clapi.ui.shared.state.AppState
@@ -257,7 +258,12 @@ fun ImportSpecificationDialog(
                                     .border(1.dp, ClapiColors.Border, RoundedCornerShape(8.dp))
                                     .background(ClapiColors.SurfaceContainer.copy(alpha = 0.5f))
                                     .padding(24.dp)
-                                    .testTag("import-dropzone"),
+                                    .testTag("import-dropzone")
+                                    .fileDropTarget { name, content ->
+                                        selectedFileName = name
+                                        fileContent = content
+                                        scanErrorMessage = null
+                                    },
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center,
                             ) {

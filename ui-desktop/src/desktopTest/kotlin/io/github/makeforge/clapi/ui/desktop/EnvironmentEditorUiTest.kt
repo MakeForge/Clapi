@@ -3,6 +3,8 @@ package io.github.makeforge.clapi.ui.desktop
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -14,12 +16,14 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import io.github.makeforge.clapi.ui.shared.MainScreen
+import io.github.makeforge.clapi.ui.shared.components.dialogs.env.ENVIRONMENT_COLOR_PRESETS
 import io.github.makeforge.clapi.ui.shared.persistence.SettingsRepository
 import io.github.makeforge.clapi.ui.shared.platform.PlatformStorage
 import io.github.makeforge.clapi.ui.shared.state.AppSettings
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.state.DEFAULT_ENVIRONMENT_DIALOG_HEIGHT_DP
 import io.github.makeforge.clapi.ui.shared.state.DEFAULT_ENVIRONMENT_DIALOG_WIDTH_DP
+import io.github.makeforge.clapi.ui.shared.state.EnvState
 import io.github.makeforge.clapi.ui.shared.state.MutableKeyValue
 import org.junit.Rule
 import org.junit.Test
@@ -501,6 +505,174 @@ class EnvironmentEditorUiTest {
         assertTrue(bounds.right - bounds.left < 8000.dp)
         assertTrue(bounds.bottom - bounds.top < 8000.dp)
         assertTrue((bounds.right - bounds.left).value > 100f)
+    }
+
+    @Test
+    fun environment_extends_selector_and_override_badge() {
+        val state = AppState().apply {
+            environments.add(
+                EnvState(
+                    name = "BaseEnv",
+                    variables = listOf(
+                        MutableKeyValue("BASE_URL", "https://api.base.com"),
+                        MutableKeyValue("TIMEOUT", "30")
+                    )
+                )
+            )
+            environments.add(
+                EnvState(
+                    name = "DevEnv",
+                    variables = listOf(
+                        MutableKeyValue("BASE_URL", "https://api.dev.com")
+                    )
+                )
+            )
+            openEnvEdit(1)
+        }
+
+        composeRule.setContent { MainScreen(state) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("env-edit-dialog").assertIsDisplayed()
+        composeRule.onNodeWithTag("env-extends-dropdown", useUnmergedTree = true).assertIsEnabled()
+        composeRule.onNodeWithTag("env-extends-dropdown", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("env-extends-option-BaseEnv").performClick()
+        composeRule.waitForIdle()
+
+        // BASE_URL should show override badge
+        composeRule.onNodeWithTag("env-var-override-badge-BASE_URL").assertIsDisplayed()
+
+        // Save dialog
+        composeRule.onNodeWithTag("env-save-button").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals("BaseEnv", state.environments[1].extends)
+    }
+
+    @Test
+    fun environment_extends_disabled_when_no_other_environments() {
+        val state = AppState().apply {
+            environments.add(
+                EnvState(
+                    name = "SingleEnv",
+                    variables = listOf(MutableKeyValue("k", "v"))
+                )
+            )
+            openEnvEdit(0)
+        }
+
+        composeRule.setContent { MainScreen(state) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("env-edit-dialog").assertIsDisplayed()
+        composeRule.onNodeWithTag("env-extends-dropdown", useUnmergedTree = true).assertIsNotEnabled()
+    }
+
+    @Test
+    fun environment_creation_expands_sidebar_and_opens_edit_dialog() {
+        val state = AppState().apply {
+            environmentsExpanded = false
+            settings.environmentsExpanded = false
+        }
+
+        composeRule.setContent { MainScreen(state) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("sidebar-new-environment-button", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("rename-dialog-input").performTextInput("Staging")
+        composeRule.onNodeWithTag("rename-dialog-save").performClick()
+        composeRule.waitForIdle()
+
+        assertTrue(state.environmentsExpanded)
+        assertTrue(state.settings.environmentsExpanded)
+        composeRule.onNodeWithTag("env-edit-dialog").assertIsDisplayed()
+        assertEquals(1, state.environments.size)
+        assertEquals("Staging", state.environments.first().name)
+    }
+
+    @Test
+    fun environment_quick_add_variable_row_adds_variable() {
+        val state = AppState().apply {
+            environments.add(EnvState(name = "TestEnv", variables = emptyList()))
+            openEnvEdit(0)
+        }
+
+        composeRule.setContent { MainScreen(state) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("env-quick-add-key").performTextInput("PORT")
+        composeRule.onNodeWithTag("env-quick-add-value").performTextInput("8080")
+        composeRule.onNodeWithTag("env-quick-add-variable-button").performClick()
+        composeRule.waitForIdle()
+
+        // Var row 0 should now exist with PORT / 8080
+        composeRule.onNodeWithTag("env-var-key-0").assert(hasText("PORT"))
+        composeRule.onNodeWithTag("env-var-value-0").assert(hasText("8080"))
+
+        composeRule.onNodeWithTag("env-save-button").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(1, state.environments.first().variables.size)
+        assertEquals("PORT", state.environments.first().variables.first().key)
+        assertEquals("8080", state.environments.first().variables.first().value)
+    }
+
+    @Test
+    fun environment_quick_add_external_secret_row_adds_secret() {
+        val state = AppState().apply {
+            environments.add(EnvState(name = "TestEnv", variables = emptyList()))
+            openEnvEdit(0)
+        }
+
+        composeRule.setContent { MainScreen(state) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("env-tab-secrets").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("env-quick-add-secret-name").performTextInput("DB_PASSWORD")
+        composeRule.onNodeWithTag("env-quick-add-secret-path").performTextInput("production/db/password")
+        composeRule.onNodeWithTag("env-quick-add-secret-button").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("env-save-button").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(1, state.environments.first().externalSecrets.size)
+        assertEquals("DB_PASSWORD", state.environments.first().externalSecrets.first().name)
+        assertEquals("production/db/password", state.environments.first().externalSecrets.first().path)
+    }
+
+    @Test
+    fun environment_color_picker_selects_preset_and_custom_hex() {
+        val state = AppState().apply {
+            environments.add(EnvState(name = "TestEnv", variables = emptyList()))
+            openEnvEdit(0)
+        }
+
+        composeRule.setContent { MainScreen(state) }
+        composeRule.waitForIdle()
+
+        val firstPresetName = ENVIRONMENT_COLOR_PRESETS.first().name.lowercase()
+        composeRule.onNodeWithTag("env-color-preset-$firstPresetName").performClick()
+        composeRule.waitForIdle()
+
+        // Clear color
+        composeRule.onNodeWithTag("env-color-clear-button").performClick()
+        composeRule.waitForIdle()
+
+        // Set custom hex
+        composeRule.onNodeWithTag("env-color-hex-field").performTextReplacement("#3B82F6")
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("env-save-button").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals("#3B82F6", state.environments.first().color)
     }
 
     private fun envEditorState(vararg variables: MutableKeyValue): AppState =

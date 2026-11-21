@@ -640,7 +640,11 @@ fun Sidebar(
                     val existing = state.environments.map { it.name }.toSet()
                     val unique = ImportExportNaming.generateUniqueEnvironmentName(trimmed, existing)
                     state.environments.add(EnvState(unique))
-                    state.selectedEnvIndex = state.environments.lastIndex
+                    val newIndex = state.environments.lastIndex
+                    state.selectedEnvIndex = newIndex
+                    state.environmentsExpanded = true
+                    state.settings.environmentsExpanded = true
+                    state.openEnvEdit(newIndex)
                     state.log("Environment created: $unique", LogLevel.SUCCESS)
                 }
                 showCreateEnvironmentDialog = false

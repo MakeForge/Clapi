@@ -83,9 +83,10 @@ fun resolveVariableSourceInfo(
     val cleanName = normalizeVariableDisplayName(variableName)
     val env = state.selectedEnvironment
     val envName = env?.name
+    val envEffectiveMap = env?.toVariableMap(state.environments).orEmpty()
     val envVar = env?.variables?.firstOrNull { it.key == cleanName && it.enabled }
-    val envValue = envVar?.value
-    val hasEnvValue = envVar != null
+    val envValue = envVar?.value ?: envEffectiveMap[cleanName]
+    val hasEnvValue = envVar != null || cleanName in envEffectiveMap
 
     val targetTab = tab ?: state.activeTab
     var folderName: String? = null

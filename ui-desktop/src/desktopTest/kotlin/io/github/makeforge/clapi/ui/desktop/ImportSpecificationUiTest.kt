@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
 import io.github.makeforge.clapi.ui.shared.MainScreen
 import io.github.makeforge.clapi.ui.shared.components.ImportSpecificationDialog
+import io.github.makeforge.clapi.ui.shared.platform.FileDropSemanticsKey
 import io.github.makeforge.clapi.ui.shared.platform.copyToClipboard
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.state.CollectionNode
@@ -284,6 +285,35 @@ class ImportSpecificationUiTest {
         assertFalse(state.showImportSpecificationDialog)
         assertTrue(state.collections.any { it.name == "Insomnia UI Test Collection" })
         assertTrue(state.environments.any { it.name == "Base Environment" })
+    }
+
+    @Test
+    fun importDialog_fileDrop_yamlAcceptedAndParsed() {
+        val state = AppState().apply { showImportSpecificationDialog = true }
+        composeRule.setContent {
+            ImportSpecificationDialog(
+                state = state,
+                onDismiss = { state.showImportSpecificationDialog = false }
+            )
+        }
+        composeRule.waitForIdle()
+
+        val dropAction = composeRule.onNodeWithTag("import-dropzone").fetchSemanticsNode().config[FileDropSemanticsKey]
+        dropAction("petstore.yaml", sampleOpenApi)
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("import-scan-button", useUnmergedTree = true).performClick()
+
+        composeRule.waitUntil(5000) {
+            composeRule.onAllNodesWithTag("import-format-badge").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        composeRule.onNodeWithTag("import-format-badge", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("import-confirm-button", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        assertFalse(state.showImportSpecificationDialog)
+        assertTrue(state.collections.any { it.name == "Test Petstore" })
     }
 
     private fun hasTestTagStartingWith(prefix: String) =
