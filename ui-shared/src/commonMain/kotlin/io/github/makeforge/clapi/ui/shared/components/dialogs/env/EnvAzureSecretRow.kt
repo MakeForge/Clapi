@@ -90,6 +90,7 @@ internal fun EnvAzureSecretRow(
 
     var filtersExpanded by remember { mutableStateOf(false) }
     var matchState by remember { mutableStateOf("—") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     var refreshTrigger by remember { mutableStateOf(0) }
 
     val azureTenantId = state?.settings?.azureTenantId.orEmpty()
@@ -113,14 +114,17 @@ internal fun EnvAzureSecretRow(
         val effectiveVault = secret.url.ifBlank { azureVaultName }.trim()
         if (effectiveVault.isBlank() || azureTenantId.isBlank() || azureClientId.isBlank() || azureClientSecret.isBlank()) {
             matchState = "Not Connected"
+            errorMessage = null
             return@LaunchedEffect
         }
         val trimmedSecretName = secret.path.trim()
         if (trimmedSecretName.isBlank()) {
             matchState = "—"
+            errorMessage = null
             return@LaunchedEffect
         }
         matchState = "Checking..."
+        errorMessage = null
         delay(350)
         try {
             val config = AzureKeyVaultConfig(
@@ -145,6 +149,7 @@ internal fun EnvAzureSecretRow(
             val filterMismatch = resolvedFilters.any { (k, v) -> secretData[k] != v }
             if (filterMismatch) {
                 matchState = "✖ 0 found"
+                errorMessage = null
             } else {
                 val target = secret.targetField.trim()
                 if (target.isNotBlank()) {
@@ -153,13 +158,16 @@ internal fun EnvAzureSecretRow(
                 } else {
                     matchState = "✔ 1 match"
                 }
+                errorMessage = null
             }
         } catch (e: Exception) {
             val msg = e.message.orEmpty()
-            matchState = if (msg.contains("SecretNotFound", ignoreCase = true) || msg.contains("404") || msg.contains("not found", ignoreCase = true)) {
-                "✖ 0 found"
+            if (msg.contains("SecretNotFound", ignoreCase = true) || msg.contains("404") || msg.contains("not found", ignoreCase = true)) {
+                matchState = "✖ 0 found"
+                errorMessage = null
             } else {
-                "Error"
+                matchState = "Error"
+                errorMessage = msg.ifBlank { e.toString() }
             }
         }
     }
@@ -234,7 +242,8 @@ internal fun EnvAzureSecretRow(
 
             EnvSecretStatusCell(
                 status = matchState,
-                modifier = Modifier.weight(0.9f),
+                errorMessage = errorMessage,
+                modifier = Modifier.weight(1.0f),
                 statusTag = "env-secret-row-$index-match-count",
                 refreshTag = "env-secret-row-$index-refresh-status",
                 onRefresh = { refreshTrigger++ },

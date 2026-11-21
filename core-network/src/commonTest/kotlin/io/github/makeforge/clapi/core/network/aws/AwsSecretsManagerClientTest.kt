@@ -201,4 +201,47 @@ class AwsSecretsManagerClientTest {
         }
         assertTrue(ex.message!!.contains("AWS authentication failed"))
     }
+
+    @Test
+    fun testConnection_success_returns_success_result() = runTest {
+        var requestedTarget = ""
+        val engine = MockEngine { request ->
+            requestedTarget = request.headers["x-amz-target"] ?: ""
+            respond(
+                content = """{"SecretList":[]}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/x-amz-json-1.1"),
+            )
+        }
+
+        val client = createClient(engine)
+        val result = client.testConnection("AKIA...", "secret-key", region = "us-east-1")
+        assertTrue(result.isSuccess)
+        assertEquals("Connected to AWS Secrets Manager", result.getOrNull())
+        assertEquals("secretsmanager.ListSecrets", requestedTarget)
+    }
+
+    @Test
+    fun testConnection_auth_failure_returns_failure() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = """{"__type":"UnrecognizedClientException","Message":"The security token is invalid"}""",
+                status = HttpStatusCode.Forbidden,
+                headers = headersOf(HttpHeaders.ContentType, "application/x-amz-json-1.1"),
+            )
+        }
+
+        val client = createClient(engine)
+        val result = client.testConnection("bad_key", "bad_secret")
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("AWS authentication failed") == true)
+    }
+
+    @Test
+    fun testConnection_blank_credentials_fail_early() = runTest {
+        val engine = MockEngine { respond("") }
+        val client = createClient(engine)
+        assertTrue(client.testConnection("", "sk").isFailure)
+        assertTrue(client.testConnection("ak", "").isFailure)
+    }
 }

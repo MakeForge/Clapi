@@ -6,6 +6,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -26,8 +27,11 @@ interface GcpSecretManagerClient {
         secretId: String,
         version: String = "latest",
         propertyKey: String? = null,
-        accessToken: String,
+        accessToken: String = "",
         endpointUrl: String = "https://secretmanager.googleapis.com",
+        serviceAccountKey: String = "",
+        authMethod: GcpAuthMethod = GcpAuthMethod.SERVICE_ACCOUNT_KEY,
+        adcFilePath: String = "",
     ): Map<String, String> = fetchSecret(
         GcpSecretManagerConfig(
             projectId = projectId,
@@ -36,8 +40,23 @@ interface GcpSecretManagerClient {
             propertyKey = propertyKey,
             accessToken = accessToken,
             endpointUrl = endpointUrl,
+            serviceAccountKey = serviceAccountKey,
+            authMethod = authMethod,
+            adcFilePath = adcFilePath,
         )
     )
+
+    /**
+     * Verifies connectivity and credentials against GCP Secret Manager.
+     */
+    suspend fun testConnection(
+        projectId: String,
+        serviceAccountKey: String = "",
+        authMethod: GcpAuthMethod = GcpAuthMethod.SERVICE_ACCOUNT_KEY,
+        adcFilePath: String = "",
+        accessToken: String = "",
+        endpointUrl: String = "https://secretmanager.googleapis.com",
+    ): Result<String> = Result.success("OK")
 }
 
 private val sharedGcpHttpClient: HttpClient by lazy {
@@ -54,34 +73,68 @@ private val sharedGcpHttpClient: HttpClient by lazy {
 class KtorGcpSecretManagerClient(
     private val httpClient: HttpClient = sharedGcpHttpClient,
     private val json: Json = Json { ignoreUnknownKeys = true },
+    private val tokenProvider: GcpTokenProvider = DefaultGcpTokenProvider.Shared,
 ) : GcpSecretManagerClient {
     companion object {
         val Shared: KtorGcpSecretManagerClient by lazy { KtorGcpSecretManagerClient() }
     }
 
     override suspend fun fetchSecret(config: GcpSecretManagerConfig): Map<String, String> {
-        require(config.projectId.isNotBlank()) { "GCP Project ID must not be blank" }
+        val effectiveProjectId = config.projectId.ifBlank {
+            tokenProvider.extractProjectId(config.serviceAccountKey).orEmpty()
+        }
+        require(effectiveProjectId.isNotBlank()) { "GCP Project ID must not be blank" }
         require(config.secretId.isNotBlank()) { "GCP Secret ID must not be blank" }
-        require(config.accessToken.isNotBlank()) { "GCP Access Token must not be blank" }
+        if (config.authMethod == GcpAuthMethod.SERVICE_ACCOUNT_KEY) {
+            require(config.accessToken.isNotBlank() || config.serviceAccountKey.isNotBlank()) {
+                "GCP Service Account Key or Access Token must not be blank"
+            }
+        }
+
+        val token = if (config.accessToken.isNotBlank()) {
+            config.accessToken
+        } else {
+            tokenProvider.getAccessToken(
+                serviceAccountKey = config.serviceAccountKey,
+                authMethod = config.authMethod,
+                adcFilePath = config.adcFilePath,
+            )
+        }
+        require(token.isNotBlank()) { "GCP Access Token must not be blank" }
 
         val baseUrl = (config.endpointUrl.takeIf { it.isNotBlank() } ?: "https://secretmanager.googleapis.com")
             .trim()
             .trimEnd('/')
-        val project = config.projectId.trim()
+        val project = effectiveProjectId.trim()
         val secretId = config.secretId.trim()
         val version = config.version.ifBlank { "latest" }.trim()
 
         val url = "$baseUrl/v1/projects/$project/secrets/$secretId/versions/$version:access"
 
         val response = httpClient.get(url) {
-            header("Authorization", "Bearer ${config.accessToken}")
+            header("Authorization", "Bearer $token")
             header("Accept", "application/json")
         }
 
-        val rawBody = response.bodyAsText()
+        val effectiveResponse = if (response.status == HttpStatusCode.Unauthorized && config.accessToken.isBlank()) {
+            val freshToken = tokenProvider.getAccessToken(
+                serviceAccountKey = config.serviceAccountKey,
+                authMethod = config.authMethod,
+                adcFilePath = config.adcFilePath,
+                forceRefresh = true,
+            )
+            httpClient.get(url) {
+                header("Authorization", "Bearer $freshToken")
+                header("Accept", "application/json")
+            }
+        } else {
+            response
+        }
 
-        if (!response.status.isSuccess()) {
-            throw IllegalStateException("GCP Secret Manager request failed [HTTP ${response.status.value}]: $rawBody")
+        val rawBody = effectiveResponse.bodyAsText()
+
+        if (!effectiveResponse.status.isSuccess()) {
+            throw IllegalStateException("GCP Secret Manager request failed [HTTP ${effectiveResponse.status.value}]: $rawBody")
         }
 
         val parsedResponse = json.decodeFromString(GcpAccessSecretVersionResponse.serializer(), rawBody)
@@ -113,6 +166,61 @@ class KtorGcpSecretManagerClient(
             }
         } catch (_: Exception) {
             mapOf("secret" to trimmed)
+        }
+    }
+
+    override suspend fun testConnection(
+        projectId: String,
+        serviceAccountKey: String,
+        authMethod: GcpAuthMethod,
+        adcFilePath: String,
+        accessToken: String,
+        endpointUrl: String,
+    ): Result<String> {
+        val hasCreds = accessToken.isNotBlank() || DefaultGcpTokenProvider.hasCredentials(
+            serviceAccountKey = serviceAccountKey,
+            authMethod = authMethod,
+            adcFilePath = adcFilePath,
+        )
+        if (!hasCreds) {
+            return Result.failure(IllegalArgumentException("Google Cloud credentials not configured"))
+        }
+        val extractedProject = if (serviceAccountKey.isNotBlank()) {
+            DefaultGcpTokenProvider.extractProjectId(serviceAccountKey).orEmpty()
+        } else ""
+        val effectiveProjectId = projectId.ifBlank { extractedProject }.trim()
+        return try {
+            val token = if (accessToken.isNotBlank()) {
+                accessToken
+            } else {
+                tokenProvider.getAccessToken(
+                    serviceAccountKey = serviceAccountKey,
+                    authMethod = authMethod,
+                    adcFilePath = adcFilePath,
+                )
+            }
+            val cleanEndpoint = endpointUrl.trim().trimEnd('/')
+            if (effectiveProjectId.isNotBlank()) {
+                val url = "$cleanEndpoint/v1/projects/$effectiveProjectId/secrets?pageSize=1"
+                val response = httpClient.get(url) {
+                    header("Authorization", "Bearer $token")
+                    header("Accept", "application/json")
+                }
+                if (response.status.isSuccess()) {
+                    Result.success("Connected to GCP Secret Manager ($effectiveProjectId)")
+                } else {
+                    val rawBody = response.bodyAsText()
+                    if (response.status.value in listOf(401, 403)) {
+                        Result.failure(IllegalStateException("GCP authorization failed for project '$effectiveProjectId'"))
+                    } else {
+                        Result.failure(IllegalStateException("GCP Secret Manager error [HTTP ${response.status.value}]: $rawBody"))
+                    }
+                }
+            } else {
+                Result.success("Authenticated with Google Cloud (Token acquired)")
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }

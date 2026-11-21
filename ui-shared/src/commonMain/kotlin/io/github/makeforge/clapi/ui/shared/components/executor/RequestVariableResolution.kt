@@ -88,6 +88,9 @@ internal suspend fun resolveExternalSecretsForTab(
         val azureClientSecret = state.settings.azureClientSecret.ifBlank {
             SettingsStorageKeys.getSecretWithFallback(SettingsStorageKeys.AZURE_CLIENT_SECRET).orEmpty()
         }
+        val gcpServiceAccountKey = state.settings.gcpServiceAccountKey.ifBlank {
+            SettingsStorageKeys.getSecretWithFallback(SettingsStorageKeys.GCP_SERVICE_ACCOUNT_JSON).orEmpty()
+        }
         val gcpAccessToken = state.settings.gcpAccessToken.ifBlank {
             SettingsStorageKeys.getSecretWithFallback(SettingsStorageKeys.GCP_ACCESS_TOKEN).orEmpty()
         }
@@ -125,6 +128,9 @@ internal suspend fun resolveExternalSecretsForTab(
             gcp = GcpProviderConfig(
                 projectId = state.settings.gcpProjectId,
                 accessToken = gcpAccessToken,
+                serviceAccountJson = gcpServiceAccountKey,
+                authMethod = state.settings.gcpAuthMethod,
+                adcFilePath = state.settings.gcpAdcFilePath,
                 endpointUrl = state.settings.gcpEndpointUrl,
                 clientOverride = gcpClient,
             ),

@@ -25,6 +25,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -43,11 +44,11 @@ import io.github.makeforge.clapi.core.model.opencollection.VariableType
 import io.github.makeforge.clapi.core.network.keepassxc.createKeePassXcClient
 import io.github.makeforge.clapi.core.network.keeper.createKeeperClient
 import io.github.makeforge.clapi.ui.shared.components.VariableAwareTextField
+import io.github.makeforge.clapi.ui.shared.components.HoverTooltip
 import io.github.makeforge.clapi.ui.shared.components.IconButtonWithTooltip
 import io.github.makeforge.clapi.ui.shared.components.dialogs.dynamicvar.DynamicVariableEditorDialog
 import io.github.makeforge.clapi.ui.shared.components.handPointerHover
 import io.github.makeforge.clapi.ui.shared.components.rememberAutoSelectTextFieldValue
-import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.text.style.TextOverflow
 import io.github.makeforge.clapi.ui.shared.generated.resources.*
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
@@ -77,42 +78,97 @@ internal fun TableHeader(text: String, modifier: Modifier = Modifier) {
 @Composable
 internal fun EnvSecretStatusCell(
     status: String,
+    errorMessage: String? = null,
     modifier: Modifier = Modifier,
     statusTag: String = "",
     refreshTag: String = "",
     onRefresh: (() -> Unit)? = null,
 ) {
+    val (statusBg, statusBorder, statusFg) = when {
+        status.startsWith("✔") -> Triple(
+            ClapiColors.Primary.copy(alpha = 0.15f),
+            ClapiColors.Primary.copy(alpha = 0.45f),
+            ClapiColors.Primary,
+        )
+        status.startsWith("✖") || status == "Error" -> Triple(
+            ClapiColors.Error.copy(alpha = 0.15f),
+            ClapiColors.Error.copy(alpha = 0.45f),
+            ClapiColors.Error,
+        )
+        status == "Not Connected" || status == "Closed" || status == "Locked" || status == "Unassociated" -> Triple(
+            Color(0xFFF59E0B).copy(alpha = 0.15f),
+            Color(0xFFF59E0B).copy(alpha = 0.45f),
+            Color(0xFFF59E0B),
+        )
+        status == "Checking..." -> Triple(
+            ClapiColors.Primary.copy(alpha = 0.08f),
+            ClapiColors.Border,
+            ClapiColors.Primary,
+        )
+        else -> Triple(
+            ClapiColors.SurfaceContainer,
+            ClapiColors.Border,
+            ClapiColors.OnSurfaceVariant,
+        )
+    }
+
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(
-            text = status,
-            fontSize = 11.sp,
-            maxLines = 1,
-            color = when {
-                status.startsWith("✔") -> ClapiColors.Primary
-                status.startsWith("✖") -> ClapiColors.Error
-                status == "Error" || status == "Closed" || status == "Locked" || status == "Unassociated" -> ClapiColors.Error
-                status == "Checking..." -> ClapiColors.OnSurfaceDim
-                status == "Not Connected" -> Color(0xFFF59E0B)
-                else -> ClapiColors.OnSurfaceDim
-            },
-            modifier = if (statusTag.isNotEmpty()) Modifier.testTag(statusTag) else Modifier,
-        )
+        val statusTextComposable: @Composable () -> Unit = {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(statusBg)
+                    .border(1.dp, statusBorder, RoundedCornerShape(4.dp))
+                    .padding(horizontal = 7.dp, vertical = 3.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = status,
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    color = statusFg,
+                    modifier = if (statusTag.isNotEmpty()) Modifier.testTag(statusTag) else Modifier,
+                )
+            }
+        }
+
+        if (status == "Error" && !errorMessage.isNullOrBlank()) {
+            HoverTooltip(
+                tooltip = errorMessage,
+                tooltipTag = if (statusTag.isNotEmpty()) "$statusTag-tooltip" else null,
+                maxLines = 10,
+            ) {
+                statusTextComposable()
+            }
+        } else {
+            statusTextComposable()
+        }
 
         if (onRefresh != null) {
-            IconButton(
-                onClick = onRefresh,
-                modifier = Modifier.size(20.dp).then(if (refreshTag.isNotEmpty()) Modifier.testTag(refreshTag) else Modifier),
-            ) {
-                Icon(
-                    painter = painterResource(Res.drawable.ic_refresh),
-                    contentDescription = "Refresh status",
-                    tint = ClapiColors.OnSurfaceDim,
-                    modifier = Modifier.size(12.dp),
-                )
+            HoverTooltip(tooltip = "Refresh status") {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(ClapiColors.SurfaceContainer)
+                        .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
+                        .clickable(onClick = onRefresh)
+                        .pointerHoverIcon(PointerIcon.Hand)
+                        .then(if (refreshTag.isNotEmpty()) Modifier.testTag(refreshTag) else Modifier),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_refresh),
+                        contentDescription = "Refresh status",
+                        tint = ClapiColors.OnSurface,
+                        modifier = Modifier.size(13.dp),
+                    )
+                }
             }
         }
     }
@@ -671,6 +727,7 @@ internal fun EnvironmentVariableSearch(
                 tint = ClapiColors.OnSurfaceDim,
                 modifier = Modifier
                     .size(14.dp)
+                    .pointerHoverIcon(PointerIcon.Hand)
                     .clickable(onClick = onClear)
                     .testTag("env-search-clear"),
             )

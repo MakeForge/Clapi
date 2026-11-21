@@ -230,6 +230,10 @@ class SettingsDialogUiTest {
         // Selection box should be displayed
         composeRule.onNodeWithTag("secrets-provider-selector", useUnmergedTree = true).assertIsDisplayed()
 
+        // Default HashiCorp Vault connection status badge & test button should be displayed
+        composeRule.onNodeWithTag("vault-status-badge", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("vault-test-connection-btn", useUnmergedTree = true).assertIsDisplayed()
+
         // Switch to AWS Secrets Manager
         composeRule.onNodeWithTag("secrets-provider-selector", useUnmergedTree = true).performClick()
         composeRule.waitForIdle()
@@ -240,6 +244,8 @@ class SettingsDialogUiTest {
         composeRule.waitForIdle()
 
         kotlin.test.assertEquals(ExternalSecretType.AWS_SECRETS_MANAGER, state.settings.vaultProviderType)
+        composeRule.onNodeWithTag("aws-status-badge", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("aws-test-connection-btn", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithTag("aws-region", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithTag("aws-access-key-id", useUnmergedTree = true).assertIsDisplayed()
 
@@ -253,6 +259,8 @@ class SettingsDialogUiTest {
         composeRule.waitForIdle()
 
         kotlin.test.assertEquals(ExternalSecretType.AZURE_KEY_VAULT, state.settings.vaultProviderType)
+        composeRule.onNodeWithTag("azure-status-badge", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("azure-test-connection-btn", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithTag("azure-vault-name", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithTag("azure-tenant-id", useUnmergedTree = true).assertIsDisplayed()
 
@@ -266,8 +274,36 @@ class SettingsDialogUiTest {
         composeRule.waitForIdle()
 
         kotlin.test.assertEquals(ExternalSecretType.GCP_SECRETS_MANAGER, state.settings.vaultProviderType)
+        composeRule.onNodeWithTag("gcp-status-badge", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("gcp-test-connection-btn", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithTag("gcp-project-id", useUnmergedTree = true).assertIsDisplayed()
-        composeRule.onNodeWithTag("gcp-access-token", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("gcp-service-account-key", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithTag("gcp-endpoint-url", useUnmergedTree = true).assertIsDisplayed()
+
+        // Switch to KeePassXC
+        composeRule.onNodeWithTag("secrets-provider-selector", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("secrets-provider-option-keepassxc", useUnmergedTree = true)
+            .assertIsDisplayed()
+            .performClick()
+        composeRule.waitForIdle()
+
+        kotlin.test.assertEquals(ExternalSecretType.KEEPASSXC, state.settings.vaultProviderType)
+        composeRule.onNodeWithTag("keepassxc-status-badge", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("keepassxc-test-connection-btn", useUnmergedTree = true).assertIsDisplayed()
+
+        // Switch to Keeper Security Cloud
+        composeRule.onNodeWithTag("secrets-provider-selector", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("secrets-provider-option-keeper-security-cloud", useUnmergedTree = true)
+            .assertIsDisplayed()
+            .performClick()
+        composeRule.waitForIdle()
+
+        kotlin.test.assertEquals(ExternalSecretType.KEEPER_SECURITY_CLOUD, state.settings.vaultProviderType)
+        composeRule.onNodeWithTag("keeper-status-badge", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("keeper-test-connection-btn", useUnmergedTree = true).assertIsDisplayed()
     }
 }

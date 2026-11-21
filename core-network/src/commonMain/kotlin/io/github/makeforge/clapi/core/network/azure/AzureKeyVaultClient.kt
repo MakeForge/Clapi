@@ -48,6 +48,18 @@ interface AzureKeyVaultClient {
             apiVersion = apiVersion,
         )
     )
+
+    /**
+     * Verifies connectivity and credentials against Azure Key Vault.
+     */
+    suspend fun testConnection(
+        vaultName: String,
+        tenantId: String,
+        clientId: String,
+        clientSecret: String,
+        authorityHost: String = "https://login.microsoftonline.com",
+        apiVersion: String = "7.4",
+    ): Result<String> = Result.success("OK")
 }
 
 @Serializable
@@ -218,6 +230,49 @@ class KtorAzureKeyVaultClient(
             }
         } catch (_: Exception) {
             mapOf("secret" to trimmed)
+        }
+    }
+
+    override suspend fun testConnection(
+        vaultName: String,
+        tenantId: String,
+        clientId: String,
+        clientSecret: String,
+        authorityHost: String,
+        apiVersion: String,
+    ): Result<String> {
+        if (tenantId.isBlank() || clientId.isBlank() || clientSecret.isBlank()) {
+            return Result.failure(IllegalArgumentException("Azure Tenant ID, Client ID, and Client Secret cannot be blank"))
+        }
+        return try {
+            val token = acquireToken(
+                authorityHost = authorityHost,
+                tenantId = tenantId,
+                clientId = clientId,
+                clientSecret = clientSecret,
+            )
+            if (vaultName.isNotBlank()) {
+                val vaultUrl = formatVaultUrl(vaultName)
+                val url = "$vaultUrl/secrets?maxresults=1&api-version=$apiVersion"
+                val response = httpClient.get(url) {
+                    header("Authorization", "Bearer $token")
+                    header("Accept", "application/json")
+                }
+                if (response.status.isSuccess()) {
+                    Result.success("Connected to Azure Key Vault")
+                } else {
+                    val rawBody = response.bodyAsText()
+                    if (response.status.value in listOf(401, 403) || rawBody.contains("Unauthorized")) {
+                        Result.failure(IllegalStateException("Azure Key Vault authorization failed for vault '$vaultName'"))
+                    } else {
+                        Result.failure(IllegalStateException("Azure Key Vault error [HTTP ${response.status.value}]: $rawBody"))
+                    }
+                }
+            } else {
+                Result.success("Authenticated with Azure Entra ID (Token acquired)")
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }

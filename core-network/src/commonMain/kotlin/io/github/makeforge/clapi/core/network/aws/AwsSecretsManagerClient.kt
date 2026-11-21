@@ -34,6 +34,17 @@ interface AwsSecretsManagerClient {
         endpointUrl: String? = null,
         versionStage: String? = "AWSCURRENT",
     ): Map<String, String>
+
+    /**
+     * Verifies connectivity and credentials against AWS Secrets Manager.
+     */
+    suspend fun testConnection(
+        accessKey: String,
+        secretKey: String,
+        region: String = "us-east-1",
+        sessionToken: String? = null,
+        endpointUrl: String? = null,
+    ): Result<String> = Result.success("OK")
 }
 
 @Serializable
@@ -165,6 +176,57 @@ class KtorAwsSecretsManagerClient(
             }
         } catch (_: Exception) {
             mapOf("secret" to raw)
+        }
+    }
+
+    override suspend fun testConnection(
+        accessKey: String,
+        secretKey: String,
+        region: String,
+        sessionToken: String?,
+        endpointUrl: String?,
+    ): Result<String> {
+        if (accessKey.isBlank() || secretKey.isBlank()) {
+            return Result.failure(IllegalArgumentException("AWS Access Key ID and Secret Access Key cannot be blank"))
+        }
+        val host = endpointUrl?.removePrefix("http://")?.removePrefix("https://")?.trimEnd('/')
+            ?: "secretsmanager.$region.amazonaws.com"
+        val requestUrl = endpointUrl?.trimEnd('/') ?: "https://$host"
+        val payload = """{"MaxResults":1}"""
+        val baseHeaders = mapOf(
+            "host" to host,
+            "x-amz-target" to "secretsmanager.ListSecrets",
+            "content-type" to "application/x-amz-json-1.1",
+        )
+        return try {
+            val signedHeaders = AwsSigV4Signer.sign(
+                service = "secretsmanager",
+                region = region,
+                method = "POST",
+                path = "/",
+                headers = baseHeaders,
+                payload = payload,
+                accessKey = accessKey,
+                secretKey = secretKey,
+                sessionToken = sessionToken,
+            )
+            val response = httpClient.post(requestUrl) {
+                contentType(ContentType.parse("application/x-amz-json-1.1"))
+                signedHeaders.forEach { (k, v) -> header(k, v) }
+                setBody(payload)
+            }
+            if (response.status.isSuccess()) {
+                Result.success("Connected to AWS Secrets Manager")
+            } else {
+                val rawBody = response.bodyAsText()
+                if (rawBody.contains("UnrecognizedClientException") || rawBody.contains("SignatureDoesNotMatch") || response.status.value in listOf(401, 403)) {
+                    Result.failure(IllegalStateException("AWS authentication failed. Please check your credentials."))
+                } else {
+                    Result.failure(IllegalStateException("AWS request failed [HTTP ${response.status.value}]: $rawBody"))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }

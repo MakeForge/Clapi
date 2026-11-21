@@ -18,6 +18,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
@@ -30,6 +32,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.makeforge.clapi.core.model.opencollection.ExternalSecretType
+import io.github.makeforge.clapi.core.network.vault.KtorHashiCorpVaultClient
 import io.github.makeforge.clapi.core.network.keepassxc.DefaultKeePassXcClientManager
 import io.github.makeforge.clapi.core.network.keepassxc.KeePassXcStatus
 import io.github.makeforge.clapi.core.network.keepassxc.createKeePassXcClient
@@ -50,6 +53,75 @@ import org.jetbrains.compose.resources.painterResource
 
 @Composable
 internal fun VaultSettings(s: AppSettings) {
+    val scope = rememberCoroutineScope()
+    var isTesting by remember { mutableStateOf(false) }
+    var connectionStatus by remember { mutableStateOf("Not Configured") }
+    var actionMessage by remember { mutableStateOf<String?>(null) }
+    var isError by remember { mutableStateOf(false) }
+
+    val isConfigured = s.vaultServerUrl.isNotBlank() && s.vaultToken.isNotBlank()
+
+    fun runTest() {
+        if (!isConfigured) {
+            connectionStatus = "Not Configured"
+            actionMessage = "Please provide both Vault Server URL and Vault Token"
+            isError = true
+            return
+        }
+        scope.launch {
+            isTesting = true
+            connectionStatus = "Testing..."
+            actionMessage = null
+            val result = KtorHashiCorpVaultClient.Shared.testConnection(
+                vaultUrl = s.vaultServerUrl,
+                token = s.vaultToken,
+                namespace = s.vaultNamespace,
+            )
+            result.onSuccess { msg ->
+                connectionStatus = "Connected"
+                actionMessage = msg
+                isError = false
+            }.onFailure { err ->
+                connectionStatus = "Connection Failed"
+                actionMessage = err.message ?: "Connection failed"
+                isError = true
+            }
+            isTesting = false
+        }
+    }
+
+    LaunchedEffect(s.vaultServerUrl, s.vaultToken, s.vaultNamespace) {
+        if (isConfigured) {
+            runTest()
+        } else {
+            connectionStatus = "Not Configured"
+            actionMessage = null
+            isError = false
+        }
+    }
+
+    val (statusBg, statusBorder, statusFg) = when (connectionStatus) {
+        "Connected" -> Triple(ClapiColors.Primary.copy(alpha = 0.15f), ClapiColors.Primary.copy(alpha = 0.4f), ClapiColors.Primary)
+        "Connection Failed" -> Triple(ClapiColors.Error.copy(alpha = 0.15f), ClapiColors.Error.copy(alpha = 0.4f), ClapiColors.Error)
+        "Testing..." -> Triple(ClapiColors.SurfaceContainer, ClapiColors.Border, ClapiColors.OnSurfaceDim)
+        else -> Triple(ClapiColors.SurfaceContainer, ClapiColors.Border, ClapiColors.OnSurfaceDim)
+    }
+
+    SecretManagerConnectionSection(
+        statusText = connectionStatus,
+        statusColor = statusFg,
+        statusBg = statusBg,
+        statusBorder = statusBorder,
+        isTesting = isTesting,
+        onTestConnection = { runTest() },
+        tagPrefix = "vault",
+        title = "Connection Status",
+        subtitle = if (isConfigured) "HashiCorp Vault KV v2 engine" else "Configure URL and Token below to connect",
+        actionMessage = actionMessage,
+        isError = isError,
+    )
+    SettingsDivider()
+
     SettingTextField(
         label = Strings.t("vault_server_url"),
         value = s.vaultServerUrl,
@@ -110,91 +182,101 @@ internal fun KeePassXcSettings() {
         }
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        // Status header & badge & refresh
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Status header & description
+        Text(Strings.t("keepassxc_association_status"), fontSize = 13.sp, fontWeight = FontWeight.Medium, color = ClapiColors.OnSurface)
+        Text(
+            Strings.t("keepassxc_association_hint"),
+            fontSize = 11.sp,
+            color = ClapiColors.OnSurfaceDim,
+        )
+
+        val isAssociated = status == KeePassXcStatus.Connected && !associateId.isNullOrBlank()
+        val statusText: String
+        val statusBg: Color
+        val statusBorder: Color
+        val statusFg: Color
+        when {
+            isLoading -> {
+                statusText = "Checking..."
+                statusBg = ClapiColors.SurfaceContainer
+                statusBorder = ClapiColors.Border
+                statusFg = ClapiColors.OnSurfaceDim
+            }
+            isAssociated -> {
+                statusText = Strings.t("keepassxc_associated")
+                statusBg = ClapiColors.Primary.copy(alpha = 0.15f)
+                statusBorder = ClapiColors.Primary.copy(alpha = 0.4f)
+                statusFg = ClapiColors.Primary
+            }
+            status == KeePassXcStatus.DatabaseLocked -> {
+                statusText = Strings.t("keepassxc_db_locked")
+                val warnColor = Color(0xFFF59E0B)
+                statusBg = warnColor.copy(alpha = 0.15f)
+                statusBorder = warnColor.copy(alpha = 0.4f)
+                statusFg = warnColor
+            }
+            status is KeePassXcStatus.Unavailable -> {
+                statusText = Strings.t("keepassxc_unavailable")
+                statusBg = ClapiColors.Error.copy(alpha = 0.15f)
+                statusBorder = ClapiColors.Error.copy(alpha = 0.4f)
+                statusFg = ClapiColors.Error
+            }
+            else -> {
+                statusText = Strings.t("keepassxc_not_associated")
+                statusBg = ClapiColors.SurfaceContainer
+                statusBorder = ClapiColors.Border
+                statusFg = ClapiColors.OnSurfaceDim
+            }
+        }
+
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                Text(Strings.t("keepassxc_association_status"), fontSize = 13.sp, color = ClapiColors.OnSurface)
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(statusBg)
+                    .border(1.dp, statusBorder, RoundedCornerShape(4.dp))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .testTag("keepassxc-status-badge"),
+            ) {
                 Text(
-                    Strings.t("keepassxc_association_hint"),
+                    text = statusText,
+                    color = statusFg,
                     fontSize = 11.sp,
-                    color = ClapiColors.OnSurfaceDim,
-                    modifier = Modifier.padding(top = 2.dp),
+                    fontWeight = FontWeight.Medium,
                 )
             }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(ClapiColors.SurfaceContainer)
+                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
+                    .clickable(enabled = !isLoading) { refreshKey++ }
+                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                    .pointerHoverIcon(PointerIcon.Hand)
+                    .testTag("keepassxc-test-connection-btn"),
+                contentAlignment = Alignment.Center,
             ) {
-                val isAssociated = status == KeePassXcStatus.Connected && !associateId.isNullOrBlank()
-                val statusText: String
-                val statusBg: Color
-                val statusBorder: Color
-                val statusFg: Color
-                when {
-                    isLoading -> {
-                        statusText = "Checking..."
-                        statusBg = ClapiColors.SurfaceContainer
-                        statusBorder = ClapiColors.Border
-                        statusFg = ClapiColors.OnSurfaceDim
-                    }
-                    isAssociated -> {
-                        statusText = Strings.t("keepassxc_associated")
-                        statusBg = ClapiColors.Primary.copy(alpha = 0.15f)
-                        statusBorder = ClapiColors.Primary.copy(alpha = 0.4f)
-                        statusFg = ClapiColors.Primary
-                    }
-                    status == KeePassXcStatus.DatabaseLocked -> {
-                        statusText = Strings.t("keepassxc_db_locked")
-                        val warnColor = Color(0xFFF59E0B)
-                        statusBg = warnColor.copy(alpha = 0.15f)
-                        statusBorder = warnColor.copy(alpha = 0.4f)
-                        statusFg = warnColor
-                    }
-                    status is KeePassXcStatus.Unavailable -> {
-                        statusText = Strings.t("keepassxc_unavailable")
-                        statusBg = ClapiColors.Error.copy(alpha = 0.15f)
-                        statusBorder = ClapiColors.Error.copy(alpha = 0.4f)
-                        statusFg = ClapiColors.Error
-                    }
-                    else -> {
-                        statusText = Strings.t("keepassxc_not_associated")
-                        statusBg = ClapiColors.SurfaceContainer
-                        statusBorder = ClapiColors.Border
-                        statusFg = ClapiColors.OnSurfaceDim
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(statusBg)
-                        .border(1.dp, statusBorder, RoundedCornerShape(4.dp))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                        .testTag("keepassxc-status-badge"),
-                ) {
-                    Text(
-                        text = statusText,
-                        color = statusFg,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                    )
-                }
-
-                IconButton(
-                    onClick = { refreshKey++ },
-                    enabled = !isLoading,
-                    modifier = Modifier.size(24.dp).testTag("keepassxc-refresh-status"),
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
                 ) {
                     Icon(
                         painter = painterResource(Res.drawable.ic_refresh),
-                        contentDescription = "Refresh",
-                        tint = ClapiColors.OnSurfaceDim,
-                        modifier = Modifier.size(14.dp),
+                        contentDescription = "Test Connection",
+                        tint = if (isLoading) ClapiColors.OnSurfaceDim else ClapiColors.Primary,
+                        modifier = Modifier.size(13.dp),
+                    )
+                    Text(
+                        text = if (isLoading) "Testing..." else "Test Connection",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isLoading) ClapiColors.OnSurfaceDim else ClapiColors.Primary,
                     )
                 }
             }

@@ -32,6 +32,15 @@ interface HashiCorpVaultClient {
         mountPath: String = "secret",
         namespace: String? = null,
     ): Map<String, String>
+
+    /**
+     * Verifies connectivity and token authentication against HashiCorp Vault.
+     */
+    suspend fun testConnection(
+        vaultUrl: String,
+        token: String,
+        namespace: String? = null,
+    ): Result<String> = Result.success("OK")
 }
 
 private val sharedVaultHttpClient: HttpClient by lazy {
@@ -94,6 +103,43 @@ class KtorHashiCorpVaultClient(
                 val errorBody = try { response.bodyAsText() } catch (_: Exception) { "" }
                 throw IllegalStateException("Vault request failed [HTTP $code]: $errorBody")
             }
+        }
+    }
+
+    override suspend fun testConnection(
+        vaultUrl: String,
+        token: String,
+        namespace: String?,
+    ): Result<String> {
+        val cleanUrl = vaultUrl.trim().trimEnd('/')
+        if (cleanUrl.isBlank()) {
+            return Result.failure(IllegalArgumentException("Vault Server URL cannot be blank"))
+        }
+        if (token.isBlank()) {
+            return Result.failure(IllegalArgumentException("Vault Token cannot be blank"))
+        }
+        val fullUrl = "$cleanUrl/v1/auth/token/lookup-self"
+        return try {
+            val response = httpClient.get(fullUrl) {
+                header("X-Vault-Token", token.trim())
+                if (!namespace.isNullOrBlank()) {
+                    header("X-Vault-Namespace", namespace.trim())
+                }
+                header("Accept", "application/json")
+            }
+            if (response.status.isSuccess()) {
+                Result.success("Connected to HashiCorp Vault")
+            } else {
+                val code = response.status.value
+                val rawBody = try { response.bodyAsText() } catch (_: Exception) { "" }
+                if (response.status in listOf(HttpStatusCode.Unauthorized, HttpStatusCode.Forbidden)) {
+                    Result.failure(IllegalStateException("Vault authentication failed [HTTP $code]: Invalid or unauthorized token"))
+                } else {
+                    Result.failure(IllegalStateException("Vault request failed [HTTP $code]: $rawBody"))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }

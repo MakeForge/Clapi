@@ -183,4 +183,58 @@ class GcpSecretManagerClientTest {
             client.fetchSecret(GcpSecretManagerConfig(projectId = "proj", secretId = "foo", accessToken = ""))
         }
     }
+
+    @Test
+    fun testConnection_success_with_project() = runTest {
+        val client = createMockClient { url, headers ->
+            assertTrue(url.contains("/v1/projects/my-proj/secrets?pageSize=1"))
+            assertEquals("Bearer dummy-token", headers["Authorization"]?.firstOrNull())
+            HttpStatusCode.OK to """{"secrets":[]}"""
+        }
+
+        val result = client.testConnection(
+            projectId = "my-proj",
+            accessToken = "dummy-token",
+        )
+        assertTrue(result.isSuccess)
+        assertEquals("Connected to GCP Secret Manager (my-proj)", result.getOrNull())
+    }
+
+    @Test
+    fun testConnection_success_token_only_when_project_blank() = runTest {
+        val client = createMockClient { _, _ -> HttpStatusCode.OK to "{}" }
+        val result = client.testConnection(
+            projectId = "",
+            accessToken = "dummy-token",
+        )
+        assertTrue(result.isSuccess)
+        assertEquals("Authenticated with Google Cloud (Token acquired)", result.getOrNull())
+    }
+
+    @Test
+    fun testConnection_unauthorized_returns_failure() = runTest {
+        val client = createMockClient { _, _ ->
+            HttpStatusCode.Unauthorized to """{"error":{"message":"Request had invalid authentication credentials"}}"""
+        }
+
+        val result = client.testConnection(
+            projectId = "my-proj",
+            accessToken = "expired-token",
+        )
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("GCP authorization failed") == true)
+    }
+
+    @Test
+    fun testConnection_no_credentials_fails_early() = runTest {
+        val client = createMockClient { _, _ -> HttpStatusCode.OK to "{}" }
+        val result = client.testConnection(
+            projectId = "my-proj",
+            accessToken = "",
+            serviceAccountKey = "",
+            adcFilePath = "/non/existent/path.json",
+        )
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("credentials not configured") == true)
+    }
 }

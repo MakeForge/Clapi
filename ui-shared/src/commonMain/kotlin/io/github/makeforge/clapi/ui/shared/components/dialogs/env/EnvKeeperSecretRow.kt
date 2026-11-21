@@ -89,20 +89,24 @@ internal fun EnvKeeperSecretRow(
 
     var filtersExpanded by remember { mutableStateOf(false) }
     var matchState by remember { mutableStateOf("—") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     var refreshTrigger by remember { mutableStateOf(0) }
 
     val configJson = state?.settings?.keeperConfigJson.orEmpty()
     LaunchedEffect(secret.path, secret.targetField, secret.customFilters.toMap(), refreshTrigger, configJson) {
         if (configJson.isBlank()) {
             matchState = "Not Connected"
+            errorMessage = null
             return@LaunchedEffect
         }
         val trimmedTitle = secret.path.trim()
         if (trimmedTitle.isBlank()) {
             matchState = "—"
+            errorMessage = null
             return@LaunchedEffect
         }
         matchState = "Checking..."
+        errorMessage = null
         delay(350)
         try {
             val client = createKeeperClient(configJson)
@@ -130,8 +134,10 @@ internal fun EnvKeeperSecretRow(
                     else -> "✔ ${withField.size} matches"
                 }
             }
+            errorMessage = null
         } catch (e: Exception) {
             matchState = "Error"
+            errorMessage = e.message.orEmpty().ifBlank { e.toString() }
         }
     }
 
@@ -194,6 +200,7 @@ internal fun EnvKeeperSecretRow(
 
             EnvSecretStatusCell(
                 status = matchState,
+                errorMessage = errorMessage,
                 modifier = Modifier.weight(1.0f),
                 statusTag = "env-secret-row-$index-match-count",
                 refreshTag = "env-secret-row-$index-refresh-status",

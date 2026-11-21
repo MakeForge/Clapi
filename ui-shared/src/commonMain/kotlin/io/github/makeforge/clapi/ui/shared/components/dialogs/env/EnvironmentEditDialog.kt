@@ -4,6 +4,7 @@ import io.github.makeforge.clapi.core.model.opencollection.ExternalSecretType
 import io.github.makeforge.clapi.core.network.aws.KtorAwsSecretsManagerClient
 import io.github.makeforge.clapi.core.network.azure.AzureKeyVaultConfig
 import io.github.makeforge.clapi.core.network.azure.KtorAzureKeyVaultClient
+import io.github.makeforge.clapi.core.network.gcp.DefaultGcpTokenProvider
 import io.github.makeforge.clapi.core.network.gcp.GcpSecretManagerConfig
 import io.github.makeforge.clapi.core.network.gcp.KtorGcpSecretManagerClient
 import io.github.makeforge.clapi.core.network.keepassxc.createKeePassXcClient
@@ -434,12 +435,16 @@ fun EnvironmentEditDialog(
                 }
             }
 
-            val exactMatches = visibleEnvironmentVariables(workingVars, searchValue.text)
-            val visibleVars = visibleEnvironmentVariables(
-                workingVars,
-                searchValue.text,
-                pinnedUid = activeEditingUid,
-            )
+            val exactMatches = remember(workingVars.toList(), searchValue.text) {
+                visibleEnvironmentVariables(workingVars, searchValue.text)
+            }
+            val visibleVars = remember(workingVars.toList(), searchValue.text, activeEditingUid) {
+                visibleEnvironmentVariables(
+                    workingVars,
+                    searchValue.text,
+                    pinnedUid = activeEditingUid,
+                )
+            }
 
             LaunchedEffect(searchValue.text) {
                 if (searchValue.text.trim().isNotEmpty()) {
@@ -504,7 +509,7 @@ fun EnvironmentEditDialog(
                             val maxTooltip = if (isMaximized) Strings.restoreDialog else Strings.maximizeDialog
                             DocsHelpButton(
                                 url = DocsLinks.environments,
-                                tooltip = "Environments documentation",
+                                tooltip = Strings.t("environments_documentation"),
                                 tag = "env-docs-btn",
                                 size = 28.dp,
                             )
@@ -574,7 +579,7 @@ fun EnvironmentEditDialog(
                         // Extends selector
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                "Extends",
+                                Strings.t("extends"),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = ClapiColors.OnSurfaceVariant,
                             )
@@ -592,7 +597,7 @@ fun EnvironmentEditDialog(
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                                 ) {
                                     Text(
-                                        text = workingExtends.value ?: if (isExtendsEnabled) "None (Optional)" else "No other environments",
+                                        text = workingExtends.value ?: if (isExtendsEnabled) Strings.t("none_optional") else Strings.t("no_other_environments"),
                                         color = if (isExtendsEnabled) ClapiColors.OnSurface else ClapiColors.OnSurfaceDim,
                                         fontSize = 12.sp,
                                         modifier = Modifier.weight(1f),
@@ -609,7 +614,7 @@ fun EnvironmentEditDialog(
                                     onDismissRequest = { extendsMenuExpanded = false },
                                 ) {
                                     DropdownMenuItem(
-                                        text = { Text("None", fontSize = 12.sp) },
+                                        text = { Text(Strings.t("none"), fontSize = 12.sp) },
                                         onClick = {
                                             workingExtends.value = null
                                             extendsMenuExpanded = false
@@ -633,7 +638,7 @@ fun EnvironmentEditDialog(
                         // Color picker
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                "Color",
+                                Strings.t("color"),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = ClapiColors.OnSurfaceVariant,
                             )
@@ -688,12 +693,12 @@ fun EnvironmentEditDialog(
                                 if (workingColor.value != null) {
                                     IconButtonWithTooltip(
                                         onClick = { workingColor.value = null },
-                                        tooltip = "Clear color",
+                                        tooltip = Strings.t("clear_color"),
                                         modifier = Modifier.size(20.dp).testTag("env-color-clear-button"),
                                     ) {
                                         Icon(
                                             painter = painterResource(Res.drawable.ic_close),
-                                            contentDescription = "Clear color",
+                                            contentDescription = Strings.t("clear_color"),
                                             tint = ClapiColors.OnSurfaceDim,
                                             modifier = Modifier.size(12.dp),
                                         )
@@ -951,6 +956,7 @@ fun EnvironmentEditDialog(
                                             fontSize = 12.sp,
                                             modifier = Modifier
                                                 .padding(top = 6.dp)
+                                                .handPointerHover()
                                                 .clickable { clearSearch(null) }
                                                 .testTag("env-no-results-clear"),
                                         )
@@ -969,6 +975,7 @@ fun EnvironmentEditDialog(
                         Row(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
+                                .handPointerHover()
                                 .clickable {
                                     val added = MutableKeyValue()
                                     workingVars.add(added)
@@ -1022,6 +1029,7 @@ fun EnvironmentEditDialog(
                         }
 
                         var quickAddMatchState by remember { mutableStateOf("—") }
+                        var quickAddErrorMessage by remember { mutableStateOf<String?>(null) }
                         var quickAddRefreshTrigger by remember { mutableStateOf(0) }
 
                         val s = state.settings
@@ -1040,11 +1048,15 @@ fun EnvironmentEditDialog(
                             s.azureClientSecret,
                             s.gcpProjectId,
                             s.gcpAccessToken,
+                            s.gcpServiceAccountKey,
+                            s.gcpAuthMethod,
+                            s.gcpAdcFilePath,
                             s.vaultServerUrl,
                             s.vaultToken,
                         ) {
                             val trimmedPath = quickAddSecPath.trim()
                             val trimmedTarget = quickAddSecTargetField.trim()
+                            quickAddErrorMessage = null
 
                             when (secretType) {
                                 ExternalSecretType.KEEPASSXC -> {
@@ -1068,7 +1080,10 @@ fun EnvironmentEditDialog(
                                             msg.contains("locked", ignoreCase = true) -> "Locked"
                                             msg.contains("connect", ignoreCase = true) || msg.contains("proxy", ignoreCase = true) -> "Closed"
                                             msg.contains("denied", ignoreCase = true) -> "Unassociated"
-                                            else -> "Error"
+                                            else -> {
+                                                quickAddErrorMessage = msg.ifBlank { e.toString() }
+                                                "Error"
+                                            }
                                         }
                                     }
                                 }
@@ -1101,8 +1116,9 @@ fun EnvironmentEditDialog(
                                                 else -> "✔ ${withField.size} matches"
                                             }
                                         }
-                                    } catch (_: Exception) {
+                                    } catch (e: Exception) {
                                         quickAddMatchState = "Error"
+                                        quickAddErrorMessage = e.message?.ifBlank { e.toString() } ?: e.toString()
                                     }
                                 }
                                 ExternalSecretType.AWS_SECRETS_MANAGER -> {
@@ -1137,6 +1153,7 @@ fun EnvironmentEditDialog(
                                         quickAddMatchState = if (msg.contains("ResourceNotFound", ignoreCase = true) || msg.contains("404") || msg.contains("not found", ignoreCase = true)) {
                                             "✖ 0 found"
                                         } else {
+                                            quickAddErrorMessage = msg.ifBlank { e.toString() }
                                             "Error"
                                         }
                                     }
@@ -1175,14 +1192,25 @@ fun EnvironmentEditDialog(
                                         quickAddMatchState = if (msg.contains("SecretNotFound", ignoreCase = true) || msg.contains("404") || msg.contains("not found", ignoreCase = true)) {
                                             "✖ 0 found"
                                         } else {
+                                            quickAddErrorMessage = msg.ifBlank { e.toString() }
                                             "Error"
                                         }
                                     }
                                 }
                                 ExternalSecretType.GCP_SECRETS_MANAGER -> {
-                                    val effectiveProject = quickAddSecVault.ifBlank { s.gcpProjectId }.trim()
-                                    if (effectiveProject.isBlank() || s.gcpAccessToken.isBlank()) {
+                                    val hasCreds = s.gcpAccessToken.isNotBlank() || DefaultGcpTokenProvider.hasCredentials(
+                                        serviceAccountKey = s.gcpServiceAccountKey,
+                                        authMethod = s.gcpAuthMethod,
+                                        adcFilePath = s.gcpAdcFilePath,
+                                    )
+                                    val extractedProject = if (s.gcpServiceAccountKey.isNotBlank()) {
+                                        DefaultGcpTokenProvider.extractProjectId(s.gcpServiceAccountKey).orEmpty()
+                                    } else ""
+                                    val effectiveProject = quickAddSecVault.ifBlank { s.gcpProjectId }.ifBlank { extractedProject }.trim()
+
+                                    if (effectiveProject.isBlank() || !hasCreds) {
                                         quickAddMatchState = "Not Connected"
+                                        quickAddErrorMessage = null
                                         return@LaunchedEffect
                                     }
                                     if (trimmedPath.isBlank()) {
@@ -1197,6 +1225,9 @@ fun EnvironmentEditDialog(
                                             secretId = trimmedPath,
                                             version = "latest",
                                             accessToken = s.gcpAccessToken,
+                                            serviceAccountKey = s.gcpServiceAccountKey,
+                                            authMethod = s.gcpAuthMethod,
+                                            adcFilePath = s.gcpAdcFilePath,
                                             endpointUrl = s.gcpEndpointUrl.ifBlank { "https://secretmanager.googleapis.com" },
                                         )
                                         val secretData = KtorGcpSecretManagerClient.Shared.fetchSecret(config)
@@ -1211,6 +1242,7 @@ fun EnvironmentEditDialog(
                                         quickAddMatchState = if (msg.contains("SecretNotFound", ignoreCase = true) || msg.contains("404") || msg.contains("not found", ignoreCase = true)) {
                                             "✖ 0 found"
                                         } else {
+                                            quickAddErrorMessage = msg.ifBlank { e.toString() }
                                             "Error"
                                         }
                                     }
@@ -1240,6 +1272,7 @@ fun EnvironmentEditDialog(
                                         quickAddMatchState = if (msg.contains("404") || msg.contains("not found", ignoreCase = true)) {
                                             "✖ 0 found"
                                         } else {
+                                            quickAddErrorMessage = msg.ifBlank { e.toString() }
                                             "Error"
                                         }
                                     }
@@ -1331,7 +1364,7 @@ fun EnvironmentEditDialog(
                                     TableHeader("SECRET NAME", Modifier.weight(1.2f))
                                     TableHeader("VAULT OVERRIDE", Modifier.weight(1.0f))
                                     TableHeader("TARGET FIELD", Modifier.weight(0.8f))
-                                    TableHeader("STATUS", Modifier.weight(0.9f))
+                                    TableHeader("STATUS", Modifier.weight(1.0f))
                                     TableHeader("FILTERS", Modifier.weight(0.8f))
                                     TableHeader("DESCRIPTION", Modifier.weight(0.9f))
                                 }
@@ -1340,7 +1373,7 @@ fun EnvironmentEditDialog(
                                     TableHeader("SECRET ID", Modifier.weight(1.2f))
                                     TableHeader("PROJECT OVERRIDE", Modifier.weight(1.0f))
                                     TableHeader("TARGET FIELD", Modifier.weight(0.8f))
-                                    TableHeader("STATUS", Modifier.weight(0.9f))
+                                    TableHeader("STATUS", Modifier.weight(1.0f))
                                     TableHeader("FILTERS", Modifier.weight(0.8f))
                                     TableHeader("DESCRIPTION", Modifier.weight(0.9f))
                                 }
@@ -1394,6 +1427,7 @@ fun EnvironmentEditDialog(
                                     )
                                     EnvSecretStatusCell(
                                         status = quickAddMatchState,
+                                        errorMessage = quickAddErrorMessage,
                                         modifier = Modifier.weight(1.0f),
                                         statusTag = "env-quick-add-secret-status",
                                         refreshTag = "env-quick-add-secret-refresh-status",
@@ -1436,6 +1470,7 @@ fun EnvironmentEditDialog(
                                     )
                                     EnvSecretStatusCell(
                                         status = quickAddMatchState,
+                                        errorMessage = quickAddErrorMessage,
                                         modifier = Modifier.weight(1.0f),
                                         statusTag = "env-quick-add-secret-status",
                                         refreshTag = "env-quick-add-secret-refresh-status",
@@ -1478,6 +1513,7 @@ fun EnvironmentEditDialog(
                                     )
                                     EnvSecretStatusCell(
                                         status = quickAddMatchState,
+                                        errorMessage = quickAddErrorMessage,
                                         modifier = Modifier.weight(1.0f),
                                         statusTag = "env-quick-add-secret-status",
                                         refreshTag = "env-quick-add-secret-refresh-status",
@@ -1528,7 +1564,8 @@ fun EnvironmentEditDialog(
                                     )
                                     EnvSecretStatusCell(
                                         status = quickAddMatchState,
-                                        modifier = Modifier.weight(0.9f),
+                                        errorMessage = quickAddErrorMessage,
+                                        modifier = Modifier.weight(1.0f),
                                         statusTag = "env-quick-add-secret-status",
                                         refreshTag = "env-quick-add-secret-refresh-status",
                                         onRefresh = { quickAddRefreshTrigger++ },
@@ -1578,7 +1615,8 @@ fun EnvironmentEditDialog(
                                     )
                                     EnvSecretStatusCell(
                                         status = quickAddMatchState,
-                                        modifier = Modifier.weight(0.9f),
+                                        errorMessage = quickAddErrorMessage,
+                                        modifier = Modifier.weight(1.0f),
                                         statusTag = "env-quick-add-secret-status",
                                         refreshTag = "env-quick-add-secret-refresh-status",
                                         onRefresh = { quickAddRefreshTrigger++ },
@@ -1612,6 +1650,7 @@ fun EnvironmentEditDialog(
                                     )
                                     EnvSecretStatusCell(
                                         status = quickAddMatchState,
+                                        errorMessage = quickAddErrorMessage,
                                         modifier = Modifier.weight(1.0f),
                                         statusTag = "env-quick-add-secret-status",
                                         refreshTag = "env-quick-add-secret-refresh-status",
@@ -1629,7 +1668,7 @@ fun EnvironmentEditDialog(
                             }
                             EnvQuickAddButton(
                                 onClick = { addQuickSecret() },
-                                tooltip = "Add Secret",
+                                tooltip = Strings.addSecret,
                                 tag = "env-quick-add-secret-button",
                             )
                         }
@@ -1705,7 +1744,7 @@ fun EnvironmentEditDialog(
                                             verticalArrangement = Arrangement.Center,
                                         ) {
                                             Text(
-                                                "No external secrets defined. Click 'Add Secret' below.",
+                                                Strings.t("no_external_secrets_hint"),
                                                 color = ClapiColors.OnSurfaceDim,
                                                 fontSize = 13.sp,
                                             )
@@ -1724,6 +1763,7 @@ fun EnvironmentEditDialog(
                         Row(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
+                                .handPointerHover()
                                 .clickable {
                                     workingSecrets.add(MutableExternalSecret())
                                     scope.launch {
@@ -1737,7 +1777,7 @@ fun EnvironmentEditDialog(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = null, tint = ClapiColors.Primary, modifier = Modifier.size(16.dp))
-                            Text("Add Secret", color = ClapiColors.Primary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                            Text(Strings.addSecret, color = ClapiColors.Primary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                         }
                     }
 
@@ -1752,6 +1792,7 @@ fun EnvironmentEditDialog(
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(ClapiColors.SurfaceContainer)
                                 .border(1.dp, ClapiColors.Border, RoundedCornerShape(8.dp))
+                                .handPointerHover()
                                 .clickable { requestClose() }
                                 .padding(horizontal = 16.dp, vertical = 7.dp)
                                 .testTag("env-cancel-button"),
@@ -1762,6 +1803,7 @@ fun EnvironmentEditDialog(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(ClapiColors.Primary)
+                                .handPointerHover()
                                 .clickable { saveEnvironment(closeDialog = true) }
                                 .padding(horizontal = 16.dp, vertical = 7.dp)
                                 .testTag("env-save-button"),
@@ -1807,7 +1849,7 @@ fun EnvironmentEditDialog(
 
     if (showUnsavedConfirm) {
         DirtyCloseDialog(
-            title = "Unsaved Changes",
+            title = Strings.t("unsaved_changes"),
             message = Strings.t("request_unsaved_changes_message"),
             onSave = {
                 saveEnvironment(closeDialog = true)
