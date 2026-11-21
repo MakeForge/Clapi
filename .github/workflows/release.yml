@@ -47,7 +47,6 @@ jobs:
             :editor-ui:allTests \
             :ui-shared:desktopTest \
             :ui-desktop:desktopTest \
-            :ui-web:wasmJsTest \
             :qa-tests:jvmTest \
             --no-parallel \
             --no-daemon --stacktrace

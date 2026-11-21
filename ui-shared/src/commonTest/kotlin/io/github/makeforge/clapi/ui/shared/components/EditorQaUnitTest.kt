@@ -29,7 +29,7 @@ import kotlin.time.TimeSource
  *  9.  Whitespace / edge cases — empty, blank, single-char documents
  * 10.  Real large-file data — 5 MB and 10 MB JSON from qa-tests/resources
  *
- * NO Compose runtime required – runs on desktop JVM and wasmJs.
+ * NO Compose runtime required – runs on desktop JVM.
  */
 
 // ═══════════════════════════════════════════════════════════════════════

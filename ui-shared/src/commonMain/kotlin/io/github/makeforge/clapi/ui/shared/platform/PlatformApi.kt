@@ -37,7 +37,7 @@ expect fun formatTimestamp(epochMillis: Long): String
 
 // ── Coroutine dispatchers ───────────────────────────────────────
 
-/** IO dispatcher (Dispatchers.IO on JVM, Dispatchers.Default on wasm). */
+/** IO dispatcher (Dispatchers.IO on JVM). */
 expect val ioDispatcher: CoroutineDispatcher
 
 // ── Pointer icons ───────────────────────────────────────────────
@@ -56,7 +56,7 @@ expect val neswResizeCursor: PointerIcon
 
 /**
  * H-5 fix: Platform-specific modifier that applies the correct CSS resize cursor
- * on web (wasmJs) where PointerIcon.Default cannot be replaced with a CSS cursor type.
+ * where PointerIcon.Default cannot be replaced with a CSS cursor type.
  * On desktop this is a no-op because [horizontalResizeCursor]/[verticalResizeCursor]
  * already map to the correct AWT cursor via [pointerHoverIcon].
  */

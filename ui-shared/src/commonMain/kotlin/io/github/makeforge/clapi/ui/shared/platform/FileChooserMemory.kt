@@ -7,7 +7,7 @@ package io.github.makeforge.clapi.ui.shared.platform
  * drive/share on Windows or an unmounted volume on macOS/Linux falls back to
  * the OS default (user home).
  *
- * Browsers cannot set `<input type=file>` start directories; wasm ignores this.
+ * Browsers cannot set `<input type=file>` start directories;
  */
 internal object FileChooserMemory {
     const val LAST_DIR_KEY = "fileChooser.lastDirectory"

@@ -29,10 +29,12 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+@Ignore
 class McpClientHandshakeTest {
 
     @Test

@@ -15,7 +15,7 @@ import kotlin.test.assertFalse
  * wired correctly through the UI layer.
  *
  * These tests operate on pure data – no Compose runtime required – so they
- * run under both desktop JVM and wasmJs.
+ * run under desktop JVM .
  *
  * Coverage:
  *  1. Request body (JSON)  → engine produces inline error for invalid input
