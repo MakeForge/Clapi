@@ -1,5 +1,8 @@
 package io.github.crustack.clapi.ui.shared.components
 
+import io.github.crustack.clapi.core.network.keepassxc.KeePassXcClient
+import io.github.crustack.clapi.core.network.keepassxc.KeePassXcEntry
+import io.github.crustack.clapi.core.network.keepassxc.KeePassXcStatus
 import io.github.crustack.clapi.core.network.vault.HashiCorpVaultClient
 import io.github.crustack.clapi.core.network.vault.SecretResolutionService
 import io.github.crustack.clapi.ui.shared.state.AppState
@@ -219,5 +222,104 @@ class RequestExecutorSecretsTest {
             "Secret variable 'UNRESOLVED_SECRET' could not be resolved from process environment or external secrets.",
             tab.lastError,
         )
+    }
+
+    private class FakeTestKeePassXcClient(
+        private val entriesByUrl: Map<String, List<KeePassXcEntry>> = emptyMap(),
+        private val status: KeePassXcStatus = KeePassXcStatus.Connected,
+    ) : KeePassXcClient {
+        override suspend fun checkStatus(): KeePassXcStatus = status
+        override suspend fun queryLogins(url: String, customFilters: Map<String, String>): List<KeePassXcEntry> =
+            entriesByUrl[url] ?: emptyList()
+        override suspend fun countMatchingLogins(url: String, customFilters: Map<String, String>): Int =
+            queryLogins(url, customFilters).size
+        override suspend fun disconnect() {}
+    }
+
+    @Test
+    fun resolveExternalSecretsForTab_resolves_keepassxc_secret_and_interpolates_filter_variables() = runTest {
+        val fakeKpa = FakeTestKeePassXcClient(
+            entriesByUrl = mapOf(
+                "https://api.payment.internal" to listOf(
+                    KeePassXcEntry(
+                        name = "Payment Service",
+                        login = "service_user",
+                        password = "resolved-keepass-password-42",
+                        uuid = "uuid-123",
+                        stringFields = mapOf("tier" to "prod"),
+                    )
+                )
+            )
+        )
+
+        val state = AppState()
+        val env = EnvState(
+            name = "ProdEnv",
+            externalSecretsProvider = "keepassxc",
+            variables = listOf(
+                MutableKeyValue(key = "stage", value = "prod", enabled = true, secret = false),
+            ),
+            externalSecrets = listOf(
+                MutableExternalSecret(
+                    name = "payment_key",
+                    url = "https://api.payment.internal",
+                    targetField = "password",
+                    customFilters = mapOf("tier" to "{{stage}}"),
+                    enabled = true,
+                )
+            )
+        )
+        state.environments.add(env)
+        state.selectedEnvIndex = 0
+
+        val tab = RequestTabState(url = "https://example.com/charge?token={{_secret.payment_key}}")
+        state.openTabs.add(tab)
+        state.activeTabIndex = 0
+
+        val resolved = resolveExternalSecretsForTab(
+            state = state,
+            tab = tab,
+            textsToScan = listOf(tab.url),
+            keepassClient = fakeKpa,
+        )
+
+        assertNotNull(resolved)
+        assertEquals("resolved-keepass-password-42", resolved["_secret.payment_key"])
+    }
+
+    @Test
+    fun resolveExternalSecretsForTab_sets_error_when_keepassxc_database_is_locked() = runTest {
+        val fakeKpa = FakeTestKeePassXcClient(status = KeePassXcStatus.DatabaseLocked)
+
+        val state = AppState()
+        val env = EnvState(
+            name = "LockedEnv",
+            externalSecretsProvider = "keepassxc",
+            externalSecrets = listOf(
+                MutableExternalSecret(
+                    name = "payment_key",
+                    url = "https://api.payment.internal",
+                    targetField = "password",
+                    enabled = true,
+                )
+            )
+        )
+        state.environments.add(env)
+        state.selectedEnvIndex = 0
+
+        val tab = RequestTabState(url = "https://example.com/charge?token={{_secret.payment_key}}")
+        state.openTabs.add(tab)
+        state.activeTabIndex = 0
+
+        val resolved = resolveExternalSecretsForTab(
+            state = state,
+            tab = tab,
+            textsToScan = listOf(tab.url),
+            keepassClient = fakeKpa,
+        )
+
+        assertEquals(null, resolved)
+        assertNotNull(tab.lastError)
+        assertTrue(tab.lastError!!.contains("locked", ignoreCase = true))
     }
 }

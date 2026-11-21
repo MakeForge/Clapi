@@ -7,6 +7,7 @@ import io.github.crustack.clapi.core.model.opencollection.Environment
 import io.github.crustack.clapi.core.model.opencollection.ExternalSecretType
 import io.github.crustack.clapi.core.model.opencollection.ExternalSecrets
 import io.github.crustack.clapi.core.model.opencollection.HashicorpVaultExternalSecret
+import io.github.crustack.clapi.core.model.opencollection.KeePassXcExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.OpenCollectionDocument
 import io.github.crustack.clapi.core.model.opencollection.RegularVariable
 import io.github.crustack.clapi.core.model.opencollection.VariableValue
@@ -118,6 +119,93 @@ class OpenCollectionExternalSecretsTest {
         val v1 = extSecrets.variables[0] as HashicorpVaultExternalSecret
         assertEquals("client_id", v1.name)
         assertEquals("payment/foo", v1.path)
+    }
+
+    @Test
+    fun roundtrip_keepassxc_external_secrets_json_and_yaml() {
+        val doc = OpenCollectionDocument(
+            opencollection = "1.0.0",
+            info = CollectionInfo(
+                name = "KeePassXC Collection",
+                version = "1.0.0",
+            ),
+            bundled = true,
+            config = CollectionConfig(
+                environments = listOf(
+                    Environment(
+                        name = "Production",
+                        externalSecrets = ExternalSecrets(
+                            type = "keepassxc",
+                            variables = listOf(
+                                KeePassXcExternalSecret(
+                                    name = "api_token",
+                                    url = "https://api.example.com",
+                                    targetField = "password",
+                                    customFilters = mapOf("login" to "service_user", "tier" to "prod"),
+                                    description = Description("KeePassXC API Token"),
+                                    disabled = false,
+                                ),
+                                KeePassXcExternalSecret(
+                                    name = "db_user",
+                                    url = "https://db.internal",
+                                    targetField = "login",
+                                    disabled = true,
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+            items = emptyList(),
+        )
+
+        // Test JSON roundtrip
+        val jsonOutput = OpenCollectionSerializer.serializeJson(doc)
+        assertTrue(jsonOutput.contains("\"keepassxc\""))
+        assertTrue(jsonOutput.contains("\"https://api.example.com\""))
+        assertTrue(jsonOutput.contains("\"service_user\""))
+        assertTrue(jsonOutput.contains("\"targetField\""))
+
+        val deserializedJson = OpenCollectionSerializer.deserializeJson(jsonOutput)
+        val envJson = deserializedJson.config?.environments?.firstOrNull()
+        assertNotNull(envJson)
+        val extJson = envJson.externalSecrets
+        assertNotNull(extJson)
+        assertEquals(ExternalSecretType.KEEPASSXC, extJson.type)
+        assertEquals(2, extJson.variables.size)
+        val k1 = extJson.variables[0] as KeePassXcExternalSecret
+        assertEquals("api_token", k1.name)
+        assertEquals("https://api.example.com", k1.url)
+        assertEquals("password", k1.targetField)
+        assertEquals("service_user", k1.customFilters["login"])
+        assertEquals("prod", k1.customFilters["tier"])
+        assertEquals("KeePassXC API Token", k1.description?.content)
+        assertEquals(false, k1.disabled)
+
+        val k2 = extJson.variables[1] as KeePassXcExternalSecret
+        assertEquals("db_user", k2.name)
+        assertEquals("https://db.internal", k2.url)
+        assertEquals("login", k2.targetField)
+        assertEquals(true, k2.disabled)
+
+        // Test YAML roundtrip
+        val yamlOutput = OpenCollectionSerializer.serializeYaml(doc)
+        assertTrue(yamlOutput.contains("type: keepassxc"))
+        assertTrue(yamlOutput.contains("api_token"))
+        assertTrue(yamlOutput.contains("https://api.example.com"))
+
+        val deserializedYaml = OpenCollectionSerializer.deserializeYaml(yamlOutput)
+        val envYaml = deserializedYaml.config?.environments?.firstOrNull()
+        assertNotNull(envYaml)
+        val extYaml = envYaml.externalSecrets
+        assertNotNull(extYaml)
+        assertEquals(ExternalSecretType.KEEPASSXC, extYaml.type)
+        assertEquals(2, extYaml.variables.size)
+        val y1 = extYaml.variables[0] as KeePassXcExternalSecret
+        assertEquals("api_token", y1.name)
+        assertEquals("https://api.example.com", y1.url)
+        assertEquals("password", y1.targetField)
+        assertEquals("service_user", y1.customFilters["login"])
     }
 
     @Test

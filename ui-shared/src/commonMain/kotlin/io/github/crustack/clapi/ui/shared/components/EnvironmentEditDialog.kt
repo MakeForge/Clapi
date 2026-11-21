@@ -107,6 +107,8 @@ import io.github.crustack.clapi.ui.shared.state.MutableExternalSecret
 import io.github.crustack.clapi.ui.shared.state.MutableKeyValue
 import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
+import io.github.crustack.clapi.core.network.keepassxc.createKeePassXcClient
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import kotlin.math.min
@@ -250,7 +252,17 @@ fun EnvironmentEditDialog(state: AppState) {
     val workingSecrets = remember(envIndex) {
         mutableStateListOf<MutableExternalSecret>().also { list ->
             env.externalSecrets.forEach { s ->
-                list.add(MutableExternalSecret(s.name, s.path, s.description, s.enabled))
+                list.add(
+                    MutableExternalSecret(
+                        name = s.name,
+                        path = s.path,
+                        description = s.description,
+                        enabled = s.enabled,
+                        url = s.url,
+                        targetField = s.targetField,
+                        customFilters = s.customFilters.toMap(),
+                    )
+                )
             }
         }
     }
@@ -625,7 +637,11 @@ fun EnvironmentEditDialog(state: AppState) {
                                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
                                     Text(
-                                        if (workingProvider == "hashicorp-vault-server") "HashiCorp Vault (Server)" else workingProvider,
+                                        when (workingProvider) {
+                                            "keepassxc" -> "KeePassXC"
+                                            "hashicorp-vault-server" -> "HashiCorp Vault (Server)"
+                                            else -> workingProvider
+                                        },
                                         color = ClapiColors.OnSurface,
                                         fontSize = 12.sp,
                                     )
@@ -647,6 +663,14 @@ fun EnvironmentEditDialog(state: AppState) {
                                         },
                                         modifier = Modifier.testTag("env-provider-option-hashicorp-vault-server"),
                                     )
+                                    DropdownMenuItem(
+                                        text = { Text("KeePassXC", fontSize = 12.sp) },
+                                        onClick = {
+                                            workingProvider = "keepassxc"
+                                            providerMenuExpanded = false
+                                        },
+                                        modifier = Modifier.testTag("env-provider-option-keepassxc"),
+                                    )
                                 }
                             }
                         }
@@ -659,9 +683,17 @@ fun EnvironmentEditDialog(state: AppState) {
                                 .padding(horizontal = 8.dp, vertical = 6.dp),
                         ) {
                             Spacer(Modifier.width(32.dp))
-                            TableHeader(Strings.t("name"), Modifier.weight(1.2f))
-                            TableHeader("PATH", Modifier.weight(1.5f))
-                            TableHeader("DESCRIPTION", Modifier.weight(1.5f))
+                            if (workingProvider == "keepassxc") {
+                                TableHeader(Strings.t("name"), Modifier.weight(1.1f))
+                                TableHeader("ENTRY URL", Modifier.weight(1.4f))
+                                TableHeader("TARGET FIELD", Modifier.weight(0.9f))
+                                TableHeader("STATUS / FILTERS", Modifier.weight(1.2f))
+                                TableHeader("DESCRIPTION", Modifier.weight(1.1f))
+                            } else {
+                                TableHeader(Strings.t("name"), Modifier.weight(1.2f))
+                                TableHeader("PATH", Modifier.weight(1.5f))
+                                TableHeader("DESCRIPTION", Modifier.weight(1.5f))
+                            }
                             Spacer(Modifier.width(36.dp))
                         }
 
@@ -682,11 +714,20 @@ fun EnvironmentEditDialog(state: AppState) {
                                     .testTag("env-secrets-list"),
                             ) {
                                 itemsIndexed(workingSecrets) { sIdx, secret ->
-                                    EnvExternalSecretRow(
-                                        secret = secret,
-                                        index = sIdx,
-                                        onDelete = { workingSecrets.removeAt(sIdx) },
-                                    )
+                                    if (workingProvider == "keepassxc") {
+                                        EnvKeePassXcSecretRow(
+                                            secret = secret,
+                                            index = sIdx,
+                                            workingVars = workingVars,
+                                            onDelete = { workingSecrets.removeAt(sIdx) },
+                                        )
+                                    } else {
+                                        EnvExternalSecretRow(
+                                            secret = secret,
+                                            index = sIdx,
+                                            onDelete = { workingSecrets.removeAt(sIdx) },
+                                        )
+                                    }
                                     Box(Modifier.fillMaxWidth().height(1.dp).background(ClapiColors.Border))
                                 }
                                 if (workingSecrets.isEmpty()) {
@@ -766,9 +807,33 @@ fun EnvironmentEditDialog(state: AppState) {
 
                                     env.externalSecretsProvider = workingProvider
                                     env.externalSecrets.clear()
+                                    val isKeePassXc = workingProvider.equals("keepassxc", ignoreCase = true)
                                     workingSecrets.forEach { s ->
-                                        if (s.name.isNotBlank() || s.path.isNotBlank()) {
-                                            env.externalSecrets.add(MutableExternalSecret(s.name, s.path, s.description, s.enabled))
+                                        if (isKeePassXc) {
+                                            if (s.name.isNotBlank() || s.url.isNotBlank()) {
+                                                env.externalSecrets.add(
+                                                    MutableExternalSecret(
+                                                        name = s.name,
+                                                        path = s.path,
+                                                        description = s.description,
+                                                        enabled = s.enabled,
+                                                        url = s.url,
+                                                        targetField = s.targetField,
+                                                        customFilters = s.customFilters.toMap(),
+                                                    )
+                                                )
+                                            }
+                                        } else {
+                                            if (s.name.isNotBlank() || s.path.isNotBlank()) {
+                                                env.externalSecrets.add(
+                                                    MutableExternalSecret(
+                                                        name = s.name,
+                                                        path = s.path,
+                                                        description = s.description,
+                                                        enabled = s.enabled,
+                                                    )
+                                                )
+                                            }
                                         }
                                     }
 
@@ -1065,6 +1130,265 @@ private fun EnvExternalSecretRow(
                 tint = ClapiColors.OnSurfaceDim,
                 modifier = Modifier.size(14.dp),
             )
+        }
+    }
+}
+
+@Composable
+private fun EnvKeePassXcSecretRow(
+    secret: MutableExternalSecret,
+    index: Int,
+    workingVars: List<MutableKeyValue>,
+    onDelete: () -> Unit,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isHovered by interactionSource.collectIsHoveredAsState()
+    val baseRowColor = when (environmentRowTone(index, isHovered)) {
+        EnvironmentRowTone.EVEN -> ClapiColors.SurfaceVariant
+        EnvironmentRowTone.ODD -> ClapiColors.Surface
+        EnvironmentRowTone.HOVERED -> ClapiColors.Primary.copy(alpha = 0.08f)
+    }
+
+    var filtersExpanded by remember { mutableStateOf(false) }
+    var matchState by remember { mutableStateOf("—") }
+
+    LaunchedEffect(secret.url, secret.customFilters.toMap()) {
+        val trimmedUrl = secret.url.trim()
+        if (trimmedUrl.isBlank()) {
+            matchState = "—"
+            return@LaunchedEffect
+        }
+        matchState = "Checking..."
+        delay(350)
+        try {
+            val client = createKeePassXcClient()
+            val resolvedFilters = secret.customFilters.mapValues { (_, v) ->
+                var text = v
+                workingVars.forEach { kv ->
+                    if (kv.key.isNotBlank()) {
+                        text = text.replace("{{${kv.key.trim()}}}", kv.value)
+                    }
+                }
+                text
+            }
+            val count = client.countMatchingLogins(trimmedUrl, resolvedFilters)
+            matchState = when {
+                count == 0 -> "✖ 0 found"
+                count == 1 -> "✔ 1 match"
+                else -> "✔ $count matches"
+            }
+        } catch (e: Exception) {
+            val msg = e.message.orEmpty()
+            matchState = when {
+                msg.contains("locked", ignoreCase = true) -> "Locked"
+                msg.contains("connect", ignoreCase = true) || msg.contains("proxy", ignoreCase = true) -> "Closed"
+                msg.contains("denied", ignoreCase = true) -> "Unassociated"
+                else -> "Error"
+            }
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(baseRowColor)
+            .hoverable(interactionSource)
+            .testTag("env-secret-row-$index"),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Checkbox(
+                checked = secret.enabled,
+                onCheckedChange = { secret.enabled = it },
+                modifier = Modifier.size(24.dp).testTag("env-secret-row-$index-enabled"),
+                colors = CheckboxDefaults.colors(
+                    checkedColor = ClapiColors.Primary,
+                    uncheckedColor = ClapiColors.OnSurfaceDim,
+                ),
+            )
+
+            EnvTextField(
+                value = secret.name,
+                onValueChange = { secret.name = it },
+                placeholder = "secret_name",
+                tag = "env-secret-row-$index-name",
+                modifier = Modifier.weight(1.1f),
+            )
+
+            EnvTextField(
+                value = secret.url,
+                onValueChange = { secret.url = it },
+                placeholder = "https://entry.url",
+                tag = "env-secret-row-$index-url",
+                modifier = Modifier.weight(1.4f),
+            )
+
+            EnvTextField(
+                value = secret.targetField,
+                onValueChange = { secret.targetField = it },
+                placeholder = "password",
+                tag = "env-secret-row-$index-target-field",
+                modifier = Modifier.weight(0.9f),
+            )
+
+            Row(
+                modifier = Modifier.weight(1.2f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = matchState,
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    color = when {
+                        matchState.startsWith("✔") -> ClapiColors.Primary
+                        matchState.startsWith("✖") -> ClapiColors.Error
+                        matchState == "Checking..." -> ClapiColors.OnSurfaceDim
+                        else -> ClapiColors.OnSurfaceDim
+                    },
+                    modifier = Modifier.testTag("env-secret-row-$index-match-count"),
+                )
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(if (filtersExpanded) ClapiColors.Primary.copy(alpha = 0.15f) else ClapiColors.SurfaceContainer)
+                        .border(1.dp, if (filtersExpanded) ClapiColors.Primary else ClapiColors.Border, RoundedCornerShape(4.dp))
+                        .clickable { filtersExpanded = !filtersExpanded }
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .testTag("env-secret-row-$index-filter-toggle"),
+                ) {
+                    Text(
+                        if (secret.customFilters.isEmpty()) "Filters" else "Filters (${secret.customFilters.size})",
+                        fontSize = 10.sp,
+                        color = if (filtersExpanded) ClapiColors.Primary else ClapiColors.OnSurfaceDim,
+                    )
+                }
+            }
+
+            EnvTextField(
+                value = secret.description,
+                onValueChange = { secret.description = it },
+                placeholder = "Description (optional)",
+                tag = "env-secret-row-$index-desc",
+                modifier = Modifier.weight(1.1f),
+            )
+
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(24.dp).testTag("env-secret-row-$index-delete"),
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.ic_delete),
+                    contentDescription = Strings.delete,
+                    tint = ClapiColors.OnSurfaceDim,
+                    modifier = Modifier.size(14.dp),
+                )
+            }
+        }
+
+        if (filtersExpanded) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(ClapiColors.SurfaceContainer.copy(alpha = 0.4f))
+                    .border(1.dp, ClapiColors.Border)
+                    .padding(start = 32.dp, end = 12.dp, top = 6.dp, bottom = 8.dp)
+                    .testTag("env-secret-row-$index-filters-panel"),
+            ) {
+                Text(
+                    "Custom Field Filters (URL entry attributes match):",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = ClapiColors.OnSurfaceDim,
+                )
+                Spacer(Modifier.height(4.dp))
+                secret.customFilters.forEach { (filterKey, filterVal) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 2.dp)
+                            .testTag("env-secret-row-$index-filter-$filterKey"),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            filterKey,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = ClapiColors.OnSurface,
+                            modifier = Modifier.width(110.dp),
+                        )
+                        Text("=", fontSize = 11.sp, color = ClapiColors.OnSurfaceDim)
+                        EnvTextField(
+                            value = filterVal,
+                            onValueChange = { secret.customFilters[filterKey] = it },
+                            placeholder = "match value or {{var}}",
+                            tag = "env-secret-row-$index-filter-val-$filterKey",
+                            modifier = Modifier.weight(1f),
+                        )
+                        IconButton(
+                            onClick = { secret.customFilters.remove(filterKey) },
+                            modifier = Modifier.size(20.dp).testTag("env-secret-row-$index-remove-filter-$filterKey"),
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_close),
+                                contentDescription = "Remove filter",
+                                tint = ClapiColors.OnSurfaceDim,
+                                modifier = Modifier.size(12.dp),
+                            )
+                        }
+                    }
+                }
+
+                var newFilterKey by remember { mutableStateOf("") }
+                var newFilterVal by remember { mutableStateOf("") }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    EnvTextField(
+                        value = newFilterKey,
+                        onValueChange = { newFilterKey = it },
+                        placeholder = "field (e.g. login, tier)",
+                        tag = "env-secret-row-$index-new-filter-key",
+                        modifier = Modifier.width(130.dp),
+                    )
+                    Text("=", fontSize = 11.sp, color = ClapiColors.OnSurfaceDim)
+                    EnvTextField(
+                        value = newFilterVal,
+                        onValueChange = { newFilterVal = it },
+                        placeholder = "expected value or {{var}}",
+                        tag = "env-secret-row-$index-new-filter-val",
+                        modifier = Modifier.weight(1f),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(ClapiColors.Primary)
+                            .clickable {
+                                if (newFilterKey.isNotBlank()) {
+                                    secret.customFilters[newFilterKey.trim()] = newFilterVal.trim()
+                                    newFilterKey = ""
+                                    newFilterVal = ""
+                                }
+                            }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .testTag("env-secret-row-$index-add-filter-btn"),
+                    ) {
+                        Text("Add Filter", color = ClapiColors.OnPrimary, fontSize = 11.sp)
+                    }
+                }
+            }
         }
     }
 }

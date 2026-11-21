@@ -118,7 +118,7 @@ class DummyApiServer(
 
     fun startGrpc(): Int {
         grpcServer?.let { return it.port }
-        val protoStream = DummyApiServer::class.java.getResourceAsStream("/greeter.proto")
+        val protoStream = DummyApiServer::class.java.getResourceAsStream("/protobuf/greeter.proto")
             ?: error("greeter.proto resource not found on test classpath")
         val metaStream = DummyApiServer::class.java.getResourceAsStream("/protobuf/common/metadata.proto")
             ?: error("metadata.proto resource not found on test classpath")
@@ -133,7 +133,7 @@ class DummyApiServer(
         }
         tempMetaFile = metaFile
 
-        val protoFile = java.io.File(tempDir, "greeter.proto")
+        val protoFile = java.io.File(tempDir, "protobuf/greeter.proto")
         protoStream.use { input ->
             protoFile.outputStream().use { output -> input.copyTo(output) }
         }

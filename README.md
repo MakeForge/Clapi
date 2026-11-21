@@ -106,6 +106,14 @@ Clapi brings [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) se
 
 [Read the MCP guide →](docs/mcp.md) · [Run the included MCP fixtures →](docs/tests.md#mcp-fixtures)
 
+### 🔐 External Secret Managers (KeePassXC & HashiCorp Vault)
+
+Keep sensitive credentials out of shared collection files:
+- **KeePassXC**: Local password manager integration via encrypted proxy communication. Query database entries by URL, refine with custom attribute filters (with `{{variable}}` interpolation), and extract passwords, usernames, TOTPs, or custom fields. Features real-time, non-leaking entry match indicators.
+- **HashiCorp Vault**: Read-only KV v2 secret resolution using server URL, mount path, and token.
+- **Zero Credential Leaks**: Secret values are strictly ephemeral in memory during request execution and never exported into OpenCollection JSON/YAML files.
+- **Zero Idle Footprint**: Proxy communication only activates on-demand for KeePassXC-enabled environments and cleanly disconnects when switching environments.
+
 ### 📬 Response Inspection
 
 - Status code, status text, and response headers

@@ -15,6 +15,7 @@ grpc = "1.68.2"
 protobuf = "4.28.3"
 protoc-jar = "3.11.4"
 ksafe = "3.3.0"
+keepassxc-proxy-access = "1.2.9" # higher versions require java >=21
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -59,6 +60,7 @@ protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "p
 protobuf-java-util = { module = "com.google.protobuf:protobuf-java-util", version.ref = "protobuf" }
 protoc-jar = { module = "com.github.os72:protoc-jar", version.ref = "protoc-jar" }
 ksafe = { module = "eu.anifantakis:ksafe", version.ref = "ksafe" }
+keepassxc-proxy-access = { module = "org.purejava:keepassxc-proxy-access", version.ref = "keepassxc-proxy-access" }
 
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

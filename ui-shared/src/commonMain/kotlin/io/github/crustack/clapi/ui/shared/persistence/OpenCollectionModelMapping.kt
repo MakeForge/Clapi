@@ -31,12 +31,14 @@ import io.github.crustack.clapi.core.model.opencollection.Description
 import io.github.crustack.clapi.core.model.opencollection.Environment
 import io.github.crustack.clapi.core.model.opencollection.ExternalSecretType
 import io.github.crustack.clapi.core.model.opencollection.ExternalSecrets
+import io.github.crustack.clapi.core.model.opencollection.ExternalSecretVariable
 import io.github.crustack.clapi.core.model.opencollection.FolderInfo
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
 import io.github.crustack.clapi.core.model.opencollection.FormParamEntry
 import io.github.crustack.clapi.core.model.opencollection.FormUrlEncodedBody
 import io.github.crustack.clapi.core.model.opencollection.GrpcMethodType
 import io.github.crustack.clapi.core.model.opencollection.HashicorpVaultExternalSecret
+import io.github.crustack.clapi.core.model.opencollection.KeePassXcExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestBody
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestDetails
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestHeader
@@ -327,7 +329,14 @@ fun Environment.toEnvState(): EnvState {
                 description = v.description?.content ?: "",
                 enabled = v.disabled != true,
             )
-            else -> null
+            is KeePassXcExternalSecret -> MutableExternalSecret(
+                name = v.name,
+                description = v.description?.content ?: "",
+                enabled = v.disabled != true,
+                url = v.url,
+                targetField = v.targetField,
+                customFilters = v.customFilters,
+            )
         }
     } ?: emptyList()
 
@@ -345,16 +354,32 @@ fun Environment.toEnvState(): EnvState {
 }
 
 fun EnvState.toOpenCollectionEnvironment(): Environment {
-    val extSecretList = externalSecrets
-        .filter { it.name.trim().isNotEmpty() && it.path.trim().isNotEmpty() }
-        .map {
-            HashicorpVaultExternalSecret(
-                name = it.name.trim(),
-                path = it.path.trim(),
-                description = if (it.description.isNotBlank()) Description(content = it.description.trim()) else null,
-                disabled = if (!it.enabled) true else null,
-            )
-        }
+    val isKeePassXc = externalSecretsProvider.equals("keepassxc", ignoreCase = true)
+    val extSecretList: List<ExternalSecretVariable> = if (isKeePassXc) {
+        externalSecrets
+            .filter { it.name.trim().isNotEmpty() && it.url.trim().isNotEmpty() }
+            .map {
+                KeePassXcExternalSecret(
+                    name = it.name.trim(),
+                    url = it.url.trim(),
+                    targetField = it.targetField.ifBlank { "password" }.trim(),
+                    customFilters = it.customFilters.toMap(),
+                    description = if (it.description.isNotBlank()) Description(content = it.description.trim()) else null,
+                    disabled = if (!it.enabled) true else null,
+                )
+            }
+    } else {
+        externalSecrets
+            .filter { it.name.trim().isNotEmpty() && it.path.trim().isNotEmpty() }
+            .map {
+                HashicorpVaultExternalSecret(
+                    name = it.name.trim(),
+                    path = it.path.trim(),
+                    description = if (it.description.isNotBlank()) Description(content = it.description.trim()) else null,
+                    disabled = if (!it.enabled) true else null,
+                )
+            }
+    }
 
     val extSecrets = if (extSecretList.isNotEmpty()) {
         ExternalSecrets(
@@ -457,6 +482,21 @@ fun EnvState.mergeFrom(incoming: Environment) {
                                 path = sec.path,
                                 description = sec.description?.content.orEmpty(),
                                 enabled = sec.disabled != true,
+                            )
+                        )
+                        existingSecretNames.add(sec.name)
+                    }
+                }
+                is KeePassXcExternalSecret -> {
+                    if (sec.name.isNotBlank() && sec.name !in existingSecretNames) {
+                        externalSecrets.add(
+                            MutableExternalSecret(
+                                name = sec.name,
+                                description = sec.description?.content.orEmpty(),
+                                enabled = sec.disabled != true,
+                                url = sec.url,
+                                targetField = sec.targetField,
+                                customFilters = sec.customFilters,
                             )
                         )
                         existingSecretNames.add(sec.name)
