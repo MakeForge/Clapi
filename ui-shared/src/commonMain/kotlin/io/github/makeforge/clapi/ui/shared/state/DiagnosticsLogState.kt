@@ -15,6 +15,20 @@ class DiagnosticsLogState {
         prependBounded(consoleLogs, ConsoleEntry(message, level), MAX_CONSOLE_LOGS)
     }
 
+    fun appendBatch(entries: List<ConsoleEntry>) {
+        if (entries.isEmpty()) return
+        val toAdd = entries.takeLast(MAX_CONSOLE_LOGS).reversed()
+        val totalAfter = consoleLogs.size + toAdd.size
+        if (totalAfter > MAX_CONSOLE_LOGS) {
+            val overflow = totalAfter - MAX_CONSOLE_LOGS
+            val removeCount = minOf(overflow, consoleLogs.size)
+            if (removeCount > 0) {
+                consoleLogs.removeRange(consoleLogs.size - removeCount, consoleLogs.size)
+            }
+        }
+        consoleLogs.addAll(0, toAdd)
+    }
+
     fun logNetworkEvent(
         message: String,
         level: LogLevel = LogLevel.INFO,

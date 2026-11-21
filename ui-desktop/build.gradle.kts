@@ -28,6 +28,11 @@ kotlin {
                 implementation(project(":ui-shared"))
                 implementation(libs.coroutines.core)
                 implementation(libs.coroutines.swing)
+                implementation(libs.kotlin.logging)
+                implementation(libs.slf4j.api)
+                implementation(libs.tinylog.api)
+                implementation(libs.tinylog.impl)
+                implementation(libs.slf4j.tinylog)
             }
         }
         val desktopTest by getting {
@@ -35,7 +40,9 @@ kotlin {
                 implementation(libs.kotlin.test)
                 implementation(libs.junit4)
                 implementation(libs.compose.ui.test.junit4.desktop)
-                implementation(project(":sample-server"))
+                implementation(project(":sample-server")) {
+                    exclude(group = "ch.qos.logback")
+                }
                 implementation(libs.ktor.server.core)
                 implementation(libs.ktor.server.netty)
                 implementation(libs.ktor.client.core)

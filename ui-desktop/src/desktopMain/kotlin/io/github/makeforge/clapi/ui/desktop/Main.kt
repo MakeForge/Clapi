@@ -17,6 +17,8 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import io.github.makeforge.clapi.core.storage.opencollection.DefaultCanonicalCollectionRepository
 import io.github.makeforge.clapi.mcp.server.transport.StdioMcpServerRunner
+import io.github.makeforge.clapi.ui.desktop.logging.LogDirectoryConfigurator
+import io.github.makeforge.clapi.ui.desktop.logging.UiLogDispatcher
 import io.github.makeforge.clapi.ui.shared.MainScreen
 import io.github.makeforge.clapi.ui.shared.persistence.SettingsRepository
 import io.github.makeforge.clapi.ui.shared.persistence.TabsRepository
@@ -34,6 +36,8 @@ import kotlinx.coroutines.runBlocking
  * used by the packaging task to catch stale or incomplete fat-JAR contents.
  */
 fun main(args: Array<String>) {
+    LogDirectoryConfigurator.configure(args)
+
     if ("--mcp" in args) {
         StdioMcpServerRunner.runFromCli(args)
         return
@@ -73,6 +77,7 @@ fun main(args: Array<String>) {
             it.syncSidebarToActiveTab()
             // Start embedded MCP server if enabled in settings
             it.embeddedMcpServerController.applySettings()
+            UiLogDispatcher.bind(it.diagnostics)
         }
     }
 
@@ -84,7 +89,9 @@ fun main(args: Array<String>) {
                 TabsRepository.save(state)
                 WorkspaceRepository.save(state)
             }
+            UiLogDispatcher.unbind()
             state.disposeAndAwait()
+            LogDirectoryConfigurator.shutdown()
             exitApplication()
         }
     }

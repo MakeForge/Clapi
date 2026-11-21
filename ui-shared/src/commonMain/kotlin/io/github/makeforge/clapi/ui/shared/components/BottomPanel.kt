@@ -50,9 +50,11 @@ import androidx.compose.ui.unit.sp
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_check_circle
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_close
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_content_copy
+import io.github.makeforge.clapi.ui.shared.generated.resources.ic_folder_open
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_keyboard_arrow_down
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_keyboard_arrow_up
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
+import io.github.makeforge.clapi.ui.shared.platform.openFileInDefaultApp
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.state.BottomTab
 import io.github.makeforge.clapi.ui.shared.state.ConsoleEntry
@@ -160,6 +162,22 @@ fun BottomPanel(
 
             // Clear button
             if (state.bottomPanelExpanded) {
+                IconButtonWithTooltip(
+                    onClick = {
+                        val logDir = System.getProperty("clapi.log.dir")
+                            ?: (System.getProperty("user.home") + "/.clapi/logs")
+                        openFileInDefaultApp(logDir)
+                    },
+                    tooltip = "Open Log Folder",
+                    modifier = Modifier.size(24.dp).testTag("open-log-folder-button"),
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_folder_open),
+                        contentDescription = "Open Log Folder",
+                        tint = ClapiColors.OnSurfaceDim,
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
                 IconButtonWithTooltip(
                     onClick = {
                         copyToClipboard(
