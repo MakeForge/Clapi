@@ -443,5 +443,12 @@
   "mcp_server_port": "Port local (127.0.0.1)",
   "mcp_server_running": "En cours sur",
   "mcp_server_stopped": "Serveur arrêté",
-  "mcp_server_client_config": "Configuration du client MCP"
+  "mcp_server_client_config": "Configuration du client MCP",
+  "select_proto_folder": "Sélectionner un dossier Proto",
+  "replace_proto_folder": "Remplacer le dossier Proto",
+  "proto_folder_label": "Dossier Proto",
+  "proto_folder_files_label": "Fichiers Proto dans le dossier",
+  "proto_folder_empty": "Aucun fichier .proto trouvé dans le dossier sélectionné.",
+  "proto_folder_select_file_hint": "Sélectionnez un fichier .proto dans le dossier pour charger ses méthodes gRPC.",
+  "proto_folder_sync_to_git_hint": "Tous les fichiers .proto de ce dossier et de ses sous-dossiers seront synchronisés avec Git."
 }

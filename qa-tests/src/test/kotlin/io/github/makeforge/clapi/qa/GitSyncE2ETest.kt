@@ -227,4 +227,79 @@ class GitSyncE2ETest {
         }
         assertTrue(conflictTriggered, "Merge conflict must be detected when local and remote edit the same file")
     }
+
+    @Test
+    fun syncs_request_proto_folder_recursively_excluding_non_proto_files_and_compiles_from_fresh_clone() = runBlocking {
+        val rootDir = tempDir.newFolder("proto_folder_e2e")
+        val remoteRepoDir = File(rootDir, "remote.git").apply { mkdirs() }
+        val storageBaseDir = File(rootDir, "storage").apply { mkdirs() }
+        val sourceProtoFolder = File(rootDir, "local_protos/protobuf").apply { mkdirs() }
+        val sourceCommonDir = File(sourceProtoFolder, "common").apply { mkdirs() }
+
+        File(sourceCommonDir, "metadata.proto").writeText(
+            """
+            syntax = "proto3";
+            package clapi.common;
+            message RequestMetadata { string trace_id = 1; }
+            """.trimIndent()
+        )
+        val greeterFile = File(sourceProtoFolder, "greeter.proto").apply {
+            writeText(
+                """
+                syntax = "proto3";
+                package helloworld;
+                import "protobuf/common/metadata.proto";
+                service Greeter {
+                  rpc SayHello (HelloRequest) returns (HelloReply);
+                }
+                message HelloRequest { string name = 1; }
+                message HelloReply {
+                  string message = 1;
+                  clapi.common.RequestMetadata ack_metadata = 2;
+                }
+                """.trimIndent()
+            )
+        }
+        File(sourceProtoFolder, "README.md").writeText("ignored non-proto file")
+
+        val manager = GitRepositoryManager(executor, storageBaseDir.absolutePath)
+        val remoteUrl = remoteRepoDir.absolutePath
+
+        assertTrue(executor.execute(remoteRepoDir.absolutePath, listOf("init", "--bare", "-b", "main")).isSuccess)
+        val repoDir = manager.ensureClonedOrCheckedOut(remoteUrl, "main").workingDirectory
+        executor.execute(repoDir, listOf("config", "user.name", "Clapi E2E"))
+        executor.execute(repoDir, listOf("config", "user.email", "e2e@clapi.dev"))
+        executor.execute(repoDir, listOf("config", "commit.gpgsign", "false"))
+        executor.execute(repoDir, listOf("commit", "--allow-empty", "-m", "Init"))
+        executor.execute(repoDir, listOf("push", "-u", "origin", "main"))
+
+        val collectionDir = File(manager.getCollectionDirectory(remoteUrl, "GrpcFolderCol")).apply { mkdirs() }
+        val synced = ProtoPathResolver.syncRequestProtoFolder(
+            sourceFolderPath = sourceProtoFolder.absolutePath,
+            sourceProtoFilePath = greeterFile.absolutePath,
+            requestId = "req-grpc-folder",
+            collectionDir = collectionDir.absolutePath,
+        )
+
+        assertTrue(manager.commit(repoDir, "Sync request proto folder").isSuccess)
+        assertTrue(manager.push(repoDir, "main").isSuccess)
+
+        // Clone on a "teammate" machine without local_protos
+        val teammateClone = File(rootDir, "teammate_clone")
+        assertTrue(executor.execute(rootDir.absolutePath, listOf("clone", remoteUrl, teammateClone.absolutePath)).isSuccess)
+        val teammateCollectionDir = File(teammateClone, "GrpcFolderCol")
+
+        assertTrue(File(teammateCollectionDir, "protobuf/requests/req-grpc-folder/protobuf/greeter.proto").exists())
+        assertTrue(File(teammateCollectionDir, "protobuf/requests/req-grpc-folder/protobuf/common/metadata.proto").exists())
+        assertFalse(File(teammateCollectionDir, "protobuf/requests/req-grpc-folder/protobuf/README.md").exists())
+
+        val resolvedProto = ProtoPathResolver.resolve(synced.protoFileRelPath, teammateCollectionDir.absolutePath)
+        val resolvedFolder = ProtoPathResolver.resolve(synced.folderRelPath, teammateCollectionDir.absolutePath)
+        val schema = io.github.makeforge.clapi.core.network.grpc.ProtocJarParser().parseProtoFile(
+            protoFilePath = resolvedProto,
+            includePaths = listOf(resolvedFolder),
+        )
+        assertEquals(1, schema.services.size)
+        assertEquals("helloworld.Greeter/SayHello", schema.services.single().methods.single().fullMethodName)
+    }
 }

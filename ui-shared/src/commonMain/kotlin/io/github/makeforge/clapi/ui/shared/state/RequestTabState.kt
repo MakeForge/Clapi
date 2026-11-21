@@ -140,6 +140,7 @@ class RequestTabState(
 
     // ── gRPC state ──────────────────────────────────────────────────────────
     var protoFilePath by mutableStateOf<String?>(null)
+    var protoFolderPath by mutableStateOf<String?>(null)
     var protoSyncToGit by mutableStateOf(false)
     var grpcMethod by mutableStateOf<String?>(null)
     var grpcMethodType by mutableStateOf("unary")
@@ -446,6 +447,7 @@ class RequestTabState(
             kind.name,
             mcpClientFingerprint(),
             protoFilePath.orEmpty(),
+            protoFolderPath.orEmpty(),
             protoSyncToGit.toString(),
             grpcMethod.orEmpty(),
             grpcMethodType,

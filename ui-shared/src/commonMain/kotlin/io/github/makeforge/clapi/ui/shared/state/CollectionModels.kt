@@ -107,7 +107,9 @@ data class CollectionNode(
     val mcpConfig: McpConnectionConfig? = null,
     val variableEntries: List<KeyValueEntry>? = null,
     val protoFilePath: String? = null,
-    val protoSyncToGit: Boolean = protoFilePath?.let { ProtoPathResolver.isRelativeGitProtoPath(it) } ?: false,
+    val protoFolderPath: String? = null,
+    val protoSyncToGit: Boolean = (protoFilePath?.let { ProtoPathResolver.isRelativeGitProtoPath(it) } == true) ||
+        (protoFolderPath?.let { ProtoPathResolver.isRelativeGitProtoPath(it) } == true),
     val grpcMethod: String? = null,
     val grpcMethodType: String? = "unary",
     val summary: String? = null,

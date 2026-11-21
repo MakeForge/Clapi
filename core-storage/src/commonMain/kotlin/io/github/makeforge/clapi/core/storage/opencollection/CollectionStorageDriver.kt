@@ -167,4 +167,5 @@ expect fun deleteFile(path: String): Boolean
 expect fun fileExists(path: String): Boolean
 expect fun getDefaultStorageBaseDirectory(): String
 expect fun copyFileOrDirectory(sourcePath: String, destinationPath: String): Boolean
+expect fun copyProtoFilesFromDirectory(sourceDir: String, destinationDir: String): Boolean
 

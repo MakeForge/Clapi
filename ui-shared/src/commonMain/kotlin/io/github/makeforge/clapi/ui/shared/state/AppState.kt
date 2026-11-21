@@ -1028,7 +1028,10 @@ class AppState(openDefaultTab: Boolean = true) {
             tab.headers.clear()
             tab.bodyType = BodyType.JSON
             tab.protoFilePath = node?.protoFilePath
-            tab.protoSyncToGit = node?.protoSyncToGit ?: (node?.protoFilePath?.let { ProtoPathResolver.isRelativeGitProtoPath(it) } ?: false)
+            tab.protoFolderPath = node?.protoFolderPath
+            tab.protoSyncToGit = node?.protoSyncToGit
+                ?: ((node?.protoFilePath?.let { ProtoPathResolver.isRelativeGitProtoPath(it) } == true) ||
+                    (node?.protoFolderPath?.let { ProtoPathResolver.isRelativeGitProtoPath(it) } == true))
             tab.grpcMethod = node?.grpcMethod
             tab.grpcMethodType = node?.grpcMethodType ?: "unary"
             node?.bodyContent?.takeIf { it.isNotBlank() }?.let { tab.grpcMessageBody = it }
@@ -2576,6 +2579,7 @@ class AppState(openDefaultTab: Boolean = true) {
                         url = tab.url.ifBlank { tab.mcpConfig.url },
                     ),
                     protoFilePath      = tab.protoFilePath?.ifBlank { null },
+                    protoFolderPath    = tab.protoFolderPath?.ifBlank { null },
                     protoSyncToGit     = tab.protoSyncToGit,
                     grpcMethod         = tab.grpcMethod?.ifBlank { null },
                     grpcMethodType     = tab.grpcMethodType.ifBlank { "unary" },

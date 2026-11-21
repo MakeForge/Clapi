@@ -187,4 +187,42 @@ class ProtoGitSyncUiTest {
             tempDir.deleteRecursively()
         }
     }
+
+    @Test
+    fun grpc_request_top_bar_never_shows_sync_to_git_toggle_and_dialog_hosts_it_for_git_collections() {
+        val state = AppStateExamples.demo()
+        val idx = state.collections.indexOfFirst { it.id == "c1" }
+        state.collections[idx] = state.collections[idx].copy(
+            storageExtension = StorageExtension(
+                type = StorageType.GIT,
+                git = GitStorageConfig(remoteUrl = "/tmp/fake-remote.git", branch = "main"),
+            ),
+        )
+        val grpcTab = io.github.makeforge.clapi.ui.shared.state.RequestTabState(
+            id = "grpc-git-ui-1",
+            name = "Git gRPC",
+            url = "localhost:50051",
+            kind = io.github.makeforge.clapi.core.model.RequestKind.GRPC,
+            collectionId = "c1",
+            collectionName = state.collections[idx].name,
+        ).apply {
+            protoFilePath = "/tmp/example.proto"
+            protoSyncToGit = true
+        }
+        state.openTabs.clear()
+        state.openTabs.add(grpcTab)
+        state.activeTabIndex = 0
+
+        composeRule.setContent { MainScreen(state) }
+        composeRule.waitForIdle()
+
+        // Top request bar MUST NOT render grpc-proto-sync-toggle (moved into SelectProtoFileDialog)
+        composeRule.onNodeWithTag("grpc-proto-button").assertIsDisplayed()
+        composeRule.onNodeWithTag("grpc-proto-sync-toggle").assertDoesNotExist()
+
+        // Opening the Proto dialog shows the Sync to Git toggle inside the dialog
+        composeRule.onNodeWithTag("grpc-proto-button").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("proto-dialog-sync-to-git-toggle").assertIsDisplayed()
+    }
 }

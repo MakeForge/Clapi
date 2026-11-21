@@ -538,5 +538,12 @@
   "mcp_server_port": "Localhost Port (127.0.0.1)",
   "mcp_server_running": "Running on",
   "mcp_server_stopped": "Server Stopped",
-  "mcp_server_client_config": "MCP Client Configuration"
+  "mcp_server_client_config": "MCP Client Configuration",
+  "select_proto_folder": "Select Proto Folder",
+  "replace_proto_folder": "Replace Proto Folder",
+  "proto_folder_label": "Proto Folder",
+  "proto_folder_files_label": "Proto Files in Folder",
+  "proto_folder_empty": "No .proto files found in the selected folder.",
+  "proto_folder_select_file_hint": "Select a .proto file from the folder to load its gRPC methods.",
+  "proto_folder_sync_to_git_hint": "All .proto files in this folder and its subfolders will be synced to Git."
 }

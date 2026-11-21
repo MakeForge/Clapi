@@ -10,6 +10,14 @@ data class PickedBinaryFile(
     val base64Content: String,
 )
 
+/**
+ * Represents a `.proto` file discovered inside a user-selected proto folder.
+ */
+data class DiscoveredProtoFile(
+    val relativePath: String,
+    val absolutePath: String,
+)
+
 // ── Identity / Time ─────────────────────────────────────────────
 
 /** Platform-safe UUID generation. */
@@ -107,6 +115,17 @@ expect fun pickProtoFile(onResult: (filePath: String) -> Unit)
  * Pick one or more `.proto` files from the filesystem and deliver their absolute file paths to [onResult].
  */
 expect fun pickProtoFiles(onResult: (filePaths: List<String>) -> Unit)
+
+/**
+ * Pick a root directory containing `.proto` files and deliver its absolute path to [onResult].
+ */
+expect fun pickProtoDirectory(onResult: (dirPath: String) -> Unit)
+
+/**
+ * Recursively scan [dirPath] for `.proto` files (case-insensitive) and return them sorted
+ * by normalized `/` relative path. Returns an empty list if [dirPath] does not exist or is not a directory.
+ */
+expect fun listProtoFilesInDirectory(dirPath: String): List<DiscoveredProtoFile>
 
 /**
  * Open a file with the system default viewer or application.

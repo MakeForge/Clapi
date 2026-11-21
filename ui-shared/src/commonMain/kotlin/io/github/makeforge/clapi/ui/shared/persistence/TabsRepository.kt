@@ -91,6 +91,7 @@ object TabsRepository {
                     put("headers", kvListJson(tab.headers))
                     put("grpcMetadata", kvListJson(tab.grpcMetadata))
                     put("protoFilePath", tab.protoFilePath ?: "")
+                    put("protoFolderPath", tab.protoFolderPath ?: "")
                     put("protoSyncToGit", tab.protoSyncToGit)
                     put("grpcMethod", tab.grpcMethod ?: "")
                     put("grpcMethodType", tab.grpcMethodType)
@@ -362,6 +363,7 @@ object TabsRepository {
                     tab.grpcMetadata.add(kvFromJson(kv.jsonObject))
                 }
                 tab.protoFilePath = obj["protoFilePath"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
+                tab.protoFolderPath = obj["protoFolderPath"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
                 tab.protoSyncToGit = obj["protoSyncToGit"]?.jsonPrimitive?.booleanOrNull ?: false
                 tab.grpcMethod = obj["grpcMethod"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
                 tab.grpcMethodType = obj["grpcMethodType"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } ?: "unary"

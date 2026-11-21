@@ -12,8 +12,13 @@ import io.github.makeforge.clapi.core.network.grpc.DynamicGrpcClient
 import io.github.makeforge.clapi.core.network.grpc.GrpcCallRequest
 import io.github.makeforge.clapi.core.network.grpc.GrpcCallResponse
 import io.github.makeforge.clapi.ui.shared.components.resolveGrpcCallRequest
+import io.github.makeforge.clapi.ui.shared.components.resolveGrpcIncludePaths
+import io.github.makeforge.clapi.ui.shared.persistence.toCollectionNode
+import io.github.makeforge.clapi.ui.shared.persistence.toOpenCollectionDocument
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.state.CollectionNode
+import io.github.makeforge.clapi.ui.shared.state.ProtoFileItemState
+import io.github.makeforge.clapi.ui.shared.state.ProtoImportPathState
 import io.github.makeforge.clapi.ui.shared.state.RequestTabState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -222,5 +227,71 @@ class GrpcRequestExecutorTest {
         assertNotNull(capturedGrpcCall)
         assertEquals("Bearer grpc-wire-token", capturedGrpcCall!!.metadata.toMap()["authorization"])
         assertTrue(capturedHttpRequests.any { it.name == "AfterGrpcHttp" }, "gRPC test script setNextRequest must execute AfterGrpcHttp")
+    }
+
+    @Test
+    fun resolveGrpcIncludePaths_combines_protoFolder_enabled_collection_imports_and_collection_protos() {
+        val includePaths = resolveGrpcIncludePaths(
+            protoFolderPath = "./protobuf/requests/req-1/protobuf",
+            collectionImportPaths = listOf(
+                ProtoImportPathState("./protobuf/collection/imports/common", enabled = true),
+                ProtoImportPathState("/disabled/imports", enabled = false),
+            ),
+            collectionProtoFiles = listOf(
+                ProtoFileItemState("./protobuf/collection/shared.proto"),
+            ),
+            collectionGitDir = "/repo/MyCollection",
+        )
+
+        assertEquals(
+            listOf(
+                "/repo/MyCollection/protobuf/requests/req-1/protobuf",
+                "/repo/MyCollection/protobuf/collection/imports/common",
+                "/repo/MyCollection/protobuf/collection/shared.proto",
+            ),
+            includePaths,
+        )
+    }
+
+    @Test
+    fun openCollection_mapping_roundtrips_protoFolderPath_and_handles_legacy_null_protoFolderPath() {
+        val folderGrpc = CollectionNode(
+            id = "grpc-folder-req",
+            name = "FolderGrpc",
+            kind = RequestKind.GRPC,
+            url = "localhost:50051",
+            protoFolderPath = "/workspace/protos",
+            protoFilePath = "/workspace/protos/protobuf/greeter.proto",
+            grpcMethod = "helloworld.Greeter/SayHello",
+        )
+        val legacyGrpc = CollectionNode(
+            id = "grpc-legacy-req",
+            name = "LegacyGrpc",
+            kind = RequestKind.GRPC,
+            url = "localhost:50051",
+            protoFolderPath = null,
+            protoFilePath = "/workspace/single.proto",
+            grpcMethod = "pkg.Svc/Call",
+        )
+        val rootCol = CollectionNode(
+            id = "col-proto-roundtrip",
+            name = "ProtoCol",
+            isFolder = true,
+            kind = RequestKind.COLLECTION,
+        ).also {
+            it.children.add(folderGrpc)
+            it.children.add(legacyGrpc)
+        }
+
+        val doc = rootCol.toOpenCollectionDocument()
+        val restored = doc.toCollectionNode(preserveIds = true)
+
+        val restoredFolder = restored.children.first { it.name == "FolderGrpc" }
+        assertEquals("/workspace/protos", restoredFolder.protoFolderPath)
+        assertEquals("/workspace/protos/protobuf/greeter.proto", restoredFolder.protoFilePath)
+
+        val restoredLegacy = restored.children.first { it.name == "LegacyGrpc" }
+        assertEquals(null, restoredLegacy.protoFolderPath)
+        assertEquals("/workspace/single.proto", restoredLegacy.protoFilePath)
     }
 }
