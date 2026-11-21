@@ -13,8 +13,6 @@ description: Inspecting raw JSON-RPC traffic, notifications, and errors in Clapi
 
 When testing or building an MCP server, diagnosing unexpected JSON-RPC serialization issues or protocol handshake failures requires deep protocol visibility. Clapi isolates all session traffic in the **Activity Log** tab.
 
----
-
 ## Log Categorization
 
 Every JSON-RPC frame exchanged over the transport is recorded with color-coded categories:
@@ -27,8 +25,6 @@ Every JSON-RPC frame exchanged over the transport is recorded with color-coded c
 | **State** | `STATE` (Gray) | Connection transitions (`CONNECTING`, `CONNECTED`, `DISCONNECTED`). |
 | **Error** | `ERROR` (Red) | Protocol errors with code (e.g. `-32601 Method not found`) and stack traces. |
 | **OAuth** | `OAUTH` (Yellow) | OAuth 2.1 token negotiation events. |
-
----
 
 ## Protocol Inspection
 

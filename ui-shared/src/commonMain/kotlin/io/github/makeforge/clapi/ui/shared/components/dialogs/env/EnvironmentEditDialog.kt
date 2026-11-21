@@ -163,6 +163,7 @@ enum class EnvironmentEditTab {
 fun EnvironmentEditDialog(
     state: AppState,
     modifier: Modifier = Modifier,
+    useDialogWindow: Boolean = true,
 ) {
     if (!state.showEnvEditDialog) return
     val envIndex = state.editingEnvIndex
@@ -408,10 +409,7 @@ fun EnvironmentEditDialog(
         }
     }
 
-    Dialog(
-        onDismissRequest = ::requestClose,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
+    val dialogBody: @Composable () -> Unit = {
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
@@ -1845,6 +1843,16 @@ fun EnvironmentEditDialog(
                 }
             }
         }
+    }
+
+    if (useDialogWindow) {
+        Dialog(
+            onDismissRequest = ::requestClose,
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+            content = dialogBody,
+        )
+    } else {
+        dialogBody()
     }
 
     if (showUnsavedConfirm) {

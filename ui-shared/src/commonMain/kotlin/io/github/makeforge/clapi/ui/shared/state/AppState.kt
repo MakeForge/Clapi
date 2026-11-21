@@ -339,6 +339,7 @@ class AppState(openDefaultTab: Boolean = true) {
     // ── Git synchronization ──
     var gitRepositoryManager: GitRepositoryManager = GitRepositoryManager()
     val gitStatusesByRepoDir = mutableStateMapOf<String, CollectionGitStatus>()
+    var autoRefreshGitStatus: Boolean = true
 
     val activeCollectionNode: CollectionNode?
         get() {
@@ -408,6 +409,9 @@ class AppState(openDefaultTab: Boolean = true) {
     suspend fun refreshGitStatusForCollection(collection: CollectionNode): CollectionGitStatus? {
         if (collection.storageType != StorageType.GIT || collection.gitRemoteUrl.isBlank()) return null
         val repoDir = gitRepositoryManager.getRepositoryDirectory(collection.gitRemoteUrl)
+        if (!autoRefreshGitStatus) {
+            return gitStatusesByRepoDir[repoDir]
+        }
         val status = runCatching {
             gitRepositoryManager.checkStatus(repoDir)
         }.getOrElse { e ->

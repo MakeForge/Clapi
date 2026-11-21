@@ -19,8 +19,6 @@ description: Complete guide to sending and inspecting HTTP / REST API requests i
 
 Clapi provides a comprehensive HTTP / REST client engine powered by Ktor. You can compose and dispatch requests using all standard HTTP methods, inject dynamic variables, stream large payloads, inspect headers, and analyze detailed connection latency.
 
----
-
 ## Quick Start
 
 1. Open a new request tab (`⌘ + N` or `Ctrl + N`).
@@ -32,8 +30,6 @@ Clapi provides a comprehensive HTTP / REST client engine powered by Ktor. You ca
 4. If sending a `POST` or `PUT`, switch to the **Body** tab and choose **JSON**.
 5. Click **Send** (`⌘ + Enter` / `Ctrl + Enter`).
 6. View the parsed response payload, status code, and latency in the right pane.
-
----
 
 ## Detailed Feature Subpages
 

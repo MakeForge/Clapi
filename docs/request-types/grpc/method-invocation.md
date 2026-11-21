@@ -13,8 +13,6 @@ description: Selecting services, invoking RPCs, and handling streaming gRPC call
 
 gRPC supports four distinct communication paradigms over HTTP/2. Clapi supports unary and streaming RPC methods.
 
----
-
 ## RPC Modes
 
 ### 1. Unary RPC

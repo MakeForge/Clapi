@@ -13,8 +13,6 @@ description: Configuring WebSocket handshake headers, subprotocols, and SSL/TLS 
 
 WebSocket connections begin with an HTTP/1.1 Upgrade handshake (`Upgrade: websocket`, `Connection: Upgrade`). Clapi gives you granular control over this initial handshake exchange.
 
----
-
 ## Handshake Parameters & Headers
 
 ### Query Parameters
@@ -25,8 +23,6 @@ In the **Headers** tab, you can add custom headers evaluated during the upgrade 
 - `Authorization: Bearer {{token}}`
 - `Sec-WebSocket-Protocol: graphql-ws, soap`
 - `Origin: https://app.example.com`
-
----
 
 ## TLS & Secure WebSockets (`wss://`)
 

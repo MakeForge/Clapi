@@ -22,8 +22,6 @@ Unlike most modern commercial API clients (e.g. Postman, Insomnia) that enforce 
 6. **Local Data Sovereignty**: All collections, environments, certificates, and workspaces live strictly on your local filesystem under your direct control.
 :::
 
----
-
 ## Air-Gapped & Enterprise Compliance
 
 Because Clapi has zero external cloud dependencies and operates 100% offline, it can run reliably inside:

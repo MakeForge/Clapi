@@ -221,7 +221,6 @@ object AppStateExamples {
         state.environments.addAll(environments())
         state.globalVariables.addAll(globalVariables())
         state.historyItems.addAll(historyItems(now))
-
         state.collections.addAll(richExampleCollections())
         state.collectionExpandedState["c1"] = true
         state.collectionExpandedState["f-users"] = true
@@ -825,6 +824,272 @@ object AppStateExamples {
         state.selectedRequestIds.clear()
         state.selectedRequestIds.add("r-mcp-1")
         state.lastSelectedSidebarItemId = "r-mcp-1"
+
+        return state
+    }
+
+    /**
+     * Example AppState with a RabbitMQ Publish request tab open.
+     */
+    fun rabbitMqPublish(): AppState {
+        val now = currentTimeMillis()
+        val state = AppState(openDefaultTab = false)
+        state.collectionsExpanded = true
+        state.environmentsExpanded = false
+        state.environments.addAll(environments())
+        state.globalVariables.addAll(globalVariables())
+        state.historyItems.addAll(historyItems(now))
+
+        state.collections.addAll(richExampleCollections())
+        state.collectionExpandedState["c1"] = true
+        state.collectionExpandedState["c2"] = false
+
+        state.ensureRequestRefsInitialized()
+        state.syncHistoryWithCollections()
+
+        val httpTab = RequestTabState(
+            id = "r-http-1",
+            name = "Get User Profile",
+            kind = RequestKind.HTTP,
+        ).apply {
+            url = "{{baseUrl}}/users/42"
+            markSaved()
+        }
+
+        val rmqTab = RequestTabState(
+            id = "r-rmq-pub-1",
+            name = "Publish Order Event",
+            kind = RequestKind.RABBITMQ,
+        ).apply {
+            rabbitMqMode = io.github.makeforge.clapi.core.model.opencollection.RabbitMqOperationMode.PUBLISH
+            rabbitMqConnection = io.github.makeforge.clapi.core.model.opencollection.RabbitMqConnectionConfig(
+                host = "{{baseUrl}}".substringAfter("://").substringBefore(":"),
+                port = 5672,
+                vhost = "/",
+            )
+            rabbitMqExchange = io.github.makeforge.clapi.core.model.opencollection.RabbitMqExchangeConfig(
+                name = "orders.exchange",
+                type = io.github.makeforge.clapi.core.model.opencollection.RabbitMqExchangeType.TOPIC,
+                durable = true,
+            )
+            rabbitMqRoutingKey = "order.created"
+            selectedRabbitMqTab = RabbitMqEditorTab.MESSAGE
+            webSocketOutgoingPayload = """{
+  "orderId": "ord_98721",
+  "customerId": "cust_4821",
+  "amount": 149.99,
+  "currency": "USD",
+  "status": "PENDING"
+}"""
+            rabbitMqProperties = io.github.makeforge.clapi.core.model.opencollection.AmqpMessageProperties(
+                contentType = "application/json",
+                deliveryMode = 2,
+                appId = "order-service",
+            )
+            rabbitMqLastPublishResult = io.github.makeforge.clapi.core.model.RabbitMqPublishResult(
+                confirmed = true,
+                returnedUnroutable = false,
+                exchange = "orders.exchange",
+                routingKey = "order.created",
+                byteLength = 118L,
+                elapsedMs = 12L,
+            )
+            markSaved()
+        }
+
+        state.openTabs.addAll(listOf(httpTab, rmqTab))
+        state.activeTabIndex = 1
+        state.selectedCollectionId = "c1"
+        state.selectedRequestId = "r-rmq-pub-1"
+        state.selectedRequestIds.clear()
+        state.selectedRequestIds.add("r-rmq-pub-1")
+        state.lastSelectedSidebarItemId = "r-rmq-pub-1"
+
+        return state
+    }
+
+    /**
+     * Example AppState with a RabbitMQ Subscribe request tab open showing active subscription and deliveries.
+     */
+    fun rabbitMqSubscribe(): AppState {
+        val now = currentTimeMillis()
+        val state = AppState(openDefaultTab = false)
+        state.collectionsExpanded = true
+        state.environmentsExpanded = false
+        state.environments.addAll(environments())
+        state.globalVariables.addAll(globalVariables())
+        state.historyItems.addAll(historyItems(now))
+
+        state.collections.addAll(richExampleCollections())
+        state.collectionExpandedState["c1"] = true
+        state.collectionExpandedState["c2"] = false
+
+        state.ensureRequestRefsInitialized()
+        state.syncHistoryWithCollections()
+
+        val httpTab = RequestTabState(
+            id = "r-http-1",
+            name = "Get User Profile",
+            kind = RequestKind.HTTP,
+        ).apply {
+            url = "{{baseUrl}}/users/42"
+            markSaved()
+        }
+
+        val rmqTab = RequestTabState(
+            id = "r-rmq-sub-1",
+            name = "Order Consumer",
+            kind = RequestKind.RABBITMQ,
+        ).apply {
+            rabbitMqMode = io.github.makeforge.clapi.core.model.opencollection.RabbitMqOperationMode.SUBSCRIBE
+            rabbitMqConnection = io.github.makeforge.clapi.core.model.opencollection.RabbitMqConnectionConfig(
+                host = "{{baseUrl}}".substringAfter("://").substringBefore(":"),
+                port = 5672,
+                vhost = "/",
+            )
+            rabbitMqQueue = io.github.makeforge.clapi.core.model.opencollection.RabbitMqQueueConfig(
+                name = "orders.processing.queue",
+                durable = true,
+            )
+            rabbitMqExchange = io.github.makeforge.clapi.core.model.opencollection.RabbitMqExchangeConfig(
+                name = "orders.exchange",
+                type = io.github.makeforge.clapi.core.model.opencollection.RabbitMqExchangeType.TOPIC,
+            )
+            rabbitMqRoutingKey = "order.#"
+            rabbitMqConnectionStatus = io.github.makeforge.clapi.core.model.RabbitMqConnectionStatus.CONNECTED
+            selectedRabbitMqTab = RabbitMqEditorTab.AMQP
+            rabbitMqMessages.addAll(
+                listOf(
+                    io.github.makeforge.clapi.core.model.RabbitMqDeliveryMessage(
+                        id = "msg-1",
+                        timestampEpochMillis = now - 14_000,
+                        exchange = "orders.exchange",
+                        routingKey = "order.created",
+                        contentType = "application/json",
+                        payloadText = """{"orderId": "ord_98721", "status": "PENDING", "amount": 149.99}""",
+                        byteLength = 62L,
+                        ackStatus = io.github.makeforge.clapi.core.model.AmqpAckStatus.ACKED,
+                    ),
+                    io.github.makeforge.clapi.core.model.RabbitMqDeliveryMessage(
+                        id = "msg-2",
+                        timestampEpochMillis = now - 8_000,
+                        exchange = "orders.exchange",
+                        routingKey = "order.updated",
+                        contentType = "application/json",
+                        payloadText = """{"orderId": "ord_98721", "status": "CONFIRMED"}""",
+                        byteLength = 48L,
+                        ackStatus = io.github.makeforge.clapi.core.model.AmqpAckStatus.PENDING,
+                    ),
+                    io.github.makeforge.clapi.core.model.RabbitMqDeliveryMessage(
+                        id = "msg-3",
+                        timestampEpochMillis = now - 2_000,
+                        exchange = "orders.exchange",
+                        routingKey = "order.shipped",
+                        contentType = "application/json",
+                        payloadText = """{"orderId": "ord_98720", "status": "SHIPPED", "tracking": "TRK_49102"}""",
+                        byteLength = 71L,
+                        ackStatus = io.github.makeforge.clapi.core.model.AmqpAckStatus.PENDING,
+                    ),
+                )
+            )
+            markSaved()
+        }
+
+        state.openTabs.addAll(listOf(httpTab, rmqTab))
+        state.activeTabIndex = 1
+        state.selectedCollectionId = "c1"
+        state.selectedRequestId = "r-rmq-sub-1"
+        state.selectedRequestIds.clear()
+        state.selectedRequestIds.add("r-rmq-sub-1")
+        state.lastSelectedSidebarItemId = "r-rmq-sub-1"
+
+        return state
+    }
+
+    /**
+     * Example AppState with a RabbitMQ RPC request tab open showing correlated reply payload and metrics.
+     */
+    fun rabbitMqRpc(): AppState {
+        val now = currentTimeMillis()
+        val state = AppState(openDefaultTab = false)
+        state.collectionsExpanded = true
+        state.environmentsExpanded = false
+        state.environments.addAll(environments())
+        state.globalVariables.addAll(globalVariables())
+        state.historyItems.addAll(historyItems(now))
+
+        state.collections.addAll(richExampleCollections())
+        state.collectionExpandedState["c1"] = true
+        state.collectionExpandedState["c2"] = false
+
+        state.ensureRequestRefsInitialized()
+        state.syncHistoryWithCollections()
+
+        val httpTab = RequestTabState(
+            id = "r-http-1",
+            name = "Get User Profile",
+            kind = RequestKind.HTTP,
+        ).apply {
+            url = "{{baseUrl}}/users/42"
+            markSaved()
+        }
+
+        val rmqTab = RequestTabState(
+            id = "r-rmq-rpc-1",
+            name = "Get Inventory RPC",
+            kind = RequestKind.RABBITMQ,
+        ).apply {
+            rabbitMqMode = io.github.makeforge.clapi.core.model.opencollection.RabbitMqOperationMode.RPC
+            rabbitMqConnection = io.github.makeforge.clapi.core.model.opencollection.RabbitMqConnectionConfig(
+                host = "{{baseUrl}}".substringAfter("://").substringBefore(":"),
+                port = 5672,
+                vhost = "/",
+            )
+            rabbitMqExchange = io.github.makeforge.clapi.core.model.opencollection.RabbitMqExchangeConfig(
+                name = "inventory.rpc",
+                type = io.github.makeforge.clapi.core.model.opencollection.RabbitMqExchangeType.DIRECT,
+            )
+            rabbitMqRoutingKey = "inventory.check"
+            selectedRabbitMqTab = RabbitMqEditorTab.MESSAGE
+            webSocketOutgoingPayload = """{
+  "sku": "KB-ERG-920",
+  "warehouseId": "wh_us_east_1"
+}"""
+            rabbitMqProperties = io.github.makeforge.clapi.core.model.opencollection.AmqpMessageProperties(
+                contentType = "application/json",
+                correlationId = "corr_7e3a91",
+                replyTo = "amq.rabbitmq.reply-to",
+            )
+            rabbitMqLastRpcResult = io.github.makeforge.clapi.core.model.RabbitMqRpcResult(
+                correlationId = "corr_7e3a91",
+                replyTo = "amq.rabbitmq.reply-to",
+                elapsedMs = 28L,
+                reply = io.github.makeforge.clapi.core.model.RabbitMqDeliveryMessage(
+                    id = "reply-1",
+                    timestampEpochMillis = now - 5_000,
+                    exchange = "",
+                    routingKey = "amq.rabbitmq.reply-to",
+                    contentType = "application/json",
+                    payloadText = """{
+  "sku": "KB-ERG-920",
+  "inStock": true,
+  "availableQuantity": 142,
+  "reservedQuantity": 8,
+  "leadTimeDays": 2
+}""",
+                    byteLength = 114L,
+                ),
+            )
+            markSaved()
+        }
+
+        state.openTabs.addAll(listOf(httpTab, rmqTab))
+        state.activeTabIndex = 1
+        state.selectedCollectionId = "c1"
+        state.selectedRequestId = "r-rmq-rpc-1"
+        state.selectedRequestIds.clear()
+        state.selectedRequestIds.add("r-rmq-rpc-1")
+        state.lastSelectedSidebarItemId = "r-rmq-rpc-1"
 
         return state
     }

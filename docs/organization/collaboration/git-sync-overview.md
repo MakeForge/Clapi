@@ -19,8 +19,6 @@ Traditional API clients charge expensive monthly per-seat subscriptions to synch
 - Sync across your team using your existing Git forge (GitHub, GitLab, Bitbucket, Gitea, or self-hosted SSH servers).
 - Zero cloud subscription costs. Zero SaaS lock-in.
 
----
-
 ## The OpenCollection Advantage in Git
 
 Git repositories require file formats that produce clean, human-readable diffs. Clapi's underlying **OpenCollection** format is specifically designed for version control:
@@ -28,8 +26,6 @@ Git repositories require file formats that produce clean, human-readable diffs. 
 - Discrete YAML or JSON files for requests, folders, and environments.
 - Clean 3-way merge resolution using standard Git merge tools.
 - Secret values are not synced and private authentication tokens/credentials are excluded automatically and kept in the local encrypted storage.
-
----
 
 ## gRPC Proto Schema Synchronization
 

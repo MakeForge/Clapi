@@ -13,8 +13,6 @@ description: Writing, formatting, and executing GraphQL queries and mutations in
 
 The GraphQL query editor is tailored specifically for the GraphQL specification (RFC 2021). It features syntax highlighting for keywords, types, fields, arguments, and directives, alongside auto-indentation and bracket closing.
 
----
-
 ## Writing Queries & Mutations
 
 ### Basic Query
@@ -45,8 +43,6 @@ mutation CreateNewProduct($input: ProductInput!) {
   }
 }
 ```
-
----
 
 ## Auto-Formatting & Prettify
 

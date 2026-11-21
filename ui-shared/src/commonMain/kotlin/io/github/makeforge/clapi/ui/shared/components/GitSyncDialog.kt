@@ -74,6 +74,7 @@ fun GitSyncDialog(
     state: AppState,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    useDialogWindow: Boolean = true,
 ) {
     val scope = rememberCoroutineScope()
     val activeCol = state.activeGitCollectionNode
@@ -200,17 +201,13 @@ fun GitSyncDialog(
 
     val dragState = rememberDraggableDialogState()
 
-    Dialog(onDismissRequest = onDismiss) {
-        Box(
-            modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = onDismiss),
-            contentAlignment = Alignment.Center,
+    val dialogCard: @Composable () -> Unit = {
+        Column(
+            modifier = modifier
+                .draggableDialogCard(dragState, cornerRadius = 8.dp)
+                .widthIn(min = 500.dp, max = 620.dp)
+                .testTag("git-sync-dialog"),
         ) {
-            Column(
-                modifier = modifier
-                    .draggableDialogCard(dragState, cornerRadius = 8.dp)
-                    .widthIn(min = 500.dp, max = 620.dp)
-                    .testTag("git-sync-dialog"),
-            ) {
                 DialogTitleBar(
                     title = "Git Sync - $repoShortName",
                     titleTag = "git-sync-dialog-title",
@@ -508,6 +505,18 @@ fun GitSyncDialog(
             }
         }
     }
-}
-}
+    }
+
+    if (useDialogWindow) {
+        Dialog(onDismissRequest = onDismiss) {
+            Box(
+                modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = onDismiss),
+                contentAlignment = Alignment.Center,
+            ) {
+                dialogCard()
+            }
+        }
+    } else {
+        dialogCard()
+    }
 }

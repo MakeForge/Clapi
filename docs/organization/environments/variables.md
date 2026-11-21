@@ -13,8 +13,6 @@ description: Using variables, scope resolution hierarchy, and dynamic system gen
 
 Variables allow parameterizing URLs, headers, authentication fields, request bodies, and scripts. Clapi supports a multi-tier resolution hierarchy and built-in dynamic generators.
 
----
-
 ## Variable Syntax
 
 Reference any variable using double curly braces:
@@ -32,8 +30,6 @@ Variables can be placed in:
 Press **`Ctrl + Space`** inside any variable-aware input field (URL address bar, query params, headers, request body, or authentication inputs) to open the autocomplete popup and quickly insert environment variables, external secrets, and dynamic generators. See the [Keyboard Shortcuts](/reference/shortcuts) page for all shortcuts.
 :::
 
----
-
 ## Variable Resolution Hierarchy
 
 When a variable <code v-pre><code v-pre>{{myVar}}</code></code> is evaluated, Clapi resolves it in order from narrowest to broadest scope:
@@ -47,8 +43,6 @@ When a variable <code v-pre><code v-pre>{{myVar}}</code></code> is evaluated, Cl
 3. **Collection Scope**: Defined on the collection root settings.
 4. **Active Environment**: Variables belonging to the currently selected environment (e.g. `Staging`).
 5. **Global Scope**: Universal variables available across all collections and environments.
-
----
 
 ## Dynamic Variables
 

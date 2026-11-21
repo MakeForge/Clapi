@@ -407,6 +407,7 @@
   "git_push": "Push",
   "git_pull": "Pull",
   "git_syncing": "Sincronizando…",
+  "sync_to_git": "Sincronizar con Git",
   "git_conflict_warning": "Conflicto de fusión detectado. Por favor resuelva los conflictos externamente con un cliente Git.",
   "git_up_to_date": "Todo actualizado",
   "git_not_installed": "Git CLI no está instalado o no se encuentra en el PATH del sistema.",

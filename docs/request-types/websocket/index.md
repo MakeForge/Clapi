@@ -19,8 +19,6 @@ description: Complete guide to real-time, bidirectional WebSocket connections, m
 
 Clapi includes a full-duplex, persistent **WebSocket client** (`RequestKind.WEBSOCKET`). You can establish connections to `ws://` and `wss://` endpoints, negotiate custom handshake headers, stream text or binary frames in real time, and monitor an activity log of incoming and outgoing frames.
 
----
-
 ## Quick Start
 
 1. Open a new request tab and set the protocol to **WebSocket** (`RequestKind.WEBSOCKET`).
@@ -37,8 +35,6 @@ Clapi includes a full-duplex, persistent **WebSocket client** (`RequestKind.WEBS
 6. Click **Send**.
 7. Observe the outgoing message (with an up arrow `↑`) and the echoed incoming response (with a down arrow `↓`) in the live message log.
 8. Click **Disconnect** when finished.
-
----
 
 ## Detailed Feature Subpages
 

@@ -502,6 +502,7 @@
   "git_push": "Push",
   "git_pull": "Pull",
   "git_syncing": "Syncing…",
+  "sync_to_git": "Sync to Git",
   "git_conflict_warning": "Merge conflict detected. Please resolve conflicts using an external Git client.",
   "git_up_to_date": "Everything up to date",
   "git_not_installed": "Git CLI is not installed or not found in system PATH.",

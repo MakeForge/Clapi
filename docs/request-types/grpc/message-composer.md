@@ -13,8 +13,6 @@ description: Composing gRPC payloads using JSON and Proto3 mapping in Clapi.
 
 Protobuf is a binary serialization format. To provide a smooth editing experience, Clapi allows authoring payloads in standard JSON and automatically translates between JSON and binary Protobuf using official proto3 JSON mapping rules (`com.google.protobuf.util.JsonFormat`).
 
----
-
 ## Example Mapping
 
 ### Proto Definition

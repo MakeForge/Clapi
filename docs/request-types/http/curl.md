@@ -13,8 +13,6 @@ description: Importing and exporting cURL commands in Clapi.
 
 cURL is the universal command-line lingua franca for HTTP requests. Clapi features bidirectional cURL compatibility: you can paste any valid cURL command into Clapi to create a request, or copy any request from Clapi as an exact, reproducible cURL command line.
 
----
-
 ## Copy as cURL
 
 To export your active request as a cURL command:
@@ -35,8 +33,6 @@ curl --location --request POST 'https://api.example.com/v1/users' \
 ::: tip Secret Sanitization
 If your request references variables like <code v-pre>{{apiKey}}</code>, Clapi automatically interpolates the active environment value into the exported cURL command so it can be executed immediately in your terminal.
 :::
-
----
 
 ## Import from cURL
 

@@ -13,8 +13,6 @@ description: Inspecting response bodies, HTTP headers, cookies, and network late
 
 When an HTTP request finishes, Clapi presents the returned data in the **Response Viewer** pane. It provides instant high-level metadata (HTTP status code, total roundtrip time, and byte size) alongside deep inspection views.
 
----
-
 ## Response Tabs
 
 ### 1. Pretty
@@ -37,8 +35,6 @@ Displays all HTTP response headers in a searchable key-value table (e.g. `Cache-
 
 ### 5. Cookies
 Parsed table of cookies set by the remote server, including `Domain`, `Path`, `Expires`, `HttpOnly`, and `Secure` attributes.
-
----
 
 ## Performance Metrics Breakdown
 

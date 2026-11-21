@@ -19,10 +19,12 @@ import io.github.makeforge.clapi.ui.shared.state.MutableKeyValue
 fun EnvironmentEditDialog(
     state: AppState,
     modifier: Modifier = Modifier,
+    useDialogWindow: Boolean = true,
 ) {
     DelegateEnvironmentEditDialog(
         state = state,
         modifier = modifier,
+        useDialogWindow = useDialogWindow,
     )
 }
 

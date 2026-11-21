@@ -13,8 +13,6 @@ description: Organizing requests into nested folders and cascading default heade
 
 As API collections grow, organizing requests into nested folders is essential. In Clapi, folders are not merely visual containers—they act as **request defaults inheritance providers**.
 
----
-
 ## Folder Settings Editor
 
 Clicking any folder in the sidebar opens a dedicated **Folder Settings** tab:
@@ -23,8 +21,6 @@ Clicking any folder in the sidebar opens a dedicated **Folder Settings** tab:
 3. **Auth**: Inheritable authentication credentials (`Basic`, `Bearer`, `API Key`, `OAuth2`).
 4. **Pre-request**: Script executed prior to dispatching any descendant request.
 5. **Tests**: Assertions executed after any descendant request receives a response.
-
----
 
 ## Inheritance Cascade Rules
 

@@ -66,8 +66,6 @@ Clapi makes it effortless to migrate your existing API workspaces without vendor
 3. Clapi imports your folder hierarchy, HTTP/GraphQL requests, authentication settings, collection variables, and automatically translates `pm.*` pre-request and test scripts into `clapi.*` scripts.
 4. To import a standalone Postman environment `.json` file, open the **Environments** selector in the top toolbar and choose **Import Environment**.
 
----
-
 ## Automatic Script Translation (`insomnia.*` & `pm.*` &rarr; `clapi.*`)
 
 Both Postman and Insomnia v5 scripts are automatically translated during import so your dynamic workflows and test assertions run out of the box in Clapi's isolated V8 JavaScript engine:

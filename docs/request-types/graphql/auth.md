@@ -13,15 +13,11 @@ description: Configuring authorization headers, cookies, and tokens for GraphQL 
 
 GraphQL requests are typically transmitted over HTTP POST with JSON payloads. Clapi lets you configure custom headers and authentication mechanisms that apply to both manual queries and automatic schema introspection requests.
 
----
-
 ## Setting Headers
 
 Under the **Headers** tab:
 - Add custom headers such as `X-Tenant-ID`, `Apollo-Require-Preflight: true`, or `X-Hasura-Role: admin`.
 - Inherited headers from parent folders and collections are automatically included.
-
----
 
 ## Authentication Schemes
 

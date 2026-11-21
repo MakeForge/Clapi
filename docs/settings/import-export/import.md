@@ -13,8 +13,6 @@ description: Importing OpenAPI v3+, OpenCollection, Postman, and Insomnia files 
 
 Clapi provides a streamlined import dialog to bring existing API specifications and collections from other tools into your workspace without manual data re-entry.
 
----
-
 ## Supported Import Formats
 
 | Format | Extensions | Capabilities & Notes |
@@ -23,8 +21,6 @@ Clapi provides a streamlined import dialog to bring existing API specifications 
 | **OpenCollection** | `.yaml`, `.yml`, `.json` | Native lossless format preserving nested folders, all protocols, scripts, and variables. |
 | **Postman Collections** | `.json` (v2.1) | Imports requests, nested folders, pre-request scripts, test assertions, and environment variables. |
 | **Insomnia Workspaces** | `.json` (v4/v5) | Imports workspace trees, environments, and HTTP/GraphQL requests. |
-
----
 
 ## Import Workflow
 
