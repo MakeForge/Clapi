@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VitePressConfig",
+  "type": "object",
+  "required": ["title", "description", "themeConfig"],
+  "properties": {
+    "title": {
+      "type": "string",
+      "default": "Clapi Documentation"
+    },
+    "description": {
+      "type": "string",
+      "default": "Official Documentation for Clapi - Local-first API Client & MCP Workbench"
+    },
+    "base": {
+      "type": "string",
+      "default": "/Clapi/"
+    },
+    "cleanUrls": {
+      "type": "boolean",
+      "default": true
+    },
+    "themeConfig": {
+      "type": "object",
+      "required": ["nav", "sidebar", "search", "socialLinks"],
+      "properties": {
+        "logo": { "type": "string", "default": "/logo.svg" },
+        "nav": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["text"],
+            "properties": {
+              "text": { "type": "string" },
+              "link": { "type": "string" },
+              "activeMatch": { "type": "string" },
+              "items": { "type": "array" }
+            }
+          }
+        },
+        "sidebar": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["text", "items"],
+              "properties": {
+                "text": { "type": "string" },
+                "collapsed": { "type": "boolean" },
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["text", "link"],
+                    "properties": {
+                      "text": { "type": "string" },
+                      "link": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "search": {
+          "type": "object",
+          "required": ["provider"],
+          "properties": {
+            "provider": { "type": "string", "enum": ["local"] },
+            "options": { "type": "object" }
+          }
+        },
+        "socialLinks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["icon", "link"],
+            "properties": {
+              "icon": { "type": "string" },
+              "link": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
