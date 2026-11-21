@@ -4,7 +4,7 @@ plugins {
 }
 
 application {
-    mainClass.set("com.reqlab.server.ApplicationKt")
+    mainClass.set("io.github.crustack.server.ApplicationKt")
 }
 
 dependencies {
@@ -37,7 +37,7 @@ tasks.named<JavaExec>("run") {
 // Convenience alias: ./gradlew :sample-server:runServer
 tasks.register("runServer") {
     group = "application"
-    description = "Starts the ReqLab sample API server at http://localhost:8080"
+    description = "Starts the Clapi sample API server at http://localhost:8080"
     dependsOn("run")
 }
 
@@ -50,7 +50,7 @@ tasks.register<JavaExec>("installMcpCommand") {
     description = "Installs `sample-server` on PATH as an MCP stdio server"
     dependsOn("installDist", "classes")
     classpath = sourceSets.main.get().runtimeClasspath
-    mainClass.set("com.reqlab.server.InstallMcpCommandKt")
+    mainClass.set("io.github.crustack.server.InstallMcpCommandKt")
     val unixLauncher = layout.projectDirectory.file("mcp-stdio")
     val windowsLauncher = layout.buildDirectory.file("install/sample-server/bin/sample-server.bat")
     args(unixLauncher.asFile.absolutePath, windowsLauncher.get().asFile.absolutePath)

@@ -1,4 +1,4 @@
-# ReqLab Architecture
+# Clapi Architecture
 
 ## Design Goals
 
@@ -124,7 +124,7 @@ NONE, BASIC, BEARER, API_KEY, OAUTH2, JWT
 |---|---|
 | `core-network` | `KtorApiClient` executing HTTP requests; SSE/NDJSON streaming via `NetworkEvent.Chunk` (`SseParser`, `LlmTextAssembler`); MCP client (`McpClient`, Streamable HTTP, legacy HTTP+SSE, stdio); OAuth 2.1 for MCP; auth schemes (Basic, Bearer, API Key, OAuth2, JWT); retry; `{{variable}}` interpolation in URL/headers/body; WebSocket; `NetworkInterceptor` interface |
 | `core-storage` | `PlatformStorage` abstraction; workspace, tab, settings, and environment JSON persistence |
-| `core-scripting` | JavaScript runtime contracts; pre-request / post-request execution; variable scope injection (`environment`, `globals`, `collectionVariables`); `pm.*` → `reqlab.*` API rewriter |
+| `core-scripting` | JavaScript runtime contracts; pre-request / post-request execution; variable scope injection (`environment`, `globals`, `collectionVariables`); `pm.*` → `clapi.*` API rewriter |
 | `feature-requests` | `RequestExecutionService` — orchestrates an HTTP round-trip: resolves variables → runs pre-request script → dispatches via `KtorApiClient` → feeds response into post-request scripts |
 
 ### Editor Layer
@@ -139,7 +139,7 @@ NONE, BASIC, BEARER, API_KEY, OAUTH2, JWT
 All shared Compose code — compiled for both `jvm("desktop")` and `wasmJs{browser()}`.
 
 ```
-ui-shared/src/commonMain/kotlin/com/reqlab/ui/shared/
+ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/
 ├── MainScreen.kt                   Root composable: toolbar, sidebar, tab bar, editor, dialogs
 ├── components/
 │   ├── RequestBar.kt               Method dropdown, URL field, Send/Save/Retry/cURL buttons
@@ -245,7 +245,7 @@ System headers (`Content-Type`, `Accept`, `User-Agent`) are pre-populated as loc
 | `confirmBeforeDelete` | true | Confirm dialog on delete |
 | `httpProxy` / `httpsProxy` | "" | Proxy URLs |
 | `proxyEnabled` | false | Enable proxy |
-| `scriptPrefix` | "reqlab" | Script namespace (e.g. `reqlab.test`, `api.test`) |
+| `scriptPrefix` | "clapi" | Script namespace (e.g. `clapi.test`, `api.test`) |
 
 ### Variable Interpolation
 
@@ -296,7 +296,7 @@ ScriptEngine.execute(script, context)
      └── Produces: named test results (pass / fail + message)
 ```
 
-Scripts run synchronously. The JS runtime is sandboxed — no file system access is available from scripts. Network calls are supported through `reqlab.sendRequest(...)`.
+Scripts run synchronously. The JS runtime is sandboxed — no file system access is available from scripts. Network calls are supported through `clapi.sendRequest(...)`.
 
 ---
 

@@ -12,7 +12,7 @@ plugins {
 val appVersion: String by project
 
 allprojects {
-    group = "com.reqlab"
+    group = "io.github.crustack"
     version = appVersion
 }
 
@@ -34,10 +34,10 @@ plugins.withType<org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin> {
     }
 }
 
-// Convenience: start the ReqLab sample API server from the repo root.
+// Convenience: start the Clapi sample API server from the repo root.
 // Usage: ./gradlew runServer
 tasks.register("runServer") {
     group = "application"
-    description = "Starts the ReqLab sample API server at http://localhost:8080"
+    description = "Starts the Clapi sample API server at http://localhost:8080"
     // dependsOn(":sample-server:run")
 }

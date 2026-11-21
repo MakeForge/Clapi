@@ -31,7 +31,7 @@ The public composable entry point is `CodeEditor.kt` in `ui-shared`, which wraps
 ## Module Structure
 
 ```
-editor-core/src/commonMain/kotlin/com/reqlab/editor/core/
+editor-core/src/commonMain/kotlin/io/github/crustack/editor/core/
 ├── GapBuffer.kt            O(1) amortized insert/delete text storage
 ├── LineIndex.kt            Maps line numbers ↔ character offsets (prefix array)
 ├── DocumentModel.kt        Document API backed by GapBuffer + LineIndex
@@ -61,7 +61,7 @@ editor-core/src/commonMain/kotlin/com/reqlab/editor/core/
 ├── ContentTypeUtil.kt      Content-type string → LanguageMode helpers
 └── InlineEditorError.kt    InlineEditorError + InlineErrorSeverity
 
-editor-ui/src/commonMain/kotlin/com/reqlab/editor/ui/
+editor-ui/src/commonMain/kotlin/io/github/crustack/editor/ui/
 ├── EditorViewModel.kt      Mutable state coordinator — document, cursor,
 │                           folds, search, undo/redo, diagnostics
 ├── EditorRenderer.kt       Compose LazyColumn renderer (gutter + content)

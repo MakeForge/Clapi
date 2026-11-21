@@ -4,8 +4,8 @@ import { performance } from 'node:perf_hooks';
 
 const rootDir = process.cwd();
 const fixturesDir = path.join(rootDir, 'qa-tests', 'fixtures');
-const collectionPath = path.join(fixturesDir, 'reqlab-test-collection.json');
-const environmentPath = path.join(fixturesDir, 'reqlab-test-environment.json');
+const collectionPath = path.join(fixturesDir, 'clapi-test-collection.json');
+const environmentPath = path.join(fixturesDir, 'clapi-test-environment.json');
 const reportPath = path.join(rootDir, 'test-validation-report.txt');
 const resultsPath = path.join(rootDir, 'qa-tests', 'collection-validation-results.json');
 
@@ -113,7 +113,7 @@ function validateSchema(req, status, headers, bodyText, bodyJson) {
   const url = req.resolvedUrl;
 
   if (url.endsWith('/') && req.method === 'GET') {
-    if (!bodyText.includes('ReqLab Sample API Server is running')) errors.push('Health check plain-text payload mismatch');
+    if (!bodyText.includes('Clapi Sample API Server is running')) errors.push('Health check plain-text payload mismatch');
     return errors;
   }
 
@@ -382,7 +382,7 @@ async function main() {
           params: {
             protocolVersion: '2025-06-18',
             capabilities: {},
-            clientInfo: { name: 'reqlab-validator', version: '1.19.0' },
+            clientInfo: { name: 'clapi-validator', version: '1.19.0' },
           },
         });
         const initRes = await fetch(resolvedUrl, {
@@ -405,7 +405,7 @@ async function main() {
         headers = listRes.headers;
         bodyText = `${initText}\n${listText}`;
         size = Buffer.byteLength(bodyText, 'utf8');
-        const toolsOk = listText.includes('"echo"') && initText.includes('ReqLab MCP Mock');
+        const toolsOk = listText.includes('"echo"') && initText.includes('Clapi MCP Mock');
         const passed = initRes.ok && listRes.ok && toolsOk;
         results.push({
           name: req.name,
@@ -524,7 +524,7 @@ async function main() {
     : skipped.map((s, idx) => `${idx + 1}. [${s.method}] ${s.url} (${s.name}) -> ${(s.issues || []).join('; ')}`);
 
   const report = [
-    'ReqLab Collection Validation Report',
+    'Clapi Collection Validation Report',
     '-----------------------------------',
     '',
     `Total Requests: ${results.length}`,

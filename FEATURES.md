@@ -1,10 +1,10 @@
-# ReqLab Features
+# Clapi Features
 
-ReqLab is a desktop-first API testing tool built with Kotlin and Compose Multiplatform. It is designed for fast request iteration, scriptable validations, and reproducible API test workflows.
+Clapi is a desktop-first API testing tool built with Kotlin and Compose Multiplatform. It is designed for fast request iteration, scriptable validations, and reproducible API test workflows.
 
 ## Overview
 
-ReqLab supports end-to-end API testing with:
+Clapi supports end-to-end API testing with:
 
 - HTTP request authoring and execution
 - Pre-request scripting
@@ -41,7 +41,7 @@ ReqLab supports end-to-end API testing with:
 
 ### Code Editor
 
-ReqLab features a full-featured code editor used across request body editing, script editing, and response viewing. All capabilities are built with pure Compose Multiplatform and work cross-platform (macOS, Linux, Windows, Web).
+Clapi features a full-featured code editor used across request body editing, script editing, and response viewing. All capabilities are built with pure Compose Multiplatform and work cross-platform (macOS, Linux, Windows, Web).
 
 **Syntax Highlighting** — Token-level colorization for:
 - JSON (keys, strings, numbers, booleans, null, braces)
@@ -84,35 +84,35 @@ ReqLab features a full-featured code editor used across request body editing, sc
 
 ### Script Runtime
 
-ReqLab provides a JavaScript runtime for request automation.
+Clapi provides a JavaScript runtime for request automation.
 
 - **Pre-request scripts**: run before dispatch to mutate outgoing request
 - **Post-request scripts**: run after response to assert behavior
-- Runtime namespace default: `reqlab` (global aliases also supported)
-- Console logging via `reqlab.console.log(...)`
+- Runtime namespace default: `clapi` (global aliases also supported)
+- Console logging via `clapi.console.log(...)`
 
 ### Variable System
 
-ReqLab supports four variable scopes:
+Clapi supports four variable scopes:
 
 1. **Environment variables**
-   - `reqlab.environment.get/set/unset`
+   - `clapi.environment.get/set/unset`
    - Persisted with selected environment/workspace
 2. **Global variables**
-   - `reqlab.globals.get/set/unset`
+   - `clapi.globals.get/set/unset`
    - Persisted workspace-wide
 3. **Collection variables**
-   - `reqlab.collectionVariables.get/set/unset`
+   - `clapi.collectionVariables.get/set/unset`
    - Session-scoped runtime map across requests
 4. **Request-local variables**
-   - `reqlab.variables.get/set/unset`
+   - `clapi.variables.get/set/unset`
    - Request-scoped lifecycle (pre-request to post-request for the same request)
 
 Variable interpolation uses `{{name}}` in URL, headers, body, and auth fields.
 
 ### Assertions and Test APIs
 
-- Named tests: `reqlab.test(name, fn)`
+- Named tests: `clapi.test(name, fn)`
 - Core assertions:
   - equality: `equal`, `eql`
   - type/value checks: `true`, `false`, `null`, `undefined`, `ok`, `exist`
@@ -124,20 +124,20 @@ Variable interpolation uses `{{name}}` in URL, headers, body, and auth fields.
 
 Pre-request scripts can mutate outgoing request values:
 
-- `reqlab.request.setHeader(name, value)`
-- `reqlab.request.setQueryParam(name, value)`
-- `reqlab.request.setMethod(method)`
-- `reqlab.request.setUrl(url)`
-- `reqlab.request.setBody(content)`
+- `clapi.request.setHeader(name, value)`
+- `clapi.request.setQueryParam(name, value)`
+- `clapi.request.setMethod(method)`
+- `clapi.request.setUrl(url)`
+- `clapi.request.setBody(content)`
 
 ### Collections and Test Automation
 
-- Collection import/export using `qa-tests/fixtures/reqlab-test-collection.json` (includes a **JSON5** folder under Body Types)
-- **Postman Collection v2 / v2.1 import** — auto-detected and converted to ReqLab format
+- Collection import/export using `qa-tests/fixtures/clapi-test-collection.json` (includes a **JSON5** folder under Body Types)
+- **Postman Collection v2 / v2.1 import** — auto-detected and converted to Clapi format
   - Folders, requests, headers, auth (bearer / basic / API key), body (raw JSON, form-data, urlencoded, GraphQL, binary), and scripts
-  - Postman `pm.*` script namespace automatically rewritten to `reqlab.*`
-   - `pm.sendRequest` rewritten to `reqlab.sendRequest` (supported)
-   - `pm.execution.setNextRequest`, `pm.execution.skipRequest`, and `postman.setNextRequest` rewritten to `reqlab.execution.*`
+  - Postman `pm.*` script namespace automatically rewritten to `clapi.*`
+   - `pm.sendRequest` rewritten to `clapi.sendRequest` (supported)
+   - `pm.execution.setNextRequest`, `pm.execution.skipRequest`, and `postman.setNextRequest` rewritten to `clapi.execution.*`
 - **Postman Environment import** — name and enabled variables imported; disabled variables skipped
 - Request-level pre-request and post-request scripts in collection items
 - Automated collection validation via `qa-tests/collection-validator.mjs` (JSON5 requests are skipped, not counted as passed; Kotlin `SampleCollectionE2ETest` is the JSON5 send coverage)
@@ -172,40 +172,40 @@ The `sample-server` module provides local endpoints for deterministic API testin
 
 ### Script API Areas
 
-- `reqlab.response` (code/status/time/size/body/headers/streamEvents)
-- `reqlab.response.llm` (assembledText, finishReason, usage, jsonContent)
-- `reqlab.request` (read context + mutation helpers)
-- `reqlab.environment`
-- `reqlab.globals`
-- `reqlab.collectionVariables`
-- `reqlab.variables`
-- `reqlab.expect`
-- `reqlab.test`
-- `reqlab.console`
+- `clapi.response` (code/status/time/size/body/headers/streamEvents)
+- `clapi.response.llm` (assembledText, finishReason, usage, jsonContent)
+- `clapi.request` (read context + mutation helpers)
+- `clapi.environment`
+- `clapi.globals`
+- `clapi.collectionVariables`
+- `clapi.variables`
+- `clapi.expect`
+- `clapi.test`
+- `clapi.console`
 
 ### Script Example
 
 ```javascript
-reqlab.request.setHeader("X-Request-Id", "req-123")
-reqlab.variables.set("localToken", "abc")
+clapi.request.setHeader("X-Request-Id", "req-123")
+clapi.variables.set("localToken", "abc")
 
-reqlab.test("status and schema basics", function () {
-  const body = reqlab.response.json()
-  reqlab.expect(reqlab.response.code).to.equal(200)
-  reqlab.expect(body).to.have.property("id")
-  reqlab.expect(body.name).to.be.ok
+clapi.test("status and schema basics", function () {
+  const body = clapi.response.json()
+  clapi.expect(clapi.response.code).to.equal(200)
+  clapi.expect(body).to.have.property("id")
+  clapi.expect(body.name).to.be.ok
 })
 
-reqlab.test("streamed chat text", function () {
-  reqlab.expect(reqlab.response.llm.assembledText).to.include("Hello")
-  reqlab.expect(reqlab.response.llm.finishReason).to.equal("stop")
-  reqlab.expect(reqlab.response.streamEvents.length).to.be.above(0)
+clapi.test("streamed chat text", function () {
+  clapi.expect(clapi.response.llm.assembledText).to.include("Hello")
+  clapi.expect(clapi.response.llm.finishReason).to.equal("stop")
+  clapi.expect(clapi.response.streamEvents.length).to.be.above(0)
 })
 ```
 
 ## Test Automation
 
-ReqLab test automation includes:
+Clapi test automation includes:
 
 - module-level automated tests for scripting, network, storage, model, and UI
 - QA E2E tests in `qa-tests`

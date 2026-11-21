@@ -1,6 +1,6 @@
 # Development Guide
 
-Everything you need to build, run, test, and contribute to ReqLab.
+Everything you need to build, run, test, and contribute to Clapi.
 
 ---
 
@@ -18,7 +18,7 @@ Everything you need to build, run, test, and contribute to ReqLab.
 ## Repository Layout
 
 ```
-req-lab/
+clapi/
 ├── core-model/          # Shared domain models (RequestDefinition, ResponseDefinition, …)
 ├── core-network/        # Ktor-backed HTTP engine, interceptors, retry, WebSocket
 ├── core-storage/        # Persistence contracts and JSON file adapter
@@ -109,19 +109,19 @@ To run in the background (returns the prompt immediately):
 Build runnable jar:
 
 ```bash
-./gradlew :ui-desktop:packageReqLabJar
+./gradlew :ui-desktop:packageClapiJar
 ```
 
 Run jar directly:
 
 ```bash
-java -jar ui-desktop/build/distribute/ReqLab-$(grep '^appVersion=' gradle.properties | cut -d= -f2).jar
+java -jar ui-desktop/build/distribute/Clapi-$(grep '^appVersion=' gradle.properties | cut -d= -f2).jar
 ```
 
 Run jar via Gradle launcher task (sets Dock app name/icon on macOS):
 
 ```bash
-./gradlew :ui-desktop:runReqLabJar
+./gradlew :ui-desktop:runClapiJar
 ```
 
 ### Sample server (for manual testing)
@@ -134,7 +134,7 @@ The `sample-server` module runs a local Ktor server that mirrors the endpoints u
 
 Default address: `http://localhost:8080`
 
-Import `qa-tests/fixtures/reqlab-test-collection.json` and `reqlab-test-environment.json`. The **LLM (OpenAI-compatible)** folder uses `llmBaseUrl` / `llmApiKey` / `llmModel`. **LLM Chat Completions Stream (visible)** (`?demo=true`) is the request to use when you want to watch tokens arrive.
+Import `qa-tests/fixtures/clapi-test-collection.json` and `clapi-test-environment.json`. The **LLM (OpenAI-compatible)** folder uses `llmBaseUrl` / `llmApiKey` / `llmModel`. **LLM Chat Completions Stream (visible)** (`?demo=true`) is the request to use when you want to watch tokens arrive.
 
 Available endpoints (selected):
 
@@ -171,11 +171,11 @@ Available endpoints (selected):
 | GET | `/sse` | Finite SSE (`text/event-stream`); `?count=` (default 3), `?delayMs=` |
 | POST | `/sse` | Finite SSE; last event echoes a body snippet; same `count` / `delayMs` |
 | POST | `/mcp` | MCP Streamable HTTP (JSON-RPC) |
-| POST | `/mcp/auth/bearer` | MCP Bearer `reqlab-mcp-token` |
+| POST | `/mcp/auth/bearer` | MCP Bearer `clapi-mcp-token` |
 | POST | `/mcp/auth/basic` | MCP Basic `admin` / `password` |
-| POST | `/mcp/auth/apikey` | MCP header `X-Api-Key: reqlab-key` |
-| POST | `/mcp/auth/jwt` | MCP Bearer JWT `reqlab-mcp-jwt` |
-| POST | `/mcp/authed` | MCP requiring Bearer `reqlab-mcp-token` and `X-Api-Key: reqlab-key` |
+| POST | `/mcp/auth/apikey` | MCP header `X-Api-Key: clapi-key` |
+| POST | `/mcp/auth/jwt` | MCP Bearer JWT `clapi-mcp-jwt` |
+| POST | `/mcp/authed` | MCP requiring Bearer `clapi-mcp-token` and `X-Api-Key: clapi-key` |
 | POST | `/mcp?requireTenant=true&tenant=acme` | MCP query params required by the mock |
 | GET | `/mcp` | MCP GET SSE (server-initiated) |
 | DELETE | `/mcp` | MCP session terminate (`Mcp-Session-Id`) |
@@ -201,9 +201,9 @@ To put `sample-server` on your login PATH:
 ./gradlew :sample-server:installMcpCommand
 ```
 
-That writes `~/.local/bin/sample-server` on macOS/Linux, or `%USERPROFILE%\AppData\Local\ReqLab\bin\sample-server.cmd` on Windows. The shim always starts MCP stdio (the Gradle HTTP start script without `--stdio` would print a banner on stdout and break framing). After install, the command field is `sample-server`. On a new machine or after moving the repo, run `installMcpCommand` again (the shim stores an absolute path to this repo’s `mcp-stdio` script).
+That writes `~/.local/bin/sample-server` on macOS/Linux, or `%USERPROFILE%\AppData\Local\Clapi\bin\sample-server.cmd` on Windows. The shim always starts MCP stdio (the Gradle HTTP start script without `--stdio` would print a banner on stdout and break framing). After install, the command field is `sample-server`. On a new machine or after moving the repo, run `installMcpCommand` again (the shim stores an absolute path to this repo’s `mcp-stdio` script).
 
-How ReqLab resolves a stdio command:
+How Clapi resolves a stdio command:
 
 1. Parse the command line (tokens and quoting). Quoted paths with spaces work.
 2. Resolve PATH from your login shell (`zsh`/`bash -ilc 'echo $PATH'`), merged with the process PATH, then look up the first token. On Windows, `.cmd` / `.exe` / `.bat` are tried.
@@ -231,9 +231,9 @@ Resources, prompts, and logging are also advertised so you can exercise those ta
 |---|---|---|
 | `Cannot run program "sample-server"` | Not on login PATH | `./gradlew :sample-server:installMcpCommand`, or an absolute path, or `./gradlew :sample-server:run --args='--stdio'` |
 | Handshake is garbage / HTTP banner on stdout | PATH `sample-server` is the Gradle HTTP script without `--stdio` | Use the shim from `installMcpCommand` |
-| `Cannot run program "sample-server --stdio"` | Whole string used as the executable (fixed in current builds) | Use current ReqLab; command can be `sample-server` once it is on PATH |
+| `Cannot run program "sample-server --stdio"` | Whole string used as the executable (fixed in current builds) | Use current Clapi; command can be `sample-server` once it is on PATH |
 | Timed out waiting for legacy SSE endpoint | Sample HTTP server not running, or GET `/mcp/sse` not streaming | `./gradlew :sample-server:run`; URL is `/mcp/sse` not `/mcp` |
-| `Lost pending id` on legacy SSE | Reply arrived on SSE before POST returned (fixed in current builds) | Use current ReqLab; **Legacy** and `http://localhost:8080/mcp/sse` |
+| `Lost pending id` on legacy SSE | Reply arrived on SSE before POST returned (fixed in current builds) | Use current Clapi; **Legacy** and `http://localhost:8080/mcp/sse` |
 
 LLM mock query parameters:
 
@@ -329,7 +329,7 @@ See [`docs/architecture.md`](docs/architecture.md) for a full write-up. Key rule
 ### `ui-shared` component map
 
 All shared UI code lives in
-`ui-shared/src/commonMain/kotlin/com/reqlab/ui/shared/`:
+`ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/`:
 
 ```
 MainScreen.kt              — root composable (toolbar, sidebar, editors, dialogs)
@@ -362,19 +362,19 @@ network/
 platform/
 └── PlatformApi.kt         — expect/actual for UUID, clipboard, storage, file I/O, cursors
 theme/
-└── ReqLabTheme.kt         — Material 3 colour tokens, typography, code font
+└── ClapiTheme.kt         — Material 3 colour tokens, typography, code font
 ```
 
 Platform-specific actuals are in `desktopMain/` (JVM) and `wasmJsMain/` (browser).
 
 ### `ui-desktop` (thin launcher)
 
-`ui-desktop/src/desktopMain/kotlin/com/reqlab/ui/desktop/Main.kt` — ~44 lines.
+`ui-desktop/src/desktopMain/kotlin/io/github/crustack/ui/desktop/Main.kt` — ~44 lines.
 Opens a Compose `Window`, loads settings/tabs/workspace, and renders `MainScreen`.
 
 ### `ui-web` (thin launcher)
 
-`ui-web/src/wasmJsMain/kotlin/com/reqlab/ui/web/Main.kt` — ~15 lines.
+`ui-web/src/wasmJsMain/kotlin/io/github/crustack/ui/web/Main.kt` — ~15 lines.
 Uses `CanvasBasedWindow` to render `MainScreen` in an HTML `<canvas>` element.
 
 ---
@@ -411,13 +411,13 @@ Uses `CanvasBasedWindow` to render `MainScreen` in an HTML `<canvas>` element.
 ## Remove data
 ```
 # macOS — delete the prefs file
-defaults delete com.reqlab.ui.shared.platform
+defaults delete io.github.crustack.ui.shared.platform
 # or remove the file directly
-rm ~/Library/Preferences/com.reqlab.ui.plist
+rm ~/Library/Preferences/io.github.crustack.ui.plist
 
 # Linux
-rm -rf ~/.java/.userPrefs/com/reqlab/
+rm -rf ~/.java/.userPrefs/io/github/crustack/
 
 # Windows (PowerShell)
-Remove-Item -Path "HKCU:\Software\JavaSoft\Prefs\com\reqlab" -Recurse
+Remove-Item -Path "HKCU:\Software\JavaSoft\Prefs\com\clapi" -Recurse
 ```

@@ -40,7 +40,7 @@ kotlin {
 }
 
 android {
-    namespace = "com.reqlab.core.storage"
+    namespace = "io.github.crustack.core.storage"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()

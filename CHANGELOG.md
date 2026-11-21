@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to ReqLab are documented here.
+All notable changes to Clapi are documented here.
 
 ---
 
@@ -99,9 +99,9 @@ All notable changes to ReqLab are documented here.
 ### Added
 
 - **HTTP streaming in the request tab**: SSE (`text/event-stream`) and NDJSON responses are read line by line on a single POST instead of buffering the full body. Tokens appear live while the request is in flight. After completion, Body shows the assembled answer, RAW shows each event payload, and Timing reports TTFB, time to first token, and time to last token.
-- **LLM script helpers**: Post-request scripts can assert on `reqlab.response.streamEvents`, `reqlab.response.llm.assembledText`, `reqlab.response.llm.finishReason`, `reqlab.response.llm.usage`, and `reqlab.response.llm.jsonContent()`.
+- **LLM script helpers**: Post-request scripts can assert on `clapi.response.streamEvents`, `clapi.response.llm.assembledText`, `clapi.response.llm.finishReason`, `clapi.response.llm.usage`, and `clapi.response.llm.jsonContent()`.
 - **OpenAI-compatible sample-server mocks**: `GET /v1/models`, `POST /v1/chat/completions` (stream and non-stream), `POST /v1/chat/ndjson`, `POST /v1/embeddings`, plus tool calls, JSON mode, 401/429/500, slow, and early-close paths. `?demo=true` streams a multi-token assistant reply (~200ms per token) so streaming is visible in the UI; `?chunkMs=` overrides the delay.
-- **LLM collection fixtures**: Folder **LLM (OpenAI-compatible)** in `qa-tests/fixtures/reqlab-test-collection.json`, with environment variables `llmBaseUrl`, `llmApiKey`, and `llmModel`. Use **LLM Chat Completions Stream (visible)** to watch tokens arrive.
+- **LLM collection fixtures**: Folder **LLM (OpenAI-compatible)** in `qa-tests/fixtures/clapi-test-collection.json`, with environment variables `llmBaseUrl`, `llmApiKey`, and `llmModel`. Use **LLM Chat Completions Stream (visible)** to watch tokens arrive.
 
 ---
 

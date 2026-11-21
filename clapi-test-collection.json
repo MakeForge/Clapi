@@ -1,0 +1,860 @@
+{
+  "type": "clapiCollection",
+  "version": "1.0",
+  "name": "Clapi Test Suite",
+  "folders": [
+    {
+      "name": "HTTP Methods",
+      "folders": [],
+      "requests": [
+        {
+          "name": "GET All Users",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/users"
+        },
+        {
+          "name": "POST Create User",
+          "method": "POST",
+          "url": "{{baseUrl}}/api/users",
+          "body": {
+            "type": "JSON",
+            "content": "{\n  \"name\": \"Alice\",\n  \"email\": \"alice@example.com\"\n}"
+          }
+        },
+        {
+          "name": "PUT Replace User 1",
+          "method": "PUT",
+          "url": "{{baseUrl}}/api/users/1",
+          "body": {
+            "type": "JSON",
+            "content": "{\n  \"name\": \"Alice Updated\",\n  \"email\": \"alice.updated@example.com\"\n}"
+          }
+        },
+        {
+          "name": "PATCH Update User 2",
+          "method": "PATCH",
+          "url": "{{baseUrl}}/api/users/2",
+          "body": {
+            "type": "JSON",
+            "content": "{\n  \"name\": \"Bob Updated\"\n}"
+          }
+        },
+        {
+          "name": "DELETE User 3",
+          "method": "DELETE",
+          "url": "{{baseUrl}}/api/users/3"
+        },
+        {
+          "name": "OPTIONS Users",
+          "method": "OPTIONS",
+          "url": "{{baseUrl}}/api/users"
+        },
+        {
+          "name": "HEAD Users (check X-Total-Count header)",
+          "method": "HEAD",
+          "url": "{{baseUrl}}/api/users"
+        },
+        {
+          "name": "TRACE Users (echo headers)",
+          "method": "TRACE",
+          "url": "{{baseUrl}}/api/users",
+          "preRequestScript": "clapi.request.headers.upsert(\"X-Trace-Test\", \"trace-value\");\nclapi.console.log(\"Sending TRACE request\");",
+          "testScript": "clapi.test(\"status is 200\", function() {\n    clapi.expect(clapi.response.code).to.equal(200)\n})\nclapi.test(\"method is TRACE\", function() {\n    clapi.expect(clapi.response.json().method).to.equal(\"TRACE\")\n})\nclapi.test(\"has echoedHeaders\", function() {\n    clapi.expect(clapi.response.text()).to.include(\"echoedHeaders\")\n})"
+        },
+        {
+          "name": "CONNECT Users (tunnel simulation)",
+          "method": "CONNECT",
+          "url": "{{baseUrl}}/api/users",
+          "testScript": "clapi.test(\"status is 200\", function() {\n    clapi.expect(clapi.response.code).to.equal(200)\n})\nclapi.test(\"method is CONNECT\", function() {\n    clapi.expect(clapi.response.json().method).to.equal(\"CONNECT\")\n})\nclapi.test(\"tunnel message present\", function() {\n    clapi.expect(clapi.response.json().message).to.include(\"Tunnel established\")\n})"
+        }
+      ]
+    },
+    {
+      "name": "Query Params",
+      "folders": [],
+      "requests": [
+        {
+          "name": "Search - q, page, limit",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/search?q=test&page=1&limit=10"
+        },
+        {
+          "name": "Search - page 2, larger limit",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/search?q=hello&page=2&limit=25"
+        },
+        {
+          "name": "Search - no params (defaults)",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/search"
+        },
+        {
+          "name": "Search - empty query string",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/search?q=&page=1&limit=5"
+        },
+        {
+          "name": "Search - multiple custom params",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/search?q=kotlin&page=1&limit=3&sort=name&order=asc"
+        },
+        {
+          "name": "Echo - repeated query parameter values",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/echo-query?x=1&x=2",
+          "testScript": "clapi.test(\"both x values are sent\", function() {\n    clapi.expect(clapi.response.json().paramCounts.x).to.equal(2)\n})\nclapi.test(\"x values retain their order\", function() {\n    clapi.expect(clapi.response.json().paramValues.x[0]).to.equal(\"1\")\n    clapi.expect(clapi.response.json().paramValues.x[1]).to.equal(\"2\")\n})"
+        }
+      ]
+    },
+    {
+      "name": "Headers",
+      "folders": [],
+      "requests": [
+        {
+          "name": "Echo Request Headers",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/echo-headers"
+        },
+        {
+          "name": "Echo Headers - with custom X-Client-Id",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/echo-headers",
+          "headers": [
+            {
+              "key": "X-Client-Id",
+              "value": "clapi-client-001"
+            }
+          ]
+        },
+        {
+          "name": "Echo Headers - with Accept and X-Request-Id",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/echo-headers",
+          "headers": [
+            {
+              "key": "Accept",
+              "value": "application/json"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "req-12345"
+            },
+            {
+              "key": "X-Trace-Id",
+              "value": "trace-abcdef"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Body Types",
+      "folders": [
+        {
+          "name": "JSON",
+          "folders": [],
+          "requests": [
+            {
+              "name": "POST JSON Body",
+              "method": "POST",
+              "url": "{{baseUrl}}/api/json",
+              "body": {
+                "type": "JSON",
+                "content": "{\n  \"message\": \"Hello from Clapi\",\n  \"timestamp\": 1711234567\n}"
+              }
+            },
+            {
+              "name": "POST JSON Body - nested object",
+              "method": "POST",
+              "url": "{{baseUrl}}/api/json",
+              "body": {
+                "type": "JSON",
+                "content": "{\n  \"user\": {\n    \"name\": \"Alice\",\n    \"age\": 30\n  },\n  \"tags\": [\"kotlin\", \"api\", \"clapi\"]\n}"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Raw Text",
+          "folders": [],
+          "requests": [
+            {
+              "name": "POST Raw Text",
+              "method": "POST",
+              "url": "{{baseUrl}}/api/raw",
+              "body": {
+                "type": "RAW_TEXT",
+                "content": "Hello from Clapi – this is a plain text request body."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Form Data",
+          "folders": [],
+          "requests": [
+            {
+              "name": "POST Form Data (multipart)",
+              "method": "POST",
+              "url": "{{baseUrl}}/api/form-data",
+              "body": {
+                "type": "FORM_DATA",
+                "content": "name=Alice&role=tester&department=engineering"
+              }
+            }
+          ]
+        },
+        {
+          "name": "URL Encoded",
+          "folders": [],
+          "requests": [
+            {
+              "name": "POST URL Encoded",
+              "method": "POST",
+              "url": "{{baseUrl}}/api/urlencoded",
+              "body": {
+                "type": "X_WWW_FORM_URLENCODED",
+                "content": "username=alice&password=secret123&remember=true"
+              }
+            }
+          ]
+        },
+        {
+          "name": "File Upload",
+          "folders": [],
+          "requests": [
+            {
+              "name": "POST Binary File Upload",
+              "method": "POST",
+              "url": "{{baseUrl}}/api/upload",
+              "body": {
+                "type": "BINARY",
+                "content": "ClapiBinarySamplePayload"
+              }
+            }
+          ]
+        },
+        {
+          "name": "XML",
+          "folders": [],
+          "requests": [
+            {
+              "name": "POST XML Body",
+              "method": "POST",
+              "url": "{{baseUrl}}/api/xml",
+              "body": {
+                "type": "XML",
+                "content": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<user>\n  <name>Alice</name>\n  <email>alice@example.com</email>\n</user>"
+              },
+              "headers": [
+                { "key": "Content-Type", "value": "application/xml" }
+              ]
+            },
+            {
+              "name": "POST XML Body - nested",
+              "method": "POST",
+              "url": "{{baseUrl}}/api/xml",
+              "body": {
+                "type": "XML",
+                "content": "<?xml version=\"1.0\"?>\n<order>\n  <id>101</id>\n  <items>\n    <item>\n      <name>Widget</name>\n      <qty>3</qty>\n    </item>\n  </items>\n</order>"
+              },
+              "headers": [
+                { "key": "Content-Type", "value": "application/xml" }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "HTML",
+          "folders": [],
+          "requests": [
+            {
+              "name": "POST HTML Body",
+              "method": "POST",
+              "url": "{{baseUrl}}/api/html",
+              "body": {
+                "type": "HTML",
+                "content": "<!DOCTYPE html>\n<html>\n  <head><title>Test</title></head>\n  <body>\n    <h1>Hello from Clapi</h1>\n  </body>\n</html>"
+              },
+              "headers": [
+                { "key": "Content-Type", "value": "text/html" }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "JavaScript",
+          "folders": [],
+          "requests": [
+            {
+              "name": "POST JavaScript Body",
+              "method": "POST",
+              "url": "{{baseUrl}}/api/javascript",
+              "body": {
+                "type": "JAVASCRIPT",
+                "content": "// Clapi test script\nconst data = { message: 'hello', version: 2 };\nconsole.log(JSON.stringify(data));"
+              },
+              "headers": [
+                { "key": "Content-Type", "value": "application/javascript" }
+              ]
+            }
+          ]
+        }
+      ],
+      "requests": []
+    },
+    {
+      "name": "Authentication",
+      "folders": [
+        {
+          "name": "Basic Auth",
+          "folders": [],
+          "requests": [
+            {
+              "name": "GET Basic Auth (admin:password) - success",
+              "method": "GET",
+              "url": "{{baseUrl}}/api/auth/basic",
+              "auth": {
+                "type": "BASIC",
+                "username": "{{basicUser}}",
+                "password": "{{basicPassword}}"
+              }
+            },
+            {
+              "name": "GET Basic Auth (wrong password) - 401",
+              "method": "GET",
+              "url": "{{baseUrl}}/api/auth/basic",
+              "auth": {
+                "type": "BASIC",
+                "username": "{{basicUser}}",
+                "password": "wrongpassword"
+              }
+            },
+            {
+              "name": "GET Basic Auth (no header) - 401",
+              "method": "GET",
+              "url": "{{baseUrl}}/api/auth/basic"
+            }
+          ]
+        },
+        {
+          "name": "Bearer Token",
+          "folders": [],
+          "requests": [
+            {
+              "name": "GET Bearer Token (valid {{token}}) - success",
+              "method": "GET",
+              "url": "{{baseUrl}}/api/auth/bearer",
+              "auth": {
+                "type": "BEARER",
+                "token": "{{token}}"
+              }
+            },
+            {
+              "name": "GET Bearer Token (wrong token) - 401",
+              "method": "GET",
+              "url": "{{baseUrl}}/api/auth/bearer",
+              "auth": {
+                "type": "BEARER",
+                "token": "wrong-token-value"
+              }
+            },
+            {
+              "name": "GET Bearer Token (no header) - 401",
+              "method": "GET",
+              "url": "{{baseUrl}}/api/auth/bearer"
+            }
+          ]
+        },
+        {
+          "name": "API Key",
+          "folders": [],
+          "requests": [
+            {
+              "name": "GET API Key Header (valid {{apiKey}}) - success",
+              "method": "GET",
+              "url": "{{baseUrl}}/api/auth/apikey",
+              "auth": {
+                "type": "API_KEY",
+                "apiKey": "X-API-Key",
+                "apiValue": "{{apiKey}}"
+              }
+            },
+            {
+              "name": "GET API Key Header (wrong key) - 401",
+              "method": "GET",
+              "url": "{{baseUrl}}/api/auth/apikey",
+              "auth": {
+                "type": "API_KEY",
+                "apiKey": "X-API-Key",
+                "apiValue": "wrong-key-value"
+              }
+            },
+            {
+              "name": "GET API Key Header (missing) - 401",
+              "method": "GET",
+              "url": "{{baseUrl}}/api/auth/apikey"
+            }
+          ]
+        }
+      ],
+      "requests": []
+    },
+    {
+      "name": "Cookies",
+      "folders": [],
+      "requests": [
+        {
+          "name": "GET Cookies (set + echo)",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/cookies"
+        },
+        {
+          "name": "GET Cookies - resend cookies (add Cookie header manually)",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/cookies",
+          "headers": [
+            {
+              "key": "Cookie",
+              "value": "session=abc123; user=clapi-tester"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Redirects",
+      "folders": [],
+      "requests": [
+        {
+          "name": "302 Redirect to /api/final",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/redirect"
+        },
+        {
+          "name": "Redirect Target /api/final (direct)",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/final"
+        }
+      ]
+    },
+    {
+      "name": "Error Responses",
+      "folders": [],
+      "requests": [
+        {
+          "name": "400 Bad Request",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/error/400"
+        },
+        {
+          "name": "401 Unauthorized",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/error/401"
+        },
+        {
+          "name": "403 Forbidden",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/error/403"
+        },
+        {
+          "name": "404 Not Found",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/error/404"
+        },
+        {
+          "name": "405 Method Not Allowed",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/error/405"
+        },
+        {
+          "name": "422 Unprocessable Entity",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/error/422"
+        },
+        {
+          "name": "429 Too Many Requests",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/error/429"
+        },
+        {
+          "name": "500 Internal Server Error",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/error/500"
+        },
+        {
+          "name": "502 Bad Gateway",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/error/502"
+        },
+        {
+          "name": "503 Service Unavailable",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/error/503"
+        }
+      ]
+    },
+    {
+      "name": "WebSocket",
+      "folders": [],
+      "requests": [
+        {
+          "name": "WS Echo Server",
+          "method": "GET",
+          "url": "ws://localhost:8080/ws"
+        }
+      ]
+    },
+    {
+      "name": "Slow Requests",
+      "folders": [],
+      "requests": [
+        {
+          "name": "Slow Response - default 3s delay",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/slow"
+        },
+        {
+          "name": "Slow Response - custom 1s delay",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/slow?ms=1000"
+        },
+        {
+          "name": "Slow Response - near-instant 100ms",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/slow?ms=100"
+        }
+      ]
+    },
+    {
+      "name": "Large Payloads",
+      "folders": [],
+      "requests": [
+        {
+          "name": "GET Large JSON (10mb-sample.json)",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/large-json"
+        },
+        {
+          "name": "GET Large XML (5mb.xml)",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/large-xml"
+        }
+      ]
+    },
+    {
+      "name": "Scripts & Tests",
+      "folders": [],
+      "requests": [
+        {
+          "name": "Login - chain token generation in post-script",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/auth/basic",
+          "auth": {
+            "type": "BASIC",
+            "username": "{{basicUser}}",
+            "password": "{{basicPassword}}"
+          },
+          "preRequestScript": "clapi.console.log(\"Running login step (basic auth) before token generation chain\")",
+          "testScript": "clapi.test(\"Login status is 200\", function() {\n    clapi.expect(clapi.response.code).to.equal(200)\n})\n// Postman-compatible chaining: run token API next\npostman.setNextRequest(\"Token – pre-request fetches auth token\")"
+        },
+        {
+          "name": "Timestamp – pre-request captures server time",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/timestamp",
+          "preRequestScript": "clapi.console.log(\"Fetching server timestamp…\")",
+          "testScript": "clapi.test(\"Status is 200\", function() {\n    clapi.expect(clapi.response.code).to.equal(200)\n})\nclapi.test(\"Response has unix timestamp\", function() {\n    clapi.expect(clapi.response.json().unix).to.be.above(0)\n})\nclapi.test(\"Response has iso field\", function() {\n    clapi.expect(clapi.response.text()).to.include(\"iso\")\n})\nclapi.environment.set(\"serverTimestamp\", clapi.response.json().unix)"
+        },
+        {
+          "name": "Token – pre-request fetches auth token",
+          "method": "POST",
+          "url": "{{baseUrl}}/api/token",
+          "body": {
+            "type": "JSON",
+            "content": "{\n  \"user\": \"alice\",\n  \"role\": \"admin\"\n}"
+          },
+          "preRequestScript": "clapi.environment.set(\"requestUser\", \"alice\")\nclapi.environment.set(\"requestRole\", \"admin\")\nclapi.console.log(\"Requesting token for\", clapi.environment.get(\"requestUser\"))",
+          "testScript": "clapi.test(\"Status is 200\", function() {\n    clapi.expect(clapi.response.code).to.equal(200)\n})\nclapi.test(\"Token is present in response\", function() {\n    clapi.expect(clapi.response.json().token).to.include(\"rl.\")\n})\nclapi.test(\"User matches request\", function() {\n    clapi.expect(clapi.response.json().user).to.equal(\"alice\")\n})\nclapi.environment.set(\"scriptToken\", clapi.response.json().token)\nclapi.console.log(\"Stored token:\", clapi.environment.get(\"scriptToken\"))"
+        },
+        {
+          "name": "Protected – validate access with stored token",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/protected",
+          "headers": [
+            {
+              "key": "X-Token",
+              "value": "{{scriptToken}}"
+            }
+          ],
+          "preRequestScript": "clapi.environment.set(\"X-Token\", clapi.environment.get(\"scriptToken\"))\nclapi.console.log(\"X-Token set from scriptToken:\", clapi.environment.get(\"scriptToken\"))",
+          "testScript": "clapi.test(\"Status is 200 or 401\", function() {\n    clapi.expect(clapi.response.code).to.be.oneOf([200, 401])\n})\nclapi.test(\"Response body is valid JSON\", function() {\n    clapi.expect(clapi.response.text()).to.include(\"{\")\n})"
+        },
+        {
+          "name": "Validate JSON Body – assert schema",
+          "method": "POST",
+          "url": "{{baseUrl}}/api/validate",
+          "body": {
+            "type": "JSON",
+            "content": "{\n  \"name\": \"Alice\",\n  \"email\": \"alice@example.com\",\n  \"age\": 30,\n  \"city\": \"Springfield\"\n}"
+          },
+          "preRequestScript": "clapi.console.log(\"Sending JSON body for schema validation\")",
+          "testScript": "clapi.test(\"Status is 200\", function() {\n    clapi.expect(clapi.response.code).to.equal(200)\n})\nclapi.test(\"Body is valid JSON\", function() {\n    clapi.expect(clapi.response.json().valid).to.equal(true)\n})\nclapi.test(\"Field count is above 0\", function() {\n    clapi.expect(clapi.response.json().fieldCount).to.be.above(0)\n})\nclapi.console.log(\"Validated\", clapi.response.json().fieldCount, \"fields\")"
+        },
+        {
+          "name": "Echo Full – verify pre-request header injection",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/echo-full",
+          "headers": [
+            {
+              "key": "X-Request-Id",
+              "value": "{{X-Request-Id}}"
+            },
+            {
+              "key": "X-Client",
+              "value": "{{X-Client}}"
+            }
+          ],
+          "preRequestScript": "clapi.environment.set(\"X-Request-Id\", \"req-scripted\")\nclapi.environment.set(\"X-Client\", \"Clapi-ScriptEngine\")\nclapi.console.log(\"Injecting X-Request-Id and X-Client via pre-request script\")",
+          "testScript": "clapi.test(\"Status is 200\", function() {\n    clapi.expect(clapi.response.code).to.equal(200)\n})\nclapi.test(\"Method is GET\", function() {\n    clapi.expect(clapi.response.json().method).to.equal(\"GET\")\n})\nclapi.test(\"Response has headers object\", function() {\n    clapi.expect(clapi.response.text()).to.include(\"headers\")\n})\nclapi.console.log(\"Echo path:\", clapi.response.json().path)"
+        },
+        {
+          "name": "User List – validate response structure",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/users",
+          "preRequestScript": "clapi.console.log(\"Fetching user list from\", clapi.environment.get(\"baseUrl\"))",
+          "testScript": "clapi.test(\"Status is 200\", function() {\n    clapi.expect(clapi.response.code).to.equal(200)\n})\nclapi.test(\"Response has users array\", function() {\n    clapi.expect(clapi.response.text()).to.include(\"users\")\n})\nclapi.test(\"Method field is GET\", function() {\n    clapi.expect(clapi.response.json().method).to.equal(\"GET\")\n})\nclapi.console.log(\"User list loaded successfully\")"
+        }
+      ]
+    },
+    {
+      "name": "Scripting Runtime Coverage",
+      "folders": [],
+      "requests": [
+        {
+          "name": "01 Pre-request header/query mutation + scope set",
+          "method": "GET",
+          "url": "{{baseUrl}}/headers?seed=1",
+          "preRequestScript": "var runId = \"run-\" + Date.now();\nvar traceId = \"trace-\" + Math.floor(Math.random() * 100000);\nclapi.environment.set(\"runId\", runId);\nclapi.environment.set(\"traceId\", traceId);\nclapi.globals.set(\"suiteGlobal\", \"global-1\");\nclapi.collectionVariables.set(\"suiteCollection\", \"collection-1\");\nclapi.variables.set(\"requestOnly\", \"local-1\");\nclapi.request.headers.upsert(\"X-Run-Id\", runId);\nclapi.request.headers.add(\"X-Trace-Id\", traceId);\nclapi.request.setQueryParam(\"source\", \"pre-script\");\nclapi.console.log(\"Prepared request runId\", runId, \"traceId\", traceId);",
+          "testScript": "clapi.test(\"status is 200\", function(){\n  clapi.expect(clapi.response.code).to.equal(200)\n});\nclapi.test(\"header mutation reached server\", function(){\n  var body = clapi.response.json();\n  clapi.expect(body.hasRunId).to.equal(true);\n  clapi.expect(body.hasTrace).to.equal(true);\n  clapi.expect(body.runId).to.equal(clapi.environment.get(\"runId\"));\n  clapi.expect(body.traceId).to.equal(clapi.environment.get(\"traceId\"));\n});\nclapi.test(\"script variables are readable\", function(){\n  clapi.expect(clapi.globals.get(\"suiteGlobal\")).to.equal(\"global-1\");\n  clapi.expect(clapi.collectionVariables.get(\"suiteCollection\")).to.equal(\"collection-1\");\n  clapi.expect(clapi.variables.get(\"requestOnly\")).to.equal(\"local-1\");\n});\nclapi.environment.set(\"lastRunId\", clapi.response.json().runId);"
+        },
+        {
+          "name": "02 Cross-request environment variable usage",
+          "method": "GET",
+          "url": "{{baseUrl}}/headers",
+          "headers": [
+            {
+              "key": "X-Run-Id",
+              "value": "{{lastRunId}}"
+            }
+          ],
+          "preRequestScript": "clapi.request.headers.upsert(\"X-Trace-Id\", \"trace-cross\");\nclapi.console.log(\"Using lastRunId from previous request\", clapi.environment.get(\"lastRunId\"));",
+          "testScript": "clapi.test(\"status is 200\", function(){\n  clapi.expect(clapi.response.code).to.equal(200)\n});\nclapi.test(\"cross-request variable resolved\", function(){\n  var body = clapi.response.json();\n  clapi.expect(body.runId).to.equal(clapi.environment.get(\"lastRunId\"));\n  clapi.expect(body.traceId).to.equal(\"trace-cross\");\n});"
+        },
+        {
+          "name": "03 Request body mutation in pre-request",
+          "method": "POST",
+          "url": "{{baseUrl}}/echo-body",
+          "body": {
+            "type": "RAW_TEXT",
+            "content": "original-body"
+          },
+          "preRequestScript": "clapi.request.headers.upsert(\"Content-Type\", \"application/json\");\nclapi.request.setBody('{\"changed\":true,\"source\":\"pre\"}');\nclapi.console.log(\"Body overwritten in pre-request\");",
+          "testScript": "clapi.test(\"status is 200\", function(){\n  clapi.expect(clapi.response.code).to.equal(200)\n});\nclapi.test(\"mutated body reaches server\", function(){\n  var body = clapi.response.json();\n  clapi.expect(body.method).to.equal(\"POST\");\n  clapi.expect(body.body).to.include(\"\\\"changed\\\":true\");\n  clapi.expect(body.body).to.include(\"\\\"source\\\":\\\"pre\\\"\");\n});"
+        },
+        {
+          "name": "04 JSON user validation and schema-like checks",
+          "method": "GET",
+          "url": "{{baseUrl}}/json/user",
+          "preRequestScript": "clapi.environment.set(\"expectedUserType\", \"Subscriber\");\nclapi.console.log(\"Validating /json/user response\");",
+          "testScript": "clapi.test(\"status is 200\", function(){\n  clapi.expect(clapi.response.code).to.equal(200)\n});\nclapi.test(\"required fields exist\", function(){\n  var u = clapi.response.json();\n  clapi.expect(u).to.have.property(\"id\");\n  clapi.expect(u).to.have.property(\"name\");\n  clapi.expect(u).to.have.property(\"age\");\n  clapi.expect(u).to.have.property(\"type\");\n});\nclapi.test(\"field values and types are valid\", function(){\n  var u = clapi.response.json();\n  clapi.expect(u.name).to.equal(\"Jane\");\n  clapi.expect(u.type).to.equal(clapi.environment.get(\"expectedUserType\"));\n  clapi.expect(typeof u.id).to.equal(\"string\");\n  clapi.expect(typeof u.age).to.equal(\"number\");\n  clapi.expect(u.age).to.be.oneOf([23,24,25]);\n});"
+        },
+        {
+          "name": "05 JSON array and nested object assertions",
+          "method": "GET",
+          "url": "{{baseUrl}}/json/array",
+          "preRequestScript": "clapi.console.log(\"Checking array payload\");",
+          "testScript": "clapi.test(\"status is 200\", function(){\n  clapi.expect(clapi.response.code).to.equal(200)\n});\nclapi.test(\"array contains expected rows\", function(){\n  var items = clapi.response.json().items;\n  clapi.expect(Array.isArray(items)).to.equal(true);\n  clapi.expect(items.length).to.equal(2);\n  clapi.expect(items[0].label).to.equal(\"alpha\");\n  clapi.expect(items[0].tags).to.include(\"core\");\n  clapi.expect(items[1].label).to.equal(\"beta\");\n});"
+        },
+        {
+          "name": "06 Object type matrix validation",
+          "method": "GET",
+          "url": "{{baseUrl}}/json/object",
+          "preRequestScript": "clapi.console.log(\"Checking object type matrix\");",
+          "testScript": "clapi.test(\"status is 200\", function(){\n  clapi.expect(clapi.response.code).to.equal(200)\n});\nclapi.test(\"types are correct\", function(){\n  var p = clapi.response.json().payload;\n  clapi.expect(typeof p.title).to.equal(\"string\");\n  clapi.expect(typeof p.count).to.equal(\"number\");\n  clapi.expect(typeof p.enabled).to.equal(\"boolean\");\n  clapi.expect(p.nullable).to.be.null;\n  clapi.expect(Array.isArray(p.list)).to.equal(true);\n  clapi.expect(typeof p.nested).to.equal(\"object\");\n});"
+        },
+        {
+          "name": "07 Response time and body size checks",
+          "method": "GET",
+          "url": "{{baseUrl}}/response-time?ms=120",
+          "preRequestScript": "clapi.console.log(\"Response-time request starting\");",
+          "testScript": "clapi.test(\"status is 200\", function(){\n  clapi.expect(clapi.response.code).to.equal(200)\n});\nclapi.test(\"response time in expected band\", function(){\n  clapi.expect(clapi.response.responseTime).to.be.above(0);\n  clapi.expect(clapi.response.responseTime).to.be.below(5000);\n});\nclapi.test(\"response size is non-empty\", function(){\n  clapi.expect(clapi.response.size).to.be.above(10);\n});"
+        },
+        {
+          "name": "08 Plain string body match",
+          "method": "GET",
+          "url": "{{baseUrl}}/string-body",
+          "preRequestScript": "clapi.console.log(\"Checking plain string endpoint\");",
+          "testScript": "clapi.test(\"status is 200\", function(){\n  clapi.expect(clapi.response.code).to.equal(200)\n});\nclapi.test(\"body contains expected text\", function(){\n  clapi.expect(clapi.response.text()).to.include(\"Clapi plain string body\");\n  clapi.expect(clapi.response.text()).to.match(/scripting assertions/);\n});"
+        },
+        {
+          "name": "09 Headers and cookies validation",
+          "method": "GET",
+          "url": "{{baseUrl}}/cookies",
+          "headers": [
+            {
+              "key": "Cookie",
+              "value": "client_id=req-suite"
+            }
+          ],
+          "preRequestScript": "clapi.console.log(\"Checking cookie and response header behavior\");",
+          "testScript": "clapi.test(\"status is 200\", function(){\n  clapi.expect(clapi.response.code).to.equal(200)\n});\nclapi.test(\"set-cookie header exists\", function(){\n  var setCookie = clapi.response.headers.get(\"set-cookie\");\n  clapi.expect(setCookie).to.exist;\n  clapi.expect(setCookie).to.include(\"script_session\");\n});\nclapi.test(\"request cookie header echoed\", function(){\n  clapi.expect(clapi.response.json().receivedCookieHeader).to.include(\"client_id=req-suite\");\n});"
+        },
+        {
+          "name": "10 Status 201 validation",
+          "method": "GET",
+          "url": "{{baseUrl}}/status/201",
+          "preRequestScript": "clapi.console.log(\"Validating 201 response\");",
+          "testScript": "clapi.test(\"status code 201\", function(){\n  clapi.expect(clapi.response.code).to.equal(201)\n});\nclapi.test(\"response payload has deterministic values\", function(){\n  var body = clapi.response.json();\n  clapi.expect(body.status).to.equal(201);\n  clapi.expect(body.ok).to.equal(true);\n});"
+        },
+        {
+          "name": "11 Async capability probe",
+          "method": "GET",
+          "url": "{{baseUrl}}/status/200",
+          "preRequestScript": "clapi.environment.set(\"asyncPromiseType\", typeof Promise);\nclapi.environment.set(\"asyncTimeoutType\", typeof setTimeout);\nclapi.console.log(\"Promise type:\", clapi.environment.get(\"asyncPromiseType\"), \"setTimeout type:\", clapi.environment.get(\"asyncTimeoutType\"));",
+          "testScript": "clapi.test(\"Promise is available\", function(){\n  clapi.expect(clapi.environment.get(\"asyncPromiseType\")).to.equal(\"function\");\n});\nclapi.test(\"setTimeout availability is explicit\", function(){\n  clapi.expect(clapi.environment.get(\"asyncTimeoutType\")).to.be.oneOf([\"undefined\",\"function\"]);\n});"
+        },
+        {
+          "name": "11b Undefined and empty variable handling",
+          "method": "GET",
+          "url": "{{baseUrl}}/status/200",
+          "preRequestScript": "var g = clapi.globals.get(\"suiteGlobal\");\nvar c = clapi.collectionVariables.get(\"suiteCollection\");\nvar l = clapi.variables.get(\"requestOnly\");\nclapi.environment.set(\"safeGlobal\", g == null ? \"\" : String(g));\nclapi.environment.set(\"safeCollection\", c == null ? \"\" : String(c));\nclapi.environment.set(\"safeLocal\", l == null ? \"\" : String(l));\nclapi.console.log(\"safe values\", clapi.environment.get(\"safeGlobal\"), clapi.environment.get(\"safeCollection\"), clapi.environment.get(\"safeLocal\"));",
+          "testScript": "clapi.test(\"undefined getters do not crash\", function(){\n  clapi.expect(clapi.globals.get(\"missingGlobal\")).to.be.undefined;\n  clapi.expect(clapi.collectionVariables.get(\"missingCollection\")).to.be.undefined;\n  clapi.expect(clapi.variables.get(\"missingVar\")).to.be.undefined;\n});\nclapi.test(\"empty fallback values are handled\", function(){\n  clapi.expect(clapi.environment.get(\"safeGlobal\")).to.be.oneOf([\"\",\"global-1\"]);\n  clapi.expect(clapi.environment.get(\"safeCollection\")).to.be.oneOf([\"\",\"collection-1\"]);\n  clapi.expect(clapi.environment.get(\"safeLocal\")).to.be.oneOf([\"\",\"local-1\"]);\n});"
+        },
+        {
+          "name": "12 Negative-path status assertion (expected 201)",
+          "method": "GET",
+          "url": "{{baseUrl}}/status/201",
+          "preRequestScript": "clapi.console.log(\"Negative-path status validation\");",
+          "testScript": "clapi.test(\"status code remains deterministic\", function(){\n  clapi.expect(clapi.response.code).to.equal(201);\n  clapi.expect(clapi.response.code).to.not.equal(500);\n});"
+        },
+        {
+          "name": "13 Negative-path missing header handled",
+          "method": "GET",
+          "url": "{{baseUrl}}/headers",
+          "preRequestScript": "clapi.console.log(\"Negative-path missing trace header\");",
+          "testScript": "clapi.test(\"missing trace header is represented safely\", function(){\n  clapi.expect(clapi.response.code).to.equal(200);\n  clapi.expect(clapi.response.json().hasTrace).to.equal(false);\n  clapi.expect(clapi.response.json().traceId).to.equal(\"\");\n});"
+        },
+        {
+          "name": "14 Negative-path schema-like mismatch guard",
+          "method": "GET",
+          "url": "{{baseUrl}}/json/user",
+          "preRequestScript": "clapi.console.log(\"Negative-path schema guard\");",
+          "testScript": "clapi.test(\"missing field is undefined\", function(){\n  var body = clapi.response.json();\n  clapi.expect(body.nonExistentField).to.be.undefined;\n  clapi.expect(body).to.have.property(\"name\");\n});"
+        },
+        {
+          "name": "15 Assertion syntax matrix",
+          "method": "GET",
+          "url": "{{baseUrl}}/json/object",
+          "preRequestScript": "clapi.console.log(\"Running assertion syntax matrix\");",
+          "testScript": "clapi.test(\"comparison syntax set\", function(){\n  var p = clapi.response.json().payload;\n  clapi.expect(p.count).to.be.above(1);\n  clapi.expect(p.count).to.be.below(10);\n  clapi.expect(p.count).to.be.at.least(3);\n  clapi.expect(p.count).to.be.at.most(3);\n  clapi.expect(p.title).to.match(/Req/);\n  clapi.expect(p.title).to.include(\"Req\");\n  clapi.expect(p.title).to.not.equal(\"Other\");\n  clapi.expect(p.list).to.have.lengthOf(3);\n  clapi.expect(p.nested).to.have.property(\"code\");\n});"
+        }
+      ]
+    },
+    {
+      "name": "Edge Case Coverage",
+      "folders": [],
+      "requests": [
+        {
+          "name": "EC01 Empty response body handling",
+          "method": "GET",
+          "url": "{{baseUrl}}/string-body",
+          "testScript": "clapi.test(\"text response is not empty\", function(){\n  clapi.expect(clapi.response.text()).to.not.be.empty;\n  clapi.expect(clapi.response.text()).to.include(\"Clapi\");\n});\nclapi.test(\"status is 200\", function(){\n  clapi.expect(clapi.response.code).to.equal(200);\n});"
+        },
+        {
+          "name": "EC02 Large JSON payload parsing",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/users",
+          "testScript": "clapi.test(\"parse users array\", function(){\n  var data = clapi.response.json();\n  clapi.expect(data).to.have.property(\"users\");\n  clapi.expect(data.users).to.have.lengthOf(3);\n  clapi.expect(data.users[0]).to.have.property(\"name\");\n  clapi.expect(data.users[0]).to.have.property(\"email\");\n});"
+        },
+        {
+          "name": "EC03 Error status 400",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/error/400",
+          "testScript": "clapi.test(\"400 Bad Request\", function(){\n  clapi.expect(clapi.response.code).to.equal(400);\n});\nclapi.test(\"error body has fields\", function(){\n  var data = clapi.response.json();\n  clapi.expect(data).to.have.property(\"error\");\n  clapi.expect(data).to.have.property(\"code\");\n  clapi.expect(data.code).to.equal(400);\n});"
+        },
+        {
+          "name": "EC04 Error status 500",
+          "method": "GET",
+          "url": "{{baseUrl}}/api/error/500",
+          "testScript": "clapi.test(\"500 Internal Server Error\", function(){\n  clapi.expect(clapi.response.code).to.equal(500);\n  var data = clapi.response.json();\n  clapi.expect(data.code).to.equal(500);\n  clapi.expect(data).to.have.property(\"message\");\n});"
+        },
+        {
+          "name": "EC05 Response time under threshold",
+          "method": "GET",
+          "url": "{{baseUrl}}/response-time?ms=50",
+          "testScript": "clapi.test(\"response under 5000ms\", function(){\n  clapi.expect(clapi.response.responseTime).to.be.below(5000);\n});\nclapi.test(\"delay value in body\", function(){\n  clapi.expect(clapi.response.json().delayMs).to.equal(50);\n});"
+        },
+        {
+          "name": "EC06 POST echo body validation",
+          "method": "POST",
+          "url": "{{baseUrl}}/echo-body",
+          "body": {
+            "type": "JSON",
+            "content": "{\"test\": true, \"items\": [1,2,3]}"
+          },
+          "testScript": "clapi.test(\"echo body matches\", function(){\n  var data = clapi.response.json();\n  clapi.expect(data.method).to.equal(\"POST\");\n  clapi.expect(data.length).to.be.above(0);\n  clapi.expect(data).to.have.property(\"body\");\n});"
+        },
+        {
+          "name": "EC07 Assertion alias coverage",
+          "method": "GET",
+          "url": "{{baseUrl}}/json/user",
+          "testScript": "clapi.test(\"eql alias\", function(){\n  clapi.expect(clapi.response.json().id).to.eql(\"1\");\n});\nclapi.test(\"contains alias\", function(){\n  clapi.expect(clapi.response.json().name).to.contain(\"Jan\");\n});\nclapi.test(\"greaterThan alias\", function(){\n  clapi.expect(clapi.response.json().age).to.be.greaterThan(18);\n});\nclapi.test(\"lessThan alias\", function(){\n  clapi.expect(clapi.response.json().age).to.be.lessThan(100);\n});"
+        },
+        {
+          "name": "EC08 Boolean getter assertions",
+          "method": "GET",
+          "url": "{{baseUrl}}/json/user",
+          "testScript": "clapi.test(\"true getter\", function(){\n  clapi.expect(clapi.response.json().active).to.be.true;\n});\nclapi.test(\"not false\", function(){\n  clapi.expect(clapi.response.json().active).to.not.be.false;\n});\nclapi.test(\"typeof check\", function(){\n  clapi.expect(typeof clapi.response.json().active).to.equal(\"boolean\");\n});"
+        },
+        {
+          "name": "EC09 Null and undefined getters",
+          "method": "GET",
+          "url": "{{baseUrl}}/json/object",
+          "testScript": "clapi.test(\"null field\", function(){\n  clapi.expect(clapi.response.json().payload.nullable).to.be.null;\n});\nclapi.test(\"missing field undefined\", function(){\n  clapi.expect(clapi.response.json().payload.doesNotExist).to.be.undefined;\n});\nclapi.test(\"not null on real value\", function(){\n  clapi.expect(clapi.response.json().payload.title).to.not.be.null;\n});"
+        },
+        {
+          "name": "EC10 All variable scopes in one request",
+          "method": "GET",
+          "url": "{{baseUrl}}/status/200",
+          "preRequestScript": "clapi.environment.set(\"ec10Env\", \"envVal\");\nclapi.globals.set(\"ec10Global\", \"globalVal\");\nclapi.collectionVariables.set(\"ec10Coll\", \"collVal\");\nclapi.variables.set(\"ec10Req\", \"reqVal\");",
+          "testScript": "clapi.test(\"env set in pre-req\", function(){\n  clapi.expect(clapi.environment.get(\"ec10Env\")).to.equal(\"envVal\");\n});\nclapi.test(\"global set in pre-req\", function(){\n  clapi.expect(clapi.globals.get(\"ec10Global\")).to.equal(\"globalVal\");\n});\nclapi.test(\"coll set in pre-req\", function(){\n  clapi.expect(clapi.collectionVariables.get(\"ec10Coll\")).to.equal(\"collVal\");\n});\nclapi.test(\"req set in pre-req\", function(){\n  clapi.expect(clapi.variables.get(\"ec10Req\")).to.equal(\"reqVal\");\n});"
+        },
+        {
+          "name": "EC11 Mixed pass-fail assertion handling",
+          "method": "GET",
+          "url": "{{baseUrl}}/json/user",
+          "testScript": "clapi.test(\"passes - name check\", function(){\n  clapi.expect(clapi.response.json().name).to.equal(\"Jane\");\n});\nclapi.test(\"passes - type check\", function(){\n  clapi.expect(clapi.response.json().type).to.equal(\"Subscriber\");\n});\nclapi.test(\"passes - age check\", function(){\n  clapi.expect(clapi.response.json().age).to.be.at.least(18);\n});"
+        },
+        {
+          "name": "EC12 Console logging edge cases",
+          "method": "GET",
+          "url": "{{baseUrl}}/status/200",
+          "preRequestScript": "clapi.console.log(\"string log\");\nclapi.console.log(42);\nclapi.console.log(null);\nclapi.console.log({key: \"value\"});\nclapi.console.log(true, false, undefined);",
+          "testScript": "clapi.test(\"request completed\", function(){\n  clapi.expect(clapi.response.code).to.equal(200);\n});"
+        }
+      ]
+    }
+  ],
+  "requests": [
+    {
+      "name": "Health Check",
+      "method": "GET",
+      "url": "{{baseUrl}}/"
+    },
+    {
+      "name": "Current Server Time",
+      "method": "GET",
+      "url": "{{baseUrl}}/api/time"
+    }
+  ]
+}

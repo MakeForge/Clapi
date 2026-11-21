@@ -1,7 +1,7 @@
 {
-  "name": "ReqLab",
-  "short_name": "ReqLab",
-  "description": "ReqLab API client",
+  "name": "Clapi",
+  "short_name": "Clapi",
+  "description": "Clapi API client",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#1e1e2e",

@@ -2,7 +2,7 @@
 
 ## Overview
 
-ReqLab uses a layered validation strategy:
+Clapi uses a layered validation strategy:
 
 1. Unit tests (`core-network`, `core-storage`, `core-model`, `core-scripting`)
 2. Shared UI/unit tests (`ui-shared`, `editor-core`, `editor-ui`)
@@ -26,7 +26,7 @@ Protocol behavior, request mapping, and variable substitution.
 
 ### `core-scripting`
 Script runtime, assertions, and variable scopes.
-- `ReqLabScriptEngineTest` — JS execution isolation, `req`/`res` bindings, pre-request scripts, post-response assertions, `response.llm.*` / `streamEvents`, variable set/get across script phases, assertion error messages
+- `ClapiScriptEngineTest` — JS execution isolation, `req`/`res` bindings, pre-request scripts, post-response assertions, `response.llm.*` / `streamEvents`, variable set/get across script phases, assertion error messages
 
 ### `core-storage`
 Repository and persistence behavior.
