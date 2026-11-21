@@ -115,7 +115,6 @@
   "light_mode": "Light",
   "loading": "Loading…",
   "logs": "Logs",
-  "new_collection": "New Folder",
   "toggle_sidebar": "Toggle sidebar",
   "toggle_response_layout": "Toggle response layout",
   "history_actions": "History actions",
@@ -270,7 +269,6 @@
   "execute": "Execute",
   "running": "Running…",
   "variable": "Variable",
-  "none": "None",
   "close_variable_editor": "Close variable editor",
   "current_value": "Current Value",
   "not_defined": "Not defined",
@@ -546,5 +544,11 @@
   "proto_folder_files_label": "Proto Files in Folder",
   "proto_folder_empty": "No .proto files found in the selected folder.",
   "proto_folder_select_file_hint": "Select a .proto file from the folder to load its gRPC methods.",
-  "proto_folder_sync_to_git_hint": "All .proto files in this folder and its subfolders will be synced to Git."
+  "proto_folder_sync_to_git_hint": "All .proto files in this folder and its subfolders will be synced to Git.",
+  "copied": "Copied",
+  "import_remove_file": "Remove",
+  "summary": "Summary",
+  "version": "Version",
+  "filter": "Filter",
+  "add_filter": "Add Filter"
 }
