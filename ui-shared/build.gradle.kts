@@ -96,6 +96,8 @@ kotlin {
             implementation(compose.material3)
             implementation(compose.materialIconsExtended)
             implementation(compose.components.resources)
+            implementation(compose.components.uiToolingPreview)
+
             api(project(":core-model"))
             api(project(":editor-core"))
             api(project(":editor-ui"))
@@ -120,6 +122,10 @@ kotlin {
             dependencies {
                 implementation(libs.ktor.client.cio)
                 implementation(libs.coroutines.swing)
+
+                implementation(compose.desktop.currentOs)
+                // 2. Provides the desktop rendering engine to the IDE
+                implementation(compose.uiTooling)
             }
         }
     }
