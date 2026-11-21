@@ -1,6 +1,7 @@
 package io.github.crustack.clapi.core.storage.opencollection
 
 import io.github.crustack.clapi.core.model.opencollection.AwsSecretsManagerExternalSecret
+import io.github.crustack.clapi.core.model.opencollection.AzureKeyVaultExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.CollectionConfig
 import io.github.crustack.clapi.core.model.opencollection.CollectionInfo
 import io.github.crustack.clapi.core.model.opencollection.Description
@@ -352,6 +353,131 @@ class OpenCollectionExternalSecretsTest {
         for (kw in forbiddenAwsKeywords) {
             assertFalse(jsonOutput.contains(kw), "JSON export leaked AWS credential keyword: $kw")
             assertFalse(yamlOutput.contains(kw), "YAML export leaked AWS credential keyword: $kw")
+        }
+    }
+
+    @Test
+    fun roundtrip_json_and_yaml_serialization_preserves_azure_external_secrets_structure() {
+        val doc = OpenCollectionDocument(
+            opencollection = "1.0.0",
+            info = CollectionInfo(name = "Azure Secrets API"),
+            config = CollectionConfig(
+                environments = listOf(
+                    Environment(
+                        name = "Azure Staging",
+                        externalSecrets = ExternalSecrets(
+                            type = ExternalSecretType.AZURE_KEY_VAULT,
+                            variables = listOf(
+                                AzureKeyVaultExternalSecret(
+                                    name = "client_id",
+                                    secretName = "payment-foo",
+                                    vaultName = "https://custom.vault.azure.net",
+                                    targetField = "client_id",
+                                    customFilters = mapOf("stage" to "prod"),
+                                    description = Description("Gateway Client ID"),
+                                    disabled = false,
+                                ),
+                                AzureKeyVaultExternalSecret(
+                                    name = "client_secret",
+                                    secretName = "payment-foo",
+                                    vaultName = "",
+                                    targetField = "client_secret",
+                                    disabled = true,
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        // JSON Roundtrip
+        val jsonOutput = OpenCollectionSerializer.serializeJson(doc)
+        assertTrue(jsonOutput.contains("\"azure-key-vault\""))
+        assertTrue(jsonOutput.contains("\"payment-foo\""))
+        assertTrue(jsonOutput.contains("\"https://custom.vault.azure.net\""))
+        assertTrue(jsonOutput.contains("\"client_id\""))
+
+        val deserializedJson = OpenCollectionSerializer.deserializeJson(jsonOutput)
+        val envJson = deserializedJson.config?.environments?.firstOrNull()
+        assertNotNull(envJson)
+        val extJson = envJson.externalSecrets
+        assertNotNull(extJson)
+        assertEquals(ExternalSecretType.AZURE_KEY_VAULT, extJson.type)
+        assertEquals(2, extJson.variables.size)
+
+        val j1 = extJson.variables[0] as AzureKeyVaultExternalSecret
+        assertEquals("client_id", j1.name)
+        assertEquals("payment-foo", j1.secretName)
+        assertEquals("https://custom.vault.azure.net", j1.vaultName)
+        assertEquals("client_id", j1.targetField)
+        assertEquals("prod", j1.customFilters["stage"])
+        assertEquals("Gateway Client ID", j1.description?.content)
+        assertFalse(j1.disabled == true)
+
+        val j2 = extJson.variables[1] as AzureKeyVaultExternalSecret
+        assertEquals("client_secret", j2.name)
+        assertEquals("payment-foo", j2.secretName)
+        assertEquals(true, j2.disabled)
+
+        // YAML Roundtrip
+        val yamlOutput = OpenCollectionSerializer.serializeYaml(doc)
+        assertTrue(yamlOutput.contains("azure-key-vault"))
+        assertTrue(yamlOutput.contains("payment-foo"))
+        assertTrue(yamlOutput.contains("https://custom.vault.azure.net"))
+
+        val deserializedYaml = OpenCollectionSerializer.deserializeYaml(yamlOutput)
+        val envYaml = deserializedYaml.config?.environments?.firstOrNull()
+        assertNotNull(envYaml)
+        val extYaml = envYaml.externalSecrets
+        assertNotNull(extYaml)
+        assertEquals(ExternalSecretType.AZURE_KEY_VAULT, extYaml.type)
+        assertEquals(2, extYaml.variables.size)
+
+        val y1 = extYaml.variables[0] as AzureKeyVaultExternalSecret
+        assertEquals("client_id", y1.name)
+        assertEquals("payment-foo", y1.secretName)
+        assertEquals("https://custom.vault.azure.net", y1.vaultName)
+        assertEquals("client_id", y1.targetField)
+        assertEquals("prod", y1.customFilters["stage"])
+    }
+
+    @Test
+    fun zero_credential_leakage_guarantees_azure_credentials_never_serialized() {
+        val doc = OpenCollectionDocument(
+            opencollection = "1.0.0",
+            info = CollectionInfo(name = "Azure Credentials Leak Check"),
+            config = CollectionConfig(
+                environments = listOf(
+                    Environment(
+                        name = "Azure Env",
+                        externalSecrets = ExternalSecrets(
+                            type = ExternalSecretType.AZURE_KEY_VAULT,
+                            variables = listOf(
+                                AzureKeyVaultExternalSecret(
+                                    name = "payment_key",
+                                    secretName = "payment-foo",
+                                    targetField = "client_secret",
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val jsonOutput = OpenCollectionSerializer.serializeJson(doc)
+        val yamlOutput = OpenCollectionSerializer.serializeYaml(doc)
+
+        val forbiddenAzureKeywords = listOf(
+            "azureClientSecret", "clientSecret", "tenantId", "clientId",
+            "AZURE_CLIENT_SECRET", "AZURE_TENANT_ID", "AZURE_CLIENT_ID",
+            "super-secret-azure-key", "00000000-0000-0000-0000-000000000000",
+        )
+
+        for (kw in forbiddenAzureKeywords) {
+            assertFalse(jsonOutput.contains(kw), "JSON export leaked Azure credential keyword: $kw")
+            assertFalse(yamlOutput.contains(kw), "YAML export leaked Azure credential keyword: $kw")
         }
     }
 }

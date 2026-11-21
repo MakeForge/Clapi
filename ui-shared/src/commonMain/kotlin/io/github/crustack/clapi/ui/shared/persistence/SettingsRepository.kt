@@ -72,6 +72,14 @@ object SettingsRepository {
         settings.awsSessionToken    = PlatformStorage.getSecretString(PREFIX + "awsSessionToken") ?: settings.awsSessionToken
         settings.awsEndpointUrl     = PlatformStorage.getString(PREFIX + "awsEndpointUrl") ?: settings.awsEndpointUrl
         settings.awsVersionStage    = PlatformStorage.getString(PREFIX + "awsVersionStage") ?: settings.awsVersionStage
+
+        // Secrets Manager (Azure Key Vault)
+        settings.azureVaultName     = PlatformStorage.getString(PREFIX + "azureVaultName") ?: settings.azureVaultName
+        settings.azureTenantId      = PlatformStorage.getString(PREFIX + "azureTenantId") ?: settings.azureTenantId
+        settings.azureClientId      = PlatformStorage.getString(PREFIX + "azureClientId") ?: settings.azureClientId
+        settings.azureClientSecret  = PlatformStorage.getSecretString(PREFIX + "azureClientSecret") ?: settings.azureClientSecret
+        settings.azureAuthorityHost = PlatformStorage.getString(PREFIX + "azureAuthorityHost") ?: settings.azureAuthorityHost
+        settings.azureApiVersion    = PlatformStorage.getString(PREFIX + "azureApiVersion") ?: settings.azureApiVersion
     }
 
     // ── Save ───────────────────────────────────────────────────────────────
@@ -113,6 +121,14 @@ object SettingsRepository {
         PlatformStorage.putSecretString(PREFIX + "awsSessionToken", settings.awsSessionToken)
         PlatformStorage.putString(PREFIX + "awsEndpointUrl", settings.awsEndpointUrl)
         PlatformStorage.putString(PREFIX + "awsVersionStage", settings.awsVersionStage)
+
+        // Secrets Manager (Azure Key Vault)
+        PlatformStorage.putString(PREFIX + "azureVaultName", settings.azureVaultName)
+        PlatformStorage.putString(PREFIX + "azureTenantId", settings.azureTenantId)
+        PlatformStorage.putString(PREFIX + "azureClientId", settings.azureClientId)
+        PlatformStorage.putSecretString(PREFIX + "azureClientSecret", settings.azureClientSecret)
+        PlatformStorage.putString(PREFIX + "azureAuthorityHost", settings.azureAuthorityHost)
+        PlatformStorage.putString(PREFIX + "azureApiVersion", settings.azureApiVersion)
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────

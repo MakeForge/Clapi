@@ -2,6 +2,9 @@ package io.github.crustack.clapi.core.network.vault
 
 import io.github.crustack.clapi.core.network.aws.AwsSecretsManagerClient
 import io.github.crustack.clapi.core.network.aws.KtorAwsSecretsManagerClient
+import io.github.crustack.clapi.core.network.azure.AzureKeyVaultClient
+import io.github.crustack.clapi.core.network.azure.AzureKeyVaultConfig
+import io.github.crustack.clapi.core.network.azure.KtorAzureKeyVaultClient
 import io.github.crustack.clapi.core.network.getEnvironmentVariable
 import io.github.crustack.clapi.core.network.keepassxc.DefaultKeePassXcClientManager
 import io.github.crustack.clapi.core.network.keepassxc.KeePassXcClient
@@ -24,6 +27,7 @@ class SecretResolutionService(
     private val vaultClient: HashiCorpVaultClient = KtorHashiCorpVaultClient(),
     private val keepassClientManager: KeePassXcClientManager = DefaultKeePassXcClientManager.Shared,
     private val awsClient: AwsSecretsManagerClient = KtorAwsSecretsManagerClient(),
+    private val azureClient: AzureKeyVaultClient = KtorAzureKeyVaultClient(),
 ) {
     private val variablePattern = Regex("\\{\\{\\s*([^{}]+?)\\s*\\}\\}")
 
@@ -358,6 +362,112 @@ class SecretResolutionService(
     }
 
     /**
+     * Resolves external secret tokens against Azure Key Vault.
+     */
+    suspend fun resolveAzureSecrets(
+        requiredSecretNames: Set<String>,
+        declarations: List<SecretDeclaration>,
+        vaultName: String,
+        tenantId: String,
+        clientId: String,
+        clientSecret: String,
+        authorityHost: String = "https://login.microsoftonline.com",
+        apiVersion: String = "7.4",
+        variableValues: Map<String, String> = emptyMap(),
+        client: AzureKeyVaultClient? = null,
+    ): Map<String, String> {
+        if (requiredSecretNames.isEmpty()) {
+            return emptyMap()
+        }
+
+        val declarationMap = declarations.associateBy { it.name.trim() }
+
+        // Validate all required secrets exist and are enabled
+        for (name in requiredSecretNames) {
+            val decl = declarationMap[name]
+                ?: throw IllegalStateException("External secret '_secret.$name' is not defined in the active environment.")
+            if (!decl.enabled) {
+                throw IllegalStateException("External secret '_secret.$name' is disabled in the active environment.")
+            }
+            val secId = decl.secretId.ifBlank { decl.path }.trim()
+            if (secId.isBlank()) {
+                throw IllegalStateException("External secret '_secret.$name' does not have a Secret Name configured.")
+            }
+        }
+
+        // Group required secrets by their Secret Name and Vault override to avoid duplicate network queries
+        val secretsByTarget = mutableMapOf<Pair<String, String>, MutableList<String>>()
+        for (name in requiredSecretNames) {
+            val decl = declarationMap.getValue(name)
+            val secName = decl.secretId.ifBlank { decl.path }.trim()
+            val effectiveVault = decl.url.ifBlank { vaultName }.trim()
+            if (effectiveVault.isBlank()) {
+                throw IllegalStateException("Azure Key Vault Name is not configured. Please configure Azure Key Vault in Settings -> Secrets Manager.")
+            }
+            secretsByTarget.getOrPut(Pair(effectiveVault, secName)) { mutableListOf() }.add(name)
+        }
+
+        val resolved = mutableMapOf<String, String>()
+        val azClient = client ?: azureClient
+
+        for ((target, names) in secretsByTarget) {
+            val (effectiveVault, secretName) = target
+            val config = AzureKeyVaultConfig(
+                vaultName = effectiveVault,
+                secretName = secretName,
+                tenantId = tenantId,
+                clientId = clientId,
+                clientSecret = clientSecret,
+                authorityHost = authorityHost.ifBlank { "https://login.microsoftonline.com" },
+                apiVersion = apiVersion.ifBlank { "7.4" },
+            )
+            val secretData = azClient.fetchSecret(config)
+
+            for (secName in names) {
+                val decl = declarationMap.getValue(secName)
+
+                // Interpolate variables in customFilters
+                val resolvedFilters = decl.customFilters.mapValues { (_, v) ->
+                    var text = v
+                    variableValues.forEach { (vk, vv) ->
+                        text = text.replace("{{$vk}}", vv)
+                    }
+                    text
+                }
+
+                for ((filterKey, expectedValue) in resolvedFilters) {
+                    val actualValue = secretData[filterKey]
+                    if (actualValue != expectedValue) {
+                        throw IllegalStateException(
+                            "Azure Key Vault secret '$secretName' did not match custom filter '$filterKey'. Expected: '$expectedValue', found: '$actualValue'."
+                        )
+                    }
+                }
+
+                val targetField = decl.targetField.trim()
+                val value = when {
+                    targetField.isNotBlank() && secretData.containsKey(targetField) -> secretData.getValue(targetField)
+                    targetField.isNotBlank() && secretData.containsKey(targetField.lowercase()) -> secretData.getValue(targetField.lowercase())
+                    targetField.isBlank() && secretData.containsKey(secName) -> secretData.getValue(secName)
+                    targetField.isBlank() && secretData.containsKey("secret") -> secretData.getValue("secret")
+                    targetField.isBlank() && secretData.containsKey("value") -> secretData.getValue("value")
+                    targetField.isBlank() && secretData.size == 1 -> secretData.values.first()
+                    targetField.isNotBlank() -> throw IllegalStateException(
+                        "Field '$targetField' not found in Azure Key Vault secret '$secretName'. Available keys: ${secretData.keys.joinToString(", ")}"
+                    )
+                    else -> throw IllegalStateException(
+                        "Target field is not specified and Azure Key Vault secret '$secretName' contains multiple keys: ${secretData.keys.joinToString(", ")}"
+                    )
+                }
+
+                resolved["_secret.$secName"] = value
+            }
+        }
+
+        return resolved
+    }
+
+    /**
      * Resolves secret tokens from both direct `{{_secret.<name>}}` references and OpenCollection
      * `secret: true` environment variables referenced as `{{<name>}}`.
      *
@@ -385,6 +495,13 @@ class SecretResolutionService(
         awsEndpointUrl: String? = null,
         awsVersionStage: String? = "AWSCURRENT",
         awsClient: AwsSecretsManagerClient? = null,
+        azureVaultName: String = "",
+        azureTenantId: String = "",
+        azureClientId: String = "",
+        azureClientSecret: String = "",
+        azureAuthorityHost: String = "https://login.microsoftonline.com",
+        azureApiVersion: String = "7.4",
+        azureClient: AzureKeyVaultClient? = null,
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
     ): Map<String, String> {
         val allTokens = extractAllVariableTokens(texts)
@@ -448,12 +565,14 @@ class SecretResolutionService(
         val vaultSecretsToFetch = mutableSetOf<String>()
         val keepassSecretsToFetch = mutableSetOf<String>()
         val awsSecretsToFetch = mutableSetOf<String>()
+        val azureSecretsToFetch = mutableSetOf<String>()
 
         for (name in allSecretsToFetch) {
             val decl = declarationMap.getValue(name)
             when {
                 decl.providerType.equals("keepassxc", ignoreCase = true) -> keepassSecretsToFetch.add(name)
                 decl.providerType.equals("aws-secrets-manager", ignoreCase = true) -> awsSecretsToFetch.add(name)
+                decl.providerType.equals("azure-key-vault", ignoreCase = true) -> azureSecretsToFetch.add(name)
                 else -> vaultSecretsToFetch.add(name)
             }
         }
@@ -494,6 +613,32 @@ class SecretResolutionService(
             )
             for (name in awsSecretsToFetch) {
                 val value = awsResolved["_secret.$name"] ?: continue
+                if (name in directSecretNames) {
+                    resolved["_secret.$name"] = value
+                }
+                if (name in secretVarToExternalSecret) {
+                    val varName = secretVarToExternalSecret.getValue(name)
+                    resolved[varName] = value
+                }
+            }
+        }
+
+        // Resolve Azure secrets
+        if (azureSecretsToFetch.isNotEmpty()) {
+            val azResolved = resolveAzureSecrets(
+                requiredSecretNames = azureSecretsToFetch,
+                declarations = declarations,
+                vaultName = azureVaultName,
+                tenantId = azureTenantId,
+                clientId = azureClientId,
+                clientSecret = azureClientSecret,
+                authorityHost = azureAuthorityHost,
+                apiVersion = azureApiVersion,
+                variableValues = variableValues,
+                client = azureClient,
+            )
+            for (name in azureSecretsToFetch) {
+                val value = azResolved["_secret.$name"] ?: continue
                 if (name in directSecretNames) {
                     resolved["_secret.$name"] = value
                 }

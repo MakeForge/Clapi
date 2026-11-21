@@ -66,6 +66,45 @@
             }
           ]
         }
+      },
+      {
+        "name": "Azure Staging",
+        "variables": [
+          {
+            "name": "baseUrl",
+            "value": "http://localhost:8080"
+          },
+          {
+            "name": "wsBaseUrl",
+            "value": "ws://localhost:8080"
+          }
+        ],
+        "externalSecrets": {
+          "type": "azure-key-vault",
+          "variables": [
+            {
+              "name": "client_id",
+              "secretName": "payment-foo",
+              "vaultName": "",
+              "targetField": "client_id",
+              "description": "Azure Gateway Client ID",
+              "disabled": false
+            },
+            {
+              "name": "client_secret",
+              "secretName": "payment-foo",
+              "vaultName": "",
+              "targetField": "client_secret",
+              "description": "Azure Gateway Secret"
+            },
+            {
+              "name": "plain_token",
+              "secretName": "plain-token",
+              "vaultName": "",
+              "description": "Azure Plaintext Secret"
+            }
+          ]
+        }
       }
     ]
   },

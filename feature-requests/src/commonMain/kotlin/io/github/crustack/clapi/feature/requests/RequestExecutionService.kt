@@ -3,6 +3,7 @@ package io.github.crustack.clapi.feature.requests
 import io.github.crustack.clapi.core.model.RequestBody
 import io.github.crustack.clapi.core.model.RequestDefinition
 import io.github.crustack.clapi.core.model.opencollection.AwsSecretsManagerExternalSecret
+import io.github.crustack.clapi.core.model.opencollection.AzureKeyVaultExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.ExternalSecretVariable
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
 import io.github.crustack.clapi.core.model.opencollection.GraphQLRequestItem
@@ -16,6 +17,7 @@ import io.github.crustack.clapi.core.model.opencollection.VariableEntry
 import io.github.crustack.clapi.core.network.ApiClient
 import io.github.crustack.clapi.core.network.NetworkEvent
 import io.github.crustack.clapi.core.network.VariableResolver
+import io.github.crustack.clapi.core.network.azure.AzureKeyVaultClient
 import io.github.crustack.clapi.core.network.getEnvironmentVariable
 import io.github.crustack.clapi.core.network.grpc.DynamicGrpcClient
 import io.github.crustack.clapi.core.network.grpc.GrpcCallRequest
@@ -47,6 +49,13 @@ class RequestExecutionService(
         awsSessionToken: String? = null,
         awsEndpointUrl: String? = null,
         awsVersionStage: String? = "AWSCURRENT",
+        azureVaultName: String = "",
+        azureTenantId: String = "",
+        azureClientId: String = "",
+        azureClientSecret: String = "",
+        azureAuthorityHost: String = "https://login.microsoftonline.com",
+        azureApiVersion: String = "7.4",
+        azureClient: AzureKeyVaultClient? = null,
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
     ): Map<String, String> {
         val declarations = externalSecrets.mapNotNull { sec ->
@@ -64,6 +73,16 @@ class RequestExecutionService(
                     customFilters = sec.customFilters,
                     enabled = sec.disabled != true,
                     providerType = "aws-secrets-manager",
+                )
+                is AzureKeyVaultExternalSecret -> SecretDeclaration(
+                    name = sec.name,
+                    path = sec.secretName,
+                    secretId = sec.secretName,
+                    url = sec.vaultName,
+                    targetField = sec.targetField,
+                    customFilters = sec.customFilters,
+                    enabled = sec.disabled != true,
+                    providerType = "azure-key-vault",
                 )
                 else -> null
             }
@@ -86,6 +105,13 @@ class RequestExecutionService(
             awsSessionToken = awsSessionToken,
             awsEndpointUrl = awsEndpointUrl,
             awsVersionStage = awsVersionStage,
+            azureVaultName = azureVaultName,
+            azureTenantId = azureTenantId,
+            azureClientId = azureClientId,
+            azureClientSecret = azureClientSecret,
+            azureAuthorityHost = azureAuthorityHost,
+            azureApiVersion = azureApiVersion,
+            azureClient = azureClient,
             processEnvProvider = processEnvProvider,
         )
     }
@@ -105,6 +131,13 @@ class RequestExecutionService(
         awsSessionToken: String? = null,
         awsEndpointUrl: String? = null,
         awsVersionStage: String? = "AWSCURRENT",
+        azureVaultName: String = "",
+        azureTenantId: String = "",
+        azureClientId: String = "",
+        azureClientSecret: String = "",
+        azureAuthorityHost: String = "https://login.microsoftonline.com",
+        azureApiVersion: String = "7.4",
+        azureClient: AzureKeyVaultClient? = null,
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
     ): Flow<NetworkEvent> {
         val textsToScan = mutableListOf<String>()
@@ -126,6 +159,13 @@ class RequestExecutionService(
             awsSessionToken = awsSessionToken,
             awsEndpointUrl = awsEndpointUrl,
             awsVersionStage = awsVersionStage,
+            azureVaultName = azureVaultName,
+            azureTenantId = azureTenantId,
+            azureClientId = azureClientId,
+            azureClientSecret = azureClientSecret,
+            azureAuthorityHost = azureAuthorityHost,
+            azureApiVersion = azureApiVersion,
+            azureClient = azureClient,
             processEnvProvider = processEnvProvider,
         )
         val effectiveLayers = if (secretMap.isNotEmpty()) listOf(secretMap) + variableLayers else variableLayers
@@ -142,6 +182,19 @@ class RequestExecutionService(
         vaultToken: String? = null,
         mountPath: String = "secret",
         namespace: String? = null,
+        awsRegion: String = "us-east-1",
+        awsAccessKeyId: String? = null,
+        awsSecretAccessKey: String? = null,
+        awsSessionToken: String? = null,
+        awsEndpointUrl: String? = null,
+        awsVersionStage: String? = "AWSCURRENT",
+        azureVaultName: String = "",
+        azureTenantId: String = "",
+        azureClientId: String = "",
+        azureClientSecret: String = "",
+        azureAuthorityHost: String = "https://login.microsoftonline.com",
+        azureApiVersion: String = "7.4",
+        azureClient: AzureKeyVaultClient? = null,
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
         includePaths: List<String> = emptyList(),
     ): GrpcCallResponse {
@@ -157,6 +210,19 @@ class RequestExecutionService(
             vaultToken = vaultToken,
             mountPath = mountPath,
             namespace = namespace,
+            awsRegion = awsRegion,
+            awsAccessKeyId = awsAccessKeyId,
+            awsSecretAccessKey = awsSecretAccessKey,
+            awsSessionToken = awsSessionToken,
+            awsEndpointUrl = awsEndpointUrl,
+            awsVersionStage = awsVersionStage,
+            azureVaultName = azureVaultName,
+            azureTenantId = azureTenantId,
+            azureClientId = azureClientId,
+            azureClientSecret = azureClientSecret,
+            azureAuthorityHost = azureAuthorityHost,
+            azureApiVersion = azureApiVersion,
+            azureClient = azureClient,
             processEnvProvider = processEnvProvider,
         )
         val effectiveLayers = if (secretMap.isNotEmpty()) listOf(secretMap) + variableLayers else variableLayers

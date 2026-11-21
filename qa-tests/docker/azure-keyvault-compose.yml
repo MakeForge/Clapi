@@ -1,0 +1,47 @@
+services:
+  azure-keyvault:
+    image: nagyesta/lowkey-vault:7.4.0-ubi10-minimal
+    container_name: local-azure-vault
+    ports:
+      - "8443:8443"
+    environment:
+      LOWKEY_ARGS: "--server.port=8443"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -k -f https://localhost:8443/ping || exit 1"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+      start_period: 3s
+
+  azure-vault-seeder:
+    image: curlimages/curl:latest
+    container_name: local-azure-seeder
+    restart: "no"
+    depends_on:
+      azure-keyvault:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        echo "Creating vault in Lowkey Vault..."
+        curl -k -f -s -X POST "https://azure-keyvault:8443/management/vault" \
+          -H "Content-Type: application/json" \
+          -d '{"baseUri": "https://localhost:8443", "recoveryLevel": "Purgeable"}'
+
+        echo "Seeding JSON secret..."
+        curl -k -f -s -X PUT "https://azure-keyvault:8443/secrets/payment-foo?api-version=7.4" \
+          -H "Host: localhost:8443" \
+          -H "Authorization: Bearer dummy-token" \
+          -H "Content-Type: application/json" \
+          -d '{"value": "{\"client_id\":\"azure_client_999\",\"client_secret\":\"sk_azure_secret_888\"}", "contentType": "application/json"}'
+
+        echo "Seeding Plaintext secret..."
+        curl -k -f -s -X PUT "https://azure-keyvault:8443/secrets/plain-token?api-version=7.4" \
+          -H "Host: localhost:8443" \
+          -H "Authorization: Bearer dummy-token" \
+          -H "Content-Type: application/json" \
+          -d '{"value": "super-secret-plain-token-12345", "contentType": "text/plain"}'
+
+        echo "Azure secrets seeded successfully!"
+        tail -f /dev/null

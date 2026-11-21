@@ -2,6 +2,7 @@ package io.github.crustack.clapi.ui.shared.components.executor
 
 import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.core.network.aws.AwsSecretsManagerClient
+import io.github.crustack.clapi.core.network.azure.AzureKeyVaultClient
 import io.github.crustack.clapi.core.network.dynamicvar.DynamicVariableContext
 import io.github.crustack.clapi.core.network.dynamicvar.DynamicVariableRegistry
 import io.github.crustack.clapi.core.network.dynamicvar.OAuth2ResolvedConfig
@@ -24,6 +25,7 @@ internal suspend fun resolveExternalSecretsForTab(
     secretResolutionService: SecretResolutionService = SecretResolutionService(),
     keepassClient: KeePassXcClient? = null,
     awsClient: AwsSecretsManagerClient? = null,
+    azureClient: AzureKeyVaultClient? = null,
     processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
 ): Map<String, String>? {
     val secretVariableNames = state.selectedEnvironment?.variables
@@ -35,7 +37,7 @@ internal suspend fun resolveExternalSecretsForTab(
     val provider = state.selectedEnvironment?.externalSecretsProvider?.ifBlank { "hashicorp-vault-server" } ?: "hashicorp-vault-server"
 
     val declarations = state.selectedEnvironment?.externalSecrets?.map {
-        val defaultTarget = if (provider.equals("aws-secrets-manager", ignoreCase = true)) "" else "password"
+        val defaultTarget = if (provider.equals("aws-secrets-manager", ignoreCase = true) || provider.equals("azure-key-vault", ignoreCase = true)) "" else "password"
         SecretDeclaration(
             name = it.name.trim(),
             path = it.path.trim(),
@@ -60,6 +62,9 @@ internal suspend fun resolveExternalSecretsForTab(
         val awsSessionToken = state.settings.awsSessionToken.ifBlank {
             PlatformStorage.getSecretString("clapi.settings.awsSessionToken").orEmpty()
         }
+        val azureClientSecret = state.settings.azureClientSecret.ifBlank {
+            PlatformStorage.getSecretString("settings.azureClientSecret").orEmpty()
+        }
 
         secretResolutionService.resolveAllSecrets(
             texts = textsToScan,
@@ -80,6 +85,13 @@ internal suspend fun resolveExternalSecretsForTab(
             awsEndpointUrl = state.settings.awsEndpointUrl.ifBlank { null },
             awsVersionStage = state.settings.awsVersionStage.ifBlank { "AWSCURRENT" },
             awsClient = awsClient,
+            azureVaultName = state.settings.azureVaultName,
+            azureTenantId = state.settings.azureTenantId,
+            azureClientId = state.settings.azureClientId,
+            azureClientSecret = azureClientSecret,
+            azureAuthorityHost = state.settings.azureAuthorityHost,
+            azureApiVersion = state.settings.azureApiVersion,
+            azureClient = azureClient,
             processEnvProvider = processEnvProvider,
         )
     } catch (e: Exception) {
