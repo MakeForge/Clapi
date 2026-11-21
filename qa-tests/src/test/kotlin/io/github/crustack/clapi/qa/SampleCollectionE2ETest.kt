@@ -9,6 +9,7 @@ import io.github.crustack.clapi.core.network.KtorApiClient
 import io.github.crustack.clapi.core.network.NetworkEvent
 import io.github.crustack.clapi.core.network.RetryPolicy
 import io.github.crustack.clapi.core.storage.opencollection.OpenCollectionSchemaValidator
+import io.github.crustack.clapi.core.storage.opencollection.OpenCollectionSerializer
 import io.github.crustack.clapi.server.module
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO

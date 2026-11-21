@@ -308,6 +308,8 @@
   "mcp_elicit_decline": "Refuser",
   "new_mcp_connection": "Nouvelle connexion MCP",
   "new_sse_request": "Nouvelle requête SSE",
+  "new_http_request": "Nouvelle requête HTTP",
+  "new_grpc_request": "Nouvelle requête gRPC",
   "import_dialog_title": "Importer OpenAPI / OpenCollection",
   "import_tab_file": "Fichier",
   "import_tab_clipboard": "Presse-papiers",

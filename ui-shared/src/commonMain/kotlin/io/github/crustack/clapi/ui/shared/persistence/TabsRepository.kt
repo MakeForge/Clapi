@@ -81,6 +81,10 @@ object TabsRepository {
                         put("params",  kvListJson(tab.params))
                         put("variables", kvListJson(tab.variables))
                         put("headers", kvListJson(tab.headers))
+                        put("grpcMetadata", kvListJson(tab.grpcMetadata))
+                        put("protoFilePath", tab.protoFilePath ?: "")
+                        put("grpcMethod", tab.grpcMethod ?: "")
+                        put("grpcMethodType", tab.grpcMethodType)
                         put("formRows", formRowListJson(tab.formRows))
                         put("urlencodedRows", formRowListJson(tab.urlencodedRows))
                         put("kind", tab.kind.name)
@@ -262,9 +266,15 @@ object TabsRepository {
                 if (savedHeaders.isNotEmpty()) {
                     tab.headers.clear()
                     tab.headers.addAll(savedHeaders)
-                } else if (savedKind == RequestKind.FOLDER) {
+                } else if (savedKind == RequestKind.FOLDER || savedKind == RequestKind.GRPC) {
                     tab.headers.clear()
                 }
+                obj["grpcMetadata"]?.jsonArray?.forEach { kv ->
+                    tab.grpcMetadata.add(kvFromJson(kv.jsonObject))
+                }
+                tab.protoFilePath = obj["protoFilePath"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
+                tab.grpcMethod = obj["grpcMethod"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
+                tab.grpcMethodType = obj["grpcMethodType"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } ?: "unary"
 
                 // Load form rows BEFORE restoreSavedSnapshot so that recomputeDirty()
                 // sees the complete state when comparing against the persisted savedSnapshot.

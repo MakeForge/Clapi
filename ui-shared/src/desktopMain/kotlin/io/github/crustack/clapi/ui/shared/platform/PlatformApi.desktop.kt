@@ -84,6 +84,17 @@ actual fun pickBinaryFileForRequest(onResult: (PickedBinaryFile) -> Unit) {
     }
 }
 
+actual fun pickProtoFile(onResult: (filePath: String) -> Unit) {
+    val chooser = JFileChooser()
+    chooser.applyRememberedDirectory()
+    chooser.fileFilter = FileNameExtensionFilter("Protocol Buffer files (*.proto)", "proto")
+    if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+        val selected = chooser.selectedFile
+        rememberChooserDirectory(selected)
+        onResult(selected.absolutePath)
+    }
+}
+
 actual fun saveFileForExport(content: String, defaultFilename: String) {
     val chooser = JFileChooser()
     chooser.applyRememberedDirectory()

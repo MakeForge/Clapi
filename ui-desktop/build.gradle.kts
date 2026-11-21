@@ -77,7 +77,7 @@ compose.desktop {
             }
             linux {
                 packageName        = "clapi"
-                debMaintainer      = "clapi@users.noreply.github.com"
+                debMaintainer      = "crustackk@gmail.com"
                 appCategory        = "Development"
                 iconFile.set(project.file("src/desktopMain/resources/icons/clapi-icon-256.png"))
             }

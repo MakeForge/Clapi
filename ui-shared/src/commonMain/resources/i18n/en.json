@@ -361,6 +361,8 @@
   "mcp_elicit_decline": "Decline",
   "new_mcp_connection": "New MCP Connection",
   "new_sse_request": "New SSE Request",
+  "new_http_request": "New HTTP Request",
+  "new_grpc_request": "New gRPC Request",
   "import_dialog_title": "Import OpenAPI / OpenCollection",
   "import_tab_file": "File",
   "import_tab_clipboard": "Clipboard",

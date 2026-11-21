@@ -1,6 +1,9 @@
 package io.github.crustack.clapi.core.network.mcp
 
+import io.github.crustack.clapi.core.model.AuthConfig
+import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.core.model.JsonRpcEnvelope
+import io.github.crustack.clapi.core.model.KeyValueEntry
 import io.github.crustack.clapi.core.model.McpConnectionConfig
 import io.github.crustack.clapi.core.model.jsonRpcId
 import io.ktor.client.HttpClient

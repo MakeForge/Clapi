@@ -11,6 +11,7 @@ kotlin {
     sourceSets {
         jvmTest {
             kotlin.srcDir("src/test/kotlin")
+            resources.srcDir("src/test/resources")
             dependencies {
                 implementation(project(":core-model"))
                 implementation(project(":core-scripting"))
@@ -31,6 +32,13 @@ kotlin {
                 implementation(libs.ktor.server.netty)
                 implementation(libs.ktor.server.websockets)
                 implementation(libs.ktor.server.content.negotiation)
+                implementation(libs.grpc.netty.shaded)
+                implementation(libs.grpc.protobuf)
+                implementation(libs.grpc.stub)
+                implementation(libs.protobuf.java)
+                implementation(libs.protobuf.java.util)
+                implementation(libs.protoc.jar)
+                implementation(libs.coroutines.guava)
                 implementation(libs.junit4)
             }
         }

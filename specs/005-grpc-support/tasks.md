@@ -20,9 +20,9 @@
 
 **Purpose**: Dependency configuration and build setup for Protobuf and gRPC runtime libraries
 
-- [ ] T001 Add Protobuf and gRPC dependencies (`grpc-netty-shaded`, `grpc-protobuf`, `grpc-stub`, `protobuf-java`, `protobuf-java-util`, `protoc-jar`) in `gradle/libs.versions.toml`
-- [ ] T002 Add gRPC, Protobuf, and coroutines-guava dependencies to `core-network/build.gradle.kts`
-- [ ] T003 [P] Add test dependencies and proto resource path configuration in `qa-tests/build.gradle.kts`
+- [X] T001 Add Protobuf and gRPC dependencies (`grpc-netty-shaded`, `grpc-protobuf`, `grpc-stub`, `protobuf-java`, `protobuf-java-util`, `protoc-jar`) in `gradle/libs.versions.toml`
+- [X] T002 Add gRPC, Protobuf, and coroutines-guava dependencies to `core-network/build.gradle.kts`
+- [X] T003 [P] Add test dependencies and proto resource path configuration in `qa-tests/build.gradle.kts`
 
 ---
 
@@ -32,10 +32,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this foundational phase is complete
 
-- [ ] T004 Extend `RequestKind` enum with `GRPC` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/McpModels.kt`
-- [ ] T005 Implement `GrpcRequestItem`, `GrpcRequestInfo`, `GrpcRequestDetails`, `GrpcRequestRuntime`, and `GrpcMetadata` data classes in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt`
-- [ ] T006 Update `OpenCollectionItemSerializer` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt` to handle polymorphic deserialization for `GrpcRequestItem` when element has `grpc` or `info.type == "grpc"`
-- [ ] T007 [P] Define gRPC runtime models (`ProtoMethodInfo`, `ProtoServiceInfo`, `ProtoSchemaDefinition`, `GrpcCallRequest`, `GrpcCallResponse`) in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/grpc/GrpcModels.kt`
+- [X] T004 Extend `RequestKind` enum with `GRPC` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/McpModels.kt`
+- [X] T005 Implement `GrpcRequestItem`, `GrpcRequestInfo`, `GrpcRequestDetails`, `GrpcRequestRuntime`, and `GrpcMetadata` data classes in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt`
+- [X] T006 Update `OpenCollectionItemSerializer` in `core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/OpenCollectionItem.kt` to handle polymorphic deserialization for `GrpcRequestItem` when element has `grpc` or `info.type == "grpc"`
+- [X] T007 [P] Define gRPC runtime models (`ProtoMethodInfo`, `ProtoServiceInfo`, `ProtoSchemaDefinition`, `GrpcCallRequest`, `GrpcCallResponse`) in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/grpc/GrpcModels.kt`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -48,14 +48,14 @@
 **Independent Test**: Click "+" on any collection folder in sidebar, select "New gRPC Request", and verify item is created and rendered with a `gRPC` badge displaying `MethodPatch` accent color.
 
 ### Tests for User Story 1
-- [ ] T008 [P] [US1] Create UI unit test verifying `GrpcBadge` rendering and folder "+" context menu in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/components/SidebarGrpcBadgeTest.kt`
+- [X] T008 [P] [US1] Create UI unit test verifying `GrpcBadge` rendering and folder "+" context menu in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/components/SidebarGrpcBadgeTest.kt`
 
 ### Implementation for User Story 1
-- [ ] T009 [P] [US1] Create `GrpcBadge` composable with `ClapiColors.MethodPatch` styling in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt`
-- [ ] T010 [US1] Update `CollectionTreeNode` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` to display `GrpcBadge` when `node.kind == RequestKind.GRPC`
-- [ ] T011 [P] [US1] Update `RequestTabsBar` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestTabsBar.kt` to render `GrpcBadge` for tabs with `RequestKind.GRPC`
-- [ ] T012 [US1] Update folder "+" button action in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` to display a dropdown context menu offering "HTTP Request" and "gRPC Request"
-- [ ] T013 [US1] Add handler `onAddGrpcRequest` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` and `AppState` to create a `CollectionNode` with `kind = RequestKind.GRPC`
+- [X] T009 [P] [US1] Create `GrpcBadge` composable with `ClapiColors.MethodPatch` styling in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt`
+- [X] T010 [US1] Update `CollectionTreeNode` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` to display `GrpcBadge` when `node.kind == RequestKind.GRPC`
+- [X] T011 [P] [US1] Update `RequestTabsBar` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestTabsBar.kt` to render `GrpcBadge` for tabs with `RequestKind.GRPC`
+- [X] T012 [US1] Update folder "+" button action in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` to display a dropdown context menu offering "HTTP Request" and "gRPC Request"
+- [X] T013 [US1] Add handler `onAddGrpcRequest` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` and `AppState` to create a `CollectionNode` with `kind = RequestKind.GRPC`
 
 **Checkpoint**: User Story 1 is functional and testable independently (MVP ready).
 
@@ -68,13 +68,13 @@
 **Independent Test**: Open a gRPC request, pick a valid `.proto` file using the "Select Proto File" dialog, click Save, and verify the method dropdown lists all parsed RPC methods.
 
 ### Tests for User Story 2
-- [ ] T014 [P] [US2] Add unit test for `ProtocJarParser` with sample `.proto` file in `core-network/src/desktopTest/kotlin/io/github/crustack/clapi/core/network/grpc/ProtocJarParserTest.kt`
+- [X] T014 [P] [US2] Add unit test for `ProtocJarParser` with sample `.proto` file in `core-network/src/desktopTest/kotlin/io/github/crustack/clapi/core/network/grpc/ProtocJarParserTest.kt`
 
 ### Implementation for User Story 2
-- [ ] T015 [P] [US2] Implement `ProtoParser` interface and `ProtocJarParser` in `core-network/src/desktopMain/kotlin/io/github/crustack/clapi/core/network/grpc/ProtocJarParser.kt` using `protoc-jar` to compile `.proto` into a `FileDescriptorSet` and extract services and methods
-- [ ] T016 [P] [US2] Implement `SelectProtoFileDialog` composable in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SelectProtoFileDialog.kt` with current file path display, file picker action, and save button
-- [ ] T017 [US2] Extend `RequestTabState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` with fields for `protoFilePath`, `grpcMethod`, `availableMethods`, and proto loading state
-- [ ] T018 [US2] Create `GrpcRequestEditor` top request bar in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GrpcRequestEditor.kt` with URL input, Proto selection dialog button, and dynamic Method selector dropdown
+- [X] T015 [P] [US2] Implement `ProtoParser` interface and `ProtocJarParser` in `core-network/src/desktopMain/kotlin/io/github/crustack/clapi/core/network/grpc/ProtocJarParser.kt` using `protoc-jar` to compile `.proto` into a `FileDescriptorSet` and extract services and methods
+- [X] T016 [P] [US2] Implement `SelectProtoFileDialog` composable in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SelectProtoFileDialog.kt` with current file path display, file picker action, and save button
+- [X] T017 [US2] Extend `RequestTabState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` with fields for `protoFilePath`, `grpcMethod`, `availableMethods`, and proto loading state
+- [X] T018 [US2] Create `GrpcRequestEditor` top request bar in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GrpcRequestEditor.kt` with URL input, Proto selection dialog button, and dynamic Method selector dropdown
 
 **Checkpoint**: User Stories 1 and 2 operate together independently.
 
@@ -87,11 +87,11 @@
 **Independent Test**: Enter JSON in the Message editor, add a metadata entry in the Headers tab with a `{{variable}}`, and confirm that variables are substituted and saved.
 
 ### Implementation for User Story 3
-- [ ] T019 [US3] Extend `RequestTabState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` with `grpcMetadata` list, `grpcMessageBody` string, and scripting hooks
-- [ ] T020 [US3] Implement "Headers" metadata grid tab in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GrpcRequestEditor.kt` allowing users to add, edit, disable, and remove gRPC metadata key-values
-- [ ] T021 [US3] Implement "Message" tab in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GrpcRequestEditor.kt` providing a JSON code editor for the request payload
-- [ ] T022 [US3] Implement "Scripts" tab in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GrpcRequestEditor.kt` for pre-request and post-request test scripts
-- [ ] T023 [US3] Add variable token substitution (`{{var}}`) across URL, metadata values, and message JSON text in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GrpcRequestEditor.kt`
+- [X] T019 [US3] Extend `RequestTabState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` with `grpcMetadata` list, `grpcMessageBody` string, and scripting hooks
+- [X] T020 [US3] Implement "Headers" metadata grid tab in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GrpcRequestEditor.kt` allowing users to add, edit, disable, and remove gRPC metadata key-values
+- [X] T021 [US3] Implement "Message" tab in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GrpcRequestEditor.kt` providing a JSON code editor for the request payload
+- [X] T022 [US3] Implement "Scripts" tab in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GrpcRequestEditor.kt` for pre-request and post-request test scripts
+- [X] T023 [US3] Add variable token substitution (`{{var}}`) across URL, metadata values, and message JSON text in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GrpcRequestEditor.kt`
 
 **Checkpoint**: gRPC authoring tabs and variable substitutions are complete and functional.
 
@@ -104,14 +104,14 @@
 **Independent Test**: Configure a unary RPC call targeting a live gRPC endpoint, click "Send", and verify response status, execution time, response metadata, and pretty-printed JSON payload appear in the response view.
 
 ### Tests for User Story 4
-- [ ] T024 [P] [US4] Add unit tests for `NettyDynamicGrpcClient` in `core-network/src/desktopTest/kotlin/io/github/crustack/clapi/core/network/grpc/DynamicGrpcClientTest.kt`
+- [X] T024 [P] [US4] Add unit tests for `NettyDynamicGrpcClient` in `core-network/src/desktopTest/kotlin/io/github/crustack/clapi/core/network/grpc/DynamicGrpcClientTest.kt`
 
 ### Implementation for User Story 4
-- [ ] T025 [P] [US4] Implement `DynamicGrpcClient` in `core-network/src/desktopMain/kotlin/io/github/crustack/clapi/core/network/grpc/NettyDynamicGrpcClient.kt` using `ManagedChannel`, `JsonFormat.parser()`, `DynamicMessage`, and `ClientCalls.futureUnaryCall`
-- [ ] T026 [US4] Implement metadata interceptor in `core-network/src/desktopMain/kotlin/io/github/crustack/clapi/core/network/grpc/NettyDynamicGrpcClient.kt` to attach custom headers/metadata to outgoing calls
-- [ ] T027 [US4] Wire `DynamicGrpcClient` into `RequestExecutionService` in `feature-requests/src/commonMain/kotlin/io/github/crustack/clapi/feature/requests/RequestExecutionService.kt`
-- [ ] T028 [US4] Implement the response viewer panel in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GrpcRequestEditor.kt` displaying status code, latency, response metadata, and pretty-printed JSON response body
-- [ ] T029 [US4] Update `RequestEditor.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestEditor.kt` to render `GrpcRequestEditor` when `tabState.kind == RequestKind.GRPC`
+- [X] T025 [P] [US4] Implement `DynamicGrpcClient` in `core-network/src/desktopMain/kotlin/io/github/crustack/clapi/core/network/grpc/NettyDynamicGrpcClient.kt` using `ManagedChannel`, `JsonFormat.parser()`, `DynamicMessage`, and `ClientCalls.futureUnaryCall`
+- [X] T026 [US4] Implement metadata interceptor in `core-network/src/desktopMain/kotlin/io/github/crustack/clapi/core/network/grpc/NettyDynamicGrpcClient.kt` to attach custom headers/metadata to outgoing calls
+- [X] T027 [US4] Wire `DynamicGrpcClient` into `RequestExecutionService` in `feature-requests/src/commonMain/kotlin/io/github/crustack/clapi/feature/requests/RequestExecutionService.kt`
+- [X] T028 [US4] Implement the response viewer panel in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GrpcRequestEditor.kt` displaying status code, latency, response metadata, and pretty-printed JSON response body
+- [X] T029 [US4] Update `RequestEditor.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestEditor.kt` to render `GrpcRequestEditor` when `tabState.kind == RequestKind.GRPC`
 
 **Checkpoint**: End-to-end execution of gRPC calls from the UI is fully operational.
 
@@ -124,11 +124,11 @@
 **Independent Test**: Export a collection with gRPC requests to OpenCollection format, re-import it, and verify that `url`, `method`, `protoFilePath`, metadata, message, and scripts match exactly.
 
 ### Tests for User Story 5
-- [ ] T030 [P] [US5] Create round-trip serialization unit tests in `core-storage/src/commonTest/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionGrpcStorageTest.kt`
+- [X] T030 [P] [US5] Create round-trip serialization unit tests in `core-storage/src/commonTest/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionGrpcStorageTest.kt`
 
 ### Implementation for User Story 5
-- [ ] T031 [US5] Update `OpenCollectionSerializer.kt` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionSerializer.kt` to include `KNOWN_GRPC_REQUEST_KEYS` and serialize/deserialize `GrpcRequestItem` in JSON and YAML
-- [ ] T032 [US5] Update `OpenCollectionModelMapping.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to map between `CollectionNode` and `GrpcRequestItem`
+- [X] T031 [US5] Update `OpenCollectionSerializer.kt` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/opencollection/OpenCollectionSerializer.kt` to include `KNOWN_GRPC_REQUEST_KEYS` and serialize/deserialize `GrpcRequestItem` in JSON and YAML
+- [X] T032 [US5] Update `OpenCollectionModelMapping.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to map between `CollectionNode` and `GrpcRequestItem`
 
 **Checkpoint**: Collections containing gRPC requests persist, import, and export losslessly.
 
@@ -141,10 +141,10 @@
 **Independent Test**: Run `./gradlew :qa-tests:test --tests "io.github.crustack.clapi.qa.GrpcApiE2ETest"` and verify tests pass.
 
 ### Tests & Implementation for User Story 6
-- [ ] T033 [P] [US6] Create test proto definition `greeter.proto` in `qa-tests/src/test/resources/greeter.proto`
-- [ ] T034 [US6] Add gRPC test endpoint to `DummyApiServer` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/testsupport/DummyApiServer.kt` hosting the greeter service (using `kotlinx.rpc` / gRPC)
-- [ ] T035 [P] [US6] Add sample gRPC request item to `qa-tests/fixtures/clapi-test-collection.json`
-- [ ] T036 [US6] Create end-to-end integration test `GrpcApiE2ETest.kt` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/GrpcApiE2ETest.kt` verifying execution, status codes, latency, response JSON, and metadata roundtrip against `DummyApiServer`
+- [X] T033 [P] [US6] Create test proto definition `greeter.proto` in `qa-tests/src/test/resources/greeter.proto`
+- [X] T034 [US6] Add gRPC test endpoint to `DummyApiServer` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/testsupport/DummyApiServer.kt` hosting the greeter service (using `kotlinx.rpc` / gRPC)
+- [X] T035 [P] [US6] Add sample gRPC request item to `qa-tests/fixtures/clapi-test-collection.json`
+- [X] T036 [US6] Create end-to-end integration test `GrpcApiE2ETest.kt` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/GrpcApiE2ETest.kt` verifying execution, status codes, latency, response JSON, and metadata roundtrip against `DummyApiServer`
 
 **Checkpoint**: Automated regression suite verifies gRPC requests against the mock server in CI.
 
@@ -154,9 +154,9 @@
 
 **Purpose**: Cleanup, formatting, resource safety, and validation
 
-- [ ] T037 [P] Run linter and formatting across modified modules (`core-model`, `core-network`, `core-storage`, `ui-shared`, `qa-tests`)
-- [ ] T038 Add temp file cleanup in `ProtocJarParser` in `core-network/src/desktopMain/kotlin/io/github/crustack/clapi/core/network/grpc/ProtocJarParser.kt`
-- [ ] T039 Execute quickstart scenarios per `specs/005-grpc-support/quickstart.md`
+- [X] T037 [P] Run linter and formatting across modified modules (`core-model`, `core-network`, `core-storage`, `ui-shared`, `qa-tests`)
+- [X] T038 Add temp file cleanup in `ProtocJarParser` in `core-network/src/desktopMain/kotlin/io/github/crustack/clapi/core/network/grpc/ProtocJarParser.kt`
+- [X] T039 Execute quickstart scenarios per `specs/005-grpc-support/quickstart.md`
 
 ---
 

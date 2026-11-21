@@ -35,6 +35,41 @@ data class HttpRequestInfo(
     override val tags: List<String> = emptyList(),
 ) : ItemInfo
 
+@Serializable
+data class GrpcRequestInfo(
+    override val name: String,
+    override val description: Description? = null,
+    override val type: String = "grpc",
+    override val seq: Double? = null,
+    override val tags: List<String> = emptyList(),
+) : ItemInfo
+
+@Serializable
+data class GrpcMetadata(
+    val name: String,
+    val value: String,
+    val description: Description? = null,
+    val disabled: Boolean? = null,
+)
+
+@Serializable
+data class GrpcRequestDetails(
+    val url: String,
+    val method: String? = null,
+    val methodType: String? = "unary",
+    val protoFilePath: String? = null,
+    val metadata: List<GrpcMetadata> = emptyList(),
+    val message: String? = null,
+    val auth: AuthConfig? = null,
+)
+
+@Serializable
+data class GrpcRequestRuntime(
+    val variables: List<VariableEntry> = emptyList(),
+    val scripts: List<Script> = emptyList(),
+    val assertions: List<Assertion> = emptyList(),
+)
+
 @Serializable(with = OpenCollectionItemSerializer::class)
 sealed interface OpenCollectionItem {
     val info: ItemInfo
@@ -61,16 +96,31 @@ data class HttpRequestItem(
     @Transient override val extensions: Map<String, JsonElement> = emptyMap(),
 ) : OpenCollectionItem
 
+@Serializable
+data class GrpcRequestItem(
+    override val info: GrpcRequestInfo,
+    val grpc: GrpcRequestDetails,
+    val runtime: GrpcRequestRuntime? = null,
+    val docs: String? = null,
+    @Transient override val extensions: Map<String, JsonElement> = emptyMap(),
+) : OpenCollectionItem
+
 object OpenCollectionItemSerializer : JsonContentPolymorphicSerializer<OpenCollectionItem>(OpenCollectionItem::class) {
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<OpenCollectionItem> {
         val obj = element.jsonObject
         if (obj.containsKey("http")) {
             return HttpRequestItem.serializer()
         }
+        if (obj.containsKey("grpc")) {
+            return GrpcRequestItem.serializer()
+        }
         val infoObj = obj["info"]?.jsonObject
         val type = infoObj?.get("type")?.jsonPrimitive?.content
         if (type == "http") {
             return HttpRequestItem.serializer()
+        }
+        if (type == "grpc") {
+            return GrpcRequestItem.serializer()
         }
         return FolderItem.serializer()
     }

@@ -11,6 +11,9 @@ import io.github.crustack.clapi.core.model.HttpMethodType
 import io.github.crustack.clapi.core.model.KeyValueEntry
 import io.github.crustack.clapi.core.model.RequestBody
 import io.github.crustack.clapi.core.model.RequestDefinition
+import io.github.crustack.clapi.core.model.RequestKind
+import io.github.crustack.clapi.core.model.ResponseDefinition
+import io.github.crustack.clapi.core.model.ResponseMetrics
 import io.github.crustack.clapi.core.network.ApiClient
 import io.github.crustack.clapi.core.network.LlmTextAssembler
 import io.github.crustack.clapi.core.network.NetworkEvent
@@ -86,6 +89,11 @@ fun sendRequest(scope: CoroutineScope, state: AppState, tab: RequestTabState) {
 }
 
 private fun sendRequestInternal(scope: CoroutineScope, state: AppState, tab: RequestTabState, chainDepth: Int) {
+    if (tab.kind == RequestKind.GRPC) {
+        sendGrpcRequestInternal(scope, state, tab, chainDepth)
+        return
+    }
+
     if (tab.url.isBlank()) {
         state.log("URL is empty", LogLevel.WARNING)
         return
@@ -438,6 +446,262 @@ private fun sendRequestInternal(scope: CoroutineScope, state: AppState, tab: Req
         }
     }
     // H-1: Store the job so it can be cancelled if Send is clicked again.
+    tab.currentJob = job
+}
+
+private fun sendGrpcRequestInternal(
+    scope: CoroutineScope,
+    state: AppState,
+    tab: RequestTabState,
+    chainDepth: Int,
+) {
+    if (tab.url.isBlank()) {
+        tab.lastError = "URL is empty"
+        state.log("URL is empty", LogLevel.WARNING)
+        return
+    }
+    if (tab.protoFilePath.isNullOrBlank()) {
+        tab.lastError = "No proto file selected"
+        state.log("No proto file selected", LogLevel.WARNING)
+        return
+    }
+    if (tab.grpcMethod.isNullOrBlank()) {
+        tab.lastError = "No gRPC method selected"
+        state.log("No gRPC method selected", LogLevel.WARNING)
+        return
+    }
+
+    tab.currentJob?.cancel()
+
+    val job = scope.launch {
+        val subReqClient = NetworkClientFactory.build(state.settings, NoOpNetworkLogger, RetryPolicy(maxAttempts = 1))
+        val scriptEngine = ClapiScriptEngine(
+            sendRequestExecutor = { spec -> executeSubRequest(subReqClient, spec) },
+        )
+        tab.isLoading = true
+        tab.response = null
+        tab.lastError = null
+        tab.streamChunks.clear()
+        tab.liveStreamText = ""
+        state.testResults.clear()
+
+        var effectiveUrl = tab.url.trim()
+        val effectiveMetadata = tab.grpcMetadata
+            .filter { it.enabled && it.key.isNotBlank() }
+            .map { KeyValueEntry(it.key, it.value, it.enabled, it.secret) }
+            .toMutableList()
+        var effectiveMessageBody = tab.grpcMessageBody
+        val requestScopedScriptVars = mutableMapOf<String, String>()
+
+        val ancestorFolders = state.getAncestorFolders(tab)
+        val preScriptChain = mutableListOf<Pair<String, String>>()
+        for (ancestor in ancestorFolders) {
+            val s = ancestor.preRequestScript
+            if (!s.isNullOrBlank()) {
+                preScriptChain.add("Folder '${ancestor.name}'" to s)
+            }
+        }
+        if (tab.preRequestScript.isNotBlank()) {
+            preScriptChain.add("Request '${tab.name}'" to tab.preRequestScript)
+        }
+
+        if (preScriptChain.isNotEmpty()) {
+            if (tab.scriptInjectedVarKeys.isNotEmpty()) {
+                val env = state.selectedEnvironment
+                env?.variables?.removeAll { it.key in tab.scriptInjectedVarKeys && it.kind == HeaderKind.USER }
+                tab.scriptInjectedVarKeys.clear()
+            }
+
+            for ((source, scriptContent) in preScriptChain) {
+                val layers = state.activeVariableLayers(tab)
+                val flatVars = buildMap<String, String> { layers.asReversed().forEach { putAll(it) } }
+                val preCtx = ScriptContext(
+                    url = effectiveUrl,
+                    method = tab.grpcMethod.orEmpty(),
+                    variables = buildMap {
+                        putAll(flatVars)
+                        putAll(requestScopedScriptVars)
+                    },
+                    globalVariables = state.globalVariables.filter { it.enabled }.associate { it.key to it.value },
+                    collectionVariables = state.collectionVariables.toMap(),
+                    requestHeaders = effectiveMetadata.associate { it.key to it.value },
+                    requestQueryParams = emptyMap(),
+                    requestBody = effectiveMessageBody,
+                )
+
+                val preResult = scriptEngine.executePreRequestScript(scriptContent, preCtx, state.settings.scriptPrefix)
+                preResult.logs.forEach { state.log(it) }
+                if (preResult.error != null) {
+                    state.log("⚠ Pre-request script error ($source): ${preResult.error}", LogLevel.ERROR)
+                }
+                if (preResult.newVariables.isNotEmpty()) {
+                    tab.scriptInjectedVarKeys.addAll(preResult.newVariables.keys)
+                    state.mergeScriptVariables(preResult.newVariables)
+                }
+                if (preResult.newRequestVariables.isNotEmpty()) {
+                    requestScopedScriptVars.putAll(preResult.newRequestVariables)
+                }
+                if (preResult.newGlobalVariables.isNotEmpty()) {
+                    state.mergeGlobalScriptVariables(preResult.newGlobalVariables)
+                }
+                if (preResult.newCollectionVariables.isNotEmpty()) {
+                    state.mergeCollectionScriptVariables(preResult.newCollectionVariables)
+                }
+                if (preResult.executionSkipRequest) {
+                    state.log("↷ Request skipped by script ($source)", LogLevel.INFO)
+                    tab.isLoading = false
+                    tab.currentJob = null
+                    return@launch
+                }
+                if (preResult.requestMutations.url != null) {
+                    effectiveUrl = preResult.requestMutations.url!!.trim()
+                }
+                if (preResult.requestMutations.body != null) {
+                    effectiveMessageBody = preResult.requestMutations.body ?: effectiveMessageBody
+                }
+                if (preResult.requestMutations.headers.isNotEmpty()) {
+                    preResult.requestMutations.headers.forEach { (key, value) ->
+                        val firstIndex = effectiveMetadata.indexOfFirst { it.key.equals(key, ignoreCase = true) }
+                        effectiveMetadata.removeAll { it.key.equals(key, ignoreCase = true) }
+                        val replacement = KeyValueEntry(key, value)
+                        if (firstIndex >= 0) {
+                            effectiveMetadata.add(firstIndex, replacement)
+                        } else {
+                            effectiveMetadata.add(replacement)
+                        }
+                    }
+                }
+            }
+        }
+
+        val grpcCallRequest = resolveGrpcCallRequest(
+            tab = tab,
+            state = state,
+            requestScopedVars = requestScopedScriptVars,
+            urlOverride = effectiveUrl,
+            metadataOverride = effectiveMetadata,
+            bodyOverride = effectiveMessageBody,
+        )
+
+        state.recordHistory(
+            requestId = tab.id,
+            method = tab.method,
+            name = tab.name,
+            url = tab.url,
+        )
+        state.logNetworkEvent("→ gRPC ${grpcCallRequest.fullMethodName} ${grpcCallRequest.host}:${grpcCallRequest.port}")
+
+        val grpcClient = NetworkClientFactory.buildGrpcClient(state.settings)
+        try {
+            val grpcResp = grpcClient.executeUnary(grpcCallRequest)
+            val bodyText = grpcResp.responseJson ?: buildString {
+                append("{\n")
+                append("  \"status\": \"${grpcResp.statusDescription}\",\n")
+                append("  \"code\": ${grpcResp.statusCode},\n")
+                append("  \"message\": \"${(grpcResp.errorMessage ?: "").replace("\"", "\\\"")}\"\n")
+                append("}")
+            }
+            val bodyBytes = bodyText.encodeToByteArray().size.toLong()
+            val responseDef = ResponseDefinition(
+                requestId = tab.id,
+                statusCode = grpcResp.statusCode,
+                statusText = grpcResp.statusDescription,
+                headers = grpcResp.responseMetadata.map { (k, v) -> KeyValueEntry(k, v) },
+                cookies = emptyList(),
+                bodyText = bodyText,
+                contentType = "application/json",
+                executedAtEpochMillis = currentTimeMillis(),
+                metrics = ResponseMetrics(
+                    statusCode = grpcResp.statusCode,
+                    responseTimeMs = grpcResp.durationMs,
+                    responseSizeBytes = bodyBytes,
+                    serverMs = grpcResp.durationMs,
+                ),
+            )
+            tab.response = responseDef
+            if (grpcResp.statusCode == 0) {
+                tab.lastError = null
+                state.logNetworkEvent(
+                    "← 0 OK (${grpcResp.durationMs}ms, ${bodyBytes}B)",
+                    LogLevel.SUCCESS,
+                )
+            } else {
+                tab.lastError = "${grpcResp.statusCode} ${grpcResp.statusDescription}: ${grpcResp.errorMessage ?: "gRPC call failed"}"
+                state.logNetworkEvent(
+                    "✗ ${grpcResp.statusCode} ${grpcResp.statusDescription} — ${grpcResp.errorMessage ?: ""}",
+                    LogLevel.ERROR,
+                )
+            }
+
+            // ── Post-request script chain (Leaf-to-Root) ──────────────
+            val testScriptChain = mutableListOf<Pair<String, String>>()
+            if (tab.testScript.isNotBlank()) {
+                testScriptChain.add("Request '${tab.name}'" to tab.testScript)
+            }
+            for (ancestor in ancestorFolders.asReversed()) {
+                val s = ancestor.testScript
+                if (!s.isNullOrBlank()) {
+                    testScriptChain.add("Folder '${ancestor.name}'" to s)
+                }
+            }
+
+            for ((source, scriptContent) in testScriptChain) {
+                val layers2 = state.activeVariableLayers(tab)
+                val flatVars2 = buildMap<String, String> { layers2.asReversed().forEach { putAll(it) } }
+                val testCtx = ScriptContext(
+                    url = effectiveUrl,
+                    method = grpcCallRequest.fullMethodName,
+                    statusCode = responseDef.statusCode,
+                    responseBody = responseDef.bodyText,
+                    responseHeaders = responseDef.headers.associate { it.key to it.value },
+                    responseTimeMs = responseDef.metrics.responseTimeMs,
+                    variables = buildMap {
+                        putAll(flatVars2)
+                        putAll(requestScopedScriptVars)
+                    },
+                    globalVariables = state.globalVariables.filter { it.enabled }.associate { it.key to it.value },
+                    collectionVariables = state.collectionVariables.toMap(),
+                    requestHeaders = grpcCallRequest.metadata.toMap(),
+                    requestQueryParams = emptyMap(),
+                    requestBody = grpcCallRequest.jsonPayload,
+                )
+                val testResult = scriptEngine.executeTestScript(scriptContent, testCtx, state.settings.scriptPrefix)
+                testResult.logs.forEach { state.log(it) }
+                if (testResult.error != null) {
+                    state.log("⚠ Post-request script error ($source): ${testResult.error}", LogLevel.ERROR)
+                }
+                testResult.assertions.forEach { a ->
+                    state.testResults.add(TestResultEntry(a.name, a.passed, a.message ?: ""))
+                    state.log(
+                        "${if (a.passed) "✓" else "✗"} ${a.name}" +
+                            if (!a.passed && a.message != null) " — ${a.message}" else "",
+                        if (a.passed) LogLevel.SUCCESS else LogLevel.ERROR,
+                    )
+                }
+                if (testResult.newVariables.isNotEmpty()) {
+                    tab.scriptInjectedVarKeys.addAll(testResult.newVariables.keys)
+                    state.mergeScriptVariables(testResult.newVariables)
+                }
+                if (testResult.newGlobalVariables.isNotEmpty()) {
+                    state.mergeGlobalScriptVariables(testResult.newGlobalVariables)
+                }
+                if (testResult.newCollectionVariables.isNotEmpty()) {
+                    state.mergeCollectionScriptVariables(testResult.newCollectionVariables)
+                }
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) {
+                state.log("Request cancelled", LogLevel.WARNING)
+            } else {
+                tab.lastError = e.message ?: "Unknown error"
+                state.log("✗ ${e.message ?: "Unknown error"}", LogLevel.ERROR)
+            }
+        } finally {
+            runCatching { grpcClient.shutdown() }
+            tab.isLoading = false
+            tab.currentJob = null
+        }
+    }
     tab.currentJob = job
 }
 

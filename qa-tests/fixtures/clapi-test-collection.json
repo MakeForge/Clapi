@@ -2460,6 +2460,47 @@
           }
         }
       ]
+    },
+    {
+      "info": {
+        "name": "gRPC",
+        "type": "folder"
+      },
+      "items": [
+        {
+          "info": {
+            "name": "Greeter SayHello",
+            "type": "grpc"
+          },
+          "grpc": {
+            "url": "{{grpcBaseUrl}}",
+            "method": "helloworld.Greeter/SayHello",
+            "methodType": "unary",
+            "protoFilePath": "greeter.proto",
+            "metadata": [
+              {
+                "name": "x-custom-meta",
+                "value": "clapi-grpc-test"
+              }
+            ],
+            "message": "{\n  \"name\": \"Clapi\"\n}"
+          }
+        },
+        {
+          "info": {
+            "name": "Greeter SayHelloAgain",
+            "type": "grpc"
+          },
+          "grpc": {
+            "url": "{{grpcBaseUrl}}",
+            "method": "helloworld.Greeter/SayHelloAgain",
+            "methodType": "unary",
+            "protoFilePath": "greeter.proto",
+            "metadata": [],
+            "message": "{\n  \"name\": \"Clapi\"\n}"
+          }
+        }
+      ]
     }
   ],
   "extensions": {

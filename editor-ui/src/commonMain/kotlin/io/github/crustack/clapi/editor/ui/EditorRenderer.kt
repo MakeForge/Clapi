@@ -112,7 +112,6 @@ import kotlin.math.roundToInt
 // Keys that must never produce a character when pressed (no text insertion).
 private val NON_CHARACTER_KEYS = setOf(
     Key.Function,
-    Key.Unknown,
     Key.F1, Key.F2, Key.F3, Key.F4, Key.F5, Key.F6,
     Key.F7, Key.F8, Key.F9, Key.F10, Key.F11, Key.F12,
     Key.Escape, Key.Insert,
@@ -462,12 +461,16 @@ fun EditorRenderer(
                     }
                     else -> {
                         val cp = event.utf16CodePoint
-                        val altOrMeta = meta || event.isCtrlPressed || event.isAltPressed
                         val looksLikeFnGlobeGhost =
                             cp == '?'.code && !event.isShiftPressed && event.key != Key.Slash
                         // Guard against fn / function / navigation keys whose utf16CodePoint
                         // happens to be a printable value (e.g. fn → '?' on macOS).
-                        if (cp > 0 && !cp.toChar().isISOControl() && !altOrMeta &&
+                        // Note: Do NOT reject Alt/Ctrl+Alt (AltGr) or Option when a printable
+                        // utf16CodePoint is produced, because non-US layouts (e.g. German/French/
+                        // Nordic/Spanish) and macOS Option-combinations require AltGr (Ctrl+Alt)
+                        // or Option (Alt) to type '{', '}', '[', ']', '@', '\', '|', '~', etc.
+                        val isCommandShortcut = event.isMetaPressed || (event.isCtrlPressed && !event.isAltPressed)
+                        if (cp in 1..0xFFFD && !cp.toChar().isISOControl() && !isCommandShortcut &&
                             event.key !in NON_CHARACTER_KEYS && !looksLikeFnGlobeGhost) {
                             viewModel.insertAtCursor(cp.toChar().toString())
                             true
