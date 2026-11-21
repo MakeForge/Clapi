@@ -176,6 +176,25 @@ class McpSessionState(
     fun supportsSubscribe(): Boolean =
         _initializeResult.value?.capabilities?.resources?.subscribe == true
 
+    /**
+     * Seeds in-memory state for previews and tests without opening network connections.
+     */
+    fun configureForPreview(
+        connectionState: McpConnectionState = McpConnectionState.CONNECTED,
+        tools: List<McpTool> = emptyList(),
+        resources: List<McpResource> = emptyList(),
+        prompts: List<McpPrompt> = emptyList(),
+        lastOperation: McpOperationResult? = null,
+        initializeResult: McpInitializeResult? = null,
+    ) {
+        _connectionState.value = connectionState
+        _tools.value = tools
+        _resources.value = resources
+        _prompts.value = prompts
+        _lastOperation.value = lastOperation
+        _initializeResult.value = initializeResult
+    }
+
     suspend fun connect(config: McpConnectionConfig, variableLayers: List<Map<String, String>> = emptyList()) {
         if (config.transport == McpTransportType.STDIO && !confirmStdio) {
             _error.value = "Confirm stdio before connecting (local process execution)"
