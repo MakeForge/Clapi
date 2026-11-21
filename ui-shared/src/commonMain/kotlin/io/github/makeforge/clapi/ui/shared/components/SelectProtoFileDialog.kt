@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import io.github.makeforge.clapi.ui.shared.generated.resources.Res
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_close
+import io.github.makeforge.clapi.ui.shared.platform.DocsLinks
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_description
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_folder_open
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_help_outline
@@ -178,15 +179,26 @@ fun SelectProtoFileDialog(
                             fontWeight = FontWeight.SemiBold,
                             color = ClapiColors.OnSurface,
                         )
-                        IconButton(
-                            onClick = onDismiss,
-                            modifier = Modifier.size(28.dp).testTag("proto-dialog-close"),
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            Icon(painter = painterResource(Res.drawable.ic_close),
-                                contentDescription = "Close",
-                                tint = ClapiColors.OnSurfaceDim,
-                                modifier = Modifier.size(16.dp),
+                            DocsHelpButton(
+                                url = DocsLinks.protobufSettings,
+                                tooltip = "Protobuf documentation",
+                                tag = "proto-dialog-docs-btn",
+                                size = 28.dp,
                             )
+                            IconButton(
+                                onClick = onDismiss,
+                                modifier = Modifier.size(28.dp).testTag("proto-dialog-close"),
+                            ) {
+                                Icon(painter = painterResource(Res.drawable.ic_close),
+                                    contentDescription = "Close",
+                                    tint = ClapiColors.OnSurfaceDim,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
                         }
                     }
 

@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import io.github.makeforge.clapi.ui.shared.platform.DocsLinks
 import io.github.makeforge.clapi.ui.shared.platform.PlatformLazyVerticalScrollbar
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -145,6 +146,11 @@ fun CollectionEditor(
                 fontWeight = FontWeight.SemiBold,
                 color = ClapiColors.OnSurface,
                 modifier = Modifier.weight(1f).testTag("collection-editor-title"),
+            )
+            DocsHelpButton(
+                url = DocsLinks.collections,
+                tooltip = "Collections documentation",
+                tag = "collection-docs-btn",
             )
             Button(
                 onClick = onSave,

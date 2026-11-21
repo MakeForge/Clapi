@@ -5,15 +5,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.hoverable
-import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Surface
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
-import io.github.makeforge.clapi.core.network.VariableResolver
-import io.github.makeforge.clapi.ui.shared.generated.resources.ic_close
-import io.github.makeforge.clapi.ui.shared.generated.resources.ic_visibility
-import io.github.makeforge.clapi.ui.shared.platform.copyToClipboard
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +24,17 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
+import io.github.makeforge.clapi.core.network.VariableResolver
+import io.github.makeforge.clapi.ui.shared.generated.resources.ic_close
+import io.github.makeforge.clapi.ui.shared.generated.resources.ic_visibility
+import io.github.makeforge.clapi.ui.shared.platform.DocsLinks
+import io.github.makeforge.clapi.ui.shared.platform.copyToClipboard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,7 +47,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -111,10 +112,10 @@ fun RequestBar(
         modifier = modifier
             .fillMaxWidth()
             .background(ClapiColors.Surface)
-            .padding(8.dp)
+            .padding(horizontal = 6.dp, vertical = 6.dp)
             .testTag("request-bar"),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         MethodDropdown(method, onMethodChanged)
 
@@ -129,17 +130,14 @@ fun RequestBar(
                 .clip(RoundedCornerShape(8.dp))
                 .background(ClapiColors.SurfaceContainer)
                 .border(1.dp, ClapiColors.Border, RoundedCornerShape(8.dp))
-                .padding(start = 12.dp, end = 6.dp, top = 4.dp, bottom = 4.dp),
+                .padding(start = 8.dp, end = 4.dp, top = 2.dp, bottom = 2.dp)
+                .onSizeChanged { urlTextWidth = it.width },
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .onSizeChanged { urlTextWidth = it.width },
-                ) {
+                Box(modifier = Modifier.weight(1f)) {
                     VariableAwareTextField(
                         value = url,
                         onValueChange = onUrlChanged,
@@ -154,110 +152,12 @@ fun RequestBar(
                         undoStack = urlUndoStack,
                         modifier = Modifier.fillMaxWidth().testTag("url-input"),
                     )
-
-                    if (showPreviewPopup) {
-                        val resolvedUrl = remember(url, state, tab, showPreviewPopup) {
-                            if (state != null) {
-                                val layers = state.activeVariableLayers(tab)
-                                val dynamicVars = state.activeDynamicVariables(tab)
-                                VariableResolver.resolve(
-                                    value = url,
-                                    variableLayers = layers,
-                                    removeUnresolved = false,
-                                    userDynamicVariables = dynamicVars,
-                                )
-                            } else {
-                                url
-                            }
-                        }
-                        val popupWidthDp = with(density) { urlTextWidth.toDp() }
-
-                        Popup(
-                            alignment = Alignment.TopStart,
-                            offset = IntOffset(x = 0, y = 38),
-                            properties = PopupProperties(focusable = true),
-                            onDismissRequest = { showPreviewPopup = false },
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = ClapiColors.Surface,
-                                tonalElevation = 8.dp,
-                                shadowElevation = 8.dp,
-                                border = androidx.compose.foundation.BorderStroke(1.dp, ClapiColors.Border),
-                                modifier = Modifier
-                                    .width(popupWidthDp.coerceAtLeast(360.dp))
-                                    .testTag("preview-resolved-url-popup"),
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Text(
-                                            text = "Resolved URL Preview",
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = ClapiColors.OnSurface,
-                                        )
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                        ) {
-                                            IconButton(
-                                                onClick = {
-                                                    runCatching { copyToClipboard(resolvedUrl) }
-                                                },
-                                                modifier = Modifier.size(24.dp).testTag("copy-resolved-url-btn"),
-                                            ) {
-                                                Icon(
-                                                    painter = painterResource(Res.drawable.ic_content_copy),
-                                                    contentDescription = "Copy resolved URL",
-                                                    tint = ClapiColors.OnSurfaceDim,
-                                                    modifier = Modifier.size(14.dp),
-                                                )
-                                            }
-                                            IconButton(
-                                                onClick = { showPreviewPopup = false },
-                                                modifier = Modifier.size(24.dp).testTag("close-resolved-url-popup-btn"),
-                                            ) {
-                                                Icon(
-                                                    painter = painterResource(Res.drawable.ic_close),
-                                                    contentDescription = "Close",
-                                                    tint = ClapiColors.OnSurfaceDim,
-                                                    modifier = Modifier.size(14.dp),
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    SelectionContainer {
-                                        Text(
-                                            text = resolvedUrl.ifBlank { "(empty URL)" },
-                                            fontFamily = CodeFontFamily,
-                                            fontSize = 13.sp,
-                                            color = if (resolvedUrl.isBlank()) ClapiColors.OnSurfaceDim else ClapiColors.Primary,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(ClapiColors.SurfaceContainer)
-                                                .padding(horizontal = 10.dp, vertical = 8.dp)
-                                                .testTag("resolved-url-text"),
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
                 }
 
                 IconButton(
                     onClick = { showPreviewPopup = !showPreviewPopup },
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(24.dp)
                         .testTag("preview-resolved-url-btn")
                         .handPointerHover(),
                 ) {
@@ -267,6 +167,104 @@ fun RequestBar(
                         tint = if (showPreviewPopup) ClapiColors.Primary else ClapiColors.OnSurfaceDim,
                         modifier = Modifier.size(16.dp),
                     )
+                }
+            }
+
+            if (showPreviewPopup) {
+                val resolvedUrl = remember(url, state, tab, showPreviewPopup) {
+                    if (state != null) {
+                        val layers = state.activeVariableLayers(tab)
+                        val dynamicVars = state.activeDynamicVariables(tab)
+                        VariableResolver.resolve(
+                            value = url,
+                            variableLayers = layers,
+                            removeUnresolved = false,
+                            userDynamicVariables = dynamicVars,
+                        )
+                    } else {
+                        url
+                    }
+                }
+                val popupWidthDp = with(density) { urlTextWidth.toDp() }
+
+                Popup(
+                    alignment = Alignment.TopStart,
+                    offset = IntOffset(x = 0, y = 38),
+                    properties = PopupProperties(focusable = false),
+                    onDismissRequest = { showPreviewPopup = false },
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = ClapiColors.Surface,
+                        tonalElevation = 8.dp,
+                        shadowElevation = 8.dp,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, ClapiColors.Border),
+                        modifier = Modifier
+                            .width(popupWidthDp.coerceAtLeast(360.dp))
+                            .testTag("preview-resolved-url-popup"),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = "Resolved URL Preview",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = ClapiColors.OnSurface,
+                                )
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    IconButton(
+                                        onClick = {
+                                            runCatching { copyToClipboard(resolvedUrl) }
+                                        },
+                                        modifier = Modifier.size(24.dp).testTag("copy-resolved-url-btn"),
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(Res.drawable.ic_content_copy),
+                                            contentDescription = "Copy resolved URL",
+                                            tint = ClapiColors.OnSurfaceDim,
+                                            modifier = Modifier.size(14.dp),
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = { showPreviewPopup = false },
+                                        modifier = Modifier.size(24.dp).testTag("close-resolved-url-popup-btn"),
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(Res.drawable.ic_close),
+                                            contentDescription = "Close",
+                                            tint = ClapiColors.OnSurfaceDim,
+                                            modifier = Modifier.size(14.dp),
+                                        )
+                                    }
+                                }
+                            }
+
+                            SelectionContainer {
+                                Text(
+                                    text = resolvedUrl.ifBlank { "(empty URL)" },
+                                    fontFamily = CodeFontFamily,
+                                    fontSize = 13.sp,
+                                    color = if (resolvedUrl.isBlank()) ClapiColors.OnSurfaceDim else ClapiColors.Primary,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(ClapiColors.SurfaceContainer)
+                                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                                        .testTag("resolved-url-text"),
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -371,7 +369,7 @@ private fun SendButton(isLoading: Boolean, onClick: () -> Unit, onCancel: () -> 
                 .hoverable(interactionSource)
                 .handPointerHover()
                 .clickable(onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = 10.dp, vertical = 8.dp)
                 .testTag("send-button"),
             contentAlignment = Alignment.Center,
         ) {
@@ -397,14 +395,14 @@ internal fun SaveButton(isLoading: Boolean, onClick: () -> Unit) {
 
     Box(
         modifier = Modifier
-            .widthIn(min = 72.dp)
+            .testTag("save-button")
+            .widthIn(min = 56.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(if (isHovered) ClapiColors.SurfaceHigh else ClapiColors.SurfaceContainer)
             .hoverable(interactionSource)
             .handPointerHover(!isLoading)
             .clickable(enabled = !isLoading, onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp)
-            .testTag("save-button"),
+            .padding(horizontal = 8.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {

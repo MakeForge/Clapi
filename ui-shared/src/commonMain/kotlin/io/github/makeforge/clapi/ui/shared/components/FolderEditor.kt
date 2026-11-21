@@ -28,6 +28,7 @@ import io.github.makeforge.clapi.ui.shared.generated.resources.Res
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_folder
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_save
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
+import io.github.makeforge.clapi.ui.shared.platform.DocsLinks
 import io.github.makeforge.clapi.ui.shared.shortcuts.onSaveHotkey
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.state.RequestEditorTab
@@ -79,6 +80,11 @@ fun FolderEditor(
                 fontWeight = FontWeight.SemiBold,
                 color = ClapiColors.OnSurface,
                 modifier = Modifier.weight(1f).testTag("folder-editor-title"),
+            )
+            DocsHelpButton(
+                url = DocsLinks.folders,
+                tooltip = "Folders documentation",
+                tag = "folder-docs-btn",
             )
             Button(
                 onClick = onSave,

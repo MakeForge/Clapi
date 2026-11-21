@@ -23,12 +23,14 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import io.github.makeforge.clapi.ui.shared.components.DocsHelpButton
 import io.github.makeforge.clapi.ui.shared.components.clampDialogOffsetFromCenter
 import io.github.makeforge.clapi.ui.shared.components.dialogEscape
 import io.github.makeforge.clapi.ui.shared.components.draggableNoSlop
 import io.github.makeforge.clapi.ui.shared.components.handPointerHover
 import io.github.makeforge.clapi.ui.shared.generated.resources.*
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
+import io.github.makeforge.clapi.ui.shared.platform.DocsLinks
 import io.github.makeforge.clapi.ui.shared.platform.PlatformColumnVerticalScrollbar
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
@@ -120,13 +122,30 @@ fun SettingsDialog(
                         .background(ClapiColors.SurfaceVariant)
                         .padding(12.dp),
                 ) {
-                    Text(
-                        Strings.settings,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = ClapiColors.OnSurface,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 12.dp),
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            Strings.settings,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = ClapiColors.OnSurface,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        val docUrl = when (selectedSection) {
+                            SettingsSection.SECRETS -> DocsLinks.secretManagers
+                            SettingsSection.SCRIPTING -> DocsLinks.scriptingArchitecture
+                            else -> DocsLinks.settings
+                        }
+                        DocsHelpButton(
+                            url = docUrl,
+                            tooltip = "Settings documentation",
+                            tag = "settings-docs-btn",
+                            size = 20.dp,
+                            iconSize = 14.dp,
+                        )
+                    }
 
                     SettingsSection.entries.forEach { section ->
                         val isActive = section == selectedSection

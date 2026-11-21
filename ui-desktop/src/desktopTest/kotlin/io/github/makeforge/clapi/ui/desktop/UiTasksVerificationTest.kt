@@ -103,8 +103,8 @@ class UiTasksVerificationTest {
         }
         composeRule.waitForIdle()
 
-        // Click "Normal" to toggle to "Secret"
-        composeRule.onNodeWithText("Normal").performClick()
+        // Click type toggle to switch to "Secret"
+        composeRule.onNodeWithTag("env-var-type-toggle-0").performClick()
         composeRule.waitForIdle()
 
         // Save dialog

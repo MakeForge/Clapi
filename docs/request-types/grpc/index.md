@@ -12,8 +12,8 @@ description: Complete guide to executing gRPC unary and streaming calls with Pro
 ## Overview
 
 <ThemedScreenshot
-  light="/generated/screenshots/MainScreenPreviewsKt.MainScreenGrpcPreviewLight.W1920dp_H1080dp.png"
-  dark="/generated/screenshots/MainScreenPreviewsKt.MainScreenGrpcPreviewDark.W1920dp_H1080dp.png"
+  light="/generated/screenshots/MainScreenPreviewsKt.MainScreenGrpcPreviewLight.W1600dp_H800dp.png"
+  dark="/generated/screenshots/MainScreenPreviewsKt.MainScreenGrpcPreviewDark.W1600dp_H800dp.png"
   alt="Clapi gRPC Request Editor"
 />
 

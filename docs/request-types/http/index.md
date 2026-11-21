@@ -12,8 +12,8 @@ description: Complete guide to sending and inspecting HTTP / REST API requests i
 ## Overview
 
 <ThemedScreenshot
-  light="/generated/screenshots/MainScreenPreviewsKt.MainScreenHttpPreviewLight.W1920dp_H1080dp.png"
-  dark="/generated/screenshots/MainScreenPreviewsKt.MainScreenHttpPreviewDark.W1920dp_H1080dp.png"
+  light="/generated/screenshots/MainScreenPreviewsKt.MainScreenHttpPreviewLight.W1600dp_H800dp.png"
+  dark="/generated/screenshots/MainScreenPreviewsKt.MainScreenHttpPreviewDark.W1600dp_H800dp.png"
   alt="Clapi HTTP Request Editor"
 />
 

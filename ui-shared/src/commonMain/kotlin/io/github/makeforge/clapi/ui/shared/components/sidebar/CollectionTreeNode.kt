@@ -620,6 +620,8 @@ internal fun CollectionTreeNode(
                         onAddGrpcRequest = onAddGrpcRequest,
                         onAddWebSocketRequest = onAddWebSocketRequest,
                         onAddGraphQLRequest = onAddGraphQLRequest,
+                        onAddMcpConnection = onAddMcpConnection,
+                        onAddSseRequest = onAddSseRequest,
                     )
                 }
             }

@@ -12,8 +12,8 @@ description: Complete guide to discovering, testing, and debugging MCP servers a
 ## Overview
 
 <ThemedScreenshot
-  light="/generated/screenshots/MainScreenPreviewsKt.MainScreenMcpPreviewLight.W1920dp_H1080dp.png"
-  dark="/generated/screenshots/MainScreenPreviewsKt.MainScreenMcpPreviewDark.W1920dp_H1080dp.png"
+  light="/generated/screenshots/MainScreenPreviewsKt.MainScreenMcpPreviewLight.W1600dp_H800dp.png"
+  dark="/generated/screenshots/MainScreenPreviewsKt.MainScreenMcpPreviewDark.W1600dp_H800dp.png"
   alt="Clapi MCP Tools Explorer"
 />
 

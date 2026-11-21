@@ -8,6 +8,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.printToLog
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
@@ -327,5 +329,19 @@ class MainScreenUiTest {
         val tab = state.activeTab ?: error("Need tab")
         kotlin.test.assertEquals(BodyType.XML, tab.bodyType, "Body type should be restored to XML")
         kotlin.test.assertEquals("<root>test</root>", tab.bodyContent, "XML content must survive Form roundtrip")
+    }
+
+    @Test
+    fun help_about_dialog_renders_documentation_section_and_link() {
+        val state = AppState().apply { showHelpDialog = true }
+        composeRule.setContent { MainScreen(state) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Help & About").assertIsDisplayed()
+        composeRule.onNodeWithText("Documentation").assertIsDisplayed()
+        composeRule.onNodeWithTag("help-about-docs-link").assertIsDisplayed()
+        composeRule.onNodeWithTag("help-about-close").performClick()
+        composeRule.waitForIdle()
+        kotlin.test.assertFalse(state.showHelpDialog)
     }
 }

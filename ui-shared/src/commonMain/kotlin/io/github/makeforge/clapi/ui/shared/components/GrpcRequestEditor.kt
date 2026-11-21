@@ -66,6 +66,7 @@ import io.github.makeforge.clapi.ui.shared.generated.resources.ic_lock
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_play_arrow
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_save
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_send
+import io.github.makeforge.clapi.ui.shared.platform.DocsLinks
 import io.github.makeforge.clapi.ui.shared.shortcuts.onSaveHotkey
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_stop
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
@@ -583,6 +584,12 @@ private fun GrpcRequestBar(
         GrpcSaveButton(
             isLoading = tab.isLoading,
             onClick = onSave,
+        )
+        DocsHelpButton(
+            url = DocsLinks.grpc,
+            tooltip = "gRPC documentation",
+            tag = "grpc-docs-button",
+            size = 32.dp,
         )
     }
 }

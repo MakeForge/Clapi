@@ -12,8 +12,8 @@ description: Complete guide to real-time, bidirectional WebSocket connections, m
 ## Overview
 
 <ThemedScreenshot
-  light="/generated/screenshots/MainScreenPreviewsKt.MainScreenWebSocketPreviewLight.W1920dp_H1080dp.png"
-  dark="/generated/screenshots/MainScreenPreviewsKt.MainScreenWebSocketPreviewDark.W1920dp_H1080dp.png"
+  light="/generated/screenshots/MainScreenPreviewsKt.MainScreenWebSocketPreviewLight.W1600dp_H800dp.png"
+  dark="/generated/screenshots/MainScreenPreviewsKt.MainScreenWebSocketPreviewDark.W1600dp_H800dp.png"
   alt="Clapi WebSocket Client"
 />
 

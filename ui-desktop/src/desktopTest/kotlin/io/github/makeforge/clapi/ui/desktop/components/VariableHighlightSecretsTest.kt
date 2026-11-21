@@ -39,7 +39,7 @@ class VariableHighlightSecretsTest {
         state.environments.add(env)
         state.selectedEnvIndex = 0
 
-        val vars = getAvailableVariables(state, null)
+        val vars = getAvailableVariables(state, null).filter { !it.first.startsWith("$") && !it.second.startsWith("[Dynamic]") }
 
         assertEquals(3, vars.size)
         // Regular variables first
@@ -62,7 +62,7 @@ class VariableHighlightSecretsTest {
         state.environments.add(env)
         state.selectedEnvIndex = 0
 
-        val vars = getAvailableVariables(state, null)
+        val vars = getAvailableVariables(state, null).filter { !it.first.startsWith("$") && !it.second.startsWith("[Dynamic]") }
 
         assertEquals(1, vars.size)
         assertEquals("_secret.enabled_sec" to "auth/creds", vars[0])
@@ -81,7 +81,7 @@ class VariableHighlightSecretsTest {
         state.environments.add(env)
         state.selectedEnvIndex = 0
 
-        val vars = getAvailableVariables(state, null)
+        val vars = getAvailableVariables(state, null).filter { !it.first.startsWith("$") && !it.second.startsWith("[Dynamic]") }
 
         assertEquals(1, vars.size)
         assertEquals("_secret.valid_sec" to "auth/creds", vars[0])
@@ -104,7 +104,7 @@ class VariableHighlightSecretsTest {
         state.environments.add(env)
         state.selectedEnvIndex = 0
 
-        val vars = getAvailableVariables(state, null)
+        val vars = getAvailableVariables(state, null).filter { !it.first.startsWith("$") && !it.second.startsWith("[Dynamic]") }
 
         assertEquals(4, vars.size)
         assertEquals("alpha" to "2", vars[0])
@@ -118,7 +118,7 @@ class VariableHighlightSecretsTest {
         val state = AppState()
         state.selectedEnvIndex = -1
 
-        val varsWithNullEnv = getAvailableVariables(state, null)
+        val varsWithNullEnv = getAvailableVariables(state, null).filter { !it.first.startsWith("$") && !it.second.startsWith("[Dynamic]") }
         assertTrue(varsWithNullEnv.isEmpty())
 
         val varsWithNullState = getAvailableVariables(null, null)

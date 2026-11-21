@@ -70,6 +70,7 @@ import io.github.makeforge.clapi.ui.shared.generated.resources.ic_public
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_upload_file
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_warning
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
+import io.github.makeforge.clapi.ui.shared.platform.DocsLinks
 import io.github.makeforge.clapi.ui.shared.persistence.WorkspaceRepository
 import io.github.makeforge.clapi.ui.shared.persistence.toCollectionNode
 import io.github.makeforge.clapi.ui.shared.persistence.toMutableKeyValue
@@ -201,6 +202,13 @@ fun ImportSpecificationDialog(
                         }
                     }
                     Spacer(Modifier.weight(1f))
+                    DocsHelpButton(
+                        url = DocsLinks.importDocs,
+                        tooltip = "Import documentation",
+                        tag = "import-docs-btn",
+                        size = 28.dp,
+                    )
+                    Spacer(Modifier.width(4.dp))
                     IconButton(
                         onClick = onDismiss,
                         modifier = Modifier.size(28.dp),

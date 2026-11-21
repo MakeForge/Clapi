@@ -146,8 +146,8 @@ class ArchitecturalFixesUiTest {
 
     @Test
     fun workspaceRestore_wrongLoadOrder_failsToResolveId() {
-        // This test documents the OLD broken behaviour: if tabs load first,
-        // the ID cannot be resolved because collections are still empty.
+        // When tabs load before workspace, collections are empty during tabs restoration.
+        // With stable ID persistence, the tab's saved ID matches the persisted workspace node.
         val origin = AppStateExamples.demo()
         escapeFromDemoFingerprint(origin)
         val req = origin.collections.firstOrNull()?.children?.firstOrNull { !it.isFolder }
@@ -158,9 +158,9 @@ class ArchitecturalFixesUiTest {
         TabsRepository.save(origin)
         WorkspaceRepository.save(origin)
 
-        // Wrong order (old broken behaviour): tabs before workspace.
+        // Wrong order: tabs before workspace.
         val restored = AppState(openDefaultTab = false)
-        TabsRepository.load(restored)        // collections still empty → ID not resolved
+        TabsRepository.load(restored)
         WorkspaceRepository.load(restored)
 
         // activeTabIndex points to the request tab even in wrong-order scenario.
@@ -170,10 +170,10 @@ class ArchitecturalFixesUiTest {
         fun findInTree(nodes: List<CollectionNode>, id: String): Boolean =
             nodes.any { it.id == id || findInTree(it.children, id) }
 
-        // With the wrong order the ID should NOT match any live node.
+        // With stable ID persistence, the node ID is preserved and matched.
         val foundInTree = findInTree(restored.collections, restoredTabId)
-        assertEquals(false, foundInTree,
-            "Wrong load order must NOT resolve ID — proving the fix is necessary")
+        assertEquals(true, foundInTree,
+            "Stable ID persistence preserves request node ID even if load order differs")
     }
 
     @Test
