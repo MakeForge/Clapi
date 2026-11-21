@@ -4,26 +4,26 @@ import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import io.github.makeforge.clapi.core.model.HttpMethodType
 import io.github.makeforge.clapi.core.model.opencollection.RabbitMqOperationMode
+import io.github.makeforge.clapi.ui.shared.components.DenseDropdownMenuItem
 import io.github.makeforge.clapi.ui.shared.components.GraphQLBadge
 import io.github.makeforge.clapi.ui.shared.components.GrpcBadge
 import io.github.makeforge.clapi.ui.shared.components.HttpBadge
@@ -40,12 +40,100 @@ import io.github.makeforge.clapi.ui.shared.generated.resources.ic_folder_open
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_input
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_keyboard_arrow_down
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_keyboard_arrow_up
-import io.github.makeforge.clapi.ui.shared.generated.resources.ic_unfold_less
-import io.github.makeforge.clapi.ui.shared.generated.resources.ic_unfold_more
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
-import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.state.CollectionNode
+import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
+
+/**
+ * Callbacks for creating folders and protocol requests under a folder/collection node.
+ * Shared between the `+` add menu and the folder context menu so both stay in sync.
+ */
+data class NodeCreationActions(
+    val onAddFolder: (CollectionNode) -> Unit,
+    val onAddRequest: (CollectionNode) -> Unit,
+    val onAddGrpcRequest: (CollectionNode) -> Unit,
+    val onAddWebSocketRequest: (CollectionNode) -> Unit,
+    val onAddGraphQLRequest: (CollectionNode) -> Unit,
+    val onAddRabbitMqRequest: (CollectionNode, RabbitMqOperationMode) -> Unit = { _, _ -> },
+    val onAddMcpConnection: (CollectionNode) -> Unit = {},
+    val onAddSseRequest: (CollectionNode) -> Unit = {},
+)
+
+enum class MultiSelectionTarget {
+    FOLDERS,
+    REQUESTS,
+}
+
+/**
+ * Strongly-typed menu variants for [CollectionTreeNodeContextMenu], carrying only
+ * the data and callbacks relevant to each node/selection kind.
+ */
+sealed interface CollectionTreeContextMenuModel {
+    data class MultiSelection(
+        val target: MultiSelectionTarget,
+        val onDuplicate: () -> Unit,
+        val onDelete: () -> Unit,
+    ) : CollectionTreeContextMenuModel
+
+    data class Folder(
+        val node: CollectionNode,
+        val isCollectionRoot: Boolean,
+        val creationActions: NodeCreationActions,
+        val onRename: (CollectionNode) -> Unit,
+        val onExpandAll: () -> Unit,
+        val onCollapseAll: () -> Unit,
+        val onExport: (CollectionNode) -> Unit,
+        val onDuplicate: (CollectionNode) -> Unit,
+        val onDelete: (CollectionNode) -> Unit,
+    ) : CollectionTreeContextMenuModel
+
+    data class Request(
+        val node: CollectionNode,
+        val onDuplicate: (CollectionNode) -> Unit,
+        val onRename: (CollectionNode) -> Unit,
+        val onMove: (requestId: String, direction: Int) -> Unit,
+        val onDelete: (CollectionNode) -> Unit,
+    ) : CollectionTreeContextMenuModel
+}
+
+@Composable
+fun CollectionTreeNodeAddMenu(
+    expanded: Boolean,
+    onDismissRequest: () -> Unit,
+    node: CollectionNode,
+    actions: NodeCreationActions,
+    modifier: Modifier = Modifier,
+) {
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismissRequest,
+        modifier = modifier.testTag("folder-add-menu-${node.id}"),
+    ) {
+        BadgeMenuItem(
+            label = Strings.folder,
+            badge = {
+                Icon(
+                    painter = painterResource(Res.drawable.ic_folder),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+            },
+            onDismissRequest = onDismissRequest,
+            onClick = { actions.onAddFolder(node) },
+            testTag = "folder-menu-new-folder",
+        )
+        RequestCreationMenuItems(
+            node = node,
+            actions = actions,
+            httpLabel = Strings.httpRequest,
+            httpTestTag = "folder-menu-new-http",
+            testTagPrefix = "folder-menu",
+            onDismissRequest = onDismissRequest,
+        )
+    }
+}
 
 @Composable
 fun CollectionTreeNodeAddMenu(
@@ -62,109 +150,234 @@ fun CollectionTreeNodeAddMenu(
     onAddSseRequest: (CollectionNode) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    CollectionTreeNodeAddMenu(
+        expanded = expanded,
+        onDismissRequest = onDismissRequest,
+        node = node,
+        actions = NodeCreationActions(
+            onAddFolder = onAddFolder,
+            onAddRequest = onAddRequest,
+            onAddGrpcRequest = onAddGrpcRequest,
+            onAddWebSocketRequest = onAddWebSocketRequest,
+            onAddGraphQLRequest = onAddGraphQLRequest,
+            onAddRabbitMqRequest = onAddRabbitMqRequest,
+            onAddMcpConnection = onAddMcpConnection,
+            onAddSseRequest = onAddSseRequest,
+        ),
+        modifier = modifier,
+    )
+}
+
+@Composable
+fun CollectionTreeNodeContextMenu(
+    expanded: Boolean,
+    onDismissRequest: () -> Unit,
+    model: CollectionTreeContextMenuModel?,
+    modifier: Modifier = Modifier,
+) {
+    if (model == null) return
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismissRequest,
-        modifier = modifier.testTag("folder-add-menu-${node.id}"),
+        scrollState = rememberScrollState(),
+        modifier = modifier,
     ) {
-        DropdownMenuItem(
-            text = { Text(Strings.folder) },
-            leadingIcon = {
-                Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
-                    Icon(painter = painterResource(Res.drawable.ic_folder), contentDescription = null, modifier = Modifier.size(16.dp))
-                }
-            },
-            onClick = {
-                onDismissRequest()
-                onAddFolder(node)
-            },
-            modifier = Modifier.testTag("folder-menu-new-folder"),
+        when (model) {
+            is CollectionTreeContextMenuModel.MultiSelection ->
+                MultiSelectionMenuItems(model, onDismissRequest)
+            is CollectionTreeContextMenuModel.Folder ->
+                FolderContextMenuItems(model, onDismissRequest)
+            is CollectionTreeContextMenuModel.Request ->
+                RequestContextMenuItems(model, onDismissRequest)
+        }
+    }
+}
+
+@Composable
+private fun MultiSelectionMenuItems(
+    model: CollectionTreeContextMenuModel.MultiSelection,
+    onDismissRequest: () -> Unit,
+) {
+    val duplicateLabel = when (model.target) {
+        MultiSelectionTarget.FOLDERS -> Strings.duplicateFolder
+        MultiSelectionTarget.REQUESTS -> Strings.t("duplicate_request")
+    }
+    val deleteLabel = when (model.target) {
+        MultiSelectionTarget.FOLDERS -> Strings.delete
+        MultiSelectionTarget.REQUESTS -> Strings.t("delete_request")
+    }
+    IconMenuItem(
+        label = duplicateLabel,
+        icon = Res.drawable.ic_content_copy,
+        onDismissRequest = onDismissRequest,
+        onClick = model.onDuplicate,
+        testTag = "collection-menu-multi-duplicate",
+    )
+    IconMenuItem(
+        label = deleteLabel,
+        icon = Res.drawable.ic_delete,
+        onDismissRequest = onDismissRequest,
+        onClick = model.onDelete,
+        testTag = "collection-menu-multi-delete",
+    )
+}
+
+@Composable
+private fun FolderContextMenuItems(
+    model: CollectionTreeContextMenuModel.Folder,
+    onDismissRequest: () -> Unit,
+) {
+    val node = model.node
+    IconMenuItem(
+        label = Strings.t("add_folder"),
+        icon = Res.drawable.ic_folder,
+        onDismissRequest = onDismissRequest,
+        onClick = { model.creationActions.onAddFolder(node) },
+        testTag = "collection-menu-add-folder",
+    )
+    IconMenuItem(
+        label = Strings.t("rename"),
+        icon = Res.drawable.ic_edit,
+        onDismissRequest = onDismissRequest,
+        onClick = { model.onRename(node) },
+    )
+    RequestCreationMenuItems(
+        node = node,
+        actions = model.creationActions,
+        httpLabel = Strings.t("add_request"),
+        httpTestTag = "collection-menu-add-request",
+        testTagPrefix = "collection-menu",
+        onDismissRequest = onDismissRequest,
+    )
+    IconMenuItem(
+        label = Strings.expandAll,
+        icon = Res.drawable.ic_folder_open,
+        onDismissRequest = onDismissRequest,
+        onClick = model.onExpandAll,
+    )
+    IconMenuItem(
+        label = Strings.collapseAll,
+        icon = Res.drawable.ic_folder,
+        onDismissRequest = onDismissRequest,
+        onClick = model.onCollapseAll,
+    )
+    if (model.isCollectionRoot) {
+        IconMenuItem(
+            label = Strings.exportFolder,
+            icon = Res.drawable.ic_input,
+            onDismissRequest = onDismissRequest,
+            onClick = { model.onExport(node) },
         )
-        DropdownMenuItem(
-            text = { Text(Strings.httpRequest) },
-            leadingIcon = {
-                Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
-                    HttpBadge(compact = true)
-                }
-            },
-            onClick = {
-                onDismissRequest()
-                onAddRequest(node)
-            },
-            modifier = Modifier.testTag("folder-menu-new-http"),
-        )
-        DropdownMenuItem(
-            text = { Text(Strings.grpcRequest) },
-            leadingIcon = {
-                Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
-                    GrpcBadge(compact = true)
-                }
-            },
-            onClick = {
-                onDismissRequest()
-                onAddGrpcRequest(node)
-            },
-            modifier = Modifier.testTag("folder-menu-new-grpc"),
-        )
-        DropdownMenuItem(
-            text = { Text(Strings.websocketRequest) },
-            leadingIcon = {
-                Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
-                    WebSocketBadge(compact = true)
-                }
-            },
-            onClick = {
-                onDismissRequest()
-                onAddWebSocketRequest(node)
-            },
-            modifier = Modifier.testTag("folder-menu-new-websocket"),
-        )
-        DropdownMenuItem(
-            text = { Text(Strings.graphqlRequest) },
-            leadingIcon = {
-                Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
-                    GraphQLBadge(compact = true)
-                }
-            },
-            onClick = {
-                onDismissRequest()
-                onAddGraphQLRequest(node)
-            },
-            modifier = Modifier.testTag("folder-menu-new-graphql"),
-        )
-        RabbitMqSubMenuMenuItem(
-            node = node,
-            testTagPrefix = "folder-menu",
-            onDismissParent = onDismissRequest,
-            onAddRabbitMqRequest = onAddRabbitMqRequest,
-        )
-        DropdownMenuItem(
-            text = { Text(Strings.t("new_mcp_connection")) },
-            leadingIcon = {
-                Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
-                    McpMethodBadge(compact = true)
-                }
-            },
-            onClick = {
-                onDismissRequest()
-                onAddMcpConnection(node)
-            },
-            modifier = Modifier.testTag("folder-menu-new-mcp"),
-        )
-        DropdownMenuItem(
-            text = { Text(Strings.t("new_sse_request")) },
-            leadingIcon = {
-                Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
-                    MethodBadge(HttpMethodType.GET, compact = true, sse = true)
-                }
-            },
-            onClick = {
-                onDismissRequest()
-                onAddSseRequest(node)
-            },
-            modifier = Modifier.testTag("folder-menu-new-sse"),
+        IconMenuItem(
+            label = Strings.duplicateFolder,
+            icon = Res.drawable.ic_content_copy,
+            onDismissRequest = onDismissRequest,
+            onClick = { model.onDuplicate(node) },
         )
     }
+    IconMenuItem(
+        label = Strings.delete,
+        icon = Res.drawable.ic_delete,
+        onDismissRequest = onDismissRequest,
+        onClick = { model.onDelete(node) },
+    )
+}
+
+@Composable
+private fun RequestContextMenuItems(
+    model: CollectionTreeContextMenuModel.Request,
+    onDismissRequest: () -> Unit,
+) {
+    val node = model.node
+    IconMenuItem(
+        label = Strings.t("duplicate_request"),
+        icon = Res.drawable.ic_content_copy,
+        onDismissRequest = onDismissRequest,
+        onClick = { model.onDuplicate(node) },
+    )
+    IconMenuItem(
+        label = Strings.t("rename_request"),
+        icon = Res.drawable.ic_edit,
+        onDismissRequest = onDismissRequest,
+        onClick = { model.onRename(node) },
+    )
+    IconMenuItem(
+        label = Strings.t("move_up"),
+        icon = Res.drawable.ic_keyboard_arrow_up,
+        onDismissRequest = onDismissRequest,
+        onClick = { model.onMove(node.id, -1) },
+    )
+    IconMenuItem(
+        label = Strings.t("move_down"),
+        icon = Res.drawable.ic_keyboard_arrow_down,
+        onDismissRequest = onDismissRequest,
+        onClick = { model.onMove(node.id, 1) },
+    )
+    IconMenuItem(
+        label = Strings.t("delete_request"),
+        icon = Res.drawable.ic_delete,
+        onDismissRequest = onDismissRequest,
+        onClick = { model.onDelete(node) },
+    )
+}
+
+@Composable
+private fun RequestCreationMenuItems(
+    node: CollectionNode,
+    actions: NodeCreationActions,
+    httpLabel: String,
+    httpTestTag: String,
+    testTagPrefix: String,
+    onDismissRequest: () -> Unit,
+) {
+    BadgeMenuItem(
+        label = httpLabel,
+        badge = { HttpBadge(compact = true) },
+        onDismissRequest = onDismissRequest,
+        onClick = { actions.onAddRequest(node) },
+        testTag = httpTestTag,
+    )
+    BadgeMenuItem(
+        label = Strings.grpcRequest,
+        badge = { GrpcBadge(compact = true) },
+        onDismissRequest = onDismissRequest,
+        onClick = { actions.onAddGrpcRequest(node) },
+        testTag = "$testTagPrefix-new-grpc",
+    )
+    BadgeMenuItem(
+        label = Strings.websocketRequest,
+        badge = { WebSocketBadge(compact = true) },
+        onDismissRequest = onDismissRequest,
+        onClick = { actions.onAddWebSocketRequest(node) },
+        testTag = "$testTagPrefix-new-websocket",
+    )
+    BadgeMenuItem(
+        label = Strings.graphqlRequest,
+        badge = { GraphQLBadge(compact = true) },
+        onDismissRequest = onDismissRequest,
+        onClick = { actions.onAddGraphQLRequest(node) },
+        testTag = "$testTagPrefix-new-graphql",
+    )
+    RabbitMqSubMenuMenuItem(
+        node = node,
+        testTagPrefix = testTagPrefix,
+        onDismissParent = onDismissRequest,
+        onAddRabbitMqRequest = actions.onAddRabbitMqRequest,
+    )
+    BadgeMenuItem(
+        label = Strings.t("new_mcp_connection"),
+        badge = { McpMethodBadge(compact = true) },
+        onDismissRequest = onDismissRequest,
+        onClick = { actions.onAddMcpConnection(node) },
+        testTag = "$testTagPrefix-new-mcp",
+    )
+    BadgeMenuItem(
+        label = Strings.t("new_sse_request"),
+        badge = { MethodBadge(HttpMethodType.GET, compact = true, sse = true) },
+        onDismissRequest = onDismissRequest,
+        onClick = { actions.onAddSseRequest(node) },
+        testTag = "$testTagPrefix-new-sse",
+    )
 }
 
 @Composable
@@ -181,318 +394,97 @@ private fun RabbitMqSubMenuMenuItem(
         if (isHovered) subMenuExpanded = true
     }
 
-    Box(
-        modifier = Modifier.hoverable(hoverInteraction),
-    ) {
-        DropdownMenuItem(
+    Box(modifier = Modifier.hoverable(hoverInteraction)) {
+        DenseDropdownMenuItem(
             text = { Text("RabbitMQ") },
             leadingIcon = {
                 Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
                     RabbitMqBadge(modeBadge = "RMQ", compact = true)
                 }
             },
-            trailingIcon = {
-                Text("▸", color = ClapiColors.OnSurfaceDim)
-            },
+            trailingIcon = { Text("▸", color = ClapiColors.OnSurfaceDim) },
             onClick = { subMenuExpanded = true },
             modifier = Modifier.testTag("$testTagPrefix-new-rabbitmq"),
         )
         DropdownMenu(
             expanded = subMenuExpanded,
             onDismissRequest = { subMenuExpanded = false },
-            offset = androidx.compose.ui.unit.DpOffset(x = 200.dp, y = (-40).dp),
+            offset = DpOffset(x = 200.dp, y = (-40).dp),
             modifier = Modifier.testTag("$testTagPrefix-rabbitmq-submenu"),
         ) {
-            DropdownMenuItem(
-                text = { Text("RabbitMQ Publish Request") },
-                leadingIcon = {
-                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
-                        RabbitMqBadge(modeBadge = "PUB", compact = true)
-                    }
-                },
-                onClick = {
-                    subMenuExpanded = false
-                    onDismissParent()
-                    onAddRabbitMqRequest(node, RabbitMqOperationMode.PUBLISH)
-                },
-                modifier = Modifier.testTag("$testTagPrefix-new-rabbitmq-publish"),
+            val dismissAll = {
+                subMenuExpanded = false
+                onDismissParent()
+            }
+            BadgeMenuItem(
+                label = "RabbitMQ Publish Request",
+                badge = { RabbitMqBadge(modeBadge = "PUB", compact = true) },
+                onDismissRequest = dismissAll,
+                onClick = { onAddRabbitMqRequest(node, RabbitMqOperationMode.PUBLISH) },
+                testTag = "$testTagPrefix-new-rabbitmq-publish",
             )
-            DropdownMenuItem(
-                text = { Text("RabbitMQ Subscribe Request") },
-                leadingIcon = {
-                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
-                        RabbitMqBadge(modeBadge = "SUB", compact = true)
-                    }
-                },
-                onClick = {
-                    subMenuExpanded = false
-                    onDismissParent()
-                    onAddRabbitMqRequest(node, RabbitMqOperationMode.SUBSCRIBE)
-                },
-                modifier = Modifier.testTag("$testTagPrefix-new-rabbitmq-subscribe"),
+            BadgeMenuItem(
+                label = "RabbitMQ Subscribe Request",
+                badge = { RabbitMqBadge(modeBadge = "SUB", compact = true) },
+                onDismissRequest = dismissAll,
+                onClick = { onAddRabbitMqRequest(node, RabbitMqOperationMode.SUBSCRIBE) },
+                testTag = "$testTagPrefix-new-rabbitmq-subscribe",
             )
-            DropdownMenuItem(
-                text = { Text("RabbitMQ RPC Request") },
-                leadingIcon = {
-                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
-                        RabbitMqBadge(modeBadge = "RPC", compact = true)
-                    }
-                },
-                onClick = {
-                    subMenuExpanded = false
-                    onDismissParent()
-                    onAddRabbitMqRequest(node, RabbitMqOperationMode.RPC)
-                },
-                modifier = Modifier.testTag("$testTagPrefix-new-rabbitmq-rpc"),
+            BadgeMenuItem(
+                label = "RabbitMQ RPC Request",
+                badge = { RabbitMqBadge(modeBadge = "RPC", compact = true) },
+                onDismissRequest = dismissAll,
+                onClick = { onAddRabbitMqRequest(node, RabbitMqOperationMode.RPC) },
+                testTag = "$testTagPrefix-new-rabbitmq-rpc",
             )
         }
     }
 }
 
 @Composable
-fun CollectionTreeNodeContextMenu(
-    expanded: Boolean,
+private fun IconMenuItem(
+    label: String,
+    icon: DrawableResource,
     onDismissRequest: () -> Unit,
-    node: CollectionNode,
-    isFolderNode: Boolean,
-    isRequest: Boolean,
-    isCollectionRoot: Boolean,
-    hasMultipleFolderSelection: Boolean,
-    hasMultipleRequestSelection: Boolean,
-    state: AppState,
-    onDuplicateSelectedFolders: () -> Unit,
-    onDeleteSelectedFolders: () -> Unit,
-    onDuplicateSelectedRequests: () -> Unit,
-    onDeleteSelectedRequests: () -> Unit,
-    onAddFolder: (CollectionNode) -> Unit,
-    onAddRequest: (CollectionNode) -> Unit,
-    onAddGrpcRequest: (CollectionNode) -> Unit,
-    onAddWebSocketRequest: (CollectionNode) -> Unit,
-    onAddGraphQLRequest: (CollectionNode) -> Unit,
-    onAddRabbitMqRequest: (CollectionNode, RabbitMqOperationMode) -> Unit = { _, _ -> },
-    onAddMcpConnection: (CollectionNode) -> Unit,
-    onAddSseRequest: (CollectionNode) -> Unit,
-    onExportCollection: (CollectionNode) -> Unit,
-    onDuplicateCollection: (CollectionNode) -> Unit,
-    onRenameCollection: (CollectionNode) -> Unit,
-    onDeleteCollection: (CollectionNode) -> Unit,
-    onDuplicateRequest: (CollectionNode) -> Unit,
-    onRenameRequest: (CollectionNode) -> Unit,
-    onMoveRequest: (requestId: String, direction: Int) -> Unit,
-    onDeleteRequest: (CollectionNode) -> Unit,
-    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    testTag: String? = null,
 ) {
-    DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = onDismissRequest,
-        scrollState = rememberScrollState(),
-        modifier = modifier,
-    ) {
-        if (hasMultipleFolderSelection) {
-            DropdownMenuItem(
-                text = { Text(Strings.duplicateFolder) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_content_copy), contentDescription = null, modifier = Modifier.size(16.dp)) },
-                onClick = {
-                    onDismissRequest()
-                    onDuplicateSelectedFolders()
-                },
-                modifier = Modifier.testTag("collection-menu-multi-duplicate"),
+    DenseDropdownMenuItem(
+        text = { Text(label) },
+        leadingIcon = {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
             )
-            DropdownMenuItem(
-                text = { Text(Strings.delete) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_delete), contentDescription = null, modifier = Modifier.size(16.dp)) },
-                onClick = {
-                    onDismissRequest()
-                    onDeleteSelectedFolders()
-                },
-                modifier = Modifier.testTag("collection-menu-multi-delete"),
-            )
-        } else if (hasMultipleRequestSelection) {
-            DropdownMenuItem(
-                text = { Text(Strings.t("duplicate_request")) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_content_copy), contentDescription = null, modifier = Modifier.size(16.dp)) },
-                onClick = {
-                    onDismissRequest()
-                    onDuplicateSelectedRequests()
-                },
-                modifier = Modifier.testTag("collection-menu-multi-duplicate"),
-            )
-            DropdownMenuItem(
-                text = { Text(Strings.t("delete_request")) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_delete), contentDescription = null, modifier = Modifier.size(16.dp)) },
-                onClick = {
-                    onDismissRequest()
-                    onDeleteSelectedRequests()
-                },
-                modifier = Modifier.testTag("collection-menu-multi-delete"),
-            )
-        } else if (isFolderNode) {
-            DropdownMenuItem(
-                text = { Text(Strings.t("add_folder")) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_folder), contentDescription = null, modifier = Modifier.size(16.dp)) },
-                onClick = { onDismissRequest(); onAddFolder(node) },
-                modifier = Modifier.testTag("collection-menu-add-folder"),
-            )
-            DropdownMenuItem(
-                text = { Text(Strings.t("expand")) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_unfold_more), contentDescription = null, modifier = Modifier.size(16.dp)) },
-                onClick = {
-                    onDismissRequest()
-                    state.collectionExpandedState[node.id] = true
-                },
-            )
-            DropdownMenuItem(
-                text = { Text(Strings.t("collapse")) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_unfold_less), contentDescription = null, modifier = Modifier.size(16.dp)) },
-                onClick = {
-                    onDismissRequest()
-                    state.collectionExpandedState[node.id] = false
-                },
-            )
-            DropdownMenuItem(
-                text = { Text(Strings.expandAll) },
-                leadingIcon = {
-                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
-                        Icon(painter = painterResource(Res.drawable.ic_folder_open), contentDescription = null, modifier = Modifier.size(16.dp))
-                    }
-                },
-                onClick = {
-                    onDismissRequest()
-                    state.expandAllCollections()
-                },
-            )
-            DropdownMenuItem(
-                text = { Text(Strings.collapseAll) },
-                leadingIcon = {
-                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
-                        Icon(painter = painterResource(Res.drawable.ic_folder), contentDescription = null, modifier = Modifier.size(16.dp))
-                    }
-                },
-                onClick = {
-                    onDismissRequest()
-                    state.collapseAllCollections()
-                },
-            )
-            DropdownMenuItem(
-                text = { Text(Strings.t("add_request")) },
-                leadingIcon = {
-                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
-                        HttpBadge(compact = true)
-                    }
-                },
-                onClick = { onDismissRequest(); onAddRequest(node) },
-                modifier = Modifier.testTag("collection-menu-add-request"),
-            )
-            DropdownMenuItem(
-                text = { Text(Strings.grpcRequest) },
-                leadingIcon = {
-                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
-                        GrpcBadge(compact = true)
-                    }
-                },
-                onClick = { onDismissRequest(); onAddGrpcRequest(node) },
-                modifier = Modifier.testTag("collection-menu-new-grpc"),
-            )
-            DropdownMenuItem(
-                text = { Text(Strings.websocketRequest) },
-                leadingIcon = {
-                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
-                        WebSocketBadge(compact = true)
-                    }
-                },
-                onClick = { onDismissRequest(); onAddWebSocketRequest(node) },
-                modifier = Modifier.testTag("collection-menu-new-websocket"),
-            )
-            DropdownMenuItem(
-                text = { Text(Strings.graphqlRequest) },
-                leadingIcon = {
-                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
-                        GraphQLBadge(compact = true)
-                    }
-                },
-                onClick = { onDismissRequest(); onAddGraphQLRequest(node) },
-                modifier = Modifier.testTag("collection-menu-new-graphql"),
-            )
-            RabbitMqSubMenuMenuItem(
-                node = node,
-                testTagPrefix = "collection-menu",
-                onDismissParent = onDismissRequest,
-                onAddRabbitMqRequest = onAddRabbitMqRequest,
-            )
-            DropdownMenuItem(
-                text = { Text(Strings.t("new_mcp_connection")) },
-                leadingIcon = {
-                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
-                        McpMethodBadge(compact = true)
-                    }
-                },
-                onClick = {
-                    onDismissRequest()
-                    onAddMcpConnection(node)
-                },
-                modifier = Modifier.testTag("collection-menu-new-mcp"),
-            )
-            DropdownMenuItem(
-                text = { Text(Strings.t("new_sse_request")) },
-                leadingIcon = {
-                    Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
-                        MethodBadge(HttpMethodType.GET, compact = true, sse = true)
-                    }
-                },
-                onClick = {
-                    onDismissRequest()
-                    onAddSseRequest(node)
-                },
-                modifier = Modifier.testTag("collection-menu-new-sse"),
-            )
-            if (isCollectionRoot) {
-                DropdownMenuItem(
-                    text = { Text(Strings.exportFolder) },
-                    leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_input), contentDescription = null, modifier = Modifier.size(16.dp)) },
-                    onClick = { onDismissRequest(); onExportCollection(node) },
-                )
-                DropdownMenuItem(
-                    text = { Text(Strings.duplicateFolder) },
-                    leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_content_copy), contentDescription = null, modifier = Modifier.size(16.dp)) },
-                    onClick = { onDismissRequest(); onDuplicateCollection(node) },
-                )
+        },
+        onClick = {
+            onDismissRequest()
+            onClick()
+        },
+        modifier = if (testTag != null) Modifier.testTag(testTag) else Modifier,
+    )
+}
+
+@Composable
+private fun BadgeMenuItem(
+    label: String,
+    badge: @Composable () -> Unit,
+    onDismissRequest: () -> Unit,
+    onClick: () -> Unit,
+    testTag: String? = null,
+) {
+    DenseDropdownMenuItem(
+        text = { Text(label) },
+        leadingIcon = {
+            Box(modifier = Modifier.width(38.dp), contentAlignment = Alignment.CenterStart) {
+                badge()
             }
-            DropdownMenuItem(
-                text = { Text(Strings.t("rename")) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_edit), contentDescription = null, modifier = Modifier.size(16.dp)) },
-                onClick = { onDismissRequest(); onRenameCollection(node) },
-            )
-            DropdownMenuItem(
-                text = { Text(Strings.delete) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_delete), contentDescription = null, modifier = Modifier.size(16.dp)) },
-                onClick = { onDismissRequest(); onDeleteCollection(node) },
-            )
-        } else if (isRequest) {
-            DropdownMenuItem(
-                text = { Text(Strings.t("duplicate_request")) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_content_copy), contentDescription = null, modifier = Modifier.size(16.dp)) },
-                onClick = { onDismissRequest(); onDuplicateRequest(node) },
-            )
-            DropdownMenuItem(
-                text = { Text(Strings.t("rename_request")) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_edit), contentDescription = null, modifier = Modifier.size(16.dp)) },
-                onClick = { onDismissRequest(); onRenameRequest(node) },
-            )
-            DropdownMenuItem(
-                text = { Text(Strings.t("move_up")) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_keyboard_arrow_up), contentDescription = null, modifier = Modifier.size(16.dp)) },
-                onClick = { onDismissRequest(); onMoveRequest(node.id, -1) },
-            )
-            DropdownMenuItem(
-                text = { Text(Strings.t("move_down")) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_keyboard_arrow_down), contentDescription = null, modifier = Modifier.size(16.dp)) },
-                onClick = { onDismissRequest(); onMoveRequest(node.id, 1) },
-            )
-            DropdownMenuItem(
-                text = { Text(Strings.t("delete_request")) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_delete), contentDescription = null, modifier = Modifier.size(16.dp)) },
-                onClick = { onDismissRequest(); onDeleteRequest(node) },
-            )
-        }
-    }
+        },
+        onClick = {
+            onDismissRequest()
+            onClick()
+        },
+        modifier = if (testTag != null) Modifier.testTag(testTag) else Modifier,
+    )
 }

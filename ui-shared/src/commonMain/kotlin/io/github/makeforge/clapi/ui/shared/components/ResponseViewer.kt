@@ -23,7 +23,6 @@ import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ScrollableTabRow
@@ -352,7 +351,7 @@ private fun ResponseMoreActionsButton(
                 .testTag("response-more-options-menu"),
         ) {
             if (!isDetached) {
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text = { Text(Strings.collapse, fontSize = 13.sp, color = ClapiColors.OnSurface) },
                     leadingIcon = {
                         Icon(
@@ -368,7 +367,7 @@ private fun ResponseMoreActionsButton(
                     },
                     modifier = Modifier.testTag("response-menu-collapse"),
                 )
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text = { Text(Strings.detach, fontSize = 13.sp, color = ClapiColors.OnSurface) },
                     leadingIcon = {
                         Icon(
@@ -385,7 +384,7 @@ private fun ResponseMoreActionsButton(
                     modifier = Modifier.testTag("response-menu-detach"),
                 )
             } else {
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text = { Text(Strings.reattach, fontSize = 13.sp, color = ClapiColors.OnSurface) },
                     leadingIcon = {
                         Icon(
@@ -401,7 +400,7 @@ private fun ResponseMoreActionsButton(
                     },
                     modifier = Modifier.testTag("response-menu-reattach"),
                 )
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text = { Text(Strings.close, fontSize = 13.sp, color = ClapiColors.OnSurface) },
                     leadingIcon = {
                         Icon(

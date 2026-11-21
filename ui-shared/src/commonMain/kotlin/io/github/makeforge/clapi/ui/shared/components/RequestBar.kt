@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.IconButton
@@ -310,7 +309,7 @@ private fun MethodDropdown(method: HttpMethodType, onMethodChanged: (HttpMethodT
 
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             HttpMethodType.entries.forEach { m ->
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text = { Text(m.name, color = httpMethodColor(m), fontWeight = FontWeight.Bold, fontSize = 13.sp) },
                     onClick = { onMethodChanged(m); expanded = false },
                 )
@@ -447,7 +446,7 @@ private fun CopyCurlButton(isLoading: Boolean, copyFormats: List<CopyFormatOptio
         if (copyFormats.isNotEmpty()) {
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 copyFormats.forEach { format ->
-                    DropdownMenuItem(
+                    DenseDropdownMenuItem(
                         modifier = Modifier.testTag("copy-format-${format.label.lowercase()}"),
                         text = {
                             Column {

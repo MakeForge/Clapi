@@ -49,20 +49,20 @@ class UiRegressionFixTest {
         // Every item that should appear in the root-collection 3-dot menu.
         listOf(
             "Add Folder",
-            "Expand",
-            "Collapse",
-            "Expand All",
-            "Collapse All",
+            "Rename",
             "Add Request",
             "New MCP Connection",
             "New SSE Request",
+            "Expand All",
+            "Collapse All",
             "Export Folder",
             "Duplicate Folder",
-            "Rename",
             "Delete",
         ).forEach { label ->
             composeRule.onNodeWithText(label, useUnmergedTree = true).assertIsDisplayed()
         }
+        composeRule.onNodeWithText("Expand", useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithText("Collapse", useUnmergedTree = true).assertDoesNotExist()
     }
 
     /**

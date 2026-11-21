@@ -22,7 +22,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
@@ -533,7 +532,7 @@ private fun GrpcRequestBar(
                 onDismissRequest = { methodMenuExpanded = false },
             ) {
                 if (tab.availableMethods.isEmpty()) {
-                    DropdownMenuItem(
+                    DenseDropdownMenuItem(
                         text = {
                             Text(
                                 text = "Select a .proto file first",
@@ -549,7 +548,7 @@ private fun GrpcRequestBar(
                     )
                 } else {
                     tab.availableMethods.forEach { methodInfo ->
-                        DropdownMenuItem(
+                        DenseDropdownMenuItem(
                             text = {
                                 Text(
                                     text = methodInfo.fullMethodName,

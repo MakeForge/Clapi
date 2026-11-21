@@ -23,7 +23,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -622,6 +621,16 @@ internal fun CollectionTreeNode(
                     ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+            val creationActions = NodeCreationActions(
+                onAddFolder = onAddFolder,
+                onAddRequest = onAddRequest,
+                onAddGrpcRequest = onAddGrpcRequest,
+                onAddWebSocketRequest = onAddWebSocketRequest,
+                onAddGraphQLRequest = onAddGraphQLRequest,
+                onAddRabbitMqRequest = { target, mode -> state.addRabbitMqRequestToCollection(target.id, mode) },
+                onAddMcpConnection = onAddMcpConnection,
+                onAddSseRequest = onAddSseRequest,
+            )
             if (isFolderNode) {
                 Box {
                     IconButtonWithTooltip(
@@ -639,18 +648,42 @@ internal fun CollectionTreeNode(
                         expanded = showAddMenu,
                         onDismissRequest = { showAddMenu = false },
                         node = node,
-                        onAddFolder = onAddFolder,
-                        onAddRequest = onAddRequest,
-                        onAddGrpcRequest = onAddGrpcRequest,
-                        onAddWebSocketRequest = onAddWebSocketRequest,
-                        onAddGraphQLRequest = onAddGraphQLRequest,
-                        onAddRabbitMqRequest = { target, mode -> state.addRabbitMqRequestToCollection(target.id, mode) },
-                        onAddMcpConnection = onAddMcpConnection,
-                        onAddSseRequest = onAddSseRequest,
+                        actions = creationActions,
                     )
                 }
             }
             val actionsTooltip = if (isCollectionRoot) Strings.folderActions else Strings.t("request_actions")
+            val contextMenuModel = when {
+                hasMultipleFolderSelection -> CollectionTreeContextMenuModel.MultiSelection(
+                    target = MultiSelectionTarget.FOLDERS,
+                    onDuplicate = onDuplicateSelectedFolders,
+                    onDelete = onDeleteSelectedFolders,
+                )
+                hasMultipleRequestSelection -> CollectionTreeContextMenuModel.MultiSelection(
+                    target = MultiSelectionTarget.REQUESTS,
+                    onDuplicate = onDuplicateSelectedRequests,
+                    onDelete = onDeleteSelectedRequests,
+                )
+                isFolderNode -> CollectionTreeContextMenuModel.Folder(
+                    node = node,
+                    isCollectionRoot = isCollectionRoot,
+                    creationActions = creationActions,
+                    onRename = onRenameCollection,
+                    onExpandAll = { state.expandFolderRecursively(node.id) },
+                    onCollapseAll = { state.collapseFolderRecursively(node.id) },
+                    onExport = onExportCollection,
+                    onDuplicate = onDuplicateCollection,
+                    onDelete = onDeleteCollection,
+                )
+                isRequest -> CollectionTreeContextMenuModel.Request(
+                    node = node,
+                    onDuplicate = onDuplicateRequest,
+                    onRename = onRenameRequest,
+                    onMove = onMoveRequest,
+                    onDelete = onDeleteRequest,
+                )
+                else -> null
+            }
             Box {
                 IconButtonWithTooltip(
                     onClick = { showMenu = true },
@@ -666,32 +699,7 @@ internal fun CollectionTreeNode(
                 CollectionTreeNodeContextMenu(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false },
-                    node = node,
-                    isFolderNode = isFolderNode,
-                    isRequest = isRequest,
-                    isCollectionRoot = isCollectionRoot,
-                    hasMultipleFolderSelection = hasMultipleFolderSelection,
-                    hasMultipleRequestSelection = hasMultipleRequestSelection,
-                    state = state,
-                    onDuplicateSelectedFolders = onDuplicateSelectedFolders,
-                    onDeleteSelectedFolders = onDeleteSelectedFolders,
-                    onDuplicateSelectedRequests = onDuplicateSelectedRequests,
-                    onDeleteSelectedRequests = onDeleteSelectedRequests,
-                    onAddFolder = onAddFolder,
-                    onAddRequest = onAddRequest,
-                    onAddGrpcRequest = onAddGrpcRequest,
-                    onAddWebSocketRequest = onAddWebSocketRequest,
-                    onAddGraphQLRequest = onAddGraphQLRequest,
-                    onAddMcpConnection = onAddMcpConnection,
-                    onAddSseRequest = onAddSseRequest,
-                    onExportCollection = onExportCollection,
-                    onDuplicateCollection = onDuplicateCollection,
-                    onRenameCollection = onRenameCollection,
-                    onDeleteCollection = onDeleteCollection,
-                    onDuplicateRequest = onDuplicateRequest,
-                    onRenameRequest = onRenameRequest,
-                    onMoveRequest = onMoveRequest,
-                    onDeleteRequest = onDeleteRequest,
+                    model = contextMenuModel,
                 )
             }
             }

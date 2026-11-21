@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -85,11 +84,11 @@ fun EnvironmentChip(
 
         DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
             if (state.environments.isEmpty()) {
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text = { Text(Strings.noEnvironmentsConfigured) },
                     onClick = { menuExpanded = false },
                 )
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text = { Text(Strings.createEnvironment) },
                     onClick = {
                         val created = EnvState(newEnvironmentLabel)
@@ -104,7 +103,7 @@ fun EnvironmentChip(
             } else {
                 state.environments.forEachIndexed { index, env ->
                     val envColor = env.color?.let { parseHexColor(it) } ?: (if (index == state.selectedEnvIndex) ClapiColors.Secondary else ClapiColors.OnSurfaceDim)
-                    DropdownMenuItem(
+                    DenseDropdownMenuItem(
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Box(
@@ -124,7 +123,7 @@ fun EnvironmentChip(
                 }
             }
             HorizontalDivider()
-            DropdownMenuItem(
+            DenseDropdownMenuItem(
                 text = { Text("$editEnvironmentLabel…") },
                 onClick = {
                     if (state.selectedEnvIndex in state.environments.indices) {
@@ -133,7 +132,7 @@ fun EnvironmentChip(
                     menuExpanded = false
                 },
             )
-            DropdownMenuItem(
+            DenseDropdownMenuItem(
                 text = { Text("${Strings.globalVariables}…") },
                 onClick = {
                     state.showGlobalVariablesDialog = true

@@ -17,7 +17,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,6 +39,7 @@ import io.github.makeforge.clapi.core.model.opencollection.WebSocketMessageType
 import io.github.makeforge.clapi.core.model.opencollection.WebSocketMessageVariant
 import io.github.makeforge.clapi.core.network.ConnectionState
 import io.github.makeforge.clapi.ui.shared.components.CodeEditor
+import io.github.makeforge.clapi.ui.shared.components.DenseDropdownMenuItem
 import io.github.makeforge.clapi.ui.shared.components.DialogBasicTextField
 import io.github.makeforge.clapi.ui.shared.components.DialogTitleBar
 import io.github.makeforge.clapi.ui.shared.components.SyntaxLanguage
@@ -332,7 +332,7 @@ internal fun FormatDropdown(
             onDismissRequest = { expanded = false },
         ) {
             WebSocketMessageType.entries.forEach { format ->
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text = {
                         Text(
                             text = format.name,

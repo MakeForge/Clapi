@@ -25,7 +25,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -734,7 +733,7 @@ private fun TypeDropdown(
             onDismissRequest = { expanded = false },
         ) {
             FormEntryType.entries.forEach { t ->
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text = {
                         Text(
                             text = t.name.lowercase(),

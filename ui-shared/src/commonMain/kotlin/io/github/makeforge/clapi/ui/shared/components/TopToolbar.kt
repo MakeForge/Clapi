@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -262,11 +261,11 @@ private fun EnvironmentChip(state: AppState) {
 
         DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
             if (state.environments.isEmpty()) {
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text = { Text(Strings.noEnvironmentsConfigured) },
                     onClick = { menuExpanded = false },
                 )
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text = { Text(Strings.createEnvironment) },
                     onClick = {
                         val created = EnvState(newEnvironmentLabel)
@@ -281,7 +280,7 @@ private fun EnvironmentChip(state: AppState) {
             } else {
                 state.environments.forEachIndexed { index, env ->
                     val envColor = env.color?.let { parseHexColor(it) } ?: (if (index == state.selectedEnvIndex) ClapiColors.Secondary else ClapiColors.OnSurfaceDim)
-                    DropdownMenuItem(
+                    DenseDropdownMenuItem(
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Box(
@@ -301,7 +300,7 @@ private fun EnvironmentChip(state: AppState) {
                 }
             }
             HorizontalDivider()
-            DropdownMenuItem(
+            DenseDropdownMenuItem(
                 text = { Text("$editEnvironmentLabel…") },
                 onClick = {
                     if (state.selectedEnvIndex in state.environments.indices) {
@@ -310,7 +309,7 @@ private fun EnvironmentChip(state: AppState) {
                     menuExpanded = false
                 },
             )
-            DropdownMenuItem(
+            DenseDropdownMenuItem(
                 text = { Text("${Strings.globalVariables}…") },
                 onClick = {
                     state.showGlobalVariablesDialog = true

@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -41,6 +40,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.makeforge.clapi.ui.shared.components.DenseDropdownMenuItem
 import io.github.makeforge.clapi.ui.shared.components.IconButtonWithTooltip
 import io.github.makeforge.clapi.ui.shared.components.MethodBadge
 import io.github.makeforge.clapi.ui.shared.components.handPointerHover
@@ -140,28 +140,28 @@ internal fun HistoryRow(
                 expanded = showMenu,
                 onDismissRequest = { showMenu = false },
             ) {
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text = { Text(Strings.t("open")) },
                     onClick = {
                         showMenu = false
                         onClick()
                     },
                 )
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text = { Text(Strings.t("open_in_sidebar")) },
                     onClick = {
                         showMenu = false
                         state.goToCollectionFromHistory(item)
                     },
                 )
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text = { Text(Strings.goToFolder) },
                     onClick = {
                         showMenu = false
                         state.goToCollectionFromHistory(item)
                     },
                 )
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text = { Text(Strings.t("remove_from_history")) },
                     onClick = {
                         showMenu = false

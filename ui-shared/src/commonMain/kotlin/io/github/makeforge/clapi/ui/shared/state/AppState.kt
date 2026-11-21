@@ -1863,6 +1863,18 @@ class AppState(openDefaultTab: Boolean = true) {
         for (id in allFolderIds(collections)) collectionExpandedState[id] = true
     }
 
+    /** Collapse [folderId] and all descendant folders inside it recursively. */
+    fun collapseFolderRecursively(folderId: String) {
+        val target = findFolder(folderId) ?: return
+        for (id in allFolderIds(listOf(target))) collectionExpandedState[id] = false
+    }
+
+    /** Expand [folderId] and all descendant folders inside it recursively. */
+    fun expandFolderRecursively(folderId: String) {
+        val target = findFolder(folderId) ?: return
+        for (id in allFolderIds(listOf(target))) collectionExpandedState[id] = true
+    }
+
     private fun allFolderIds(nodes: List<CollectionNode>): List<String> =
         nodes.flatMap { node ->
             if (node.isFolder) listOf(node.id) + allFolderIds(node.children)

@@ -16,7 +16,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
@@ -369,7 +368,7 @@ private fun RabbitMqSettingsTab(tab: RequestTabState) {
                         }
                         DropdownMenu(expanded = ackMenuOpen, onDismissRequest = { ackMenuOpen = false }) {
                             AmqpAckMode.entries.forEach { mode ->
-                                DropdownMenuItem(
+                                DenseDropdownMenuItem(
                                     text = { Text(mode.value) },
                                     onClick = {
                                         tab.rabbitMqSettings = s.copy(ackMode = mode)

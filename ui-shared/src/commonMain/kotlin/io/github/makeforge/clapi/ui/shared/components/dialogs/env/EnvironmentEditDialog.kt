@@ -70,8 +70,8 @@ import io.github.makeforge.clapi.ui.shared.state.resolveEffectiveVariables
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import io.github.makeforge.clapi.ui.shared.components.DenseDropdownMenuItem
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -611,7 +611,7 @@ fun EnvironmentEditDialog(
                                     expanded = extendsMenuExpanded,
                                     onDismissRequest = { extendsMenuExpanded = false },
                                 ) {
-                                    DropdownMenuItem(
+                                    DenseDropdownMenuItem(
                                         text = { Text(Strings.t("none"), fontSize = 12.sp) },
                                         onClick = {
                                             workingExtends.value = null
@@ -620,7 +620,7 @@ fun EnvironmentEditDialog(
                                         modifier = Modifier.testTag("env-extends-option-none"),
                                     )
                                     eligibleEnvs.forEach { eligible ->
-                                        DropdownMenuItem(
+                                        DenseDropdownMenuItem(
                                             text = { Text(eligible.name, fontSize = 12.sp) },
                                             onClick = {
                                                 workingExtends.value = eligible.name

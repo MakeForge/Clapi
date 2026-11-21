@@ -283,6 +283,43 @@ class AppStateCollectionTest {
     }
 
     @Test
+    fun collapse_and_expand_folder_recursively_only_affects_target_subtree() {
+        val state = AppState(openDefaultTab = false)
+        val deepChild = CollectionNode(id = "f-deep", name = "Deep", isFolder = true)
+        val targetFolder = CollectionNode(id = "f-target", name = "Target", isFolder = true, children = mutableListOf(deepChild))
+        val siblingFolder = CollectionNode(id = "f-sibling", name = "Sibling", isFolder = true)
+        val rootA = CollectionNode(id = "c-a", name = "Collection A", isFolder = true, children = mutableListOf(targetFolder, siblingFolder))
+        val otherChild = CollectionNode(id = "f-other", name = "Other", isFolder = true)
+        val rootB = CollectionNode(id = "c-b", name = "Collection B", isFolder = true, children = mutableListOf(otherChild))
+        state.collections.addAll(listOf(rootA, rootB))
+
+        // Start with everything expanded except f-other
+        state.collectionExpandedState["c-a"] = true
+        state.collectionExpandedState["f-target"] = true
+        state.collectionExpandedState["f-deep"] = true
+        state.collectionExpandedState["f-sibling"] = true
+        state.collectionExpandedState["c-b"] = true
+        state.collectionExpandedState["f-other"] = false
+
+        state.collapseFolderRecursively("f-target")
+        assertEquals(false, state.collectionExpandedState["f-target"])
+        assertEquals(false, state.collectionExpandedState["f-deep"])
+        // Parent, sibling, and other collection remain untouched
+        assertEquals(true, state.collectionExpandedState["c-a"])
+        assertEquals(true, state.collectionExpandedState["f-sibling"])
+        assertEquals(true, state.collectionExpandedState["c-b"])
+        assertEquals(false, state.collectionExpandedState["f-other"])
+
+        state.expandFolderRecursively("f-target")
+        assertEquals(true, state.collectionExpandedState["f-target"])
+        assertEquals(true, state.collectionExpandedState["f-deep"])
+        assertEquals(true, state.collectionExpandedState["c-a"])
+        assertEquals(true, state.collectionExpandedState["f-sibling"])
+        assertEquals(true, state.collectionExpandedState["c-b"])
+        assertEquals(false, state.collectionExpandedState["f-other"])
+    }
+
+    @Test
     fun renameRequestEverywhere_updates_tab_and_sidebar_node_name() {
         val state = AppStateExamples.demo()
         val requestId = "r1"

@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.makeforge.clapi.core.model.opencollection.VariableKind
 import io.github.makeforge.clapi.core.model.opencollection.VariableType
+import io.github.makeforge.clapi.ui.shared.components.DenseDropdownMenuItem
 import io.github.makeforge.clapi.core.network.keepassxc.createKeePassXcClient
 import io.github.makeforge.clapi.core.network.keeper.createKeeperClient
 import io.github.makeforge.clapi.ui.shared.components.VariableAwareTextField
@@ -478,7 +479,7 @@ fun VariableKindSelector(
         ) {
             allowedKinds.forEach { kindOption ->
                 val optionLabel = variableKindDisplayLabel(kindOption)
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text = {
                         Text(
                             text = optionLabel,
@@ -546,7 +547,7 @@ fun VariableTypeSelector(
         ) {
             SelectableVariableTypes.forEach { typeOption ->
                 val optionLabel = variableTypeDisplayLabel(typeOption)
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text = {
                         Text(
                             text = optionLabel,
