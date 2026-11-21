@@ -214,6 +214,8 @@ object ImportExportRepository {
         }
         val isKeePassXc = environment.externalSecretsProvider.equals("keepassxc", ignoreCase = true)
         val isAws = environment.externalSecretsProvider.equals("aws-secrets-manager", ignoreCase = true)
+        val isAzure = environment.externalSecretsProvider.equals("azure-key-vault", ignoreCase = true)
+        val isGcp = environment.externalSecretsProvider.equals("gcp-secrets-manager", ignoreCase = true)
         val extSecretsJson = if (environment.externalSecrets.isNotEmpty()) {
             buildJsonObject {
                 put("type", environment.externalSecretsProvider.ifBlank { "hashicorp-vault-server" })
@@ -245,6 +247,54 @@ object ImportExportRepository {
                                     put("secretName", sec.path.trim().ifBlank { sec.url.trim() })
                                     if (sec.targetField.isNotBlank()) {
                                         put("targetField", sec.targetField.trim())
+                                    }
+                                    if (sec.customFilters.isNotEmpty()) {
+                                        put("customFilters", buildJsonObject {
+                                            sec.customFilters.forEach { (k, v) -> put(k, v) }
+                                        })
+                                    }
+                                    if (sec.description.isNotBlank()) {
+                                        put("description", sec.description.trim())
+                                    }
+                                    if (!sec.enabled) {
+                                        put("disabled", true)
+                                    }
+                                })
+                            }
+                        } else if (isAzure) {
+                            if (sec.name.isNotBlank() && (sec.path.isNotBlank() || sec.url.isNotBlank())) {
+                                add(buildJsonObject {
+                                    put("name", sec.name.trim())
+                                    put("secretName", sec.path.trim())
+                                    if (sec.url.isNotBlank()) {
+                                        put("vaultName", sec.url.trim())
+                                    }
+                                    if (sec.targetField.isNotBlank()) {
+                                        put("targetField", sec.targetField.trim())
+                                    }
+                                    if (sec.customFilters.isNotEmpty()) {
+                                        put("customFilters", buildJsonObject {
+                                            sec.customFilters.forEach { (k, v) -> put(k, v) }
+                                        })
+                                    }
+                                    if (sec.description.isNotBlank()) {
+                                        put("description", sec.description.trim())
+                                    }
+                                    if (!sec.enabled) {
+                                        put("disabled", true)
+                                    }
+                                })
+                            }
+                        } else if (isGcp) {
+                            if (sec.name.isNotBlank() && sec.path.isNotBlank()) {
+                                add(buildJsonObject {
+                                    put("name", sec.name.trim())
+                                    put("secretId", sec.path.trim())
+                                    if (sec.targetField.isNotBlank()) {
+                                        put("targetField", sec.targetField.trim())
+                                    }
+                                    if (sec.url.isNotBlank()) {
+                                        put("projectId", sec.url.trim())
                                     }
                                     if (sec.customFilters.isNotEmpty()) {
                                         put("customFilters", buildJsonObject {
@@ -306,6 +356,7 @@ object ImportExportRepository {
                 ?: ""
             val url = obj["url"]?.jsonPrimitive?.contentOrNull
                 ?: obj["vaultName"]?.jsonPrimitive?.contentOrNull
+                ?: obj["projectId"]?.jsonPrimitive?.contentOrNull
                 ?: ""
             val targetField = obj["targetField"]?.jsonPrimitive?.contentOrNull.orEmpty()
             val customFiltersObj = obj["customFilters"]?.jsonObject

@@ -433,6 +433,7 @@ private fun SecretsSettings(s: AppSettings) {
             ExternalSecretType.KEEPASSXC to "KeePassXC",
             ExternalSecretType.AWS_SECRETS_MANAGER to "AWS Secrets Manager",
             ExternalSecretType.AZURE_KEY_VAULT to "Azure Key Vault",
+            ExternalSecretType.GCP_SECRETS_MANAGER to "GCP Secret Manager",
         ),
         selected = s.vaultProviderType,
         onSelected = { s.vaultProviderType = it },
@@ -444,8 +445,36 @@ private fun SecretsSettings(s: AppSettings) {
         ExternalSecretType.KEEPASSXC -> KeePassXcSettings()
         ExternalSecretType.AWS_SECRETS_MANAGER -> AwsSecretsSettings(s)
         ExternalSecretType.AZURE_KEY_VAULT -> AzureKeyVaultSettings(s)
+        ExternalSecretType.GCP_SECRETS_MANAGER -> GcpSecretsSettings(s)
         else -> VaultSettings(s)
     }
+}
+
+@Composable
+private fun GcpSecretsSettings(s: AppSettings) {
+    SettingTextField(
+        label = Strings.t("gcp_project_id"),
+        value = s.gcpProjectId,
+        onValueChange = { s.gcpProjectId = it },
+        placeholder = "my-cloud-project",
+        tag = "gcp-project-id",
+    )
+    SettingsDivider()
+    SettingPasswordField(
+        label = Strings.t("gcp_access_token"),
+        value = s.gcpAccessToken,
+        onValueChange = { s.gcpAccessToken = it },
+        placeholder = "••••••••••••••••",
+        tag = "gcp-access-token",
+    )
+    SettingsDivider()
+    SettingTextField(
+        label = Strings.t("gcp_endpoint_url"),
+        value = s.gcpEndpointUrl,
+        onValueChange = { s.gcpEndpointUrl = it },
+        placeholder = "https://secretmanager.googleapis.com",
+        tag = "gcp-endpoint-url",
+    )
 }
 
 @Composable

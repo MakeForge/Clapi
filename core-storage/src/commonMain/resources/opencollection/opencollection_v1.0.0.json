@@ -2767,7 +2767,7 @@
     },
     "GcpSecretsManagerExternalSecret": {
       "type": "object",
-      "description": "An external secret resolved from GCP Secrets Manager",
+      "description": "An external secret resolved from GCP Secret Manager",
       "properties": {
         "name": {
           "type": "string",
@@ -2780,12 +2780,31 @@
           "type": "boolean",
           "description": "Whether the external secret is disabled"
         },
+        "secretId": {
+          "type": "string",
+          "description": "The resource ID of the secret within GCP Secret Manager"
+        },
+        "version": {
+          "type": "string",
+          "description": "The target secret version snapshot or alias (defaults to 'latest')"
+        },
+        "targetField": {
+          "type": "string",
+          "description": "The target key or attribute within the secret JSON payload"
+        },
         "projectId": {
           "type": "string",
-          "description": "The Google Cloud project ID where your Secret Manager secrets are stored"
+          "description": "Optional GCP project ID override"
+        },
+        "customFilters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Key-value filters to match against attributes"
         }
       },
-      "required": ["name", "projectId"],
+      "required": ["name", "secretId"],
       "additionalProperties": false
     },
     "OnePasswordExternalSecret": {

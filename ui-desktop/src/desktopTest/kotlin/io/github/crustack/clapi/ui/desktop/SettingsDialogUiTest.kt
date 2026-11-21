@@ -254,5 +254,19 @@ class SettingsDialogUiTest {
         kotlin.test.assertEquals(ExternalSecretType.AZURE_KEY_VAULT, state.settings.vaultProviderType)
         composeRule.onNodeWithTag("azure-vault-name", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithTag("azure-tenant-id", useUnmergedTree = true).assertIsDisplayed()
+
+        // Switch to GCP Secret Manager
+        composeRule.onNodeWithTag("secrets-provider-selector", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("secrets-provider-option-gcp-secrets-manager", useUnmergedTree = true)
+            .assertIsDisplayed()
+            .performClick()
+        composeRule.waitForIdle()
+
+        kotlin.test.assertEquals(ExternalSecretType.GCP_SECRETS_MANAGER, state.settings.vaultProviderType)
+        composeRule.onNodeWithTag("gcp-project-id", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("gcp-access-token", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("gcp-endpoint-url", useUnmergedTree = true).assertIsDisplayed()
     }
 }
