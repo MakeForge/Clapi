@@ -17,6 +17,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpSize
@@ -252,7 +256,16 @@ fun main(args: Array<String>) {
                             position = WindowPosition.Aligned(Alignment.Center),
                         ),
                         minimumSize = DpSize(800.dp, 600.dp),
-                        onPreviewKeyEvent = { false },
+                        onPreviewKeyEvent = { event ->
+                            event.type == KeyEventType.KeyDown &&
+                                event.key == Key.Escape &&
+                                (state.cancelActiveSidebarDrag?.invoke() == true)
+                        },
+                        onKeyEvent = { event ->
+                            event.type == KeyEventType.KeyDown &&
+                                event.key == Key.Escape &&
+                                state.clearSidebarSelectionOnEscape()
+                        },
                     ) {
                         MaterialTitleBar {
                             TitleBarBrandContent(

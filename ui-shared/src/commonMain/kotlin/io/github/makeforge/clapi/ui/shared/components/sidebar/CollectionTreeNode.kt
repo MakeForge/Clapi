@@ -139,18 +139,20 @@ internal fun CollectionTreeNode(
     dropTargetCollectionId: String?,
     dropTargetRequestId: String?,
     dropInsertAfter: Boolean,
-    onDragStart: (String) -> Unit,
-    onDragDelta: (String, Float) -> Unit,
+    onDragStart: (String, Float) -> Unit,
+    onDragMove: (String, Float) -> Unit,
     onNodePositioned: (TreeNodeHitArea) -> Unit,
     onDragEnd: () -> Unit,
+    onDragCancel: () -> Unit = {},
     // ── Collection-level drag params (Bug 3) ──────────────────────────────
     draggedCollectionId: String? = null,
     dropCollectionTargetId: String? = null,
     dropCollectionInsertAfter: Boolean = false,
-    onCollectionDragStart: (String) -> Unit = {},
-    onCollectionDragDelta: (String, Float) -> Unit = { _, _ -> },
+    onCollectionDragStart: (String, Float) -> Unit = { _, _ -> },
+    onCollectionDragMove: (String, Float) -> Unit = { _, _ -> },
     onCollectionHitAreaPositioned: (TreeNodeHitArea) -> Unit = {},
     onCollectionDragEnd: () -> Unit = {},
+    onCollectionDragCancel: () -> Unit = {},
     inlineRenamingId: String? = null,
     onStartInlineRename: (String) -> Unit = {},
     onCommitInlineRename: (CollectionNode, String) -> Unit = { _, _ -> },
@@ -164,7 +166,7 @@ internal fun CollectionTreeNode(
     val isHovered by interactionSource.collectIsHoveredAsState()
     // Keep root collection close to the left rail, and increase indentation step
     // for descendants so folder/request rows are clearly offset from parents.
-    val indent = (22 + depth * 22).dp
+    val indent = (16 + depth * 16).dp
     val isFolderNode = node.isFolder
     val isCollectionRoot = depth == 0 && node.isFolder
     val isRequest = !node.isFolder && (node.kind == RequestKind.GRPC || node.kind == RequestKind.MCP || node.kind == RequestKind.WEBSOCKET || node.kind == RequestKind.GRAPHQL || node.kind == RequestKind.RABBITMQ || (node.method != null && node.url != null))
@@ -191,6 +193,7 @@ internal fun CollectionTreeNode(
     var showAddMenu by remember { mutableStateOf(false) }
     val modifierHeldOnPress = remember { booleanArrayOf(false) }
     val childControlPressed = remember { booleanArrayOf(false) }
+    val rowRootTopPx = remember { floatArrayOf(0f) }
 
     val handleRowPointerPress: (PointerEvent) -> Unit = { event ->
         if (event.buttons.isSecondaryPressed && (isFolderNode || isRequest)) {
@@ -291,6 +294,7 @@ internal fun CollectionTreeNode(
                 )
                 .onGloballyPositioned { coordinates ->
                     val position = coordinates.positionInRoot()
+                    rowRootTopPx[0] = position.y
                     onNodePositioned(
                         TreeNodeHitArea(
                             id = node.id,
@@ -335,26 +339,26 @@ internal fun CollectionTreeNode(
                 .pointerInput(node.id, isRequest, isFolderNode) {
                     when {
                         isRequest -> detectDragGestures(
-                            onDragStart = {
+                            onDragStart = { startOffset ->
                                 resetPointerDoubleClickState()
-                                onDragStart(node.id)
+                                onDragStart(node.id, rowRootTopPx[0] + startOffset.y)
                             },
                             onDragEnd = { onDragEnd() },
-                            onDragCancel = { onDragEnd() },
+                            onDragCancel = { onDragCancel() },
                             onDrag = { change, _ ->
-                                onDragDelta(node.id, change.positionChange().y)
+                                onDragMove(node.id, rowRootTopPx[0] + change.position.y)
                                 change.consume()
                             },
                         )
                         isFolderNode -> detectDragGestures(
-                            onDragStart = {
+                            onDragStart = { startOffset ->
                                 resetPointerDoubleClickState()
-                                onCollectionDragStart(node.id)
+                                onCollectionDragStart(node.id, rowRootTopPx[0] + startOffset.y)
                             },
                             onDragEnd = { onCollectionDragEnd() },
-                            onDragCancel = { onCollectionDragEnd() },
+                            onDragCancel = { onCollectionDragCancel() },
                             onDrag = { change, _ ->
-                                onCollectionDragDelta(node.id, change.positionChange().y)
+                                onCollectionDragMove(node.id, rowRootTopPx[0] + change.position.y)
                                 change.consume()
                             },
                         )
@@ -765,18 +769,20 @@ internal fun CollectionTreeNode(
                         dropTargetRequestId = dropTargetRequestId,
                         dropInsertAfter = dropInsertAfter,
                         onDragStart = onDragStart,
-                        onDragDelta = onDragDelta,
+                        onDragMove = onDragMove,
                         onNodePositioned = onNodePositioned,
                         onDragEnd = onDragEnd,
+                        onDragCancel = onDragCancel,
                         // Forward collection drag params so nested folders participate in
                         // same-level reorder and register their hit areas correctly.
                         draggedCollectionId = draggedCollectionId,
                         dropCollectionTargetId = dropCollectionTargetId,
                         dropCollectionInsertAfter = dropCollectionInsertAfter,
                         onCollectionDragStart = onCollectionDragStart,
-                        onCollectionDragDelta = onCollectionDragDelta,
+                        onCollectionDragMove = onCollectionDragMove,
                         onCollectionHitAreaPositioned = onCollectionHitAreaPositioned,
                         onCollectionDragEnd = onCollectionDragEnd,
+                        onCollectionDragCancel = onCollectionDragCancel,
                         inlineRenamingId = inlineRenamingId,
                         onStartInlineRename = onStartInlineRename,
                         onCommitInlineRename = onCommitInlineRename,

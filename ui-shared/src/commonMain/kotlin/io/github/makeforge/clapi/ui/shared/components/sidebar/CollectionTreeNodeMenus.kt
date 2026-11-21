@@ -36,10 +36,11 @@ import io.github.makeforge.clapi.ui.shared.generated.resources.ic_content_copy
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_delete
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_edit
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_folder
-import io.github.makeforge.clapi.ui.shared.generated.resources.ic_folder_open
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_input
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_keyboard_arrow_down
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_keyboard_arrow_up
+import io.github.makeforge.clapi.ui.shared.generated.resources.ic_unfold_less
+import io.github.makeforge.clapi.ui.shared.generated.resources.ic_unfold_more
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
 import io.github.makeforge.clapi.ui.shared.state.CollectionNode
 import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
@@ -251,13 +252,13 @@ private fun FolderContextMenuItems(
     )
     IconMenuItem(
         label = Strings.expandAll,
-        icon = Res.drawable.ic_folder_open,
+        icon = Res.drawable.ic_unfold_more,
         onDismissRequest = onDismissRequest,
         onClick = model.onExpandAll,
     )
     IconMenuItem(
         label = Strings.collapseAll,
-        icon = Res.drawable.ic_folder,
+        icon = Res.drawable.ic_unfold_less,
         onDismissRequest = onDismissRequest,
         onClick = model.onCollapseAll,
     )

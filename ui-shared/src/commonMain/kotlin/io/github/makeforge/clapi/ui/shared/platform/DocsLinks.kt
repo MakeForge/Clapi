@@ -110,11 +110,11 @@ object DocsLinks {
 
     /** Keyboard Shortcuts reference page. */
     val shortcuts: String
-        get() = url("/reference/shortcuts")
+        get() = url("/settings/shortcuts")
 
     /** Application Settings reference page. */
     val settings: String
-        get() = url("/reference/settings")
+        get() = url("/settings/settings")
 
     /** Import documentation page. */
     val importDocs: String

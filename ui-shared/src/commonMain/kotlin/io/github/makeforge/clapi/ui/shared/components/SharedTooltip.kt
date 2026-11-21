@@ -25,11 +25,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
 import io.github.makeforge.clapi.ui.shared.platform.currentTimeMillis
@@ -233,6 +238,44 @@ fun IconButtonWithTooltip(
 }
 
 /**
+ * Positions a tooltip strictly below its anchor (or strictly above if there is
+ * not enough room below), preventing tall or multi-line popups from overlapping
+ * the hovered anchor and triggering a hover-exit/re-enter flicker loop.
+ */
+internal class TooltipPopupPositionProvider(
+    private val gapPx: Int,
+    private val marginPx: Int = 8,
+) : PopupPositionProvider {
+    override fun calculatePosition(
+        anchorBounds: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize,
+    ): IntOffset {
+        val preferredX = anchorBounds.left + (anchorBounds.width - popupContentSize.width) / 2
+        val maxX = (windowSize.width - popupContentSize.width - marginPx).coerceAtLeast(marginPx)
+        val x = preferredX.coerceIn(marginPx, maxX)
+
+        val belowY = anchorBounds.bottom + gapPx
+        val aboveY = anchorBounds.top - popupContentSize.height - gapPx
+        val y = when {
+            belowY + popupContentSize.height <= windowSize.height - marginPx -> belowY
+            aboveY >= marginPx -> aboveY
+            else -> {
+                val spaceBelow = windowSize.height - anchorBounds.bottom
+                val spaceAbove = anchorBounds.top
+                if (spaceBelow >= spaceAbove) {
+                    belowY.coerceAtMost((windowSize.height - popupContentSize.height).coerceAtLeast(0))
+                } else {
+                    aboveY.coerceAtLeast(0)
+                }
+            }
+        }
+        return IntOffset(x, y)
+    }
+}
+
+/**
  * Displays a hover hint (tooltip) over any composable (e.g. icon-only clickable items).
  */
 @Composable
@@ -251,15 +294,32 @@ fun HoverTooltip(
         return
     }
 
+    val density = LocalDensity.current
+    val gapPx = with(density) { 6.dp.roundToPx() }
+    val marginPx = with(density) { 8.dp.roundToPx() }
+    val positionProvider = remember(gapPx, marginPx) {
+        TooltipPopupPositionProvider(gapPx = gapPx, marginPx = marginPx)
+    }
+
     val interactionSource = remember { MutableInteractionSource() }
+    val popupInteractionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
+    val isPopupHovered by popupInteractionSource.collectIsHoveredAsState()
+    val activelyHovered = isHovered || isPopupHovered
     var tooltipVisible by remember { mutableStateOf(false) }
 
-    LaunchedEffect(isHovered, tooltip) {
-        if (isHovered && tooltip.isNotBlank()) {
-            delay(delayMillis)
-            tooltipVisible = true
-        } else {
+    LaunchedEffect(activelyHovered, tooltip) {
+        if (tooltip.isBlank()) {
+            tooltipVisible = false
+        } else if (activelyHovered) {
+            if (!tooltipVisible) {
+                delay(delayMillis)
+                tooltipVisible = true
+            }
+        } else if (tooltipVisible) {
+            // Brief grace window avoids flicker if the cursor crosses the gap
+            // onto the tooltip or hits a transient OS hover-exit event.
+            delay(80L)
             tooltipVisible = false
         }
     }
@@ -269,12 +329,12 @@ fun HoverTooltip(
 
         if (tooltipVisible && tooltip.isNotBlank()) {
             Popup(
-                alignment = alignment,
-                offset = offset,
+                popupPositionProvider = positionProvider,
                 properties = PopupProperties(focusable = false),
             ) {
                 Box(
                     modifier = Modifier
+                        .hoverable(popupInteractionSource)
                         .then(if (maxLines > 1) Modifier.widthIn(max = 380.dp) else Modifier)
                         .clip(RoundedCornerShape(5.dp))
                         .background(ClapiColors.SurfaceHigh)
