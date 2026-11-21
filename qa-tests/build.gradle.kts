@@ -16,7 +16,16 @@ plugins {
 }
 
 kotlin {
-    jvm()
+    jvm {
+        val testCompilation = compilations.getByName("test")
+        compilations.create("loadTest") {
+            associateWith(testCompilation)
+            defaultSourceSet {
+                kotlin.srcDir("src/loadTest/kotlin")
+                resources.srcDir("src/loadTest/resources")
+            }
+        }
+    }
 
     jvmToolchain(25)
 
@@ -146,4 +155,41 @@ tasks.register<JavaExec>("runDummyServer") {
     classpath = kotlin.jvm().compilations.getByName("test").output.classesDirs +
         kotlin.jvm().compilations.getByName("test").runtimeDependencyFiles
     mainClass.set("io.github.makeforge.clapi.testsupport.DummyApiServerKt")
+}
+
+// 5. Dedicated out-of-process load & memory profiling test task (never runs on normal build/check)
+val loadTestCompilation = kotlin.jvm().compilations.getByName("loadTest")
+val javaToolchains = project.extensions.getByType<JavaToolchainService>()
+val jdk25Home = javaToolchains.launcherFor {
+    languageVersion.set(JavaLanguageVersion.of(25))
+}.map { it.metadata.installationPath.asFile.absolutePath }
+
+tasks.register<Test>("loadTest") {
+    group = "verification"
+    description = "Runs automated out-of-process load and memory profiling tests against the packaged Clapi fat JAR."
+    useJUnit()
+    dependsOn(":ui-desktop:packageClapiJar")
+
+    testClassesDirs = loadTestCompilation.output.classesDirs
+    classpath = loadTestCompilation.compileDependencyFiles +
+        loadTestCompilation.runtimeDependencyFiles +
+        loadTestCompilation.output.allOutputs
+
+    val fatJarPath = project(":ui-desktop").layout.buildDirectory
+        .file("distribute/Clapi-${project.version}.jar")
+        .get().asFile.absolutePath
+    val reportDir = layout.buildDirectory.dir("reports/load-test").get().asFile.absolutePath
+    val profile = (project.findProperty("loadProfile") as String?) ?: "standard"
+
+    systemProperty("clapi.jdkHome", jdk25Home.get())
+    systemProperty("clapi.fatJar", fatJarPath)
+    systemProperty("clapi.loadTest.reportDir", reportDir)
+    systemProperty("clapi.loadTest.profile", profile)
+
+    // Always execute when explicitly invoked and stream progress logs.
+    outputs.upToDateWhen { false }
+    testLogging {
+        showStandardStreams = true
+        events("passed", "skipped", "failed")
+    }
 }

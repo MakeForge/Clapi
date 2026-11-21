@@ -39,6 +39,7 @@ import io.ktor.server.request.receiveText
 import io.ktor.server.request.uri
 import io.ktor.websocket.CloseReason
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondOutputStream
 import io.ktor.server.response.respondText
 import io.ktor.server.response.respondTextWriter
 import io.ktor.server.routing.delete
@@ -78,7 +79,8 @@ class DummyApiServer(
     private val grpcPort: Int = 0,
     private val validBearerToken: String = "dummy-token",
     private val validBasicToken: String = "dXNlcjpwYXNz",
-    private val validApiKey: String = "test-api-key"
+    private val validApiKey: String = "test-api-key",
+    private val recordRequests: Boolean = true,
 ) {
     private var engine: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>? = null
     private var grpcServer: Server? = null
@@ -103,7 +105,11 @@ class DummyApiServer(
             dummyApiModule(
                 users = users,
                 idSequence = idSequence,
-                requestLogger = { request -> _requestsLog.value = _requestsLog.value + request },
+                requestLogger = { request ->
+                    if (recordRequests) {
+                        _requestsLog.value = _requestsLog.value + request
+                    }
+                },
                 validBearerToken = validBearerToken,
                 validBasicToken = validBasicToken,
                 validApiKey = validApiKey
@@ -195,8 +201,16 @@ class DummyApiServer(
                             customMeta.takeIf { it.isNotEmpty() },
                             authMeta.takeIf { it.isNotEmpty() }
                         ).joinToString(";")
+                        val replyText = if (name.startsWith("large:")) {
+                            val requestedBytes = name.removePrefix("large:").toIntOrNull()?.coerceIn(1, 4_000_000) ?: 65_536
+                            val base = "$prefix, large-payload:"
+                            val padLen = (requestedBytes - base.length).coerceAtLeast(0)
+                            base + "x".repeat(padLen)
+                        } else {
+                            "$prefix, $name!"
+                        }
                         val replyBuilder = DynamicMessage.newBuilder(methodDesc.outputType)
-                            .setField(messageField, "$prefix, $name!")
+                            .setField(messageField, replyText)
                         if (receivedMetaField != null && combinedMeta.isNotEmpty()) {
                             replyBuilder.setField(receivedMetaField, combinedMeta)
                         }
@@ -248,12 +262,14 @@ class DummyApiServer(
                         headers.get(k)?.let { loggedHeaders[keyName] = it }
                     }
                 }
-                _requestsLog.value = _requestsLog.value + LoggedRequest(
-                    method = "GRPC",
-                    path = call.methodDescriptor.fullMethodName,
-                    headers = loggedHeaders,
-                    epochMs = Clock.System.now().toEpochMilliseconds(),
-                )
+                if (recordRequests) {
+                    _requestsLog.value = _requestsLog.value + LoggedRequest(
+                        method = "GRPC",
+                        path = call.methodDescriptor.fullMethodName,
+                        headers = loggedHeaders,
+                        epochMs = Clock.System.now().toEpochMilliseconds(),
+                    )
+                }
 
                 val forwardingCall = object : ForwardingServerCall.SimpleForwardingServerCall<ReqT, RespT>(call) {
                     override fun sendHeaders(responseHeaders: Metadata) {
@@ -656,6 +672,50 @@ fun Application.dummyApiModule(
                     params.entries().forEach { (k, values) -> put(k, values.firstOrNull() ?: "") }
                 }
             })
+        }
+
+        // ── Load-test payload endpoints ─────────────────────────
+
+        get("/load/json") {
+            requestLogger(call.logRequest())
+            val items = call.request.queryParameters["items"]?.toIntOrNull()?.coerceIn(1, 100_000) ?: 5_000
+            val paddingBytes = call.request.queryParameters["paddingBytes"]?.toIntOrNull()?.coerceIn(0, 4_096) ?: 64
+            val padding = if (paddingBytes > 0) "a".repeat(paddingBytes) else ""
+            call.respondTextWriter(contentType = ContentType.Application.Json) {
+                write("{\"count\":$items,\"items\":[")
+                for (i in 0 until items) {
+                    if (i > 0) write(",")
+                    write("{\"id\":${i + 1},\"name\":\"User-$i\",\"email\":\"user$i@example.com\",\"status\":\"active\",\"role\":\"member\",\"tags\":[\"load\",\"json\",\"clapi\"],\"payload\":\"$padding\"}")
+                }
+                write("]}")
+                flush()
+            }
+        }
+
+        get("/load/binary") {
+            requestLogger(call.logRequest())
+            val sizeMb = call.request.queryParameters["sizeMb"]?.toIntOrNull()?.coerceIn(1, 32) ?: 1
+            val chunk = ByteArray(64 * 1024) { idx -> (idx % 251).toByte() }
+            val totalChunks = sizeMb * 16
+            call.respondOutputStream(contentType = ContentType.Application.OctetStream) {
+                repeat(totalChunks) {
+                    write(chunk)
+                }
+                flush()
+            }
+        }
+
+        get("/load/sse") {
+            requestLogger(call.logRequest())
+            val events = call.request.queryParameters["events"]?.toIntOrNull()?.coerceIn(1, 5_000) ?: 20
+            val delayMs = call.request.queryParameters["delayMs"]?.toLongOrNull()?.coerceIn(0L, 1_000L) ?: 0L
+            call.respondTextWriter(contentType = ContentType.Text.EventStream) {
+                for (i in 0 until events) {
+                    write("id: $i\nevent: tick\ndata: {\"seq\":$i,\"status\":\"ok\"}\n\n")
+                    flush()
+                    if (delayMs > 0L) delay(delayMs)
+                }
+            }
         }
     }
 }
