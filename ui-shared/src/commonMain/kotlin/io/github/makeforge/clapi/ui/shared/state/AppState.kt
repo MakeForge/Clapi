@@ -29,6 +29,7 @@ import io.github.makeforge.clapi.core.storage.git.GitRepositoryManager
 import io.github.makeforge.clapi.core.storage.git.ProtoPathResolver
 import io.github.makeforge.clapi.ui.shared.components.syncParamsFromUrl
 import io.github.makeforge.clapi.ui.shared.mcp.McpSessionState
+import io.github.makeforge.clapi.ui.shared.mcp.server.EmbeddedMcpServerController
 import io.github.makeforge.clapi.ui.shared.persistence.ImportExportNaming
 import io.github.makeforge.clapi.ui.shared.platform.currentTimeMillis
 import io.github.makeforge.clapi.ui.shared.platform.generateUuid
@@ -168,6 +169,7 @@ class AppState(openDefaultTab: Boolean = true) {
     val appScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val mcpSessions = mutableMapOf<String, McpSessionState>()
     private var disposalJob: Job? = null
+    val embeddedMcpServerController: EmbeddedMcpServerController by lazy { EmbeddedMcpServerController(this) }
 
     /** Returns the persistent MCP session for [tabId], creating it on first use. */
     fun getOrCreateMcpSession(tabId: String): McpSessionState {
@@ -190,6 +192,7 @@ class AppState(openDefaultTab: Boolean = true) {
      */
     fun dispose(): Job {
         disposalJob?.let { return it }
+        runCatching { embeddedMcpServerController.stop() }
         openTabs.forEach { tab ->
             tab.currentJob?.cancel()
             tab.disposeBodyViewModels()

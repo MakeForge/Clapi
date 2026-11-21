@@ -432,5 +432,12 @@
   "type_number": "Number",
   "type_boolean": "Booleano",
   "type_object": "Objeto",
-  "read_only": "Solo lectura"
+  "read_only": "Solo lectura",
+  "mcp_server": "Servidor MCP",
+  "mcp_server_enable": "Habilitar servidor MCP integrado",
+  "mcp_server_enable_desc": "Expone colecciones, entornos y ejecución de solicitudes localmente por HTTP (127.0.0.1) para agentes de IA.",
+  "mcp_server_port": "Puerto local (127.0.0.1)",
+  "mcp_server_running": "Ejecutándose en",
+  "mcp_server_stopped": "Servidor detenido",
+  "mcp_server_client_config": "Configuración del cliente MCP"
 }

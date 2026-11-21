@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import io.github.makeforge.clapi.ui.shared.components.DialogTitleBar
 import io.github.makeforge.clapi.ui.shared.components.DocsHelpButton
+import io.github.makeforge.clapi.ui.shared.components.dialogs.settings.sections.McpServerSettingsSection
 import io.github.makeforge.clapi.ui.shared.components.draggableDialogBackdrop
 import io.github.makeforge.clapi.ui.shared.components.draggableDialogCard
 import io.github.makeforge.clapi.ui.shared.components.handPointerHover
@@ -48,6 +49,7 @@ private enum class SettingsSection(val icon: DrawableResource) {
     PROXY(Res.drawable.ic_settings_applications),
     SECRETS(Res.drawable.ic_key),
     SCRIPTING(Res.drawable.ic_data_object),
+    MCP_SERVER(Res.drawable.ic_hub),
     DATA(Res.drawable.ic_storage),
 }
 
@@ -61,6 +63,7 @@ private fun settingsSectionLabel(section: SettingsSection): String = when (secti
     SettingsSection.PROXY -> Strings.proxy
     SettingsSection.SECRETS -> Strings.t("secrets_manager")
     SettingsSection.SCRIPTING -> Strings.t("scripts")
+    SettingsSection.MCP_SERVER -> Strings.t("mcp_server")
     SettingsSection.DATA -> Strings.t("data")
 }
 
@@ -186,6 +189,7 @@ fun SettingsDialog(
                         SettingsSection.PROXY    -> ProxySettings(settings)
                         SettingsSection.SECRETS  -> SecretsSettings(settings)
                         SettingsSection.SCRIPTING -> ScriptingSettings(settings)
+                        SettingsSection.MCP_SERVER -> McpServerSettingsSection(state)
                         SettingsSection.DATA     -> DataSettings(state)
                     }
 

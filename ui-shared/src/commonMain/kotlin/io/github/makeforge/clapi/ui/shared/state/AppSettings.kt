@@ -92,6 +92,8 @@ class AppSettings {
             copy.gcpAdcFilePath = base.gcpAdcFilePath
             copy.keeperConfigJson = base.keeperConfigJson
             copy.keeperConnectionStatus = base.keeperConnectionStatus
+            copy.mcpServerEnabled = base.mcpServerEnabled
+            copy.mcpServerPort = base.mcpServerPort
         }
     }
 
@@ -156,6 +158,10 @@ class AppSettings {
     // Secrets Manager (Keeper Security Cloud)
     var keeperConfigJson       by mutableStateOf("")
     var keeperConnectionStatus by mutableStateOf(KeeperConnectionStatus.UNKNOWN)
+
+    // Embedded MCP Server
+    var mcpServerEnabled       by mutableStateOf(false)
+    var mcpServerPort          by mutableStateOf(3333)
 }
 
 enum class KeeperConnectionStatus {

@@ -23,6 +23,7 @@ include(
     ":core-network",
     ":core-storage",
     ":core-scripting",
+    ":mcp-server",
     ":qa-tests",
     ":ui-shared",
     ":ui-desktop",
