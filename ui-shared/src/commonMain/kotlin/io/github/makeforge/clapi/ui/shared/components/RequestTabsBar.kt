@@ -58,19 +58,25 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.makeforge.clapi.core.model.RequestKind
 import io.github.makeforge.clapi.ui.shared.generated.resources.Res
-import io.github.makeforge.clapi.ui.shared.generated.resources.ic_add
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_article
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_close
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_folder
+import io.github.makeforge.clapi.ui.shared.generated.resources.ic_help_outline
+import io.github.makeforge.clapi.ui.shared.generated.resources.ic_public
+import io.github.makeforge.clapi.ui.shared.generated.resources.ic_settings
+import io.github.makeforge.clapi.ui.shared.generated.resources.ic_view_sidebar
+import io.github.makeforge.clapi.ui.shared.generated.resources.ic_view_week
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
 import io.github.makeforge.clapi.ui.shared.platform.PlatformHorizontalScrollbar
 import io.github.makeforge.clapi.ui.shared.platform.horizontalResizeCursor
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.state.RequestTabState
+import io.github.makeforge.clapi.ui.shared.state.ResponseLayout
 import io.github.makeforge.clapi.ui.shared.state.hasSseAccept
 import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
 import io.github.makeforge.clapi.ui.shared.theme.CodeFontFamily
@@ -155,17 +161,81 @@ fun RequestTabsBar(
                 )
             }
 
-            // New-tab button
-            IconButtonWithTooltip(
-                onClick = { state.addTabInSelectedCollection() },
-                tooltip = Strings.t("new_tab"),
-                modifier = Modifier.size(28.dp).padding(end = 4.dp),
+            // Workspace actions: Environment, response layout, global variables, help, settings
+            Row(
+                modifier = Modifier.padding(end = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Icon(painter = painterResource(Res.drawable.ic_add),
-                    contentDescription = Strings.t("new_tab"),
-                    tint = ClapiColors.OnSurfaceDim,
-                    modifier = Modifier.size(16.dp),
-                )
+                EnvironmentChip(state)
+
+                IconButtonWithTooltip(
+                    tooltip = Strings.t("toggle_response_layout"),
+                    tooltipTag = "toolbar-tooltip-response-layout",
+                    offset = IntOffset(0, 30),
+                    onClick = {
+                        state.settings.responseLayout =
+                            if (state.settings.responseLayout == ResponseLayout.RIGHT) ResponseLayout.BOTTOM
+                            else ResponseLayout.RIGHT
+                    },
+                    modifier = Modifier.size(32.dp).testTag("response-layout-toggle"),
+                ) {
+                    Icon(
+                        painter = if (state.settings.responseLayout == ResponseLayout.RIGHT) {
+                            painterResource(Res.drawable.ic_view_sidebar)
+                        } else {
+                            painterResource(Res.drawable.ic_view_week)
+                        },
+                        contentDescription = Strings.t("toggle_response_layout"),
+                        tint = ClapiColors.OnSurfaceVariant,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+
+                IconButtonWithTooltip(
+                    tooltip = Strings.globalVariables,
+                    tooltipTag = "toolbar-tooltip-global-variables",
+                    offset = IntOffset(0, 30),
+                    onClick = { state.showGlobalVariablesDialog = true },
+                    modifier = Modifier.size(32.dp).testTag("global-variables-button"),
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_public),
+                        contentDescription = Strings.globalVariables,
+                        tint = ClapiColors.OnSurfaceVariant,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+
+                IconButtonWithTooltip(
+                    tooltip = "Help and About",
+                    tooltipTag = "toolbar-tooltip-help-about",
+                    offset = IntOffset(0, 30),
+                    onClick = { state.showHelpDialog = true },
+                    modifier = Modifier.size(32.dp).testTag("help-about-button"),
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_help_outline),
+                        contentDescription = "Help and About",
+                        tint = ClapiColors.OnSurfaceVariant,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+
+                IconButtonWithTooltip(
+                    tooltip = Strings.settings,
+                    tooltipTag = "toolbar-tooltip-settings",
+                    offset = IntOffset(0, 30),
+                    onClick = { state.showSettingsDialog = true },
+                    modifier = Modifier.size(32.dp).testTag("settings-button"),
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_settings),
+                        contentDescription = Strings.settings,
+                        tint = ClapiColors.OnSurfaceVariant,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
             }
         }
 

@@ -215,7 +215,7 @@ fun TopToolbar(
 }
 
 @Composable
-expect fun BrandIcon()
+expect fun BrandIcon(modifier: Modifier = Modifier)
 
 @Composable
 private fun EnvironmentChip(state: AppState) {

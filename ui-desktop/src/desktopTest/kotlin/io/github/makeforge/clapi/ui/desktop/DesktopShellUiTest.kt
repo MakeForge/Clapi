@@ -1,6 +1,8 @@
 package io.github.makeforge.clapi.ui.desktop
 
+import androidx.compose.foundation.layout.Column
 import io.github.makeforge.clapi.ui.shared.MainScreen
+import io.github.makeforge.clapi.ui.shared.components.TitleBarBrandContent
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertCountEquals
@@ -32,7 +34,7 @@ class MainScreenUiTest {
         composeRule.setContent { MainScreen() }
 
         composeRule.onNodeWithTag("main-screen").assertIsDisplayed()
-        composeRule.onNodeWithTag("top-toolbar").assertIsDisplayed()
+        composeRule.onNodeWithTag("request-tabs-bar").assertIsDisplayed()
         composeRule.onNodeWithTag("sidebar").assertIsDisplayed()
         composeRule.onNodeWithTag("request-editor").assertIsDisplayed()
         composeRule.onNodeWithTag("response-viewer").assertIsDisplayed()
@@ -79,7 +81,12 @@ class MainScreenUiTest {
 
     @Test
     fun renders_toolbar_brand_and_environment() {
-        composeRule.setContent { MainScreen(AppStateExamples.demo()) }
+        composeRule.setContent {
+            Column {
+                TitleBarBrandContent(AppStateExamples.demo())
+                MainScreen(AppStateExamples.demo())
+            }
+        }
 
         composeRule.onNodeWithText("Clapi").assertIsDisplayed()
         // "Development" appears in both toolbar chip and sidebar environment list

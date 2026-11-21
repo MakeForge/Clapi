@@ -33,6 +33,7 @@ import io.github.makeforge.clapi.ui.desktop.logging.LogDirectoryConfigurator
 import io.github.makeforge.clapi.ui.desktop.logging.UiLogDispatcher
 import io.github.makeforge.clapi.ui.shared.MainScreen
 import io.github.makeforge.clapi.ui.shared.components.CrashReportDialog
+import io.github.makeforge.clapi.ui.shared.components.TitleBarBrandContent
 import io.github.makeforge.clapi.ui.shared.persistence.SettingsRepository
 import io.github.makeforge.clapi.ui.shared.persistence.TabsRepository
 import io.github.makeforge.clapi.ui.shared.persistence.WorkspaceRepository
@@ -179,7 +180,12 @@ fun main(args: Array<String>) {
                         minimumSize = DpSize(800.dp, 600.dp),
                         onPreviewKeyEvent = { false },
                     ) {
-                        MaterialTitleBar()
+                        MaterialTitleBar {
+                            TitleBarBrandContent(
+                                state = state,
+                                modifier = Modifier.align(Alignment.Start),
+                            )
+                        }
 
                         LaunchedEffect(state.settings.theme, state.settings.language) {
                             GlobalCrashHandler.currentTheme = state.settings.theme

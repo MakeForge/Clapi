@@ -67,7 +67,6 @@ import io.github.makeforge.clapi.ui.shared.components.RequestTabsBar
 import io.github.makeforge.clapi.ui.shared.components.ResponseViewer
 import io.github.makeforge.clapi.ui.shared.components.SettingsDialog
 import io.github.makeforge.clapi.ui.shared.components.SidebarResizeDivider
-import io.github.makeforge.clapi.ui.shared.components.TopToolbar
 import io.github.makeforge.clapi.ui.shared.components.VerticalSplitPane
 import io.github.makeforge.clapi.ui.shared.components.WebSocketRequestEditor
 import io.github.makeforge.clapi.ui.shared.components.executor.saveRequest
@@ -261,9 +260,6 @@ fun MainScreen(
                 }
             },
     ) {
-        // ── Top toolbar ─────────────────────────────────────
-        TopToolbar(state)
-
         // ── Dialog overlays ─────────────────────────────────
         // Feature dialogs render bottom-to-top, so a dialog opened later (e.g. Help from Settings) is on top.
         state.dialogs.dialogs.forEach { dialog -> key(dialog) {
