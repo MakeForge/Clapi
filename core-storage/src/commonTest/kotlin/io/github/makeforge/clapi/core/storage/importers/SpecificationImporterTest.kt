@@ -100,4 +100,85 @@ class SpecificationImporterTest {
         val swaggerV2Result = importer.scanContent(swaggerV2Content)
         assertIs<ImportScanResult.Failure>(swaggerV2Result)
     }
+
+    @Test
+    fun openCollectionImporter_scansValidOpenCollectionJson() = runTest {
+        val jsonContent = """
+            {
+              "opencollection": "1.0.0",
+              "info": {
+                "name": "JSON OpenCollection",
+                "version": "1.0"
+              },
+              "bundled": true,
+              "config": {
+                "environments": [
+                  {
+                    "name": "Staging",
+                    "variables": [
+                      { "name": "baseUrl", "value": "https://staging.example.com" }
+                    ]
+                  }
+                ]
+              },
+              "items": [
+                {
+                  "info": { "name": "Health Check", "type": "http" },
+                  "http": { "method": "GET", "url": "{{baseUrl}}/health" }
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val result = SpecificationImporter.default().scanContent(jsonContent)
+
+        val success = assertIs<ImportScanResult.Success>(result)
+        assertEquals(SpecFormat.OPENCOLLECTION, success.format)
+        assertEquals("JSON OpenCollection", success.specTitle)
+        assertEquals(1, success.folders.size)
+        assertEquals(1, success.folders.first().requestCount)
+        assertEquals(1, success.environments.size)
+        assertEquals("Staging", success.environments.first().name)
+    }
+
+    @Test
+    fun compositeImporter_rejectsLegacyClapiCollectionWithClearMessage() = runTest {
+        val legacyJson = """
+            {
+              "type": "clapiCollection",
+              "version": "1.0",
+              "name": "Legacy Test Suite",
+              "folders": []
+            }
+        """.trimIndent()
+
+        val result = SpecificationImporter.default().scanContent(legacyJson)
+
+        val failure = assertIs<ImportScanResult.Failure>(result)
+        assertTrue(failure.message.contains("Legacy format 'clapiCollection'"), failure.message)
+        assertTrue(!failure.message.contains("Invalid OpenAPI specification"), failure.message)
+    }
+
+    @Test
+    fun compositeImporter_rejectsUnrecognizedContentWithoutOpenApiError() = runTest {
+        val result = SpecificationImporter.default().scanContent("""{"hello":"world"}""")
+
+        val failure = assertIs<ImportScanResult.Failure>(result)
+        assertTrue(failure.message.contains("Unrecognized specification format"), failure.message)
+        assertTrue(!failure.message.contains("attribute openapi is missing"), failure.message)
+    }
+
+    @Test
+    fun compositeImporter_returnsOpenApiErrorForMalformedOpenApiSpec() = runTest {
+        val brokenOpenApi = """
+            {
+              "openapi": "3.0.3",
+              "paths": [broken
+        """.trimIndent()
+
+        val result = SpecificationImporter.default().scanContent(brokenOpenApi)
+
+        val failure = assertIs<ImportScanResult.Failure>(result)
+        assertTrue(failure.message.contains("Invalid OpenAPI specification"), failure.message)
+    }
 }

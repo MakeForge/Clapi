@@ -4,8 +4,12 @@ import io.github.makeforge.clapi.core.model.HttpMethodType
 import io.github.makeforge.clapi.core.model.McpSamplingMode
 import io.github.makeforge.clapi.core.model.McpTransportType
 import io.github.makeforge.clapi.core.model.RequestKind
+import io.github.makeforge.clapi.core.model.importers.ImportScanResult
+import io.github.makeforge.clapi.core.model.importers.SpecFormat
+import io.github.makeforge.clapi.core.storage.importers.SpecificationImporter
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.state.CollectionNode
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -132,6 +136,25 @@ class ImportExportFixturesIntegrationTest {
 
         assertNotNull(findRequest(state.collections, "POST JSON5 trailing comma"))
         assertNotNull(findRequest(state.collections, "POST JSON5 unquoted keys"))
+    }
+
+    @Test
+    fun specificationImporter_scans_clapi_test_collection_fixture_json() = runBlocking {
+        val scanResult = SpecificationImporter.default().scanContent(collectionFixture.readText())
+        assertTrue(
+            scanResult is ImportScanResult.Success,
+            "Expected Success scanning clapi-test-collection.json, got: $scanResult",
+        )
+        assertEquals(SpecFormat.OPENCOLLECTION, scanResult.format)
+        assertEquals("Clapi Test Suite", scanResult.specTitle)
+        assertEquals(1, scanResult.folders.size)
+        assertTrue(scanResult.folders.first().requestCount > 0)
+
+        val vaultEnv = scanResult.environments.firstOrNull { it.name == "Vault Staging" }
+        assertNotNull(vaultEnv)
+        val envState = vaultEnv.environment.copy(name = vaultEnv.name).toEnvState()
+        assertEquals("hashicorp-vault-server", envState.externalSecretsProvider)
+        assertTrue(envState.externalSecrets.isNotEmpty())
     }
 
     private fun findFolder(nodes: List<CollectionNode>, name: String): CollectionNode? {
