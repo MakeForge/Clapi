@@ -328,6 +328,15 @@ object DefaultHttpExecutionAdapter : HttpExecutionAdapter {
             is AuthOAuth2 -> io.github.crustack.clapi.core.model.AuthConfig(
                 type = AuthType.OAUTH2,
                 params = buildMap {
+                    val rootClapi = collectionRoot?.extensions?.get("clapi") as? JsonObject
+                    val rootRequests = rootClapi?.get("requests") as? JsonObject
+                    val reqMeta = rootRequests?.get(requestItem.info.name) as? JsonObject
+                        ?: rootRequests?.get(extractRequestId(requestItem, collectionRoot)) as? JsonObject
+                    val itemClapi = requestItem.extensions["clapi"] as? JsonObject
+                    val token = itemClapi?.get("authOAuth2AccessToken")?.jsonPrimitive?.contentOrNull
+                        ?: reqMeta?.get("authOAuth2AccessToken")?.jsonPrimitive?.contentOrNull
+                        ?: auth.tokenConfig?.id
+                    token?.let { put("accessToken", it) }
                     auth.accessTokenUrl?.let { put("accessTokenUrl", it) }
                     auth.refreshTokenUrl?.let { put("refreshTokenUrl", it) }
                     auth.authorizationUrl?.let { put("authorizationUrl", it) }

@@ -108,7 +108,7 @@ class QaFixesUiTest {
     }
 
     @Test
-    fun `M-13 auth selector hides unimplemented OAuth2 option`() {
+    fun `M-13 auth selector shows implemented OAuth2 option`() {
         val state = AppState()
         composeRule.setContent { MainScreen(state = state) }
         composeRule.waitForIdle()
@@ -118,7 +118,7 @@ class QaFixesUiTest {
         }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("OAUTH2", useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithText("OAUTH2", useUnmergedTree = true).assertIsDisplayed()
     }
 
     // ── M-1: Settings dialog draggable ───────────────────────────────────────
