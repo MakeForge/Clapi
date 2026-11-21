@@ -1,9 +1,9 @@
 ---
-title: Core Concepts & UI Anatomy
+title: Core Concepts
 description: Understand Clapi's workspace structure, request editor anatomy, and key-value editors.
 ---
 
-# Core Concepts & UI Anatomy
+# Core Concepts
 
 <p class="badges">
   <span class="badge badge-protocol">Architecture</span>

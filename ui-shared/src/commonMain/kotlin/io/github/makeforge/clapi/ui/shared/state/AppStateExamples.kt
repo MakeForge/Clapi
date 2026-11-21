@@ -347,6 +347,7 @@ object AppStateExamples {
         state.collectionExpandedState["f-ws"] = false
         state.collectionExpandedState["f-gql"] = false
         state.collectionExpandedState["c2"] = false
+        state.requestResponseSplit = 0.60f
 
         state.ensureRequestRefsInitialized()
         state.syncHistoryWithCollections()
@@ -408,7 +409,7 @@ object AppStateExamples {
                 ),
                 cookies = emptyList(),
                 bodyText = """{
-  "message": "Hello, Clapi Engineer! Welcome to Clapi gRPC.",
+  "message": "Hello, Clapi Engineer!",
   "timestamp": "2026-11-14T22:45:10Z"
 }""",
                 contentType = "application/json",
