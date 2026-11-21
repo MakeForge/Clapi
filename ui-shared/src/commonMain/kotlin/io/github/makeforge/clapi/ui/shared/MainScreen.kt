@@ -74,6 +74,7 @@ import io.github.makeforge.clapi.ui.shared.components.WebSocketRequestEditor
 import io.github.makeforge.clapi.ui.shared.components.executor.saveRequest
 import io.github.makeforge.clapi.ui.shared.components.executor.sendRequest
 import io.github.makeforge.clapi.ui.shared.components.sidebar.Sidebar
+import io.github.makeforge.clapi.ui.shared.components.sidebar.renameFolderInCollections
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
 import io.github.makeforge.clapi.ui.shared.persistence.SettingsRepository
 import io.github.makeforge.clapi.ui.shared.persistence.TabsRepository
@@ -384,8 +385,37 @@ private fun ColumnScope.HttpWorkspaceContent(
         RequestTabsBar(
                     state = state,
                     onRequestClose = onRequestClose,
-                    onRenameTab = { requestId, newName ->
-                        state.renameRequestEverywhere(requestId, newName)
+                    onRenameTab = { tabId, newName ->
+                        val trimmed = newName.trim()
+                        if (trimmed.isNotEmpty()) {
+                            val targetTab = state.openTabs.firstOrNull { it.id == tabId }
+                            when (targetTab?.kind) {
+                                RequestKind.COLLECTION -> {
+                                    state.renameCollection(tabId, trimmed)
+                                }
+                                RequestKind.FOLDER -> {
+                                    val oldName = targetTab.name
+                                    val isRootCollection = state.collections.any { it.id == tabId }
+                                    if (renameFolderInCollections(state.collections, tabId, trimmed)) {
+                                        val actualNewName = state.findFolder(tabId)?.name ?: trimmed
+                                        state.openTabs.filter { it.id == tabId && it.isFolderTab }.forEach { folderTab ->
+                                            folderTab.name = actualNewName
+                                            folderTab.reanchorSavedSnapshotAfterRename(oldName)
+                                        }
+                                        if (isRootCollection) {
+                                            state.updateTabsCollectionName(oldName, actualNewName)
+                                        }
+                                        state.notifyCollectionsChanged()
+                                    }
+                                }
+                                else -> {
+                                    state.renameRequestEverywhere(tabId, trimmed)
+                                }
+                            }
+                            scope.launch(ioDispatcher) {
+                                WorkspaceRepository.save(state)
+                            }
+                        }
                     },
                     onShowInSidebar = { requestId ->
                         state.revealRequestInSidebar(requestId)

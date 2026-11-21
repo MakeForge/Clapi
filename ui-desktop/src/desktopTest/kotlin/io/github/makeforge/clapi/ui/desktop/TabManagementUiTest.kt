@@ -481,6 +481,9 @@ class TabManagementUiTest {
         state.addTab(name = "Second Tab", method = HttpMethodType.GET)
         assertEquals(1, state.activeTabIndex)
 
+        // Reset synthetic double-click window so the next click is a distinct single click
+        io.github.makeforge.clapi.ui.shared.platform.resetPointerDoubleClickState()
+
         // Click folder name text again; should focus existing tab rather than duplicate
         composeRule.onNodeWithTag("folder-name-f-users", useUnmergedTree = true).performClick()
         composeRule.waitForIdle()

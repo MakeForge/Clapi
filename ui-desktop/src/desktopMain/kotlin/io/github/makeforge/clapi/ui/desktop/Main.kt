@@ -41,7 +41,7 @@ import io.github.makeforge.clapi.ui.desktop.logging.LogDirectoryConfigurator
 import io.github.makeforge.clapi.ui.desktop.logging.UiLogDispatcher
 import io.github.makeforge.clapi.ui.shared.MainScreen
 import io.github.makeforge.clapi.ui.shared.components.BrandIcon
-import io.github.makeforge.clapi.ui.shared.components.CrashReportDialog
+import io.github.makeforge.clapi.ui.shared.components.CrashReportContent
 import io.github.makeforge.clapi.ui.shared.components.ResponseViewer
 import io.github.makeforge.clapi.ui.shared.components.TitleBarBrandContent
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
@@ -78,6 +78,16 @@ private fun initLinuxX11Threads() {
             println("Linux XInitThreads initialization failed: ${it.message}")
         }
     }
+}
+
+internal fun formatWindowTitle(activeTabName: String?): String {
+    val trimmed = activeTabName?.trim()
+    return if (trimmed.isNullOrEmpty()) "Clapi" else "$trimmed - Clapi"
+}
+
+internal fun formatDetachedResponseTitle(activeTabName: String?): String {
+    val trimmed = activeTabName?.trim()
+    return if (trimmed.isNullOrEmpty()) "Clapi - Response" else "$trimmed - Response - Clapi"
 }
 
 /**
@@ -184,7 +194,7 @@ fun main(args: Array<String>) {
                     MaterialDecoratedWindow(
                         onCloseRequest = { exitPending = true },
                         icon = painterResource("icons/clapi-icon-64.png"),
-                        title = "Clapi",
+                        title = formatWindowTitle(state.activeTab?.name),
                         state = rememberWindowState(
                             size = DpSize(1400.dp, 900.dp),
                             position = WindowPosition.Aligned(Alignment.Center),
@@ -206,11 +216,40 @@ fun main(args: Array<String>) {
 
                         Box(Modifier.fillMaxSize()) {
                             MainScreen(state)
+                        }
+                    }
 
-                            activeCrash?.let { throwable ->
-                                CrashReportDialog(
+                    activeCrash?.let { throwable ->
+                        MaterialDecoratedWindow(
+                            onCloseRequest = { activeCrash = null },
+                            icon = painterResource("icons/clapi-icon-64.png"),
+                            title = "Clapi - Application Error",
+                            state = rememberWindowState(
+                                size = DpSize(640.dp, 520.dp),
+                                position = WindowPosition.Aligned(Alignment.Center),
+                            ),
+                            minimumSize = DpSize(440.dp, 360.dp),
+                            onPreviewKeyEvent = { false },
+                        ) {
+                            MaterialTitleBar {
+                                Row(
+                                    modifier = Modifier.align(Alignment.Start).padding(start = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    BrandIcon(modifier = Modifier.size(18.dp))
+                                    Text(
+                                        text = "Application Error",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = ClapiColors.OnSurface,
+                                    )
+                                }
+                            }
+
+                            Box(Modifier.fillMaxSize().background(ClapiColors.Background)) {
+                                CrashReportContent(
                                     throwable = throwable,
-                                    onDismiss = { activeCrash = null },
                                     onRestart = {
                                         activeCrash = null
                                         GlobalCrashHandler.restartApplication()
@@ -224,7 +263,7 @@ fun main(args: Array<String>) {
                         MaterialDecoratedWindow(
                             onCloseRequest = { state.closeDetachedResponse() },
                             icon = painterResource("icons/clapi-icon-64.png"),
-                            title = "Clapi - Response",
+                            title = formatDetachedResponseTitle(state.activeTab?.name),
                             state = rememberWindowState(
                                 size = DpSize(800.dp, 600.dp),
                                 position = WindowPosition.Aligned(Alignment.Center),
