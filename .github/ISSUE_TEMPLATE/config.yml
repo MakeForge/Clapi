@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Official Documentation
+    url: https://makeforge.github.io/Clapi
+    about: Check Clapi's official documentation
   - name: Documentation (Development Guide)
     url: https://github.com/MakeForge/clapi/blob/main/DEVELOPMENT.md
     about: Check setup, build, run, and test instructions before opening an issue.
-  - name: Architecture Notes
-    url: https://github.com/MakeForge/clapi/blob/main/docs/architecture.md
-    about: Review architecture and module boundaries for design-related questions.

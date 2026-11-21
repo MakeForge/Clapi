@@ -10,8 +10,6 @@ labels: enhancement
 - Request editor
 - Response viewer
 - Collections / environments
-- Desktop app
-- Web app
 - Core networking / scripting / storage
 
 **Describe the solution you'd like**
