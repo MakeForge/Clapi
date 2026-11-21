@@ -37,12 +37,15 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloseFullscreen
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -98,6 +101,7 @@ import io.github.crustack.clapi.ui.shared.platform.platformDiagonalResizeCursorS
 import io.github.crustack.clapi.ui.shared.platform.platformResizeCursorStyle
 import io.github.crustack.clapi.ui.shared.platform.verticalResizeCursor
 import io.github.crustack.clapi.ui.shared.state.AppState
+import io.github.crustack.clapi.ui.shared.state.MutableExternalSecret
 import io.github.crustack.clapi.ui.shared.state.MutableKeyValue
 import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
@@ -105,6 +109,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import kotlin.math.min
 import kotlin.math.roundToInt
+
+enum class EnvironmentEditTab {
+    VARIABLES,
+    EXTERNAL_SECRETS,
+}
 
 private const val ENV_DIALOG_MIN_WIDTH_DP = 600f
 private const val ENV_DIALOG_MIN_HEIGHT_DP = 460f
@@ -232,6 +241,18 @@ fun EnvironmentEditDialog(state: AppState) {
     var focusNewRowUid by remember(envIndex) { mutableStateOf<String?>(null) }
     val searchFocusRequester = remember(envIndex) { FocusRequester() }
     val listState = rememberLazyListState()
+
+    var activeTab by remember(envIndex) { mutableStateOf(EnvironmentEditTab.VARIABLES) }
+    var workingProvider by remember(envIndex) { mutableStateOf(env.externalSecretsProvider) }
+    var providerMenuExpanded by remember(envIndex) { mutableStateOf(false) }
+    val workingSecrets = remember(envIndex) {
+        mutableStateListOf<MutableExternalSecret>().also { list ->
+            env.externalSecrets.forEach { s ->
+                list.add(MutableExternalSecret(s.name, s.path, s.description, s.enabled))
+            }
+        }
+    }
+    val secretsListState = rememberLazyListState()
 
     var preferredWidthDp by remember { mutableStateOf(state.settings.environmentDialogWidthDp) }
     var preferredHeightDp by remember { mutableStateOf(state.settings.environmentDialogHeightDp) }
@@ -410,123 +431,305 @@ fun EnvironmentEditDialog(state: AppState) {
                     )
                     Spacer(Modifier.height(12.dp))
 
-                    Text(Strings.variables, style = MaterialTheme.typography.labelMedium, color = ClapiColors.OnSurfaceVariant)
-                    Spacer(Modifier.height(6.dp))
-                    EnvironmentVariableSearch(
-                        value = searchValue,
-                        onValueChange = { searchValue = it },
-                        onClear = { clearSearch() },
-                        shown = exactMatches.size,
-                        total = workingVars.size,
-                        focusRequester = searchFocusRequester,
-                    )
-                    Spacer(Modifier.height(6.dp))
-
+                    // Tab Selector: Variables vs External Secrets
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
-                            .background(ClapiColors.SurfaceHigh)
-                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Spacer(Modifier.width(32.dp))
-                        TableHeader(Strings.t("key_upper"), Modifier.weight(1f))
-                        TableHeader(Strings.t("value_upper"), Modifier.weight(1f))
-                        TableHeader(Strings.t("type_upper"), Modifier.width(90.dp))
-                        Spacer(Modifier.width(36.dp))
-                        Spacer(Modifier.width(10.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (activeTab == EnvironmentEditTab.VARIABLES) ClapiColors.SelectedItem else ClapiColors.SurfaceContainer)
+                                .border(
+                                    1.dp,
+                                    if (activeTab == EnvironmentEditTab.VARIABLES) ClapiColors.Primary else ClapiColors.Border,
+                                    RoundedCornerShape(6.dp),
+                                )
+                                .clickable { activeTab = EnvironmentEditTab.VARIABLES }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .testTag("env-tab-variables"),
+                        ) {
+                            Text(
+                                Strings.variables,
+                                color = if (activeTab == EnvironmentEditTab.VARIABLES) ClapiColors.OnSurface else ClapiColors.OnSurfaceVariant,
+                                fontSize = 12.sp,
+                                fontWeight = if (activeTab == EnvironmentEditTab.VARIABLES) FontWeight.SemiBold else FontWeight.Normal,
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (activeTab == EnvironmentEditTab.EXTERNAL_SECRETS) ClapiColors.SelectedItem else ClapiColors.SurfaceContainer)
+                                .border(
+                                    1.dp,
+                                    if (activeTab == EnvironmentEditTab.EXTERNAL_SECRETS) ClapiColors.Primary else ClapiColors.Border,
+                                    RoundedCornerShape(6.dp),
+                                )
+                                .clickable { activeTab = EnvironmentEditTab.EXTERNAL_SECRETS }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .testTag("env-tab-secrets"),
+                        ) {
+                            Text(
+                                Strings.t("external_secrets"),
+                                color = if (activeTab == EnvironmentEditTab.EXTERNAL_SECRETS) ClapiColors.OnSurface else ClapiColors.OnSurfaceVariant,
+                                fontSize = 12.sp,
+                                fontWeight = if (activeTab == EnvironmentEditTab.EXTERNAL_SECRETS) FontWeight.SemiBold else FontWeight.Normal,
+                            )
+                        }
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .heightIn(min = 160.dp)
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp))
-                            .background(ClapiColors.Surface)
-                            .border(1.dp, ClapiColors.Border, RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp)),
-                    ) {
-                        LazyColumn(
-                            state = listState,
+                    if (activeTab == EnvironmentEditTab.VARIABLES) {
+                        EnvironmentVariableSearch(
+                            value = searchValue,
+                            onValueChange = { searchValue = it },
+                            onClear = { clearSearch() },
+                            shown = exactMatches.size,
+                            total = workingVars.size,
+                            focusRequester = searchFocusRequester,
+                        )
+                        Spacer(Modifier.height(6.dp))
+
+                        Row(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .padding(end = 10.dp)
-                                .testTag("env-variables-list"),
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                                .background(ClapiColors.SurfaceHigh)
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
                         ) {
-                        itemsIndexed(visibleVars, key = { _, kv -> kv.uid }) { _, kv ->
-                            val originalIndex = workingVars.indexOf(kv)
-                            EnvVariableRow(
-                                kv = kv,
-                                index = originalIndex,
-                                focusKey = focusNewRowUid == kv.uid,
-                                onFocusConsumed = { focusNewRowUid = null },
-                                onRowFocusChanged = { focused ->
-                                    if (focused) {
-                                        activeEditingUid = kv.uid
-                                        lastInteractedUid = kv.uid
-                                    } else if (activeEditingUid == kv.uid) {
-                                        activeEditingUid = null
-                                    }
-                                },
-                                onDelete = {
-                                    workingVars.remove(kv)
-                                    if (activeEditingUid == kv.uid) activeEditingUid = null
-                                    if (lastInteractedUid == kv.uid) lastInteractedUid = null
-                                },
-                            )
-                            Box(Modifier.fillMaxWidth().height(1.dp).background(ClapiColors.Border))
+                            Spacer(Modifier.width(32.dp))
+                            TableHeader(Strings.t("key_upper"), Modifier.weight(1f))
+                            TableHeader(Strings.t("value_upper"), Modifier.weight(1f))
+                            TableHeader(Strings.t("type_upper"), Modifier.width(90.dp))
+                            Spacer(Modifier.width(36.dp))
+                            Spacer(Modifier.width(10.dp))
                         }
-                        if (visibleVars.isEmpty() && searchValue.text.trim().isNotEmpty()) {
-                            item(key = "no-matches") {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth().height(120.dp).testTag("env-no-search-results"),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center,
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 160.dp)
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp))
+                                .background(ClapiColors.Surface)
+                                .border(1.dp, ClapiColors.Border, RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp)),
+                        ) {
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(end = 10.dp)
+                                    .testTag("env-variables-list"),
+                            ) {
+                            itemsIndexed(visibleVars, key = { _, kv -> kv.uid }) { _, kv ->
+                                val originalIndex = workingVars.indexOf(kv)
+                                EnvVariableRow(
+                                    kv = kv,
+                                    index = originalIndex,
+                                    focusKey = focusNewRowUid == kv.uid,
+                                    onFocusConsumed = { focusNewRowUid = null },
+                                    onRowFocusChanged = { focused ->
+                                        if (focused) {
+                                            activeEditingUid = kv.uid
+                                            lastInteractedUid = kv.uid
+                                        } else if (activeEditingUid == kv.uid) {
+                                            activeEditingUid = null
+                                        }
+                                    },
+                                    onDelete = {
+                                        workingVars.remove(kv)
+                                        if (activeEditingUid == kv.uid) activeEditingUid = null
+                                        if (lastInteractedUid == kv.uid) lastInteractedUid = null
+                                    },
+                                )
+                                Box(Modifier.fillMaxWidth().height(1.dp).background(ClapiColors.Border))
+                            }
+                            if (visibleVars.isEmpty() && searchValue.text.trim().isNotEmpty()) {
+                                item(key = "no-matches") {
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth().height(120.dp).testTag("env-no-search-results"),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center,
+                                    ) {
+                                        Text(Strings.noMatchingVariables, color = ClapiColors.OnSurfaceDim, fontSize = 13.sp)
+                                        Text(
+                                            Strings.clearSearch,
+                                            color = ClapiColors.Primary,
+                                            fontSize = 12.sp,
+                                            modifier = Modifier
+                                                .padding(top = 6.dp)
+                                                .clickable { clearSearch(null) }
+                                                .testTag("env-no-results-clear"),
+                                        )
+                                    }
+                                }
+                            }
+                            }
+                            PlatformLazyVerticalScrollbar(
+                                listState = listState,
+                                modifier = Modifier.align(Alignment.CenterEnd).insetScrollbar(),
+                                testTag = "env-variables-list-vscrollbar",
+                            )
+                        }
+
+                        Spacer(Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable {
+                                    val added = MutableKeyValue()
+                                    workingVars.add(added)
+                                    searchValue = TextFieldValue("")
+                                    focusNewRowUid = added.uid
+                                    lastInteractedUid = added.uid
+                                    activeEditingUid = added.uid
+                                    scope.launch {
+                                        yield()
+                                        listState.scrollToItem(workingVars.lastIndex)
+                                    }
+                                }
+                                .testTag("env-add-variable")
+                                .padding(horizontal = 8.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, tint = ClapiColors.Primary, modifier = Modifier.size(16.dp))
+                            Text(Strings.addVariable, color = ClapiColors.Primary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                        }
+                    } else {
+                        // External Secrets Tab
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                Strings.t("secret_provider"),
+                                fontSize = 12.sp,
+                                color = ClapiColors.OnSurfaceVariant,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(ClapiColors.SurfaceContainer)
+                                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(6.dp))
+                                    .clickable { providerMenuExpanded = true }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                                    .testTag("env-secrets-provider-selector"),
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
-                                    Text(Strings.noMatchingVariables, color = ClapiColors.OnSurfaceDim, fontSize = 13.sp)
                                     Text(
-                                        Strings.clearSearch,
-                                        color = ClapiColors.Primary,
+                                        if (workingProvider == "hashicorp-vault-server") "HashiCorp Vault (Server)" else workingProvider,
+                                        color = ClapiColors.OnSurface,
                                         fontSize = 12.sp,
-                                        modifier = Modifier
-                                            .padding(top = 6.dp)
-                                            .clickable { clearSearch(null) }
-                                            .testTag("env-no-results-clear"),
+                                    )
+                                    Icon(
+                                        Icons.Default.KeyboardArrowDown,
+                                        contentDescription = null,
+                                        tint = ClapiColors.OnSurfaceDim,
+                                        modifier = Modifier.size(14.dp),
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = providerMenuExpanded,
+                                    onDismissRequest = { providerMenuExpanded = false },
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("HashiCorp Vault (Server)", fontSize = 12.sp) },
+                                        onClick = {
+                                            workingProvider = "hashicorp-vault-server"
+                                            providerMenuExpanded = false
+                                        },
+                                        modifier = Modifier.testTag("env-provider-option-hashicorp-vault-server"),
                                     )
                                 }
                             }
                         }
-                        }
-                        PlatformLazyVerticalScrollbar(
-                            listState = listState,
-                            modifier = Modifier.align(Alignment.CenterEnd).insetScrollbar(),
-                            testTag = "env-variables-list-vscrollbar",
-                        )
-                    }
 
-                    Spacer(Modifier.height(6.dp))
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .clickable {
-                                val added = MutableKeyValue()
-                                workingVars.add(added)
-                                searchValue = TextFieldValue("")
-                                focusNewRowUid = added.uid
-                                lastInteractedUid = added.uid
-                                activeEditingUid = added.uid
-                                scope.launch {
-                                    yield()
-                                    listState.scrollToItem(workingVars.lastIndex)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                                .background(ClapiColors.SurfaceHigh)
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                        ) {
+                            Spacer(Modifier.width(32.dp))
+                            TableHeader(Strings.t("name"), Modifier.weight(1.2f))
+                            TableHeader("PATH", Modifier.weight(1.5f))
+                            TableHeader("DESCRIPTION", Modifier.weight(1.5f))
+                            Spacer(Modifier.width(36.dp))
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 160.dp)
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp))
+                                .background(ClapiColors.Surface)
+                                .border(1.dp, ClapiColors.Border, RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp)),
+                        ) {
+                            LazyColumn(
+                                state = secretsListState,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(end = 10.dp)
+                                    .testTag("env-secrets-list"),
+                            ) {
+                                itemsIndexed(workingSecrets) { sIdx, secret ->
+                                    EnvExternalSecretRow(
+                                        secret = secret,
+                                        index = sIdx,
+                                        onDelete = { workingSecrets.removeAt(sIdx) },
+                                    )
+                                    Box(Modifier.fillMaxWidth().height(1.dp).background(ClapiColors.Border))
+                                }
+                                if (workingSecrets.isEmpty()) {
+                                    item(key = "no-secrets") {
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth().height(120.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center,
+                                        ) {
+                                            Text(
+                                                "No external secrets defined. Click 'Add Secret' below.",
+                                                color = ClapiColors.OnSurfaceDim,
+                                                fontSize = 13.sp,
+                                            )
+                                        }
+                                    }
                                 }
                             }
-                            .testTag("env-add-variable")
-                            .padding(horizontal = 8.dp, vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, tint = ClapiColors.Primary, modifier = Modifier.size(16.dp))
-                        Text(Strings.addVariable, color = ClapiColors.Primary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                            PlatformLazyVerticalScrollbar(
+                                listState = secretsListState,
+                                modifier = Modifier.align(Alignment.CenterEnd).insetScrollbar(),
+                                testTag = "env-secrets-list-vscrollbar",
+                            )
+                        }
+
+                        Spacer(Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable {
+                                    workingSecrets.add(MutableExternalSecret())
+                                    scope.launch {
+                                        yield()
+                                        secretsListState.scrollToItem(workingSecrets.lastIndex)
+                                    }
+                                }
+                                .testTag("env-add-secret")
+                                .padding(horizontal = 8.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, tint = ClapiColors.Primary, modifier = Modifier.size(16.dp))
+                            Text("Add Secret", color = ClapiColors.Primary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                        }
                     }
 
                     Spacer(Modifier.height(10.dp))
@@ -559,8 +762,17 @@ fun EnvironmentEditDialog(state: AppState) {
                                         }
                                     }
                                     state.pruneEmptyVariablesForEnvironment(envIndex)
+
+                                    env.externalSecretsProvider = workingProvider
+                                    env.externalSecrets.clear()
+                                    workingSecrets.forEach { s ->
+                                        if (s.name.isNotBlank() || s.path.isNotBlank()) {
+                                            env.externalSecrets.add(MutableExternalSecret(s.name, s.path, s.description, s.enabled))
+                                        }
+                                    }
+
                                     dismissDialog()
-                                    state.log("✓ Environment '${env.name}' saved (${env.variables.size} variables)", io.github.crustack.clapi.ui.shared.state.LogLevel.SUCCESS)
+                                    state.log("✓ Environment '${env.name}' saved (${env.variables.size} variables, ${env.externalSecrets.size} secrets)", io.github.crustack.clapi.ui.shared.state.LogLevel.SUCCESS)
                                 }
                                 .padding(horizontal = 16.dp, vertical = 7.dp)
                                 .testTag("env-save-button"),
@@ -783,6 +995,78 @@ private fun EnvTextField(
             }
         },
     )
+}
+
+@Composable
+private fun EnvExternalSecretRow(
+    secret: MutableExternalSecret,
+    index: Int,
+    onDelete: () -> Unit,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isHovered by interactionSource.collectIsHoveredAsState()
+    val baseRowColor = when (environmentRowTone(index, isHovered)) {
+        EnvironmentRowTone.EVEN -> ClapiColors.SurfaceVariant
+        EnvironmentRowTone.ODD -> ClapiColors.Surface
+        EnvironmentRowTone.HOVERED -> ClapiColors.Primary.copy(alpha = 0.08f)
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(baseRowColor)
+            .hoverable(interactionSource)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .testTag("env-secret-row-$index"),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Checkbox(
+            checked = secret.enabled,
+            onCheckedChange = { secret.enabled = it },
+            modifier = Modifier.size(24.dp).testTag("env-secret-row-$index-enabled"),
+            colors = CheckboxDefaults.colors(
+                checkedColor = ClapiColors.Primary,
+                uncheckedColor = ClapiColors.OnSurfaceDim,
+            ),
+        )
+
+        EnvTextField(
+            value = secret.name,
+            onValueChange = { secret.name = it },
+            placeholder = "client_id",
+            tag = "env-secret-row-$index-name",
+            modifier = Modifier.weight(1.2f),
+        )
+
+        EnvTextField(
+            value = secret.path,
+            onValueChange = { secret.path = it },
+            placeholder = "payment/foo",
+            tag = "env-secret-row-$index-path",
+            modifier = Modifier.weight(1.5f),
+        )
+
+        EnvTextField(
+            value = secret.description,
+            onValueChange = { secret.description = it },
+            placeholder = "Description (optional)",
+            tag = "env-secret-row-$index-desc",
+            modifier = Modifier.weight(1.5f),
+        )
+
+        IconButton(
+            onClick = onDelete,
+            modifier = Modifier.size(24.dp).testTag("env-secret-row-$index-delete"),
+        ) {
+            Icon(
+                Icons.Default.Delete,
+                contentDescription = Strings.delete,
+                tint = ClapiColors.OnSurfaceDim,
+                modifier = Modifier.size(14.dp),
+            )
+        }
+    }
 }
 
 @Composable

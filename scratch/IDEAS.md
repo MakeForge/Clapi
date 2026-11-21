@@ -6,7 +6,7 @@ Status: TODO
 - Allow to enable a custom MCP so any AI Agents can execute requests, imports, etc.
 
 ## Secrets
-Status: TODO
+Status: Done
 - Implement Secret Variables with the OpenCollection given schema (environments can have externalSecrets, see @opencollection_v1.0.0.json)
 - For now only support type HashiCorpVault (server)
 - External Secret Providers should be configurable in Clapi global Settings -> new Tab Secrets Manager

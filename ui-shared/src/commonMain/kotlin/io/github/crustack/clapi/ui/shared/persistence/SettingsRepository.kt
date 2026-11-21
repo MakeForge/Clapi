@@ -57,6 +57,13 @@ object SettingsRepository {
         settings.environmentDialogHeightDp = getPositiveFloat(
             "environmentDialogHeightDp", DEFAULT_ENVIRONMENT_DIALOG_HEIGHT_DP,
         )
+
+        // Secrets Manager
+        settings.vaultProviderType = PlatformStorage.getString(PREFIX + "vaultProviderType") ?: settings.vaultProviderType
+        settings.vaultServerUrl    = PlatformStorage.getString(PREFIX + "vaultServerUrl") ?: settings.vaultServerUrl
+        settings.vaultMountPath    = PlatformStorage.getString(PREFIX + "vaultMountPath") ?: settings.vaultMountPath
+        settings.vaultNamespace    = PlatformStorage.getString(PREFIX + "vaultNamespace") ?: settings.vaultNamespace
+        settings.vaultToken        = PlatformStorage.getSecretString(PREFIX + "vaultToken") ?: settings.vaultToken
     }
 
     // ── Save ───────────────────────────────────────────────────────────────
@@ -83,6 +90,13 @@ object SettingsRepository {
         putBool("showEditorPositionIndicator", settings.showEditorPositionIndicator)
         putFloat("environmentDialogWidthDp", settings.environmentDialogWidthDp)
         putFloat("environmentDialogHeightDp", settings.environmentDialogHeightDp)
+
+        // Secrets Manager
+        PlatformStorage.putString(PREFIX + "vaultProviderType", settings.vaultProviderType)
+        PlatformStorage.putString(PREFIX + "vaultServerUrl", settings.vaultServerUrl)
+        PlatformStorage.putString(PREFIX + "vaultMountPath", settings.vaultMountPath)
+        PlatformStorage.putString(PREFIX + "vaultNamespace", settings.vaultNamespace)
+        PlatformStorage.putSecretString(PREFIX + "vaultToken", settings.vaultToken)
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────

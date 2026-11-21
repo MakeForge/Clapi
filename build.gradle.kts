@@ -12,6 +12,12 @@ val appVersion: String by project
 allprojects {
     group = "io.github.crustack"
     version = appVersion
+
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
+        compilerOptions {
+            freeCompilerArgs.add("-Xskip-metadata-version-check")
+        }
+    }
 }
 
 // Force a single instance of every CodeMirror sub-package so that

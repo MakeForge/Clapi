@@ -1,0 +1,82 @@
+{
+  "realm": "test-realm",
+  "enabled": true,
+  "users": [
+    {
+      "username": "testuser",
+      "enabled": true,
+      "email": "testuser@example.com",
+      "firstName": "Test",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password123",
+          "temporary": false
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "client-credentials-client",
+      "name": "Client Credentials Client",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "client-credentials-secret",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "password-flow-client",
+      "name": "Resource Owner Password Flow Client",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "password-flow-secret",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "auth-code-client",
+      "name": "Authorization Code Flow Client",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "auth-code-secret",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "http://localhost:8080/*",
+        "https://oauth.pstmn.io/v1/callback",
+        "http://127.0.0.1:*"
+      ]
+    },
+    {
+      "clientId": "implicit-flow-client",
+      "name": "Implicit Flow Client",
+      "enabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "http://localhost:8080/*",
+        "https://oauth.pstmn.io/v1/callback",
+        "http://127.0.0.1:*"
+      ]
+    }
+  ]
+}

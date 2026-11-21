@@ -260,10 +260,15 @@ fun VariableAwareTextField(
     // Reading mutableState properties of AppState inside the composable body automatically
     // registers this composable for recomposition when the environment changes.
     val currentTab = tab ?: state?.activeTab
-    val definedNames: Set<String> = if (state != null)
-        state.activeVariableLayers(currentTab).flatMap { it.keys }.toSet()
-    else
+    val definedNames: Set<String> = if (state != null) {
+        val vars = state.activeVariableLayers(currentTab).flatMap { it.keys }.toMutableSet()
+        state.selectedEnvironment?.externalSecrets?.filter { it.enabled && it.name.isNotBlank() }?.forEach {
+            vars.add("_secret.${it.name.trim()}")
+        }
+        vars
+    } else {
         emptySet()
+    }
 
     // Internal TextFieldValue that carries the highlighted AnnotatedString.
     var fieldValue by remember {
@@ -289,8 +294,12 @@ fun VariableAwareTextField(
         val currentText = fieldValue.text
         val selStart = fieldValue.selection.min.coerceIn(0, currentText.length)
         val selEnd = fieldValue.selection.max.coerceIn(0, currentText.length)
-        val newText = currentText.replaceRange(selStart, selEnd, token)
-        val newCursor = selStart + token.length
+        val textBefore = currentText.substring(0, selStart)
+        val lastOpen = textBefore.lastIndexOf("{{")
+        val lastClose = textBefore.lastIndexOf("}}")
+        val replaceStart = if (lastOpen != -1 && lastOpen > lastClose) lastOpen else selStart
+        val newText = currentText.replaceRange(replaceStart, selEnd, token)
+        val newCursor = replaceStart + token.length
         val annotated = if (state != null) highlightVariablesWithStatus(newText, definedNames)
                         else AnnotatedString(newText)
         if (undoStack != null) {
@@ -503,21 +512,38 @@ private fun KeyEvent.isUndoEvent(): Boolean =
     type == KeyEventType.KeyDown && (isMetaPressed || isCtrlPressed) && !isShiftPressed && key == Key.Z
 
 /**
- * Returns all currently available variables as (name, resolvedValue) pairs,
- * ordered alphabetically by variable name.
+ * Returns all currently available variables as (name, resolvedValue) pairs.
+ * Regular variables are ordered alphabetically first, followed by external secrets
+ * formatted as `_secret.<name>` ordered alphabetically.
  */
 fun getAvailableVariables(state: AppState?, tab: RequestTabState?): List<Pair<String, String>> {
     if (state == null) return emptyList()
     val layers = state.activeVariableLayers(tab)
-    val map = linkedMapOf<String, String>()
+    val regularMap = linkedMapOf<String, String>()
     for (layer in layers) {
         for ((k, v) in layer) {
-            if (k.isNotBlank() && !map.containsKey(k)) {
-                map[k] = v
+            if (k.isNotBlank() && !regularMap.containsKey(k)) {
+                regularMap[k] = v
             }
         }
     }
-    return map.entries.map { it.key to it.value }.sortedBy { it.first }
+    val regularVars = regularMap.entries.map { it.key to it.value }.sortedBy { it.first }
+
+    val secretMap = linkedMapOf<String, String>()
+    val env = state.selectedEnvironment
+    if (env != null) {
+        for (secret in env.externalSecrets) {
+            if (secret.enabled && secret.name.isNotBlank()) {
+                val secretKey = "_secret.${secret.name.trim()}"
+                if (!secretMap.containsKey(secretKey)) {
+                    secretMap[secretKey] = secret.path.trim()
+                }
+            }
+        }
+    }
+    val secretVars = secretMap.entries.map { it.key to it.value }.sortedBy { it.first }
+
+    return regularVars + secretVars
 }
 
 @Composable
@@ -550,6 +576,7 @@ fun VariableDropdownList(
         ) {
             itemsIndexed(variables) { index, (name, value) ->
                 val isSelected = index == selectedIndex
+                val isSecret = name.startsWith("_secret.")
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -567,10 +594,25 @@ fun VariableDropdownList(
                         fontSize = 11.sp,
                         fontFamily = CodeFontFamily,
                     )
+                    if (isSecret) {
+                        Box(
+                            modifier = Modifier
+                                .background(ClapiColors.Primary.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                                .border(1.dp, ClapiColors.Primary.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 4.dp, vertical = 1.dp),
+                        ) {
+                            Text(
+                                text = "Secret",
+                                color = ClapiColors.Primary,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.weight(1f))
                     if (value.isNotEmpty()) {
                         Text(
-                            text = "${Strings.value}: $value",
+                            text = if (isSecret) "Path: $value" else "${Strings.value}: $value",
                             color = ClapiColors.OnSurfaceDim,
                             fontSize = 11.sp,
                             maxLines = 1,
