@@ -1,1041 +1,39 @@
 package io.github.crustack.clapi.ui.shared.state
 
+import io.github.crustack.clapi.core.model.opencollection.GraphQLRequestSettings
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.toMutableStateList
-import io.github.crustack.clapi.core.model.storage.GitCredentialsConfig
-import io.github.crustack.clapi.core.model.storage.GitStorageConfig
-import io.github.crustack.clapi.core.model.storage.StorageExtension
-import io.github.crustack.clapi.core.model.storage.StorageType
-import io.github.crustack.clapi.core.storage.git.CollectionGitStatus
-import io.github.crustack.clapi.core.storage.git.GitRepositoryManager
-import io.github.crustack.clapi.core.storage.git.ProtoPathResolver
 import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.core.model.BodyType
-import io.github.crustack.clapi.core.model.FormEntryType
 import io.github.crustack.clapi.core.model.HttpMethodType
 import io.github.crustack.clapi.core.model.KeyValueEntry
 import io.github.crustack.clapi.core.model.McpConnectionConfig
 import io.github.crustack.clapi.core.model.RequestKind
-import io.github.crustack.clapi.core.network.grpc.ProtoMethodInfo
-import io.github.crustack.clapi.editor.core.Json5EditorSupport
-import io.github.crustack.clapi.editor.core.LanguageMode
-import io.github.crustack.clapi.editor.ui.EditorViewModel
-import io.github.crustack.clapi.editor.ui.SyntaxHighlighterRegistry
-import io.github.crustack.clapi.core.model.ResponseDefinition
-import io.github.crustack.clapi.core.model.opencollection.ClientCertificate
-import io.github.crustack.clapi.core.model.opencollection.Description
-import io.github.crustack.clapi.core.model.opencollection.OAuth2CredentialsPlacement
-import io.github.crustack.clapi.core.model.opencollection.OAuth2Flow
+import io.github.crustack.clapi.core.model.storage.GitCredentialsConfig
+import io.github.crustack.clapi.core.model.storage.GitStorageConfig
+import io.github.crustack.clapi.core.model.storage.StorageExtension
+import io.github.crustack.clapi.core.model.storage.StorageType
 import io.github.crustack.clapi.core.network.dynamicvar.DynamicVariableRegistry
 import io.github.crustack.clapi.core.network.keepassxc.DefaultKeePassXcClientManager
+import io.github.crustack.clapi.core.network.websocket.WebSocketClientManager
+import io.github.crustack.clapi.core.storage.git.CollectionGitStatus
+import io.github.crustack.clapi.core.storage.git.GitRepositoryManager
+import io.github.crustack.clapi.core.storage.git.ProtoPathResolver
+import io.github.crustack.clapi.ui.shared.components.syncParamsFromUrl
+import io.github.crustack.clapi.ui.shared.mcp.McpSessionState
+import io.github.crustack.clapi.ui.shared.persistence.ImportExportNaming
+import io.github.crustack.clapi.ui.shared.platform.currentTimeMillis
+import io.github.crustack.clapi.ui.shared.platform.generateUuid
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import io.github.crustack.clapi.ui.shared.mcp.McpSessionState
-import io.github.crustack.clapi.ui.shared.platform.generateUuid
-import io.github.crustack.clapi.ui.shared.platform.currentTimeMillis
-import io.github.crustack.clapi.ui.shared.components.syncParamsFromUrl
-import io.github.crustack.clapi.core.network.ConnectionState
-import io.github.crustack.clapi.core.network.websocket.WebSocketClientManager
-import io.github.crustack.clapi.core.model.WebSocketLogMessage
-import io.github.crustack.clapi.core.model.opencollection.WebSocketMessageType
-import io.github.crustack.clapi.core.model.opencollection.WebSocketMessageVariant
-import io.github.crustack.clapi.core.model.opencollection.WebSocketMessage
-import io.github.crustack.clapi.ui.shared.persistence.ImportExportNaming
-
-import io.github.crustack.clapi.ui.shared.i18n.AppLanguage
 import kotlinx.serialization.json.JsonPrimitive
-
-// ── Enumerations ────────────────────────────────────────────────
-
-enum class RequestEditorTab(val label: String) {
-    PARAMS("Params"), HEADERS("Headers"), BODY("Body"),
-    AUTH("Auth"), PRE_REQUEST("Pre-request"), TESTS("Post-request"),
-    VARIABLES("Variables")
-}
-
-enum class GrpcEditorTab(val label: String) {
-    MESSAGE("Message"), HEADERS("Headers"), AUTH("Auth"), SCRIPTS("Scripts")
-}
-
-enum class WebSocketEditorTab(val label: String) {
-    MESSAGE("Message"),
-    HEADERS("Headers"),
-    AUTH("Auth"),
-    SETTINGS("Settings"),
-    SCRIPTS("Scripts"),
-    VARIABLES("Variables"),
-    DOCS("Docs")
-}
-
-enum class GraphQLEditorTab(val label: String) {
-    BODY("Body"),
-    HEADERS("Headers"),
-    PARAMS("Params"),
-    AUTH("Auth"),
-    SCRIPTS("Scripts"),
-    SETTINGS("Settings"),
-    DOCS("Docs")
-}
-
-enum class ResponseTab(val label: String) {
-    BODY("Body"), HEADERS("Headers"), COOKIES("Cookies"), TIMING("Timing"), RAW("Raw")
-}
-
-enum class BottomTab(val label: String) {
-    CONSOLE("Console"), TEST_RESULTS("Test Results"), LOGS("Logs")
-}
-
-enum class LogLevel { INFO, SUCCESS, WARNING, ERROR }
-
-enum class AppTheme { DARK, LIGHT, SYSTEM }
-enum class ResponseLayout { RIGHT, BOTTOM }
-
-/** Top-level workspace mode — determines which main panel is shown. */
-enum class WorkspaceMode(val label: String) {
-    HTTP("HTTP"),
-    REALTIME("Realtime"),
-    GRAPHQL("GraphQL"),
-}
-
-enum class HeaderKind { SYSTEM, USER, INHERITED }
-
-fun normalizeApiKeyPlacement(value: String?): String =
-    if (value.equals("query", ignoreCase = true)) "query" else "header"
-
-// ── Data holders ────────────────────────────────────────────────
-
-data class ConsoleEntry(
-    val message: String,
-    val level: LogLevel = LogLevel.INFO,
-    val timestamp: Long = currentTimeMillis(),
-)
-
-data class TestResultEntry(val name: String, val passed: Boolean, val message: String = "")
-
-data class ResolvedFolderAuth(
-    val folderName: String,
-    val authType: AuthType,
-    val username: String? = null,
-    val password: String? = null,
-    val token: String? = null,
-    val apiKey: String? = null,
-    val apiValue: String? = null,
-    val apiPlacement: String? = null,
-    val oauth2Flow: OAuth2Flow = OAuth2Flow.CLIENT_CREDENTIALS,
-    val oauth2AccessTokenUrl: String? = null,
-    val oauth2RefreshTokenUrl: String? = null,
-    val oauth2AuthorizationUrl: String? = null,
-    val oauth2RedirectUri: String? = null,
-    val oauth2Scope: String? = null,
-    val oauth2ClientId: String? = null,
-    val oauth2ClientSecret: String? = null,
-    val oauth2CredentialsPlacement: OAuth2CredentialsPlacement = OAuth2CredentialsPlacement.BASIC_AUTH_HEADER,
-    val oauth2Username: String? = null,
-    val oauth2Password: String? = null,
-)
-
-data class HistoryItem(
-    val requestId: String,
-    val method: HttpMethodType,
-    val name: String,
-    val url: String,
-    val timestamp: Long,
-    val collectionId: String? = null,
-    val folderPath: List<String> = emptyList(),
-)
-
-data class CollectionNode(
-    val id: String,
-    val name: String,
-    val isFolder: Boolean = false,
-    val method: HttpMethodType? = null,
-    val url: String? = null,
-    val children: MutableList<CollectionNode> = mutableStateListOf(),
-    val preRequestScript: String? = null,
-    val testScript: String? = null,
-    // Request configuration populated from collection import
-    val userHeaders: List<Pair<String, String>> = emptyList(),
-    /** Authoritative ordered rows. Null means this is a legacy collection. */
-    val queryEntries: List<KeyValueEntry>? = null,
-    /** Authoritative ordered rows. Null means [userHeaders] is the fallback. */
-    val headerEntries: List<KeyValueEntry>? = null,
-    val bodyType: BodyType? = null,
-    val bodyContent: String? = null,
-    /** Per-type raw body contents keyed by [BodyType.name]. */
-    val bodyContents: Map<String, String> = emptyMap(),
-    /** Structured form-data rows (FORM_DATA body type). */
-    val formDataEntries: List<FormDataEntryState> = emptyList(),
-    /** Structured urlencoded rows (X_WWW_FORM_URLENCODED body type). */
-    val urlencodedEntries: List<FormDataEntryState> = emptyList(),
-    val authType: AuthType? = null,
-    val authUsername: String? = null,
-    val authPassword: String? = null,
-    val authToken: String? = null,
-    val authApiKey: String? = null,
-    val authApiValue: String? = null,
-    val authApiPlacement: String? = null,
-    val authOAuth2Flow: OAuth2Flow = OAuth2Flow.CLIENT_CREDENTIALS,
-    val authOAuth2AccessTokenUrl: String? = null,
-    val authOAuth2RefreshTokenUrl: String? = null,
-    val authOAuth2AuthorizationUrl: String? = null,
-    val authOAuth2RedirectUri: String? = null,
-    val authOAuth2Scope: String? = null,
-    val authOAuth2ClientId: String? = null,
-    val authOAuth2ClientSecret: String? = null,
-    val authOAuth2CredentialsPlacement: OAuth2CredentialsPlacement = OAuth2CredentialsPlacement.BASIC_AUTH_HEADER,
-    val authOAuth2Username: String? = null,
-    val authOAuth2Password: String? = null,
-    val requestRef: String? = null,
-    val kind: RequestKind = RequestKind.HTTP,
-    val mcpConfig: McpConnectionConfig? = null,
-    val variableEntries: List<KeyValueEntry>? = null,
-    val protoFilePath: String? = null,
-    val protoSyncToGit: Boolean = protoFilePath?.let { ProtoPathResolver.isRelativeGitProtoPath(it) } ?: false,
-    val grpcMethod: String? = null,
-    val grpcMethodType: String? = "unary",
-    val summary: String? = null,
-    val version: String? = null,
-    val protoFiles: List<ProtoFileItemState> = emptyList(),
-    val importPaths: List<ProtoImportPathState> = emptyList(),
-    val storageExtension: StorageExtension? = null,
-    val webSocketVariants: List<WebSocketMessageVariant> = emptyList(),
-    val webSocketTimeout: String? = null,
-    val webSocketKeepAliveInterval: String? = null,
-    val webSocketDocs: String? = null,
-    val webSocketMessageFormat: WebSocketMessageType? = null,
-    val graphQlVariants: List<io.github.crustack.clapi.core.model.opencollection.GraphQLBodyVariant> = emptyList(),
-    val graphQlSettings: io.github.crustack.clapi.core.model.opencollection.GraphQLRequestSettings? = null,
-    val graphQlDocs: String? = null,
-) {
-    val isCollection: Boolean get() = kind == RequestKind.COLLECTION
-    val storageType: StorageType get() = storageExtension?.type ?: StorageType.LOCAL
-    val gitRemoteUrl: String get() = storageExtension?.git?.remoteUrl.orEmpty()
-    val gitBranch: String get() = storageExtension?.git?.branch ?: "main"
-}
-
-/**
- * Immutable snapshot of a form-data/urlencoded row — used in [CollectionNode]
- * and import/export serialization.
- */
-data class FormDataEntryState(
-    val key: String = "",
-    val type: FormEntryType = FormEntryType.TEXT,
-    val value: String = "",
-    val description: String = "",
-    val enabled: Boolean = true,
-    val bytesBase64: String = "",
-)
-
-/**
- * Mutable row for structured form-data and x-www-form-urlencoded editors.
- * [type] distinguishes text-value from file-attachment rows.
- */
-class MutableFormDataRow(
-    key: String = "",
-    type: FormEntryType = FormEntryType.TEXT,
-    value: String = "",
-    description: String = "",
-    enabled: Boolean = true,
-    bytesBase64: String = "",
-    val uid: String = generateUuid(),
-) {
-    var key         by mutableStateOf(key)
-    var type        by mutableStateOf(type)
-    var value       by mutableStateOf(value)
-    var description by mutableStateOf(description)
-    var enabled     by mutableStateOf(enabled)
-    var bytesBase64 by mutableStateOf(bytesBase64)
-}
-
-/** Mutable key-value pair used in param / header / variable editors. */
-class MutableKeyValue(
-    key: String = "",
-    value: String = "",
-    enabled: Boolean = true,
-    secret: Boolean = false,
-    kind: HeaderKind = HeaderKind.USER,
-    keyLocked: Boolean = false,
-    /** Stable unique identifier used as LazyColumn item key (fixes M-7 index-key bug). */
-    val uid: String = generateUuid(),
-) {
-    var key     by mutableStateOf(key)
-    var value   by mutableStateOf(value)
-    var enabled by mutableStateOf(enabled)
-    var secret  by mutableStateOf(secret)
-    var kind    by mutableStateOf(kind)
-    var keyLocked by mutableStateOf(keyLocked)
-}
-
-object SystemHeaderRules {
-    const val CONTENT_TYPE = "Content-Type"
-    const val ACCEPT = "Accept"
-    const val USER_AGENT = "User-Agent"
-
-    val nonDeletableKeys: Set<String> = setOf(CONTENT_TYPE, ACCEPT, USER_AGENT)
-
-    fun isSystemHeader(key: String): Boolean = key in nonDeletableKeys
-
-    fun defaultContentTypeFor(bodyType: BodyType): String = when (bodyType) {
-        BodyType.JSON       -> "application/json"
-        BodyType.XML        -> "application/xml"
-        BodyType.HTML       -> "text/html"
-        BodyType.JAVASCRIPT -> "application/javascript"
-        BodyType.FORM_DATA  -> "multipart/form-data"
-        BodyType.X_WWW_FORM_URLENCODED -> "application/x-www-form-urlencoded"
-        BodyType.GRAPHQL    -> "application/json"
-        BodyType.RAW_TEXT   -> "text/plain"
-        BodyType.BINARY     -> "application/octet-stream"
-        BodyType.NONE       -> "application/json"
-    }
-}
-
-const val SSE_ACCEPT_MEDIA_TYPE = "text/event-stream"
-
-fun isSseAccept(key: String, value: String, enabled: Boolean = true): Boolean =
-    enabled &&
-        key.equals(SystemHeaderRules.ACCEPT, ignoreCase = true) &&
-        value.contains(SSE_ACCEPT_MEDIA_TYPE, ignoreCase = true)
-
-fun RequestTabState.hasSseAccept(): Boolean =
-    headers.any { isSseAccept(it.key, it.value, it.enabled) }
-
-fun CollectionNode.hasSseAccept(): Boolean =
-    userHeaders.any { isSseAccept(it.first, it.second) }
-
-// ── Environment model ───────────────────────────────────────────
-
-class MutableExternalSecret(
-    name: String = "",
-    path: String = "",
-    description: String = "",
-    enabled: Boolean = true,
-    url: String = "",
-    targetField: String = "password",
-    customFilters: Map<String, String> = emptyMap(),
-) {
-    var name by mutableStateOf(name)
-    var path by mutableStateOf(path)
-    var description by mutableStateOf(description)
-    var enabled by mutableStateOf(enabled)
-    var url by mutableStateOf(url)
-    var targetField by mutableStateOf(targetField)
-    val customFilters = mutableStateMapOf<String, String>().also { it.putAll(customFilters) }
-    val customFilterList = mutableStateListOf<MutableKeyValue>().also { list ->
-        customFilters.forEach { (k, v) -> list.add(MutableKeyValue(key = k, value = v)) }
-    }
-
-    fun syncCustomFiltersFromList() {
-        customFilters.clear()
-        customFilterList.forEach { kv ->
-            if (kv.key.isNotBlank()) {
-                customFilters[kv.key] = kv.value
-            }
-        }
-    }
-}
-
-class ProtoFileItemState(
-    path: String,
-    syncToGit: Boolean = ProtoPathResolver.isRelativeGitProtoPath(path),
-) {
-    var path by mutableStateOf(path)
-    var syncToGit by mutableStateOf(syncToGit)
-    val fileName: String get() = path.substringAfterLast(java.io.File.separatorChar).substringAfterLast('/')
-    val directory: String get() = path.substringBeforeLast(java.io.File.separatorChar, "").substringBeforeLast('/', "")
-}
-
-class ProtoImportPathState(
-    path: String,
-    enabled: Boolean = true,
-    syncToGit: Boolean = ProtoPathResolver.isRelativeGitProtoPath(path),
-) {
-    var path by mutableStateOf(path)
-    var enabled by mutableStateOf(enabled)
-    var syncToGit by mutableStateOf(syncToGit)
-    val fileName: String get() = path.substringAfterLast(java.io.File.separatorChar).substringAfterLast('/')
-    val directory: String get() = path.substringBeforeLast(java.io.File.separatorChar, "").substringBeforeLast('/', "")
-}
-
-class EnvState(
-    name: String,
-    variables: List<MutableKeyValue> = emptyList(),
-    var color: String? = null,
-    var description: Description? = null,
-    var clientCertificates: List<ClientCertificate> = emptyList(),
-    var extends: String? = null,
-    var dotEnvFilePath: String? = null,
-    externalSecretsProvider: String = "hashicorp-vault-server",
-    externalSecrets: List<MutableExternalSecret> = emptyList(),
-) {
-    var name by mutableStateOf(name)
-    val variables = mutableStateListOf<MutableKeyValue>().also { it.addAll(variables) }
-    var externalSecretsProvider by mutableStateOf(externalSecretsProvider)
-    val externalSecrets = mutableStateListOf<MutableExternalSecret>().also { it.addAll(externalSecrets) }
-
-    /** Produce a flat variable map for resolution (e.g. {{baseUrl}} → value). */
-    fun toVariableMap(): Map<String, String> =
-        variables.filter { it.enabled }.associate { it.key to it.value }
-}
-
-// ── Settings model ──────────────────────────────────────────────
-
-const val DEFAULT_ENVIRONMENT_DIALOG_WIDTH_DP = 720f
-const val DEFAULT_ENVIRONMENT_DIALOG_HEIGHT_DP = 560f
-
-class AppSettings {
-    // General
-    var autoSaveRequests     by mutableStateOf(false)
-    var confirmBeforeDelete  by mutableStateOf(true)
-    var defaultTimeoutSec    by mutableStateOf(30)
-    var responseLayout       by mutableStateOf(ResponseLayout.RIGHT)
-
-    // Theme
-    var theme by mutableStateOf(AppTheme.DARK)
-
-    // Language (i18n)
-    var language by mutableStateOf(AppLanguage.EN)
-
-    // Network
-    var requestTimeoutSec    by mutableStateOf(30)
-    var followRedirects      by mutableStateOf(true)
-
-    // Sidebar
-    var collectionsExpanded  by mutableStateOf(false)
-    var environmentsExpanded by mutableStateOf(false)
-
-    // Proxy
-    var httpProxy            by mutableStateOf("")
-    var httpsProxy           by mutableStateOf("")
-    var proxyEnabled         by mutableStateOf(false)
-
-    // Scripting
-    /** Namespace prefix for scripts (default "clapi"). Change to e.g. "api". */
-    var scriptPrefix         by mutableStateOf("clapi")
-
-    // Environment
-    /** Name of the last selected environment; restored on app launch. Empty = first env. */
-    var selectedEnvName      by mutableStateOf("")
-
-    /** When true (default), JSON bodies accept JSON5; Send converts to strict JSON. */
-    var allowJson5InJsonBodies by mutableStateOf(true)
-
-    /** Shows the compact line and column indicator in request and response editors. */
-    var showEditorPositionIndicator by mutableStateOf(false)
-
-    /** Preferred manual size for the environment editor. Viewport clamping is not persisted. */
-    var environmentDialogWidthDp by mutableStateOf(DEFAULT_ENVIRONMENT_DIALOG_WIDTH_DP)
-    var environmentDialogHeightDp by mutableStateOf(DEFAULT_ENVIRONMENT_DIALOG_HEIGHT_DP)
-
-    // Secrets Manager (HashiCorp Vault)
-    var vaultProviderType    by mutableStateOf("hashicorp-vault-server")
-    var vaultServerUrl       by mutableStateOf("")
-    var vaultMountPath       by mutableStateOf("secret")
-    var vaultNamespace       by mutableStateOf("")
-    var vaultToken           by mutableStateOf("")
-}
-
-// ── Per-tab state (one per open request tab) ────────────────────
-
-class RequestTabState(
-    val id: String = generateUuid(),
-    name: String = "Untitled",
-    method: HttpMethodType = HttpMethodType.GET,
-    url: String = "",
-    collectionName: String? = null,
-    collectionId: String? = null,
-    folderPath: List<String> = emptyList(),
-    requestRef: String? = null,
-    kind: RequestKind = RequestKind.HTTP,
-    collectionSummary: String? = null,
-    collectionVersion: String? = null,
-) {
-    val requestId: String get() = id
-
-    var name     by mutableStateOf(name)
-    var requestRef by mutableStateOf(requestRef)
-    var method   by mutableStateOf(method)
-    var url      by mutableStateOf(url)
-    var isDirty  by mutableStateOf(false)
-    /** Cheap observable used by autosave; every user-visible mutation advances it. */
-    var persistenceRevision by mutableLongStateOf(0L)
-        private set
-    var lastSavedTimestamp by mutableStateOf<Long?>(null)
-    private var savedSnapshot by mutableStateOf("")
-
-    var collectionName by mutableStateOf(collectionName)
-    var collectionId by mutableStateOf(collectionId)
-    var folderPath by mutableStateOf(folderPath)
-
-    var selectedEditorTab by mutableStateOf(RequestEditorTab.PARAMS)
-    var collectionSnapshotProvider by mutableStateOf<(() -> String)?>(null)
-
-    val params  = mutableStateListOf<MutableKeyValue>()
-    val variables = mutableStateListOf<MutableKeyValue>()
-    val headers = mutableStateListOf(
-        MutableKeyValue(SystemHeaderRules.CONTENT_TYPE, "application/json", kind = HeaderKind.SYSTEM, keyLocked = true),
-        MutableKeyValue(SystemHeaderRules.ACCEPT, "application/json", kind = HeaderKind.SYSTEM, keyLocked = true),
-        MutableKeyValue(SystemHeaderRules.USER_AGENT, "Clapi/1.0", kind = HeaderKind.SYSTEM, keyLocked = true),
-    )
-
-    var bodyType    by mutableStateOf(BodyType.NONE)
-
-    /**
-     * Remembers the last-selected RAW sub-type (JSON, XML, HTML, JS, Text)
-     * so that switching away from RAW and back preserves the user's choice.
-     */
-    var lastRawSubtype by mutableStateOf(BodyType.JSON)
-
-    /**
-     * All body contents keyed by [BodyType].
-     * Switching [bodyType] automatically resolves to the correct content.
-     */
-    val bodyContents = mutableStateMapOf<BodyType, String>()
-
-    /** Content for the currently active body type. Gets/sets [bodyContents]\[[bodyType]]. */
-    var bodyContent: String
-        get() = bodyContents[bodyType] ?: ""
-        set(value) { bodyContents[bodyType] = value }
-
-    /** Structured rows for FORM_DATA body type (key/type/value/description). */
-    val formRows = mutableStateListOf<MutableFormDataRow>()
-    /** Structured rows for X_WWW_FORM_URLENCODED body type (key/value/description). */
-    val urlencodedRows = mutableStateListOf<MutableFormDataRow>()
-
-    var authType by mutableStateOf(AuthType.NONE)
-    var authUsername  by mutableStateOf("")
-    var authPassword  by mutableStateOf("")
-    var authToken     by mutableStateOf("")
-    var authApiKey    by mutableStateOf("")
-    var authApiValue  by mutableStateOf("")
-    var authApiPlacement by mutableStateOf("header")
-    var authOAuth2Flow by mutableStateOf(OAuth2Flow.CLIENT_CREDENTIALS)
-    var authOAuth2AccessTokenUrl by mutableStateOf("")
-    var authOAuth2RefreshTokenUrl by mutableStateOf("")
-    var authOAuth2AuthorizationUrl by mutableStateOf("")
-    var authOAuth2RedirectUri by mutableStateOf("")
-    var authOAuth2Scope by mutableStateOf("")
-    var authOAuth2ClientId by mutableStateOf("")
-    var authOAuth2ClientSecret by mutableStateOf("")
-    var authOAuth2CredentialsPlacement by mutableStateOf(OAuth2CredentialsPlacement.BASIC_AUTH_HEADER)
-    var authOAuth2Username by mutableStateOf("")
-    var authOAuth2Password by mutableStateOf("")
-    var authOAuth2AccessToken by mutableStateOf("")
-    var authOAuth2RefreshToken by mutableStateOf("")
-    var authOAuth2IdToken by mutableStateOf("")
-    var authOAuth2ExpiresAtEpochMs by mutableStateOf<Long?>(null)
-    var authOAuth2IsFetching by mutableStateOf(false)
-    var authOAuth2FetchError by mutableStateOf<String?>(null)
-
-    var preRequestScript by mutableStateOf("")
-    var testScript       by mutableStateOf("")
-    var kind by mutableStateOf(kind)
-    val isFolderTab: Boolean get() = kind == RequestKind.FOLDER
-    val isCollectionTab: Boolean get() = kind == RequestKind.COLLECTION
-    var collectionSummary by mutableStateOf(collectionSummary)
-    var collectionVersion by mutableStateOf(collectionVersion)
-    var storageType by mutableStateOf(StorageType.LOCAL)
-    var gitRemoteUrl by mutableStateOf("")
-    var gitBranch by mutableStateOf("main")
-    var storageError by mutableStateOf<String?>(null)
-    var isSavingStorage by mutableStateOf(false)
-    val collectionProtoFiles = mutableStateListOf<ProtoFileItemState>()
-    val collectionImportPaths = mutableStateListOf<ProtoImportPathState>()
-    var mcpConfig by mutableStateOf(McpConnectionConfig())
-
-    // ── gRPC state ──────────────────────────────────────────────────────────
-    var protoFilePath by mutableStateOf<String?>(null)
-    var protoSyncToGit by mutableStateOf(false)
-    var grpcMethod by mutableStateOf<String?>(null)
-    var grpcMethodType by mutableStateOf("unary")
-    var availableMethods by mutableStateOf<List<ProtoMethodInfo>>(emptyList())
-    var protoLoadError by mutableStateOf<String?>(null)
-    var isProtoLoading by mutableStateOf(false)
-    val grpcMetadata = mutableStateListOf<MutableKeyValue>()
-    var selectedGrpcTab by mutableStateOf(GrpcEditorTab.MESSAGE)
-
-    // ── WebSocket state ──────────────────────────────────────────────────────
-    var selectedWebSocketTab by mutableStateOf(WebSocketEditorTab.MESSAGE)
-    var webSocketTimeout by mutableStateOf<String?>("inherit")
-    var webSocketKeepAliveInterval by mutableStateOf<String?>("inherit")
-    var webSocketDocs by mutableStateOf("")
-    var webSocketConnectionState by mutableStateOf(ConnectionState.DISCONNECTED)
-    val webSocketLogMessages = mutableStateListOf<WebSocketLogMessage>()
-    val webSocketMessageVariants = mutableStateListOf<WebSocketMessageVariant>()
-    var activeWebSocketVariantIndex by mutableStateOf(0)
-    var webSocketMessageFormat by mutableStateOf(WebSocketMessageType.TEXT)
-    var webSocketOutgoingPayload by mutableStateOf("")
-
-    // ── GraphQL state ────────────────────────────────────────────────────────
-    var selectedGraphQLTab by mutableStateOf(GraphQLEditorTab.BODY)
-    var graphQlMethod by mutableStateOf("POST")
-    var graphQlQuery by mutableStateOf("query {\n  \n}")
-    var graphQlVariables by mutableStateOf("{\n  \n}")
-    val graphQlVariants = mutableStateListOf<io.github.crustack.clapi.core.model.opencollection.GraphQLBodyVariant>()
-    var activeGraphQLVariantIndex by mutableStateOf(0)
-    var graphQlDocs by mutableStateOf("")
-    var graphQlTimeout by mutableStateOf<String?>("inherit")
-    var graphQlEncodeUrl by mutableStateOf<String?>("inherit")
-    var graphQlFollowRedirects by mutableStateOf<String?>("inherit")
-    var graphQlForwardAuthHeader by mutableStateOf<String?>("inherit")
-    var graphQlMaxRedirects by mutableStateOf<String?>("inherit")
-
-    val activeGraphQLVariant: io.github.crustack.clapi.core.model.opencollection.GraphQLBodyVariant?
-        get() = graphQlVariants.getOrNull(activeGraphQLVariantIndex)
-
-    var effectiveGraphQlQuery: String
-        get() = activeGraphQLVariant?.body?.query ?: graphQlQuery
-        set(value) {
-            val variant = activeGraphQLVariant
-            if (variant != null && activeGraphQLVariantIndex in graphQlVariants.indices) {
-                graphQlVariants[activeGraphQLVariantIndex] = variant.copy(
-                    body = variant.body.copy(query = value)
-                )
-            } else {
-                graphQlQuery = value
-            }
-        }
-
-    var effectiveGraphQlVariables: String
-        get() = activeGraphQLVariant?.body?.variables ?: graphQlVariables
-        set(value) {
-            val variant = activeGraphQLVariant
-            if (variant != null && activeGraphQLVariantIndex in graphQlVariants.indices) {
-                graphQlVariants[activeGraphQLVariantIndex] = variant.copy(
-                    body = variant.body.copy(variables = value)
-                )
-            } else {
-                graphQlVariables = value
-            }
-        }
-
-    val activeWebSocketVariant: WebSocketMessageVariant?
-        get() = webSocketMessageVariants.getOrNull(activeWebSocketVariantIndex)
-
-    var webSocketOutgoingMessage: String
-        get() = activeWebSocketVariant?.message?.data ?: webSocketOutgoingPayload
-        set(value) {
-            val variant = activeWebSocketVariant
-            if (variant != null && activeWebSocketVariantIndex in webSocketMessageVariants.indices) {
-                webSocketMessageVariants[activeWebSocketVariantIndex] = variant.copy(
-                    message = variant.message.copy(data = value)
-                )
-            } else {
-                webSocketOutgoingPayload = value
-            }
-        }
-
-    var effectiveWebSocketFormat: WebSocketMessageType
-        get() = activeWebSocketVariant?.message?.type ?: webSocketMessageFormat
-        set(value) {
-            val variant = activeWebSocketVariant
-            if (variant != null && activeWebSocketVariantIndex in webSocketMessageVariants.indices) {
-                webSocketMessageVariants[activeWebSocketVariantIndex] = variant.copy(
-                    message = variant.message.copy(type = value)
-                )
-            } else {
-                webSocketMessageFormat = value
-            }
-        }
-
-    /** JSON message payload for gRPC requests, backed by bodyContents[BodyType.JSON]. */
-    var grpcMessageBody: String
-        get() = bodyContents[BodyType.JSON] ?: ""
-        set(value) {
-            bodyType = BodyType.JSON
-            bodyContents[BodyType.JSON] = value
-        }
-
-    var retryEnabled by mutableStateOf(false)
-    var retryCount by mutableStateOf(1)
-    var retryDelayMs by mutableStateOf(250L)
-
-    /**
-     * Tracks the set of variable keys injected by the pre-request script.
-     * Cleared and repopulated on every send so stale script-set variables
-     * are removed before the script re-executes (fixes M-8).
-     */
-    val scriptInjectedVarKeys: MutableSet<String> = mutableSetOf()
-
-    /**
-     * The coroutine Job for the currently in-flight HTTP request.
-     * Cancelling this job aborts the request (fixes H-1 race condition).
-     */
-    var currentJob: Job? = null
-
-    // ── Per-tab EditorViewModel cache (survives editor-tab switches) ─────────
-    // Keyed by BodyType so JSON/XML/etc. each keep independent undo stacks.
-    // Not part of Compose state — not serialized, not tracked for dirty checking.
-    private val bodyViewModelCache = HashMap<BodyType, EditorViewModel>()
-    private var json5EnabledForCachedJsonVm: Boolean? = null
-
-    fun getOrCreateBodyViewModel(
-        bodyType: BodyType,
-        initialText: String,
-        languageMode: LanguageMode,
-        allowJson5: Boolean = true,
-    ): EditorViewModel {
-        if (!SyntaxHighlighterRegistry.hasHighlighter(LanguageMode.PLAIN_TEXT)) {
-            SyntaxHighlighterRegistry.registerBuiltinHighlighters()
-        }
-        if (languageMode == LanguageMode.JSON) {
-            val cached = bodyViewModelCache[bodyType]
-            if (cached != null && json5EnabledForCachedJsonVm != null && json5EnabledForCachedJsonVm != allowJson5) {
-                cached.dispose()
-                bodyViewModelCache.remove(bodyType)
-            }
-            json5EnabledForCachedJsonVm = allowJson5
-        }
-        return bodyViewModelCache.getOrPut(bodyType) {
-            val provider = if (allowJson5 && languageMode == LanguageMode.JSON) Json5EditorSupport else null
-            EditorViewModel(initialText, languageMode, provider)
-        }
-    }
-
-    /** Disposes all cached body EditorViewModels. Call before removing this tab. */
-    fun disposeBodyViewModels() {
-        bodyViewModelCache.values.forEach { it.dispose() }
-        bodyViewModelCache.clear()
-    }
-
-    // ── URL undo stack (per-tab, plain strings, no Compose state) ───────────
-    val urlUndoStack: ArrayDeque<String> = ArrayDeque(32)
-
-    // response associated with this tab
-    var response    by mutableStateOf<ResponseDefinition?>(null)
-    var responseTab by mutableStateOf(ResponseTab.BODY)
-    var isLoading   by mutableStateOf(false)
-
-    // last error message (displayed in response panel when response is null + error)
-    var lastError   by mutableStateOf<String?>(null)
-
-    /** Raw SSE/NDJSON payloads collected while a streaming response is in flight. */
-    val streamChunks = mutableStateListOf<String>()
-
-    /** Concatenated LLM token text shown live while streaming. */
-    var liveStreamText by mutableStateOf("")
-
-    init {
-        if (kind == RequestKind.FOLDER || kind == RequestKind.COLLECTION) {
-            headers.clear()
-            selectedEditorTab = RequestEditorTab.VARIABLES
-        } else if (kind == RequestKind.GRPC) {
-            headers.clear()
-            bodyType = BodyType.JSON
-        } else if (kind == RequestKind.WEBSOCKET) {
-            headers.clear()
-            if (this.url.isBlank()) {
-                this.url = "ws://"
-            }
-        } else if (kind == RequestKind.GRAPHQL) {
-            headers.clear()
-            if (this.url.isBlank()) {
-                this.url = "https://"
-            }
-        }
-        savedSnapshot = currentSnapshotForDirtyTracking()
-    }
-
-    private fun totalBodyLength(): Int = bodyContents.values.sumOf { it.length }
-
-    private fun currentSnapshot(): String {
-        if (kind == RequestKind.COLLECTION) {
-            return listOf(
-                name,
-                kind.name,
-                collectionSummary.orEmpty(),
-                collectionVersion.orEmpty(),
-                storageType.name,
-                gitRemoteUrl,
-                gitBranch,
-                collectionSnapshotProvider?.invoke().orEmpty(),
-            ).joinToString("#")
-        }
-
-        val paramsSnapshot = params
-            .filter { it.kind != HeaderKind.INHERITED }
-            .joinToString(";") { p -> "${p.key}|${p.value}|${p.enabled}|${p.secret}" }
-        val variablesSnapshot = variables
-            .filter { it.kind != HeaderKind.INHERITED }
-            .joinToString(";") { v -> "${v.key}|${v.value}|${v.enabled}|${v.secret}" }
-        val headersSnapshot = headers
-            .filter { it.kind != HeaderKind.INHERITED }
-            .joinToString(";") { h -> "${h.key}|${h.value}|${h.enabled}|${h.secret}|${h.kind}|${h.keyLocked}" }
-        val formRowsSnapshot = formRows.joinToString(";") { r -> "${r.key}|${r.type.name}|${r.value}|${r.description}|${r.enabled}|${r.bytesBase64}" }
-        val urlencodedRowsSnapshot = urlencodedRows.joinToString(";") { r -> "${r.key}|${r.value}|${r.description}|${r.enabled}" }
-        val grpcMetadataSnapshot = grpcMetadata
-            .filter { it.kind != HeaderKind.INHERITED }
-            .joinToString(";") { m -> "${m.key}|${m.value}|${m.enabled}|${m.secret}" }
-        val webSocketVariantsSnapshot = webSocketMessageVariants
-            .joinToString(";") { v -> "${v.title}|${v.selected}|${v.message.type.value}|${v.message.data}" }
-        val allBodyContentsSnapshot = bodyContents.entries
-            .sortedBy { entry -> entry.key.name }
-            .joinToString(";") { entry -> "${entry.key.name}=${entry.value}" }
-        return listOf(
-            name,
-            method.name,
-            url,
-            bodyType.name,
-            lastRawSubtype.name,
-            allBodyContentsSnapshot,
-            authType.name,
-            authUsername,
-            authPassword,
-            authToken,
-            authApiKey,
-            authApiValue,
-            authApiPlacement,
-            authOAuth2Flow.name,
-            authOAuth2AccessTokenUrl,
-            authOAuth2RefreshTokenUrl,
-            authOAuth2AuthorizationUrl,
-            authOAuth2RedirectUri,
-            authOAuth2Scope,
-            authOAuth2ClientId,
-            authOAuth2ClientSecret,
-            authOAuth2CredentialsPlacement.name,
-            authOAuth2Username,
-            authOAuth2Password,
-            preRequestScript,
-            testScript,
-            retryEnabled.toString(),
-            retryCount.toString(),
-            retryDelayMs.toString(),
-            paramsSnapshot,
-            variablesSnapshot,
-            headersSnapshot,
-            formRowsSnapshot,
-            urlencodedRowsSnapshot,
-            kind.name,
-            mcpClientFingerprint(),
-            protoFilePath.orEmpty(),
-            protoSyncToGit.toString(),
-            grpcMethod.orEmpty(),
-            grpcMethodType,
-            grpcMetadataSnapshot,
-            collectionSummary.orEmpty(),
-            collectionVersion.orEmpty(),
-            collectionProtoFiles.joinToString(";") { "${it.path}:${it.syncToGit}" },
-            collectionImportPaths.joinToString(";") { "${it.path}:${it.enabled}:${it.syncToGit}" },
-            webSocketTimeout.orEmpty(),
-            webSocketKeepAliveInterval.orEmpty(),
-            webSocketDocs,
-            webSocketOutgoingPayload,
-            webSocketMessageFormat.value,
-            webSocketVariantsSnapshot,
-            graphQlMethod,
-            effectiveGraphQlQuery,
-            effectiveGraphQlVariables,
-            graphQlVariants.joinToString(";") { "${it.title}|${it.selected}|${it.body.query}|${it.body.variables}" },
-            graphQlTimeout.orEmpty(),
-            graphQlEncodeUrl.orEmpty(),
-            graphQlFollowRedirects.orEmpty(),
-            graphQlForwardAuthHeader.orEmpty(),
-            graphQlMaxRedirects.orEmpty(),
-            graphQlDocs,
-        ).joinToString("#")
-    }
-
-    /** Compact fingerprint of Client-tab MCP settings for dirty tracking and auto-save. */
-    fun mcpClientFingerprint(): String {
-        val headers = mcpConfig.headers.joinToString(";") {
-            "${it.key}|${it.value}|${it.enabled}|${it.secret}"
-        }
-        val auth = mcpConfig.auth.params.entries.sortedBy { it.key }
-            .joinToString(";") { "${it.key}=${it.value}" }
-        val oauth = mcpConfig.oauth?.let {
-            listOf(
-                it.authServerUrl, it.clientId, it.clientSecret, it.scopes.joinToString(","),
-                it.redirectPort, it.redirectUri, it.useDcr, it.useDiscovery, it.grantType,
-                it.accessToken, it.refreshToken, it.tokenType, it.expiresAtEpochMillis, it.resource,
-            ).joinToString("|")
-        }.orEmpty()
-        val args = mcpConfig.args.joinToString("\u001f")
-        val env = mcpConfig.env.entries.sortedBy { it.key }.joinToString(";") { "${it.key}=${it.value}" }
-        val roots = mcpConfig.roots.joinToString(";") { "${it.uri}|${it.name.orEmpty()}" }
-        return listOf(
-            mcpConfig.url,
-            mcpConfig.transport.name,
-            mcpConfig.httpMode.name,
-            mcpConfig.command,
-            args,
-            env,
-            mcpConfig.workingDir.orEmpty(),
-            headers,
-            mcpConfig.auth.type.name,
-            normalizeApiKeyPlacement(mcpConfig.auth.placement ?: mcpConfig.auth.params["placement"]),
-            auth,
-            oauth,
-            mcpConfig.samplingMode.name,
-            mcpConfig.samplingForwardUrl.orEmpty(),
-            mcpConfig.samplingForwardToken.orEmpty(),
-            mcpConfig.samplingMaxTokens?.toString().orEmpty(),
-            mcpConfig.autoRespondElicitation.toString(),
-            roots,
-        ).joinToString("#")
-    }
-
-    fun currentSnapshotForPersistence(): String = currentSnapshot()
-
-    fun savedSnapshotForPersistence(): String = savedSnapshot
-
-    internal data class SaveCheckpoint(
-        val savedSnapshot: String,
-        val isDirty: Boolean,
-        val lastSavedTimestamp: Long?,
-    )
-
-    internal fun captureSaveCheckpoint(): SaveCheckpoint =
-        SaveCheckpoint(savedSnapshot, isDirty, lastSavedTimestamp)
-
-    internal fun restoreSaveCheckpoint(checkpoint: SaveCheckpoint) {
-        savedSnapshot = checkpoint.savedSnapshot
-        isDirty = checkpoint.isDirty
-        lastSavedTimestamp = checkpoint.lastSavedTimestamp
-    }
-
-    fun restoreSavedSnapshot(snapshot: String?, legacyDirtyFlag: Boolean = false) {
-        savedSnapshot = when {
-            snapshot != null -> snapshot
-            legacyDirtyFlag -> "__legacy-dirty__"
-            else -> currentSnapshotForDirtyTracking()
-        }
-        recomputeDirty()
-    }
-
-    fun recomputeDirty() {
-        isDirty = currentSnapshotForDirtyTracking() != savedSnapshot
-    }
-
-    private fun currentSnapshotForDirtyTracking(): String {
-        val totalBodyLength = totalBodyLength()
-        if (totalBodyLength <= 100_000) return currentSnapshot()
-
-        // Lightweight snapshot for huge payloads: avoids allocating multi-MB strings
-        // on the UI thread while still tracking meaningful state transitions.
-        val bodyLengthFingerprint = bodyContents.entries
-            .sortedBy { it.key.name }
-            .joinToString(";") { "${it.key.name}:${it.value.length}" }
-        val paramsCount = params.size
-        val variablesCount = variables.size
-        val headersCount = headers.size
-        val formCount = formRows.size
-        val urlEncodedCount = urlencodedRows.size
-        return listOf(
-            "LARGE",
-            name,
-            method.name,
-            url,
-            bodyType.name,
-            lastRawSubtype.name,
-            bodyLengthFingerprint,
-            authType.name,
-            retryEnabled.toString(),
-            retryCount.toString(),
-            retryDelayMs.toString(),
-            paramsCount.toString(),
-            variablesCount.toString(),
-            headersCount.toString(),
-            formCount.toString(),
-            urlEncodedCount.toString(),
-        ).joinToString("#")
-    }
-
-    fun markDirty() {
-        persistenceRevision++
-        // For large body content (> 100 KB total across all body types),
-        // skip the expensive currentSnapshot() call which serialises the
-        // full body into a string — this would be O(n) for multi-MB
-        // payloads and blocks the UI thread.  In that case, any edit is
-        // unconditionally dirty.  For normal-sized content, use exact
-        // snapshot comparison to correctly detect reverts to saved state.
-        val totalBodyLength = totalBodyLength()
-        if (totalBodyLength > 100_000) {
-            isDirty = true
-        } else {
-            recomputeDirty()
-        }
-    }
-
-    fun markSaved() {
-        savedSnapshot = currentSnapshotForDirtyTracking()
-        isDirty = false
-        lastSavedTimestamp = currentTimeMillis()
-    }
-
-    /**
-     * After a rename, replaces only the name prefix of [savedSnapshot] so that
-     * dirty tracking still reflects unsaved body/URL changes.
-     *
-     * Without this fix, renaming a tab permanently corrupts [savedSnapshot] with the
-     * old name → subsequent [recomputeDirty] always returns `true`, even when the user
-     * reverts every other edit back to the original values.
-     *
-     * [oldName] is the name the tab had immediately before the rename.
-     */
-    fun reanchorSavedSnapshotAfterRename(oldName: String) {
-        // Snapshot format: name#method#url#…  (components joined with '#')
-        // We need to replace the leading name component without touching the rest.
-        val sep = '#'
-        val prefixWithSep = "$oldName$sep"
-        savedSnapshot = when {
-            savedSnapshot.startsWith(prefixWithSep) ->
-                "$name$sep${savedSnapshot.removePrefix(prefixWithSep)}"
-            savedSnapshot == oldName ->
-                name
-            !isDirty ->
-                // Edge case: name itself contained '#' so the prefix didn't match.
-                // The tab is clean so a full reanchor is safe.
-                currentSnapshotForDirtyTracking()
-            else ->
-                // Dirty tab and couldn't parse. Leave savedSnapshot unchanged.
-                // Cmd+S (markSaved) will fully re-anchor on the next explicit save.
-                savedSnapshot
-        }
-        recomputeDirty()
-    }
-
-    fun syncSystemHeaders() {
-        if (kind == RequestKind.FOLDER || kind == RequestKind.GRPC || kind == RequestKind.COLLECTION || kind == RequestKind.WEBSOCKET || kind == RequestKind.GRAPHQL) return
-        // Content-Type always reflects the current body type (derived value).
-        upsertSystemHeader(SystemHeaderRules.CONTENT_TYPE, SystemHeaderRules.defaultContentTypeFor(bodyType), overwriteIfExists = true)
-        // Accept and User-Agent are only inserted when missing so that user
-        // overrides to these values are preserved across body-type changes and
-        // request sends.
-        upsertSystemHeader(SystemHeaderRules.ACCEPT, "application/json", overwriteIfExists = false)
-        upsertSystemHeader(SystemHeaderRules.USER_AGENT, "Clapi/1.0", overwriteIfExists = false)
-    }
-
-    private fun upsertSystemHeader(key: String, value: String, overwriteIfExists: Boolean = true) {
-        val existing = headers.indexOfFirst { it.key.equals(key, ignoreCase = true) }
-        if (existing >= 0) {
-            if (overwriteIfExists) {
-                headers[existing].key = key
-                headers[existing].value = value
-            }
-            headers[existing].kind = HeaderKind.SYSTEM
-            headers[existing].keyLocked = true
-            return
-        }
-        headers.add(
-            MutableKeyValue(
-                key = key,
-                value = value,
-                enabled = true,
-                kind = HeaderKind.SYSTEM,
-                keyLocked = true,
-            )
-        )
-    }
-}
 
 // ── Global application state ────────────────────────────────────
 
@@ -1216,13 +214,31 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     val testResults  = mutableStateListOf<TestResultEntry>()
 
     // ── dialogs / overlays ──
-    var showSettingsDialog   by mutableStateOf(false)
-    var showHelpDialog       by mutableStateOf(false)
-    var showEnvEditDialog    by mutableStateOf(false)
-    var editingEnvIndex      by mutableStateOf(-1)      // index into environments
-    var showImportSpecificationDialog by mutableStateOf(false)
-    var showExportCollectionsDialog   by mutableStateOf(false)
-    var showGitSyncDialog    by mutableStateOf(false)
+    // State lives in [DialogState]; the boolean-style properties below are thin helpers over it.
+    val dialogs = DialogState()
+    var showSettingsDialog: Boolean
+        get() = dialogs.isShown(AppDialog.Settings)
+        set(value) = dialogs.setShown(AppDialog.Settings, value)
+    var showHelpDialog: Boolean
+        get() = dialogs.isShown(AppDialog.Help)
+        set(value) = dialogs.setShown(AppDialog.Help, value)
+    var showGlobalVariablesDialog: Boolean
+        get() = dialogs.isShown(AppDialog.GlobalVariables)
+        set(value) = dialogs.setShown(AppDialog.GlobalVariables, value)
+    var showImportSpecificationDialog: Boolean
+        get() = dialogs.isShown(AppDialog.ImportSpecification)
+        set(value) = dialogs.setShown(AppDialog.ImportSpecification, value)
+    var showExportCollectionsDialog: Boolean
+        get() = dialogs.isShown(AppDialog.ExportCollections)
+        set(value) = dialogs.setShown(AppDialog.ExportCollections, value)
+    var showGitSyncDialog: Boolean
+        get() = dialogs.isShown(AppDialog.GitSync)
+        set(value) = dialogs.setShown(AppDialog.GitSync, value)
+
+    /** True while the environment editor is open; close it via `dialogs.dismissEnvironmentEdit()`. */
+    val showEnvEditDialog: Boolean get() = dialogs.environmentEdit != null
+    /** Index into [environments] of the environment being edited, or -1 when the editor is closed. */
+    val editingEnvIndex: Int get() = dialogs.environmentEdit?.index ?: -1
 
     // ── Git synchronization ──
     var gitRepositoryManager: GitRepositoryManager = GitRepositoryManager()
@@ -1323,63 +339,38 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         }
     }
 
-    // ── import/export operation dialog ──
-    var showOperationDialog  by mutableStateOf(false)
-    var operationTitle       by mutableStateOf("")
-    var operationMessage     by mutableStateOf("")
-    private var operationJob: Job? = null
+    // ── operation / error / confirm alerts (delegated to [DialogState]) ──
+    val showOperationDialog: Boolean get() = dialogs.alert<AppAlert.Operation>() != null
+    val operationTitle: String get() = dialogs.alert<AppAlert.Operation>()?.title.orEmpty()
+    val operationMessage: String get() = dialogs.alert<AppAlert.Operation>()?.message.orEmpty()
 
-    // ── error dialog ──
-    var showErrorDialog      by mutableStateOf(false)
-    var errorDialogTitle     by mutableStateOf("Operation failed")
-    var errorDialogMessage   by mutableStateOf("")
+    val showErrorDialog: Boolean get() = dialogs.alert<AppAlert.Error>() != null
+    val errorDialogTitle: String get() = dialogs.alert<AppAlert.Error>()?.title ?: "Operation failed"
+    val errorDialogMessage: String get() = dialogs.alert<AppAlert.Error>()?.message.orEmpty()
 
-    // ── confirm-delete dialog ──
-    var showConfirmDialog      by mutableStateOf(false)
-    var confirmDialogTitle     by mutableStateOf("")
-    var confirmDialogMessage   by mutableStateOf("")
-    var pendingConfirmAction: (() -> Unit)? = null
+    val showConfirmDialog: Boolean get() = dialogs.alert<AppAlert.Confirm>() != null
+    val confirmDialogTitle: String get() = dialogs.alert<AppAlert.Confirm>()?.title.orEmpty()
+    val confirmDialogMessage: String get() = dialogs.alert<AppAlert.Confirm>()?.message.orEmpty()
 
     /** Show a [ConfirmDeleteDialog] and run [action] if the user confirms. */
-    fun showConfirm(title: String, message: String, action: () -> Unit) {
-        confirmDialogTitle   = title
-        confirmDialogMessage = message
-        pendingConfirmAction = action
-        showConfirmDialog    = true
-    }
-    fun resolveConfirm(confirmed: Boolean) {
-        showConfirmDialog = false
-        if (confirmed) pendingConfirmAction?.invoke()
-        pendingConfirmAction = null
-    }
+    fun showConfirm(title: String, message: String, action: () -> Unit) =
+        dialogs.showConfirm(title, message, action)
 
-    fun startOperation(title: String, message: String, job: Job) {
-        operationTitle = title
-        operationMessage = message
-        operationJob = job
-        showOperationDialog = true
-    }
+    fun resolveConfirm(confirmed: Boolean) = dialogs.resolveConfirm(confirmed)
 
-    fun finishOperation() {
-        showOperationDialog = false
-        operationJob = null
-    }
+    fun startOperation(title: String, message: String, job: Job) =
+        dialogs.startOperation(title, message, job)
+
+    fun finishOperation() = dialogs.finishOperation()
 
     fun cancelOperation() {
-        operationJob?.cancel()
-        finishOperation()
+        dialogs.cancelOperation()
         log("Operation canceled", LogLevel.WARNING)
     }
 
-    fun showError(title: String, message: String) {
-        errorDialogTitle = title
-        errorDialogMessage = message
-        showErrorDialog = true
-    }
+    fun showError(title: String, message: String) = dialogs.showError(title, message)
 
-    fun dismissError() {
-        showErrorDialog = false
-    }
+    fun dismissError() = dialogs.dismissError()
 
     // ── environment ──
     private var _selectedEnvIndex by mutableStateOf(0)
@@ -1409,7 +400,6 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         }
     }
     val collectionVariables = mutableStateMapOf<String, String>()
-    var showGlobalVariablesDialog by mutableStateOf(false)
 
     // ── collection protobuf ──
     val collectionProtoFiles = mutableStateListOf<ProtoFileItemState>()
@@ -3085,7 +2075,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                     graphQlVariants    = if (tab.kind == RequestKind.GRAPHQL) tab.graphQlVariants.toList() else emptyList(),
                     graphQlDocs        = if (tab.kind == RequestKind.GRAPHQL) tab.graphQlDocs.ifBlank { null } else null,
                     graphQlSettings    = if (tab.kind == RequestKind.GRAPHQL) {
-                        io.github.crustack.clapi.core.model.opencollection.GraphQLRequestSettings(
+                        GraphQLRequestSettings(
                             timeout = tab.graphQlTimeout?.let { if (it == "inherit") JsonPrimitive("inherit") else it.toLongOrNull()?.let { l -> JsonPrimitive(l) } ?: JsonPrimitive(it) },
                             encodeUrl = tab.graphQlEncodeUrl?.let { if (it == "inherit") JsonPrimitive("inherit") else it.toBooleanStrictOrNull()?.let { b -> JsonPrimitive(b) } ?: JsonPrimitive(it) },
                             followRedirects = tab.graphQlFollowRedirects?.let { if (it == "inherit") JsonPrimitive("inherit") else it.toBooleanStrictOrNull()?.let { b -> JsonPrimitive(b) } ?: JsonPrimitive(it) },
@@ -3159,7 +2149,6 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
 
     /** Open the environment edit dialog for the given environment index. */
     fun openEnvEdit(index: Int) {
-        editingEnvIndex = index
-        showEnvEditDialog = true
+        dialogs.show(AppDialog.EnvironmentEdit(index))
     }
 }

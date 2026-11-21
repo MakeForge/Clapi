@@ -195,7 +195,7 @@ fun IconButtonWithTooltip(
             enabled = enabled,
             colors = colors,
             interactionSource = interactionSource,
-            modifier = modifier.hoverable(interactionSource),
+            modifier = modifier,
         ) {
             content()
         }
