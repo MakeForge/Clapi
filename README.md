@@ -30,7 +30,7 @@
 
 ## What is Clapi?
 
-Clapi is a Kotlin + Compose Multiplatform API client for desktop (macOS, Linux, Windows) and web. It is designed for fast request iteration, scriptable validations, and reproducible API test workflows — running entirely offline with no accounts required.
+Clapi is a Kotlin + Compose Multiplatform API client for desktop (macOS, Linux, Windows). It is designed for fast request iteration, scriptable validations, and reproducible API test workflows — running entirely offline with no accounts required.
 
 ## Quick Start
 
