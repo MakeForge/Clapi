@@ -109,6 +109,9 @@ val jvmDev = tasks.register<JavaExec>("jvmDev") {
     devStorageDir.mkdirs()
     systemProperty("clapi.dir", devStorageDir.absolutePath)
     systemProperty("clapi.dev", "true")
+    if (System.getProperty("os.name").lowercase().contains("linux")) {
+        environment("MALLOC_ARENA_MAX", "2")
+    }
 }
 
 tasks.register("desktopRunDev") {
@@ -395,6 +398,9 @@ tasks.register<Exec>("runClapiJar") {
     }
     cmd += "-jar"
     cmd += jarFile.get().asFile.absolutePath
+    if (System.getProperty("os.name").lowercase().contains("linux")) {
+        environment("MALLOC_ARENA_MAX", "2")
+    }
     commandLine(cmd)
     description = "Runs the packaged Clapi fat JAR (macOS uses app dock icon/name)."
     group = "application"
