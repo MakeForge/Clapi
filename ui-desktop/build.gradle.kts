@@ -9,7 +9,7 @@ plugins {
 kotlin {
     jvm("desktop") {
         mainRun {
-            mainClass = "io.github.crustack.clapi.ui.desktop.MainKt"
+            mainClass = "io.github.makeforge.clapi.ui.desktop.MainKt"
         }
     }
 
@@ -46,7 +46,7 @@ kotlin {
 // Change it in ONE place: gradle.properties  appVersion=x.y.z
 compose.desktop {
     application {
-        mainClass = "io.github.crustack.clapi.ui.desktop.MainKt"
+        mainClass = "io.github.makeforge.clapi.ui.desktop.MainKt"
 
         nativeDistributions {
             // Target every platform; each CI runner builds only what it supports.
@@ -64,7 +64,7 @@ compose.desktop {
             vendor         = "Clapi"
 
             macOS {
-                bundleID = "io.github.crustack.clapi"
+                bundleID = "io.github.makeforge.clapi"
                 iconFile.set(project.file("src/desktopMain/resources/icons/clapi.icns"))
                 // dmgPackageVersion inherits packageVersion automatically
             }
@@ -77,7 +77,7 @@ compose.desktop {
             }
             linux {
                 packageName        = "clapi"
-                debMaintainer      = "crustackk@gmail.com"
+                debMaintainer      = "makeforge@yahoo.com"
                 appCategory        = "Development"
                 iconFile.set(project.file("src/desktopMain/resources/icons/clapi-icon-256.png"))
             }
@@ -89,7 +89,7 @@ compose.desktop {
 // Produces ui-desktop/build/distribute/Clapi-{version}.jar
 // Includes app classes + runtime classpath and sets Main-Class so `java -jar` works.
 tasks.register<org.gradle.jvm.tasks.Jar>("packageClapiJar") {
-    val mainClassName = "io.github.crustack.clapi.ui.desktop.MainKt"
+    val mainClassName = "io.github.makeforge.clapi.ui.desktop.MainKt"
     val desktopJarTask = tasks.named<org.gradle.jvm.tasks.Jar>("desktopJar")
     val desktopRuntimeClasspath = configurations.named("desktopRuntimeClasspath")
 

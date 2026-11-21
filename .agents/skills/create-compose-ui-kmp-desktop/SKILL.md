@@ -81,11 +81,11 @@ Clapi organizes Compose UI into four distinct architectural layers across module
 
 | Layer | Responsibility | Module & Package Location | Example |
 |---|---|---|---|
-| **Root Shell** | Window-level shell, toolbar, sidebar docking, and dialog hosts | `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/` | [`MainScreen.kt`](/ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/MainScreen.kt) |
-| **Workspace Panel** | Workspace-mode panels, tab content editors with scrollbars | `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/` | [`RequestEditor.kt`](/ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestEditor.kt), [`ResponseViewer.kt`](/ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ResponseViewer.kt) |
-| **Component** | Reusable leaf UI building block with hover & cursor styling | `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/` | [`KeyValueEditor.kt`](/ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/KeyValueEditor.kt), [`SharedTooltip.kt`](/ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SharedTooltip.kt) |
-| **Dialog & Alert** | Modals managed via `AppState.dialogs` (`AppDialog` / `AppAlert`) | `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/` | [`ConfirmDeleteDialog.kt`](/ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ConfirmDeleteDialog.kt), [`SettingsDialog.kt`](/ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SettingsDialog.kt) |
-| **Previews** | Desktop tool preview functions (for sophisticated views only) | `ui-desktop/src/desktopMain/kotlin/io/github/crustack/clapi/ui/desktop/preview/` | [`MainScreenPreviews.kt`](/ui-desktop/src/desktopMain/kotlin/io/github/crustack/clapi/ui/desktop/preview/MainScreenPreviews.kt), [`SidebarPreviews.kt`](/ui-desktop/src/desktopMain/kotlin/io/github/crustack/clapi/ui/desktop/preview/SidebarPreviews.kt) |
+| **Root Shell** | Window-level shell, toolbar, sidebar docking, and dialog hosts | `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/` | [`MainScreen.kt`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/MainScreen.kt) |
+| **Workspace Panel** | Workspace-mode panels, tab content editors with scrollbars | `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/` | [`RequestEditor.kt`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/RequestEditor.kt), [`ResponseViewer.kt`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/ResponseViewer.kt) |
+| **Component** | Reusable leaf UI building block with hover & cursor styling | `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/` | [`KeyValueEditor.kt`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/KeyValueEditor.kt), [`SharedTooltip.kt`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/SharedTooltip.kt) |
+| **Dialog & Alert** | Modals managed via `AppState.dialogs` (`AppDialog` / `AppAlert`) | `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/` | [`ConfirmDeleteDialog.kt`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/ConfirmDeleteDialog.kt), [`SettingsDialog.kt`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/SettingsDialog.kt) |
+| **Previews** | Desktop tool preview functions (for sophisticated views only) | `ui-desktop/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/desktop/preview/` | [`MainScreenPreviews.kt`](/ui-desktop/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/desktop/preview/MainScreenPreviews.kt), [`SidebarPreviews.kt`](/ui-desktop/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/desktop/preview/SidebarPreviews.kt) |
 
 ---
 
@@ -94,14 +94,14 @@ Clapi organizes Compose UI into four distinct architectural layers across module
 When creating or modifying desktop UI elements in Clapi:
 
 ### Step 1: Determine Component Classification & Location
-- **Shared Composable UI**: 95%+ of UI belongs in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/` (or the root package for shell composables).
-- **Desktop Launcher**: `ui-desktop/src/desktopMain/kotlin/io/github/crustack/ui/desktop/Main.kt` is a thin launcher that wires window chrome and invokes `MainScreen`.
-- **Previews**: **ONLY** created in `ui-desktop/src/desktopMain/kotlin/io/github/crustack/clapi/ui/desktop/preview/`. Never place `@Preview` annotations inside `ui-shared` (as `ui-shared` is a shared multiplatform module without desktop preview runner dependencies).
+- **Shared Composable UI**: 95%+ of UI belongs in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/` (or the root package for shell composables).
+- **Desktop Launcher**: `ui-desktop/src/desktopMain/kotlin/io/github/makeforge/ui/desktop/Main.kt` is a thin launcher that wires window chrome and invokes `MainScreen`.
+- **Previews**: **ONLY** created in `ui-desktop/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/desktop/preview/`. Never place `@Preview` annotations inside `ui-shared` (as `ui-shared` is a shared multiplatform module without desktop preview runner dependencies).
 - **File Splitting & Subpackages for Long Files/Composables**: If a composable or file gets too long, check if it can be meaningfully split without too much effort into multiple files (e.g., separating leaf views, tree node items, row items, modal dialogs, context menus, and data helpers into sibling files). When splitting, evaluate whether the files should be placed into a dedicated subpackage (e.g., `ui.shared.components.sidebar`, `ui.shared.components.dialogs`, etc.) to establish a cleaner hierarchy instead of cluttering a single flat package. Truly shared/reusable cross-cutting components (such as badges or generic inputs) should remain in the shared parent package or a dedicated common subpackage.
 
 ### Step 2: Design State & Event Interface (UDF)
 - Keep UI components **stateless** whenever possible by hoisting state to the caller.
-- **No Android ViewModels or DI Frameworks**: Clapi does not use Android ViewModels or Koin. State is centralized in [`AppState`](/ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt), slice state holders like [`RequestTabState`](/ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/RequestTabState.kt), and [`DialogState`](/ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/DialogState.kt).
+- **No Android ViewModels or DI Frameworks**: Clapi does not use Android ViewModels or Koin. State is centralized in [`AppState`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt), slice state holders like [`RequestTabState`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/RequestTabState.kt), and [`DialogState`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/DialogState.kt).
 - For leaf/reusable components, accept immutable values and emit explicit event callbacks (e.g. `onClick: () -> Unit`, `onValueChanged: (String) -> Unit`).
 - If a component coordinates multiple actions, bundle them or pass high-level domain intents rather than leaking mutable state.
 
@@ -128,9 +128,9 @@ fun RequestItemRow(
 ```
 
 ### Step 4: Strings, Resources & Theming
-- **Strings & Localization**: All user-facing strings MUST use [`Strings`](/ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/i18n/Strings.kt):
+- **Strings & Localization**: All user-facing strings MUST use [`Strings`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/i18n/Strings.kt):
   ```kotlin
-  import io.github.crustack.clapi.ui.shared.i18n.Strings
+  import io.github.makeforge.clapi.ui.shared.i18n.Strings
 
   Text(text = Strings.save)
   Text(text = Strings.t("add_request"))
@@ -148,7 +148,7 @@ fun RequestItemRow(
   )
   ```
    If you want to add a new material icon, see skill `add-material-compose-icon`
-- **Colors & Theming**: Reference [`ClapiColors`](/ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/theme/ClapiTheme.kt) and MaterialTheme tokens.
+- **Colors & Theming**: Reference [`ClapiColors`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/theme/ClapiTheme.kt) and MaterialTheme tokens.
   - Backgrounds: `ClapiColors.Background`, `ClapiColors.Surface`, `ClapiColors.SurfaceHigh`
   - Text: `ClapiColors.OnSurface`, `ClapiColors.OnSurfaceDim`, `ClapiColors.OnSurfaceVariant`
   - Accents: `ClapiColors.Primary`, `ClapiColors.Border`, `ClapiColors.HoverOverlay`
@@ -169,7 +169,7 @@ Desktop applications rely on physical keyboard and mouse interaction:
    ```
 2. **Mouse & Hover**:
    - Use `Modifier.pointerHoverIcon(PointerIcon.Hand)` on clickable items, cards, and custom controls.
-   - For icon buttons with hover hints, use [`IconButtonWithTooltip`](/ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SharedTooltip.kt) or [`HoverTooltip`](/ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SharedTooltip.kt).
+   - For icon buttons with hover hints, use [`IconButtonWithTooltip`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/SharedTooltip.kt) or [`HoverTooltip`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/SharedTooltip.kt).
    - > [!WARNING]
      > Do NOT attach redundant `.hoverable(interactionSource)` modifiers to `IconButton`, because Compose Material 3 `IconButton` already handles hover and press interactions via its internal `clickable`. Doing so can swallow pointer click events on nested buttons.
 3. **Keyboard Navigation & Shortcuts**:
@@ -177,7 +177,7 @@ Desktop applications rely on physical keyboard and mouse interaction:
    - Modals, dialogs, and popup overlays must handle `Key.Escape` to dismiss cleanly.
 
 ### Step 6: Dialogs & Alerts Integration (`DialogState`)
-Dialogs in Clapi follow the centralized [`DialogState`](/ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/DialogState.kt) architecture:
+Dialogs in Clapi follow the centralized [`DialogState`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/DialogState.kt) architecture:
 1. **Feature Dialogs**: Sealed entries in `AppDialog` (e.g. `AppDialog.Settings`, `AppDialog.GitSync`, `AppDialog.EnvironmentEdit(index)`).
    - Opened via `state.showSettingsDialog = true` or `state.dialogs.show(AppDialog.Settings)`.
    - Closed via `state.dialogs.dismiss(AppDialog.Settings)`.
@@ -193,7 +193,7 @@ Dialogs in Clapi follow the centralized [`DialogState`](/ui-shared/src/commonMai
 > **Do NOT create a preview for every composable.**
 > Small leaf elements, buttons, badges, and minor components do not need previews. Previews are reserved exclusively for **sophisticated views** (such as `MainScreen`, `RequestEditor`, `Sidebar`, or complex dialogs) to make them more easily maintainable and debuggable.
 >
-> **Previews MUST ONLY be placed in `ui-desktop/src/desktopMain/kotlin/io/github/crustack/clapi/ui/desktop/preview/`**, using:
+> **Previews MUST ONLY be placed in `ui-desktop/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/desktop/preview/`**, using:
 > `import androidx.compose.desktop.ui.tooling.preview.Preview`
 > Never add `@Preview` in `ui-shared`.
 
@@ -203,10 +203,10 @@ Dialogs in Clapi follow the centralized [`DialogState`](/ui-shared/src/commonMai
 
 ### 1. Workspace Panel / Editor View Template (`ui-shared`)
 
-*Place in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/`.*
+*Place in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/`.*
 
 ```kotlin
-package io.github.crustack.clapi.ui.shared.components
+package io.github.makeforge.clapi.ui.shared.components
 
 import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.background
@@ -226,8 +226,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.github.crustack.clapi.ui.shared.i18n.Strings
-import io.github.crustack.clapi.ui.shared.theme.ClapiColors
+import io.github.makeforge.clapi.ui.shared.i18n.Strings
+import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
 
 @Composable
 fun RequestSummaryPanel(
@@ -272,10 +272,10 @@ fun RequestSummaryPanel(
 
 ### 2. Reusable Leaf Component with Hover & Pointer Icon (`ui-shared`)
 
-*Place in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/`.*
+*Place in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/`.*
 
 ```kotlin
-package io.github.crustack.clapi.ui.shared.components
+package io.github.makeforge.clapi.ui.shared.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -297,7 +297,7 @@ import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.github.crustack.clapi.ui.shared.theme.ClapiColors
+import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
 
 @Composable
 fun DesktopItemRow(
@@ -331,10 +331,10 @@ fun DesktopItemRow(
 
 ### 3. Desktop Modal Dialog (`ui-shared`)
 
-*Place in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/`.*
+*Place in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/`.*
 
 ```kotlin
-package io.github.crustack.clapi.ui.shared.components
+package io.github.makeforge.clapi.ui.shared.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -363,8 +363,8 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import io.github.crustack.clapi.ui.shared.i18n.Strings
-import io.github.crustack.clapi.ui.shared.theme.ClapiColors
+import io.github.makeforge.clapi.ui.shared.i18n.Strings
+import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
 
 @Composable
 fun DesktopCustomDialog(
@@ -421,17 +421,17 @@ fun DesktopCustomDialog(
 
 ### 4. Desktop Preview for Sophisticated Views (`ui-desktop`)
 
-*Place in `ui-desktop/src/desktopMain/kotlin/io/github/crustack/clapi/ui/desktop/preview/`.*
+*Place in `ui-desktop/src/desktopMain/kotlin/io/github/makeforge/clapi/ui/desktop/preview/`.*
 
 ```kotlin
-package io.github.crustack.clapi.ui.desktop.preview
+package io.github.makeforge.clapi.ui.desktop.preview
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.runtime.Composable
-import io.github.crustack.clapi.ui.shared.MainScreen
-import io.github.crustack.clapi.ui.shared.state.AppState
-import io.github.crustack.clapi.ui.shared.state.AppTheme
-import io.github.crustack.clapi.ui.shared.theme.ClapiTheme
+import io.github.makeforge.clapi.ui.shared.MainScreen
+import io.github.makeforge.clapi.ui.shared.state.AppState
+import io.github.makeforge.clapi.ui.shared.state.AppTheme
+import io.github.makeforge.clapi.ui.shared.theme.ClapiTheme
 
 @Preview
 @Composable
@@ -456,7 +456,7 @@ When evaluating existing or newly created desktop `@Composable` functions, revie
    - Never supplies hardcoded sizing modifiers (e.g. `Modifier.fillMaxWidth()`) as default values.
 2. **Targeted Desktop Previews**:
    - Previews are created **only for sophisticated views** (e.g. full workspace screens, primary editor tabs, sidebar), **not** for individual small buttons or leaf widgets.
-   - Previews reside strictly in `ui-desktop` under package `io.github.crustack.clapi.ui.desktop.preview`.
+   - Previews reside strictly in `ui-desktop` under package `io.github.makeforge.clapi.ui.desktop.preview`.
    - Never add `@Preview` inside `ui-shared`.
    - Previews wrap content in `ClapiTheme`.
 3. **State Hoisting & Clapi State Models**:
@@ -464,7 +464,7 @@ When evaluating existing or newly created desktop `@Composable` functions, revie
    - Coordinates with `AppState`, `RequestTabState`, or `DialogState` at panel levels; no Android ViewModels or Koin.
    - Reusable components accept explicit values and emit callbacks (`UDF`).
 4. **Strings, Resources & Theming**:
-   - All text comes from `io.github.crustack.clapi.ui.shared.i18n.Strings` (e.g. `Strings.save`, `Strings.t("...")`). Zero raw user-visible strings.
+   - All text comes from `io.github.makeforge.clapi.ui.shared.i18n.Strings` (e.g. `Strings.save`, `Strings.t("...")`). Zero raw user-visible strings.
    - Drawables loaded from `clapi.ui_shared.generated.resources.Res`. Zero Android `R.*` imports.
    - Colors and styling use `ClapiColors` and `ClapiTheme`.
 5. **Desktop Ergonomics**:
@@ -478,7 +478,7 @@ When evaluating existing or newly created desktop `@Composable` functions, revie
    - `derivedStateOf` used for rapid state change thresholds (e.g. scroll offsets).
    - Zero backwards writes during composition passes.
 7. **Module & Function Locality & File Sizing**:
-   - Shared UI code in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/`.
+   - Shared UI code in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/`.
    - Launcher and desktop previews in `ui-desktop/src/desktopMain/`.
    - Large composables (>100 lines) decomposed into focused private helper composables.
    - **Meaningful File Splitting & Subpackages**: If composables or UI files become excessively long, check if they can be meaningfully split without too much effort into multiple files. Evaluate whether to organize the split files into a dedicated subpackage (e.g., `components.sidebar`, `components.editor`, `components.dialogs`) for cleaner architectural hierarchy. Extract leaf widgets, tree node items, row components, modal dialogs, context menus, and pure state/tree manipulation helper functions into dedicated sibling files under the subpackage to keep file sizes manageable, readable, and maintainable, while keeping generic cross-cutting widgets accessible.

@@ -2,7 +2,7 @@
 
 ## 1. Domain Models (`core-model`)
 
-The canonical OpenCollection OAuth2 models are defined in `io.github.crustack.clapi.core.model.opencollection.OpenCollectionAuth.kt`.
+The canonical OpenCollection OAuth2 models are defined in `io.github.makeforge.clapi.core.model.opencollection.OpenCollectionAuth.kt`.
 
 ### 1.1 `AuthOAuth2`
 Represents the persisted authentication configuration in OpenCollection documents:

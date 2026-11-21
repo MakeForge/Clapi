@@ -7,7 +7,7 @@
 
 ## 1. Canonical Implementation (`IconButtonWithTooltip`)
 
-All icon buttons with hover tooltips MUST utilize or follow the semantics of [`IconButtonWithTooltip`](file:///home/user/IdeaProjects/Clapi/ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SharedTooltip.kt#L163-L227):
+All icon buttons with hover tooltips MUST utilize or follow the semantics of [`IconButtonWithTooltip`](file:///home/user/IdeaProjects/Clapi/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/SharedTooltip.kt#L163-L227):
 
 ```kotlin
 @Composable

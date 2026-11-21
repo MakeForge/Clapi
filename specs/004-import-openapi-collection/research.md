@@ -68,7 +68,7 @@ Reuse existing `OpenCollectionSchemaValidator` and `OpenCollectionSerializer` in
 ## 4. Import Dialog UI & UX Design
 
 ### Decision
-Create `ImportSpecificationDialog.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/` modeled after the Insomnia import dialog:
+Create `ImportSpecificationDialog.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/` modeled after the Insomnia import dialog:
 1. **Step 1: Source Selection**
    - Header: Title `Import` and close button (`X`).
    - Source Type Tabs: `File` and `Clipboard`.

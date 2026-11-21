@@ -63,7 +63,7 @@ specs/020-fix-desktop-ui-violations/
 ### Source Code (affected areas)
 
 ```text
-ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/
+ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/
 ├── MainScreen.kt                         # Shell composable modifier pass-through
 ├── components/
 │   ├── AuthEditor.kt                    # Modifier + scrollbar

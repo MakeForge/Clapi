@@ -5,7 +5,7 @@
 Located in `ui-shared/platform/PlatformApi.kt` and platform actuals (`PlatformApi.desktop.kt`).
 
 ```kotlin
-package io.github.crustack.clapi.ui.shared.platform
+package io.github.makeforge.clapi.ui.shared.platform
 
 expect object PlatformStorage {
     // Existing plaintext storage operations

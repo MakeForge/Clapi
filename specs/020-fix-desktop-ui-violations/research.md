@@ -33,7 +33,7 @@ In `scratch/composables_evaluation.md`, over 30 primary workspace composables an
 
 ### Decision
 1. Eliminate redundant `.hoverable` modifiers on `IconButton` instances.
-2. Replace `ToolbarIconButtonWithTooltip` and `EditorIconButtonWithTooltip` with the centralized [`IconButtonWithTooltip`](file:///home/user/IdeaProjects/Clapi/ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SharedTooltip.kt#L163-L227) component from `SharedTooltip.kt`.
+2. Replace `ToolbarIconButtonWithTooltip` and `EditorIconButtonWithTooltip` with the centralized [`IconButtonWithTooltip`](file:///home/user/IdeaProjects/Clapi/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/SharedTooltip.kt#L163-L227) component from `SharedTooltip.kt`.
 3. In `IconButtonWithTooltip`, pass `interactionSource` directly to `IconButton(interactionSource = interactionSource, onClick = onClick)` without `.hoverable`.
 
 ### Rationale
@@ -63,7 +63,7 @@ Desktop platforms require visual and interactive scrollbars for scrollable conte
    - Pair with `HorizontalScrollbar(adapter = rememberScrollbarAdapter(scrollState))` along the bottom edge if tabs overflow.
 
 ### Rationale
-- Leverages the existing abstraction [`PlatformScrollbar.kt`](file:///home/user/IdeaProjects/Clapi/ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/platform/PlatformScrollbar.kt), which already wraps Compose Desktop scrollbars cleanly with test tags and proper alignment.
+- Leverages the existing abstraction [`PlatformScrollbar.kt`](file:///home/user/IdeaProjects/Clapi/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/platform/PlatformScrollbar.kt), which already wraps Compose Desktop scrollbars cleanly with test tags and proper alignment.
 - Matches native desktop expectations across Linux, macOS, and Windows.
 
 ### Alternatives Considered

@@ -18,9 +18,9 @@ description: "Task list for supporting multiple OpenCollection collections"
 
 **Purpose**: Update core state models and shared resources required by all user stories.
 
-- [x] T001 Extend `CollectionNode` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` with `summary: String?`, `version: String?`, `protoFiles: List<ProtoFileItemState>`, `importPaths: List<ProtoImportPathState>`, and helper `isCollection: Boolean`.
-- [x] T002 [P] Update `OpenCollectionModelMapping.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to serialize and deserialize collection-level metadata (`CollectionInfo`) and `RequestDefaults`.
-- [x] T003 [P] Add string localization entries for "Collections", "Add Collection", "Info", and multi-collection export options in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/i18n/Strings.kt`.
+- [x] T001 Extend `CollectionNode` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt` with `summary: String?`, `version: String?`, `protoFiles: List<ProtoFileItemState>`, `importPaths: List<ProtoImportPathState>`, and helper `isCollection: Boolean`.
+- [x] T002 [P] Update `OpenCollectionModelMapping.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` to serialize and deserialize collection-level metadata (`CollectionInfo`) and `RequestDefaults`.
+- [x] T003 [P] Add string localization entries for "Collections", "Add Collection", "Info", and multi-collection export options in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/i18n/Strings.kt`.
 
 ---
 
@@ -28,9 +28,9 @@ description: "Task list for supporting multiple OpenCollection collections"
 
 **Purpose**: State management infrastructure that must be complete before user stories begin.
 
-- [x] T004 Implement collection creation, deletion, and duplicate-name disambiguation helpers (`generateUniqueCollectionName` appending incremental numeric suffixes) in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt`.
-- [x] T005 [P] Update `RequestTabState` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` to support `collectionSummary`, `collectionVersion`, and tab initialization for `RequestKind.COLLECTION`.
-- [x] T006 [P] Create state unit tests verifying multiple collections modeling and name disambiguation in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/state/MultipleCollectionsStateTest.kt`.
+- [x] T004 Implement collection creation, deletion, and duplicate-name disambiguation helpers (`generateUniqueCollectionName` appending incremental numeric suffixes) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt`.
+- [x] T005 [P] Update `RequestTabState` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt` to support `collectionSummary`, `collectionVersion`, and tab initialization for `RequestKind.COLLECTION`.
+- [x] T006 [P] Create state unit tests verifying multiple collections modeling and name disambiguation in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/state/MultipleCollectionsStateTest.kt`.
 
 **Checkpoint**: Foundation ready — user story implementation can now begin.
 
@@ -44,14 +44,14 @@ description: "Task list for supporting multiple OpenCollection collections"
 
 ### Tests for User Story 1
 
-- [x] T007 [P] [US1] Create UI tests for sidebar "Collections" header, collection tree items, expand/collapse, and inline rename in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/components/SidebarMultipleCollectionsUiTest.kt`.
+- [x] T007 [P] [US1] Create UI tests for sidebar "Collections" header, collection tree items, expand/collapse, and inline rename in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/components/SidebarMultipleCollectionsUiTest.kt`.
 
 ### Implementation for User Story 1
 
-- [x] T008 [US1] Replace the single "Collection" header in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` with a "Collections" `SectionHeader` featuring an `IconButton` (`+`) that creates a new collection.
-- [x] T009 [US1] Implement collection item rows in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` displaying Article icon, expand/collapse toggle, collection name, and `+` action button for adding folders.
-- [x] T010 [US1] Implement double-click inline renaming on collection name text in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt`, automatically disambiguating duplicate names via incremental index (e.g., `Collection (1)`) without validation error dialogs.
-- [x] T011 [US1] Implement collection item context menu in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` with Add Folder, Add Request, Duplicate, Export, and Delete actions (prompting confirmation and closing open descendant tabs).
+- [x] T008 [US1] Replace the single "Collection" header in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/Sidebar.kt` with a "Collections" `SectionHeader` featuring an `IconButton` (`+`) that creates a new collection.
+- [x] T009 [US1] Implement collection item rows in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/Sidebar.kt` displaying Article icon, expand/collapse toggle, collection name, and `+` action button for adding folders.
+- [x] T010 [US1] Implement double-click inline renaming on collection name text in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/Sidebar.kt`, automatically disambiguating duplicate names via incremental index (e.g., `Collection (1)`) without validation error dialogs.
+- [x] T011 [US1] Implement collection item context menu in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/Sidebar.kt` with Add Folder, Add Request, Duplicate, Export, and Delete actions (prompting confirmation and closing open descendant tabs).
 
 **Checkpoint**: User Story 1 (MVP) is fully functional and testable independently.
 
@@ -65,14 +65,14 @@ description: "Task list for supporting multiple OpenCollection collections"
 
 ### Tests for User Story 2
 
-- [x] T012 [P] [US2] Create UI tests for `CollectionEditor` tab ordering, "Info" tab metadata editing, and request defaults tabs in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/CollectionEditorTabsUiTest.kt`.
+- [x] T012 [P] [US2] Create UI tests for `CollectionEditor` tab ordering, "Info" tab metadata editing, and request defaults tabs in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/CollectionEditorTabsUiTest.kt`.
 
 ### Implementation for User Story 2
 
-- [x] T013 [US2] Update `CollectionEditorTab` enum in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/CollectionEditor.kt` to include `INFO`, `VARIABLES`, `HEADERS`, `AUTH`, `PRE_REQUEST`, `TESTS`, and `PROTOBUF`, ensuring `INFO` is first on the left.
-- [x] T014 [US2] Implement the "Info" tab form composable in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/CollectionEditor.kt` with text fields for Name, Summary, and Version (`authors` omitted).
-- [x] T015 [US2] Integrate Request Defaults tabs (Variables, Headers, Auth, Pre-request, Tests) into `CollectionEditor.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/CollectionEditor.kt` reusing `KeyValueEditor`, `AuthEditor`, and `ScriptEditor`.
-- [x] T016 [US2] Implement bidirectional synchronization in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` (`syncTabToCollectionNode`) updating collection name, metadata, and request defaults on save.
+- [x] T013 [US2] Update `CollectionEditorTab` enum in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/CollectionEditor.kt` to include `INFO`, `VARIABLES`, `HEADERS`, `AUTH`, `PRE_REQUEST`, `TESTS`, and `PROTOBUF`, ensuring `INFO` is first on the left.
+- [x] T014 [US2] Implement the "Info" tab form composable in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/CollectionEditor.kt` with text fields for Name, Summary, and Version (`authors` omitted).
+- [x] T015 [US2] Integrate Request Defaults tabs (Variables, Headers, Auth, Pre-request, Tests) into `CollectionEditor.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/CollectionEditor.kt` reusing `KeyValueEditor`, `AuthEditor`, and `ScriptEditor`.
+- [x] T016 [US2] Implement bidirectional synchronization in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt` (`syncTabToCollectionNode`) updating collection name, metadata, and request defaults on save.
 
 **Checkpoint**: User Stories 1 AND 2 work together independently.
 
@@ -86,14 +86,14 @@ description: "Task list for supporting multiple OpenCollection collections"
 
 ### Tests for User Story 3
 
-- [x] T017 [P] [US3] Create unit and integration tests for collection-to-folder-to-request inheritance in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/state/CollectionInheritanceTest.kt`.
+- [x] T017 [P] [US3] Create unit and integration tests for collection-to-folder-to-request inheritance in `ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/state/CollectionInheritanceTest.kt`.
 
 ### Implementation for User Story 3
 
-- [x] T018 [US3] Update `getAncestorFolders` and `findAncestorChain` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` to include the enclosing `CollectionNode` as root ancestor.
-- [x] T019 [US3] Update `applyInheritedDefaults` and `resolveInheritedAuth` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` to cascade collection-level headers, variables, and authentication down to folders and requests.
-- [x] T020 [US3] Update `FolderEditor.kt` and `AuthEditor.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/` to display inherited collection defaults and support `AuthType.INHERIT` resolving to the collection.
-- [x] T021 [US3] Update script execution pipeline in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt` to execute pre-request and post-request scripts in cascade sequence (`Collection -> Folder -> Request`).
+- [x] T018 [US3] Update `getAncestorFolders` and `findAncestorChain` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt` to include the enclosing `CollectionNode` as root ancestor.
+- [x] T019 [US3] Update `applyInheritedDefaults` and `resolveInheritedAuth` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt` to cascade collection-level headers, variables, and authentication down to folders and requests.
+- [x] T020 [US3] Update `FolderEditor.kt` and `AuthEditor.kt` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/` to display inherited collection defaults and support `AuthType.INHERIT` resolving to the collection.
+- [x] T021 [US3] Update script execution pipeline in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/RequestExecutor.kt` to execute pre-request and post-request scripts in cascade sequence (`Collection -> Folder -> Request`).
 
 **Checkpoint**: User Stories 1, 2, and 3 work seamlessly together.
 
@@ -107,14 +107,14 @@ description: "Task list for supporting multiple OpenCollection collections"
 
 ### Tests for User Story 4
 
-- [x] T022 [P] [US4] Create unit tests for multi-collection export and import in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/persistence/MultiCollectionImportExportTest.kt`.
+- [x] T022 [P] [US4] Create unit tests for multi-collection export and import in `ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/persistence/MultiCollectionImportExportTest.kt`.
 
 ### Implementation for User Story 4
 
-- [x] T023 [P] [US4] Implement `ExportCollectionsDialog` composable in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ExportCollectionsDialog.kt` with collection checkboxes, select all toggle, and JSON/YAML format choice.
-- [x] T024 [US4] Implement multi-collection export runner in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/ImportExportRepository.kt` writing 1 file per selected collection into user-selected directory.
-- [x] T025 [US4] Update OpenCollection import handler in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/ImportExportRepository.kt` to create a new distinct collection in `state.collections` with automatic index disambiguation on collision.
-- [x] T026 [US4] Wire the "Export Collections..." action in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` to show `ExportCollectionsDialog` with native directory picker.
+- [x] T023 [P] [US4] Implement `ExportCollectionsDialog` composable in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/ExportCollectionsDialog.kt` with collection checkboxes, select all toggle, and JSON/YAML format choice.
+- [x] T024 [US4] Implement multi-collection export runner in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/ImportExportRepository.kt` writing 1 file per selected collection into user-selected directory.
+- [x] T025 [US4] Update OpenCollection import handler in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/ImportExportRepository.kt` to create a new distinct collection in `state.collections` with automatic index disambiguation on collision.
+- [x] T026 [US4] Wire the "Export Collections..." action in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/Sidebar.kt` to show `ExportCollectionsDialog` with native directory picker.
 
 **Checkpoint**: User Stories 1, 2, 3, and 4 are complete.
 
@@ -128,13 +128,13 @@ description: "Task list for supporting multiple OpenCollection collections"
 
 ### Tests for User Story 5
 
-- [x] T027 [P] [US5] Create unit tests for single-collection migration and multi-collection persistence in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/persistence/WorkspaceMigrationTest.kt`.
+- [x] T027 [P] [US5] Create unit tests for single-collection migration and multi-collection persistence in `ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/persistence/WorkspaceMigrationTest.kt`.
 
 ### Implementation for User Story 5
 
-- [x] T028 [US5] Update `WorkspaceRepository.load` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/WorkspaceRepository.kt` to detect legacy single-collection files and wrap items into a primary collection on load.
-- [x] T029 [US5] Update `toGlobalOpenCollectionDocument` and `save` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` and `WorkspaceRepository.kt` to persist all collections, their metadata, request defaults, and items.
-- [x] T030 [US5] Update `CanonicalCollectionRepository.kt` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/opencollection/CanonicalCollectionRepository.kt` to support multi-collection persistence.
+- [x] T028 [US5] Update `WorkspaceRepository.load` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/WorkspaceRepository.kt` to detect legacy single-collection files and wrap items into a primary collection on load.
+- [x] T029 [US5] Update `toGlobalOpenCollectionDocument` and `save` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` and `WorkspaceRepository.kt` to persist all collections, their metadata, request defaults, and items.
+- [x] T030 [US5] Update `CanonicalCollectionRepository.kt` in `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/opencollection/CanonicalCollectionRepository.kt` to support multi-collection persistence.
 
 **Checkpoint**: All user stories functional with full persistence and backward compatibility.
 
@@ -145,7 +145,7 @@ description: "Task list for supporting multiple OpenCollection collections"
 **Purpose**: Cross-cutting improvements, documentation, and final end-to-end QA validation.
 
 - [x] T031 [P] Update user documentation in `docs/collections.md` describing multiple collections hierarchy, Info tab, request defaults inheritance, and export/import.
-- [x] T032 [P] Update and run end-to-end QA test suite in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/OpenCollectionRoundTripE2ETest.kt` for multiple collections.
+- [x] T032 [P] Update and run end-to-end QA test suite in `qa-tests/src/test/kotlin/io/github/makeforge/clapi/qa/OpenCollectionRoundTripE2ETest.kt` for multiple collections.
 - [x] T033 Execute manual validation scenarios in `specs/008-multiple-collections/quickstart.md`.
 
 ---
@@ -180,8 +180,8 @@ description: "Task list for supporting multiple OpenCollection collections"
 
 ```bash
 # Launch test task and initial UI implementation in parallel:
-Task: "T007 [P] [US1] Create UI tests for sidebar 'Collections' header, collection tree items, expand/collapse, and inline rename in ui-desktop/src/jvmTest/kotlin/io/github/crustack/clapi/ui/desktop/components/SidebarMultipleCollectionsUiTest.kt"
-Task: "T008 [US1] Replace the single 'Collection' header in ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt with a 'Collections' SectionHeader featuring an IconButton (+) that creates a new collection"
+Task: "T007 [P] [US1] Create UI tests for sidebar 'Collections' header, collection tree items, expand/collapse, and inline rename in ui-desktop/src/jvmTest/kotlin/io/github/makeforge/clapi/ui/desktop/components/SidebarMultipleCollectionsUiTest.kt"
+Task: "T008 [US1] Replace the single 'Collection' header in ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/Sidebar.kt with a 'Collections' SectionHeader featuring an IconButton (+) that creates a new collection"
 ```
 
 ---

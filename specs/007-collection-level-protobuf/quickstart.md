@@ -9,7 +9,7 @@ This guide describes how to manually and automatically validate collection-level
 Run the end-to-end gRPC and Protobuf test suite:
 
 ```bash
-./gradlew :qa-tests:jvmTest --tests "io.github.crustack.clapi.qa.GrpcApiE2ETest"
+./gradlew :qa-tests:jvmTest --tests "io.github.makeforge.clapi.qa.GrpcApiE2ETest"
 ```
 
 ### Expected Results:
@@ -25,9 +25,9 @@ Run the end-to-end gRPC and Protobuf test suite:
 Verify OpenCollection model serialization and schema compliance:
 
 ```bash
-./gradlew :core-model:desktopTest --tests "io.github.crustack.clapi.core.model.opencollection.OpenCollectionModelTest"
-./gradlew :core-storage:desktopTest --tests "io.github.crustack.clapi.core.storage.opencollection.*"
-./gradlew :core-network:desktopTest --tests "io.github.crustack.clapi.core.network.grpc.ProtocJarParserTest"
+./gradlew :core-model:desktopTest --tests "io.github.makeforge.clapi.core.model.opencollection.OpenCollectionModelTest"
+./gradlew :core-storage:desktopTest --tests "io.github.makeforge.clapi.core.storage.opencollection.*"
+./gradlew :core-network:desktopTest --tests "io.github.makeforge.clapi.core.network.grpc.ProtocJarParserTest"
 ```
 
 ### Expected Results:

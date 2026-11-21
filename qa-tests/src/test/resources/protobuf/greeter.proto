@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package helloworld;
 
-option java_package = "io.github.crustack.clapi.qa.grpc";
+option java_package = "io.github.makeforge.clapi.qa.grpc";
 option java_multiple_files = true;
 
 import "protobuf/common/metadata.proto";

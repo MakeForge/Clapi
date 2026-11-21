@@ -81,16 +81,16 @@ specs/008-multiple-collections/
 ### Source Code (repository root)
 
 ```text
-core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/
+core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/
 ├── OpenCollectionDocument.kt             # CollectionInfo, RequestDefaults, CollectionConfig
 └── OpenCollectionItem.kt                 # FolderItem, RequestItem
 
-core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/opencollection/
+core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/opencollection/
 ├── CanonicalCollectionRepository.kt       # Multi-collection persistence & storage operations
 ├── OpenCollectionSerializer.kt            # JSON/YAML serialization
 └── OpenCollectionSchemaValidator.kt       # Schema compliance validation
 
-ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/
+ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/
 ├── components/
 │   ├── Sidebar.kt                         # Collections header with '+', collection items, inline rename
 │   ├── CollectionEditor.kt                # Info tab (leftmost), request defaults tabs, Protobuf tab
@@ -106,9 +106,9 @@ ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/
     └── RequestTabState.kt                 # Extended tab state for CollectionEditor
 
 ui-desktop/src/
-├── main/kotlin/io/github/crustack/clapi/ui/desktop/
+├── main/kotlin/io/github/makeforge/clapi/ui/desktop/
 │   └── components/                        # Platform native dialogs (directory chooser)
-└── test/kotlin/io/github/crustack/clapi/ui/desktop/
+└── test/kotlin/io/github/makeforge/clapi/ui/desktop/
     ├── CollectionEditorNavigationUiTest.kt
     ├── SidebarCollectionHelpersTest.kt
     └── AppStateCollectionTest.kt

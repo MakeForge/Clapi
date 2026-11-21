@@ -71,7 +71,7 @@ A color token resolving dynamically from the active theme palette (`Light` or `D
 The structural organization of refactored monolithic files.
 
 ```text
-ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/
+ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/
 ├── dialogs/
 │   ├── env/
 │   │   ├── EnvironmentEditDialog.kt     # Shell & Coordinator (< 800 lines)

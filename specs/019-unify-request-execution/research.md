@@ -78,7 +78,7 @@ Unify request execution across two cleanly separated layers:
 ## Decision 4: `ExternalSecretProvider` Strategy Pattern & `SecretResolutionContext`
 
 ### Decision
-Refactor `SecretResolutionService` (`core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/secrets/SecretResolutionService.kt`) to replace the 27-parameter `resolveSecrets(...)` and `resolveEnvironmentSecrets(...)` methods with:
+Refactor `SecretResolutionService` (`core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/secrets/SecretResolutionService.kt`) to replace the 27-parameter `resolveSecrets(...)` and `resolveEnvironmentSecrets(...)` methods with:
 1. **`SecretResolutionContext` data class**: Encapsulates all provider configurations/credentials (`VaultProviderConfig`, `AwsProviderConfig`, `AzureProviderConfig`, `GcpProviderConfig`, `KeeperProviderConfig`, `KeepassXcProviderConfig`), `variableLayers: List<Map<String, String>>`, and `customFilters: List<CustomSecretFilter>`.
 2. **`ExternalSecretProvider` interface**:
    ```kotlin
@@ -109,7 +109,7 @@ Refactor `SecretResolutionService` (`core-network/src/commonMain/kotlin/io/githu
 ## Decision 5: Shared `OAuth2TokenManager`
 
 ### Decision
-Create `OAuth2TokenManager` in `:core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/oauth2/OAuth2TokenManager.kt`:
+Create `OAuth2TokenManager` in `:core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/oauth2/OAuth2TokenManager.kt`:
 - Consolidates the duplicated token expiry check, refresh-token flow, and auto-fetch (`client_credentials` / `password`) logic currently split between `RequestVariableResolution.kt:ensureValidOAuth2Token` (`lines 198-297`) and `OAuth2DynamicVariableProvider.kt:acquireToken` (`lines 69-134`).
 - Coordinates concurrent/sequential token requests within the same execution pass using a `Mutex` and per-collection/token-key cache check so that when a request uses both `AuthType.OAUTH2` and `{{_auth.oauth2.accessToken}}` with an expired token, **only one** refresh/token network request is made.
 - Injects `OAuth2TokenManager` into both `OAuth2DynamicVariableProvider` and `RequestExecutionService` (as well as UI executors).

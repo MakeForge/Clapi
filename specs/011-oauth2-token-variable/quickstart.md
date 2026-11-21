@@ -16,7 +16,7 @@ This guide describes how to validate that `{{_auth.oauth2.accessToken}}` is dyna
 ### A. Dynamic Variable Unit Tests
 Run unit tests verifying the dynamic variable provider and registry:
 ```bash
-./gradlew :core-network:test --tests "io.github.crustack.clapi.core.network.dynamicvar.*"
+./gradlew :core-network:test --tests "io.github.makeforge.clapi.core.network.dynamicvar.*"
 ```
 **Expected outcome**:
 - `OAuth2DynamicVariableProviderTest` verifies valid token reuse, token acquisition on expiration, and errors when OAuth2 is unconfigured.
@@ -25,7 +25,7 @@ Run unit tests verifying the dynamic variable provider and registry:
 ### B. Execution Pipeline Component Tests
 Run pipeline tests in `ui-shared`:
 ```bash
-./gradlew :ui-shared:test --tests "io.github.crustack.clapi.ui.shared.components.DynamicVariableExecutionPipelineTest"
+./gradlew :ui-shared:test --tests "io.github.makeforge.clapi.ui.shared.components.DynamicVariableExecutionPipelineTest"
 ```
 **Expected outcome**:
 - Validates that a gRPC request configured with metadata `authorization: Bearer {{_auth.oauth2.accessToken}}` sends the resolved Bearer token.
@@ -34,7 +34,7 @@ Run pipeline tests in `ui-shared`:
 ### C. End-to-End gRPC Integration Tests
 Run QA integration tests with `DummyApiServer`:
 ```bash
-./gradlew :qa-tests:test --tests "io.github.crustack.clapi.qa.GrpcApiE2ETest.resolves_oauth2_access_token_in_grpc_metadata_authorization"
+./gradlew :qa-tests:test --tests "io.github.makeforge.clapi.qa.GrpcApiE2ETest.resolves_oauth2_access_token_in_grpc_metadata_authorization"
 ```
 **Expected outcome**:
 - The test spins up `DummyApiServer`, configures a gRPC request with metadata header `authorization = "Bearer {{_auth.oauth2.accessToken}}"`, executes the call, and verifies that `DummyApiServer` logged the call with the actual resolved token value.

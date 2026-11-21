@@ -33,7 +33,7 @@ Expected: all pass.
 ## 4. Check the OpenCollection round trip (SC-005)
 
 ```bash
-rtk gradlew :qa-tests:jvmTest --tests io.github.crustack.qa.OpenCollectionRoundTripE2ETest
+rtk gradlew :qa-tests:jvmTest --tests io.github.makeforge.qa.OpenCollectionRoundTripE2ETest
 ```
 
 Expected: export then import returns the same folders, requests, and order.
@@ -41,8 +41,8 @@ Expected: export then import returns the same folders, requests, and order.
 ## 5. Check the qa fixture (SC-006)
 
 ```bash
-rtk gradlew :qa-tests:jvmTest --tests io.github.crustack.qa.SampleCollectionE2ETest
-rtk gradlew :qa-tests:jvmTest --tests io.github.crustack.qa.OpenCollectionValidationE2ETest
+rtk gradlew :qa-tests:jvmTest --tests io.github.makeforge.qa.SampleCollectionE2ETest
+rtk gradlew :qa-tests:jvmTest --tests io.github.makeforge.qa.OpenCollectionValidationE2ETest
 node qa-tests/collection-validator.mjs
 ```
 

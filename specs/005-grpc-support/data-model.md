@@ -5,7 +5,7 @@
 ### 1. OpenCollection gRPC Models (`core-model`)
 
 ```kotlin
-package io.github.crustack.clapi.core.model.opencollection
+package io.github.makeforge.clapi.core.model.opencollection
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -61,7 +61,7 @@ data class GrpcRequestItem(
 ### 2. Runtime & Service Entities (`core-network`)
 
 ```kotlin
-package io.github.crustack.clapi.core.network.grpc
+package io.github.makeforge.clapi.core.network.grpc
 
 data class ProtoMethodInfo(
     val serviceFullName: String,

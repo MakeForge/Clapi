@@ -1,7 +1,7 @@
 # Contract: OpenAPI & OpenCollection Importer Engine
 
 **Feature**: OpenAPI & OpenCollection Import Dialog
-**Path**: `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/importers/SpecificationImporter.kt`
+**Path**: `core-storage/src/commonMain/kotlin/io/github/makeforge/clapi/core/storage/importers/SpecificationImporter.kt`
 
 ## Interface Definition
 

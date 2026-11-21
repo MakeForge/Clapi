@@ -81,7 +81,7 @@ classDiagram
 ## 2. Entity Specifications
 
 ### 2.1 `FolderItem` & `RequestDefaults` (Domain Model)
-- **Package**: `io.github.crustack.clapi.core.model.opencollection`
+- **Package**: `io.github.makeforge.clapi.core.model.opencollection`
 - **Fields**:
   - `info: FolderInfo`: Name, type (`"folder"`), seq, tags.
   - `items: List<OpenCollectionItem>`: Child folders or HTTP requests.
@@ -94,7 +94,7 @@ classDiagram
   - `extensions: Map<String, JsonElement>`: Contains `"id"` and internal metadata.
 
 ### 2.2 `CollectionNode` (UI Tree State)
-- **Package**: `io.github.crustack.clapi.ui.shared.state`
+- **Package**: `io.github.makeforge.clapi.ui.shared.state`
 - **Fields for Folder Nodes (`isFolder == true`)**:
   - `id: String`: Unique UUID.
   - `name: String`: Folder display name.
@@ -108,7 +108,7 @@ classDiagram
   - `testScript: String?`: Folder-level post-response/test script.
 
 ### 2.3 `RequestTabState` (Editor State)
-- **Package**: `io.github.crustack.clapi.ui.shared.state`
+- **Package**: `io.github.makeforge.clapi.ui.shared.state`
 - **Fields**:
   - `id: String`: Request ID or Folder ID.
   - `name: String`: Title shown on the tab chip.

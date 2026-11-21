@@ -82,18 +82,18 @@ gradle/
 core-storage/
 ├── build.gradle.kts                                 # Add swagger-parser implementation
 └── src/
-    ├── commonMain/kotlin/io/github/crustack/clapi/core/storage/
+    ├── commonMain/kotlin/io/github/makeforge/clapi/core/storage/
     │   └── importers/
     │       ├── SpecificationImporter.kt             # Scan interface & result types
     │       ├── OpenApiImporter.kt                   # OpenAPI v3 parser & mapper
     │       └── OpenCollectionImporter.kt            # OpenCollection YAML mapper
-    └── commonTest/kotlin/io/github/crustack/clapi/core/storage/
+    └── commonTest/kotlin/io/github/makeforge/clapi/core/storage/
         └── importers/
             └── SpecificationImporterTest.kt         # Parser unit tests & fixture validation
 
 ui-shared/
 └── src/
-    └── commonMain/kotlin/io/github/crustack/clapi/ui/shared/
+    └── commonMain/kotlin/io/github/makeforge/clapi/ui/shared/
         ├── components/
         │   ├── Sidebar.kt                           # Update import button to open ImportSpecificationDialog
         │   └── ImportSpecificationDialog.kt         # Two-step import dialog composable
@@ -103,7 +103,7 @@ ui-shared/
 
 ui-desktop/
 └── src/
-    └── desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/
+    └── desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/
         └── ImportSpecificationUiTest.kt             # Compose UI tests for import flow
 ```
 

@@ -9,7 +9,7 @@ Defines the contract for communicating with Microsoft Azure Key Vault REST API a
 ## 1. Client Interface Definition
 
 ```kotlin
-package io.github.crustack.clapi.core.network.azure
+package io.github.makeforge.clapi.core.network.azure
 
 interface AzureKeyVaultClient {
 

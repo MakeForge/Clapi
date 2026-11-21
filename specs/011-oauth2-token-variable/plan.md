@@ -78,7 +78,7 @@ specs/011-oauth2-token-variable/
 ### Source Code (repository root)
 
 ```text
-core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/
+core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/
 ├── dynamicvar/
 │   ├── DynamicVariableProvider.kt       # Interface for dynamic variable providers
 │   ├── DynamicVariableContext.kt        # Context carrying effective auth, token client, and state
@@ -87,12 +87,12 @@ core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/
 │   └── OAuth2DynamicVariableProvider.kt # Provider resolving _auth.oauth2.accessToken
 └── VariableResolver.kt                  # Template variable interpolator
 
-core-network/src/commonTest/kotlin/io/github/crustack/clapi/core/network/
+core-network/src/commonTest/kotlin/io/github/makeforge/clapi/core/network/
 └── dynamicvar/
     ├── DynamicVariableRegistryTest.kt   # Unit tests for registry matching and resolution
     └── OAuth2DynamicVariableProviderTest.kt # Unit tests for OAuth2 token provider
 
-ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/
+ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/
 ├── components/
 │   ├── RequestExecutor.kt               # Dynamic variable pre-execution hook in HTTP & gRPC pipelines
 │   ├── GrpcRequestEditor.kt             # Adds Auth tab to GrpcEditorTabBar, renders AuthEditor
@@ -100,10 +100,10 @@ ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/
 └── state/
     └── AppState.kt                      # Adds AUTH to GrpcEditorTab
 
-ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/
+ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/components/
 └── DynamicVariableExecutionPipelineTest.kt # Integration test for gRPC & HTTP dynamic variable execution
 
-qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/
+qa-tests/src/test/kotlin/io/github/makeforge/clapi/qa/
 └── GrpcApiE2ETest.kt                    # E2E test verifying authorization header resolution with DummyApiServer
 ```
 

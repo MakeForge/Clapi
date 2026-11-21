@@ -14,8 +14,8 @@
 
 **Purpose**: Initialize packages and shared structure for dynamic variable resolution
 
-- [X] T001 Create `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/dynamicvar/` directory structure per plan
-- [X] T002 [P] Create `core-network/src/commonTest/kotlin/io/github/crustack/clapi/core/network/dynamicvar/` test directory structure
+- [X] T001 Create `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/dynamicvar/` directory structure per plan
+- [X] T002 [P] Create `core-network/src/commonTest/kotlin/io/github/makeforge/clapi/core/network/dynamicvar/` test directory structure
 
 ---
 
@@ -25,11 +25,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this foundational phase is complete
 
-- [X] T003 Define `DynamicVariableException` and `DynamicVariableResolutionException` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/dynamicvar/DynamicVariableException.kt`
-- [X] T004 [P] Define `OAuth2ResolvedConfig` data class with fields `flow`, `tokenUrl`, `refreshTokenUrl`, `clientId`, `clientSecret`, `credentialsPlacement`, `username`, `password`, `scope` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/dynamicvar/OAuth2ResolvedConfig.kt`
-- [X] T005 [P] Define `DynamicVariableContext` data class with fields `effectiveAuthType`, `oauth2Config`, `oauth2TokenState`, `variableLayers`, `oauth2TokenClient`, `onOAuth2TokenUpdated`, and `log` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/dynamicvar/DynamicVariableContext.kt`
-- [X] T006 Define `DynamicVariableProvider` interface with `name`, `supports(token: String): Boolean`, and `suspend fun resolve(tokens: Set<String>, context: DynamicVariableContext): Map<String, String>` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/dynamicvar/DynamicVariableProvider.kt`
-- [X] T007 Implement `DynamicVariableRegistry` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/dynamicvar/DynamicVariableRegistry.kt` with `register`, `unregister`, token extraction regex `\{\{\s*([^{}]+?)\s*\}\}`, and `suspend fun resolveDynamicVariables(texts: Iterable<String>, context: DynamicVariableContext): Map<String, String>`
+- [X] T003 Define `DynamicVariableException` and `DynamicVariableResolutionException` in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/dynamicvar/DynamicVariableException.kt`
+- [X] T004 [P] Define `OAuth2ResolvedConfig` data class with fields `flow`, `tokenUrl`, `refreshTokenUrl`, `clientId`, `clientSecret`, `credentialsPlacement`, `username`, `password`, `scope` in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/dynamicvar/OAuth2ResolvedConfig.kt`
+- [X] T005 [P] Define `DynamicVariableContext` data class with fields `effectiveAuthType`, `oauth2Config`, `oauth2TokenState`, `variableLayers`, `oauth2TokenClient`, `onOAuth2TokenUpdated`, and `log` in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/dynamicvar/DynamicVariableContext.kt`
+- [X] T006 Define `DynamicVariableProvider` interface with `name`, `supports(token: String): Boolean`, and `suspend fun resolve(tokens: Set<String>, context: DynamicVariableContext): Map<String, String>` in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/dynamicvar/DynamicVariableProvider.kt`
+- [X] T007 Implement `DynamicVariableRegistry` in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/dynamicvar/DynamicVariableRegistry.kt` with `register`, `unregister`, token extraction regex `\{\{\s*([^{}]+?)\s*\}\}`, and `suspend fun resolveDynamicVariables(texts: Iterable<String>, context: DynamicVariableContext): Map<String, String>`
 
 **Checkpoint**: Foundational interfaces and registry ready. User story implementation can now begin.
 
@@ -43,15 +43,15 @@
 
 ### Tests for User Story 1
 
-- [X] T008 [P] [US1] Unit tests for `OAuth2DynamicVariableProvider` in `core-network/src/commonTest/kotlin/io/github/crustack/clapi/core/network/dynamicvar/OAuth2DynamicVariableProviderTest.kt` verifying valid token reuse, refresh when expired, token fetching for client credentials, error when auth is unconfigured, and error on acquisition failure
-- [X] T009 [P] [US1] Component pipeline test for HTTP request execution with `{{_auth.oauth2.accessToken}}` in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/DynamicVariableExecutionPipelineTest.kt`
+- [X] T008 [P] [US1] Unit tests for `OAuth2DynamicVariableProvider` in `core-network/src/commonTest/kotlin/io/github/makeforge/clapi/core/network/dynamicvar/OAuth2DynamicVariableProviderTest.kt` verifying valid token reuse, refresh when expired, token fetching for client credentials, error when auth is unconfigured, and error on acquisition failure
+- [X] T009 [P] [US1] Component pipeline test for HTTP request execution with `{{_auth.oauth2.accessToken}}` in `ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/components/DynamicVariableExecutionPipelineTest.kt`
 
 ### Implementation for User Story 1
 
-- [X] T010 [US1] Implement `OAuth2DynamicVariableProvider` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/dynamicvar/OAuth2DynamicVariableProvider.kt` implementing `DynamicVariableProvider` for `_auth.oauth2.accessToken`
-- [X] T011 [US1] Register `OAuth2DynamicVariableProvider` as default provider in `DynamicVariableRegistry` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/dynamicvar/DynamicVariableRegistry.kt`
-- [X] T012 [US1] Add helper in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt` to build `DynamicVariableContext` from `state`, `tab`, and `variableLayers` (resolving direct or inherited OAuth2 config, tab token state, and token update callback)
-- [X] T013 [US1] Integrate dynamic variable pre-execution resolution into HTTP send pipeline in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt`, merging resolved variables into `variableLayers` and handling fast-fail errors (`tab.lastError`)
+- [X] T010 [US1] Implement `OAuth2DynamicVariableProvider` in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/dynamicvar/OAuth2DynamicVariableProvider.kt` implementing `DynamicVariableProvider` for `_auth.oauth2.accessToken`
+- [X] T011 [US1] Register `OAuth2DynamicVariableProvider` as default provider in `DynamicVariableRegistry` in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/dynamicvar/DynamicVariableRegistry.kt`
+- [X] T012 [US1] Add helper in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/RequestExecutor.kt` to build `DynamicVariableContext` from `state`, `tab`, and `variableLayers` (resolving direct or inherited OAuth2 config, tab token state, and token update callback)
+- [X] T013 [US1] Integrate dynamic variable pre-execution resolution into HTTP send pipeline in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/RequestExecutor.kt`, merging resolved variables into `variableLayers` and handling fast-fail errors (`tab.lastError`)
 
 **Checkpoint**: User Story 1 functional and independently testable for HTTP requests.
 
@@ -65,15 +65,15 @@
 
 ### Tests for User Story 2
 
-- [X] T014 [P] [US2] Pipeline test for gRPC metadata resolution with `{{_auth.oauth2.accessToken}}` in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/components/DynamicVariableExecutionPipelineTest.kt`
-- [X] T015 [P] [US2] E2E integration test `resolves_oauth2_access_token_in_grpc_metadata_authorization` in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/GrpcApiE2ETest.kt` running against `DummyApiServer`
+- [X] T014 [P] [US2] Pipeline test for gRPC metadata resolution with `{{_auth.oauth2.accessToken}}` in `ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/components/DynamicVariableExecutionPipelineTest.kt`
+- [X] T015 [P] [US2] E2E integration test `resolves_oauth2_access_token_in_grpc_metadata_authorization` in `qa-tests/src/test/kotlin/io/github/makeforge/clapi/qa/GrpcApiE2ETest.kt` running against `DummyApiServer`
 
 ### Implementation for User Story 2
 
-- [X] T016 [US2] Add `AUTH("Auth")` entry to `enum class GrpcEditorTab` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt`
-- [X] T017 [US2] Update `GrpcEditorTabBar` and editor routing in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GrpcRequestEditor.kt` to include `GrpcEditorTab.AUTH` with `Res.drawable.ic_lock` and render `AuthEditor(tab, state)`
-- [X] T018 [US2] Include OAuth2 configuration fields from `tab` and inherited auth in gRPC `textsToScan` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt`
-- [X] T019 [US2] Integrate `dynamicVariableRegistry.resolveDynamicVariables(...)` into gRPC execution in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt`, merging resolved tokens into `mergedScopedVars` and halting execution on error before invoking `grpcClient.executeUnary`
+- [X] T016 [US2] Add `AUTH("Auth")` entry to `enum class GrpcEditorTab` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt`
+- [X] T017 [US2] Update `GrpcEditorTabBar` and editor routing in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/GrpcRequestEditor.kt` to include `GrpcEditorTab.AUTH` with `Res.drawable.ic_lock` and render `AuthEditor(tab, state)`
+- [X] T018 [US2] Include OAuth2 configuration fields from `tab` and inherited auth in gRPC `textsToScan` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/RequestExecutor.kt`
+- [X] T019 [US2] Integrate `dynamicVariableRegistry.resolveDynamicVariables(...)` into gRPC execution in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/RequestExecutor.kt`, merging resolved tokens into `mergedScopedVars` and halting execution on error before invoking `grpcClient.executeUnary`
 
 **Checkpoint**: User Story 2 complete. Both HTTP and gRPC requests resolve `{{_auth.oauth2.accessToken}}` on execution.
 
@@ -87,11 +87,11 @@
 
 ### Tests for User Story 3
 
-- [X] T020 [P] [US3] Unit tests for `DynamicVariableRegistry` in `core-network/src/commonTest/kotlin/io/github/crustack/clapi/core/network/dynamicvar/DynamicVariableRegistryTest.kt` verifying custom provider registration, unregistration, multiple provider execution order, and error handling
+- [X] T020 [P] [US3] Unit tests for `DynamicVariableRegistry` in `core-network/src/commonTest/kotlin/io/github/makeforge/clapi/core/network/dynamicvar/DynamicVariableRegistryTest.kt` verifying custom provider registration, unregistration, multiple provider execution order, and error handling
 
 ### Implementation for User Story 3
 
-- [X] T021 [US3] Refactor and verify `DynamicVariableRegistry` in `core-network/src/commonMain/kotlin/io/github/crustack/clapi/core/network/dynamicvar/DynamicVariableRegistry.kt` to ensure thread-safe provider list management and clean provider discovery API
+- [X] T021 [US3] Refactor and verify `DynamicVariableRegistry` in `core-network/src/commonMain/kotlin/io/github/makeforge/clapi/core/network/dynamicvar/DynamicVariableRegistry.kt` to ensure thread-safe provider list management and clean provider discovery API
 - [X] T022 [US3] Expose `DynamicVariableRegistry` singleton or configurable instance on `AppState` / `RequestExecutionService` for clean extension
 
 **Checkpoint**: User Story 3 complete. Dynamic variable resolution is modular and decoupled.
@@ -106,13 +106,13 @@
 
 ### Tests for User Story 4
 
-- [X] T023 [P] [US4] Unit test in `ui-desktop/src/desktopTest/kotlin/io/github/crustack/clapi/ui/desktop/components/VariableHighlightSecretsTest.kt` (or new test file) verifying `getAvailableVariables` includes `_auth.oauth2.accessToken` when OAuth2 is active and excludes it when inactive
+- [X] T023 [P] [US4] Unit test in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/components/VariableHighlightSecretsTest.kt` (or new test file) verifying `getAvailableVariables` includes `_auth.oauth2.accessToken` when OAuth2 is active and excludes it when inactive
 
 ### Implementation for User Story 4
 
-- [X] T024 [US4] Update `getAvailableVariables` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/VariableHighlight.kt` to append `_auth.oauth2.accessToken` when effective auth is OAuth2
+- [X] T024 [US4] Update `getAvailableVariables` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/VariableHighlight.kt` to append `_auth.oauth2.accessToken` when effective auth is OAuth2
 - [X] T025 [US4] Update `definedNames` calculation in `VariableHighlight.kt` to include `_auth.oauth2.accessToken` when effective auth is OAuth2
-- [X] T026 [US4] Add `"AUTH"` badge styling in `VariableDropdownList` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/VariableHighlight.kt` for variables with prefix `_auth.`
+- [X] T026 [US4] Add `"AUTH"` badge styling in `VariableDropdownList` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/VariableHighlight.kt` for variables with prefix `_auth.`
 
 **Checkpoint**: User Story 4 complete. Dynamic variable authoring in UI has full autocomplete and visual distinction.
 

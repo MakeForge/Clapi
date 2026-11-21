@@ -112,7 +112,7 @@ This guide describes how to validate the GCP Secret Manager integration end-to-e
 
 1. Run the Gradle test task for the QA test suite:
    ```bash
-   ./gradlew :qa-tests:test --tests io.github.crustack.clapi.qa.GcpSecretManagerIntegrationTest
+   ./gradlew :qa-tests:test --tests io.github.makeforge.clapi.qa.GcpSecretManagerIntegrationTest
    ```
 2. **Expected Outcome**:
    - All integration tests pass against the seeded GCP Secret Manager container.

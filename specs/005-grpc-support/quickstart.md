@@ -14,7 +14,7 @@ Run the complete test suite including gRPC E2E tests:
 ./gradlew :core-model:desktopTest :core-storage:desktopTest :core-network:desktopTest
 
 # Run end-to-end gRPC QA tests
-./gradlew :qa-tests:jvmTest --tests "io.github.crustack.clapi.qa.GrpcApiE2ETest"
+./gradlew :qa-tests:jvmTest --tests "io.github.makeforge.clapi.qa.GrpcApiE2ETest"
 ```
 
 ---
@@ -24,7 +24,7 @@ Run the complete test suite including gRPC E2E tests:
 To verify that gRPC requests serialize to and from OpenCollection JSON and YAML without data loss:
 
 ```bash
-./gradlew :core-storage:desktopTest --tests "io.github.crustack.clapi.core.storage.opencollection.OpenCollectionGrpcStorageTest"
+./gradlew :core-storage:desktopTest --tests "io.github.makeforge.clapi.core.storage.opencollection.OpenCollectionGrpcStorageTest"
 ```
 
 ---

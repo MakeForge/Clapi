@@ -60,7 +60,7 @@ feature-requests/                                # DELETE: Entire module directo
 
 # 2. Core Network (:core-network)
 core-network/
-├── src/commonMain/kotlin/io/github/crustack/clapi/core/network/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/core/network/
 │   ├── ApiClient.kt                             # MODIFY: Add close() / AutoCloseable default method
 │   ├── KtorApiClient.kt                         # MODIFY: Implement close(), remove WebSocket "hello" stub
 │   ├── NetworkDiModule.kt                       # MODIFY: Register ExternalSecretProviders, OAuth2TokenManager, RequestExecutionService
@@ -76,7 +76,7 @@ core-network/
 │       ├── SecretResolutionContext.kt           # NEW: Context + per-provider config data classes
 │       ├── ExternalSecretProvider.kt            # NEW: Strategy interface + 6 provider implementations (Vault, AWS, Azure, GCP, Keeper, KeePassXC)
 │       └── SecretResolutionService.kt           # MODIFY: Replace 27-param methods with SecretResolutionContext & ExternalSecretProvider list; use VariableResolver in custom filters
-└── src/commonTest/kotlin/io/github/crustack/clapi/core/network/
+└── src/commonTest/kotlin/io/github/makeforge/clapi/core/network/
     ├── execution/
     │   ├── HttpExecutionAdapterTest.kt          # MOVE+EXPAND from :feature-requests (BUG-07)
     │   └── RequestExecutionServiceSecretsTest.kt # MOVE+EXPAND from :feature-requests (BUG-01, BUG-02, BUG-03, BUG-07)
@@ -88,15 +88,15 @@ core-network/
 
 # 3. Core Scripting (:core-scripting)
 core-scripting/
-├── src/commonMain/kotlin/io/github/crustack/clapi/core/scripting/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/core/scripting/
 │   └── ClapiScriptEngine.kt                     # MODIFY: Safe JSON string escaping via JsonPrimitive(rawBody).toString() (BUG-11)
-└── src/commonTest/kotlin/io/github/crustack/clapi/core/scripting/
+└── src/commonTest/kotlin/io/github/makeforge/clapi/core/scripting/
     └── ClapiScriptEngineTest.kt                 # MODIFY: Add sendRequest callback tests with \t, \u2028, \u2029, quotes, and control chars (BUG-11)
 
 # 4. Shared UI & Orchestration (:ui-shared)
 ui-shared/
 ├── build.gradle.kts                             # MODIFY: Remove api(project(":feature-requests"))
-├── src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/
 │   ├── state/
 │   │   ├── EnvironmentModels.kt                 # MODIFY: Fix EnvState.toVariableMap() to exclude blank secret:true placeholders (BUG-02)
 │   │   └── AppState.kt                          # MODIFY: Add per-collection variable storage & isolation helpers (BUG-04)
@@ -110,7 +110,7 @@ ui-shared/
 │           ├── RequestExecutor.kt               # MODIFY: Use unified pipeline, include requestScopedScriptVars at Layer 0, close KtorApiClient in finally (BUG-01, BUG-03, BUG-10)
 │           ├── GraphQlRequestExecutor.kt        # MODIFY: Use unified pipeline, Layer 0 script vars, honor tab.retryEnabled, fix GET double-resolution, propagate setNextRequest, close client (BUG-01, BUG-06a/b/c, BUG-10)
 │           └── GrpcRequestExecutor.kt           # MODIFY: Use unified pipeline, two-pass secrets, lazy subReqClient, propagate setNextRequest (BUG-03, BUG-06c, BUG-10)
-└── src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/
+└── src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/
     ├── state/
     │   ├── EnvironmentModelsTest.kt             # NEW: Verify secret:true blank value does not shadow lower layers (BUG-02)
     │   └── CollectionVariablesIsolationTest.kt  # NEW: Verify Collection A vs Collection B isolation (BUG-04)
@@ -124,7 +124,7 @@ ui-shared/
 # 5. End-to-End QA Tests (:qa-tests)
 qa-tests/
 ├── build.gradle.kts                             # MODIFY: Remove implementation(project(":feature-requests"))
-└── src/test/kotlin/io/github/crustack/clapi/qa/
+└── src/test/kotlin/io/github/makeforge/clapi/qa/
     ├── ApiClientE2ETest.kt                      # MODIFY: Update imports to :core-network, add E2E tests for BUG-01, BUG-02, BUG-03, BUG-04
     ├── ExternalSecretsIntegrationTest.kt        # MODIFY: Update imports to :core-network, add E2E tests for BUG-02, BUG-03, BUG-07
     └── [6 other *IntegrationTest / *E2ETest.kt] # MODIFY: Update RequestExecutionService imports to :core-network

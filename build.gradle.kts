@@ -36,7 +36,7 @@ allprojects {
 val appVersion: String by project
 
 allprojects {
-    group = "io.github.crustack"
+    group = "io.github.makeforge"
     version = appVersion
 
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {

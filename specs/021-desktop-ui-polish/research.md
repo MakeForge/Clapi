@@ -82,7 +82,7 @@ Add explicit `key` parameters to all `items` and `itemsIndexed` invocations in `
 Decompose monolithic files (>1,000 lines) and oversized composables (>100 lines) into dedicated subpackages:
 
 1. **`EnvironmentEditDialog.kt` (3,153 lines)**:
-   - Create subpackage `io.github.crustack.clapi.ui.shared.components.dialogs.env`:
+   - Create subpackage `io.github.makeforge.clapi.ui.shared.components.dialogs.env`:
      - `EnvironmentEditDialog.kt` (main dialog shell and coordinator)
      - `EnvVariableTable.kt` (plain variable editing rows and table layout)
      - `EnvKeePassXcSecretRow.kt` (KeePassXC secret row editor)
@@ -92,7 +92,7 @@ Decompose monolithic files (>1,000 lines) and oversized composables (>100 lines)
      - `EnvGcpSecretRow.kt` (GCP Secret Manager row editor)
 
 2. **`SettingsDialog.kt` (1,599 lines)**:
-   - Create subpackage `io.github.crustack.clapi.ui.shared.components.dialogs.settings`:
+   - Create subpackage `io.github.makeforge.clapi.ui.shared.components.dialogs.settings`:
      - `SettingsDialog.kt` (dialog coordinator and tab navigation)
      - `GeneralSettingsPane.kt`
      - `ThemeSettingsPane.kt`
@@ -102,7 +102,7 @@ Decompose monolithic files (>1,000 lines) and oversized composables (>100 lines)
      - `SettingControls.kt` (`SettingToggle`, `SettingAction`, `SettingRow`)
 
 3. **`McpPanel.kt` (1,658 lines)**:
-   - Create subpackage `io.github.crustack.clapi.ui.shared.components.mcp`:
+   - Create subpackage `io.github.makeforge.clapi.ui.shared.components.mcp`:
      - `McpPanel.kt` (panel layout and tabs)
      - `McpConnectionBar.kt`
      - `McpToolsSection.kt`

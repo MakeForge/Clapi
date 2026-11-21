@@ -2,10 +2,10 @@
 
 ## Interface: `HashiCorpVaultClient`
 
-Located in `core-network` (`io.github.crustack.clapi.core.network.vault`).
+Located in `core-network` (`io.github.makeforge.clapi.core.network.vault`).
 
 ```kotlin
-package io.github.crustack.clapi.core.network.vault
+package io.github.makeforge.clapi.core.network.vault
 
 interface HashiCorpVaultClient {
     /**

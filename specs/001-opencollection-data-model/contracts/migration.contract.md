@@ -12,9 +12,9 @@ Defines the migration engine interface for upgrading legacy Clapi/Clapi collecti
 ## 2. Interface Definitions
 
 ```kotlin
-package io.github.crustack.clapi.core.storage.migration
+package io.github.makeforge.clapi.core.storage.migration
 
-import io.github.crustack.clapi.core.model.OpenCollectionDocument
+import io.github.makeforge.clapi.core.model.OpenCollectionDocument
 
 sealed interface MigrationTarget {
     data class WorkspaceStorage(val storageKey: String = "clapi.workspace") : MigrationTarget

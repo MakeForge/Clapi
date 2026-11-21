@@ -5,7 +5,7 @@
 ### 1. OpenCollection Document Models (`core-model`)
 
 ```kotlin
-package io.github.crustack.clapi.core.model.opencollection
+package io.github.makeforge.clapi.core.model.opencollection
 
 import kotlinx.serialization.Serializable
 
@@ -39,7 +39,7 @@ data class ProtoFileImportPath(
 ### 2. Application UI State Models (`ui-shared`)
 
 ```kotlin
-package io.github.crustack.clapi.ui.shared.state
+package io.github.makeforge.clapi.ui.shared.state
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,7 +66,7 @@ class ProtoImportPathState(
 ### 3. RequestKind Enum Extension (`core-model`)
 
 ```kotlin
-package io.github.crustack.clapi.core.model
+package io.github.makeforge.clapi.core.model
 
 enum class RequestKind {
     HTTP,
@@ -80,7 +80,7 @@ enum class RequestKind {
 ### 4. gRPC Network Models Extension (`core-network`)
 
 ```kotlin
-package io.github.crustack.clapi.core.network.grpc
+package io.github.makeforge.clapi.core.network.grpc
 
 data class GrpcCallRequest(
     val requestId: String,

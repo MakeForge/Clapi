@@ -65,7 +65,7 @@ specs/021-desktop-ui-polish/
 ### Source Code (repository root)
 
 ```text
-ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/
+ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/
 ├── theme/
 │   └── ClapiTheme.kt                       # Semantic tokens (StatusWarning, etc.)
 ├── i18n/

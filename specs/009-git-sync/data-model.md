@@ -17,7 +17,7 @@ This document specifies the core entities, data structures, validation rules, an
 Represents the storage configuration persisted in `OpenCollectionDocument.extensions["storage"]`.
 
 ```kotlin
-package io.github.crustack.clapi.core.model.storage
+package io.github.makeforge.clapi.core.model.storage
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName

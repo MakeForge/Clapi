@@ -79,7 +79,7 @@ specs/001-opencollection-data-model/
 
 ```text
 core-model/
-└── src/commonMain/kotlin/io/github/crustack/core/model/
+└── src/commonMain/kotlin/io/github/makeforge/core/model/
     ├── opencollection/
     │   ├── OpenCollectionDocument.kt    # Root document, Info, CollectionConfig
     │   ├── OpenCollectionItem.kt        # Sealed interface: FolderItem, HttpRequestItem, etc.
@@ -92,7 +92,7 @@ core-model/
     └── RequestModels.kt                 # Execution models for network engine
 
 core-storage/
-└── src/commonMain/kotlin/io/github/crustack/core/storage/
+└── src/commonMain/kotlin/io/github/makeforge/core/storage/
     ├── opencollection/
     │   ├── OpenCollectionSerializer.kt       # JSON & YAML serialization (kotlinx.serialization + kaml)
     │   ├── OpenCollectionSchemaValidator.kt  # Draft-07 schema validation (NetworkNT)
@@ -103,17 +103,17 @@ core-storage/
         └── MigrationReport.kt                # Migration outcome reporting
 
 feature-requests/
-└── src/commonMain/kotlin/io/github/crustack/feature/requests/
+└── src/commonMain/kotlin/io/github/makeforge/feature/requests/
     └── HttpExecutionAdapter.kt               # Compiles HttpRequestItem + inheritance -> RequestDefinition
 
 ui-shared/
-└── src/commonMain/kotlin/io/github/crustack/ui/shared/
+└── src/commonMain/kotlin/io/github/makeforge/ui/shared/
     └── persistence/
         ├── WorkspaceRepository.kt            # Updated to persist canonical collections & separate tabs
         └── ImportExportRepository.kt         # Updated to import/export OpenCollection documents
 
 qa-tests/
-└── src/test/kotlin/io/github/crustack/qa/
+└── src/test/kotlin/io/github/makeforge/qa/
     ├── OpenCollectionValidationE2ETest.kt    # Validates written documents against official schema
     ├── OpenCollectionRoundTripE2ETest.kt     # Lossless deserialize-modify-serialize verification
     └── LegacyMigrationE2ETest.kt             # Ingestion & migration tests for legacy fixtures

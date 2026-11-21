@@ -13,7 +13,7 @@ This document specifies the data models, entity relationships, validation rules,
 Represents an individual external secret declaration in an environment backed by GCP Secret Manager.
 
 ```kotlin
-package io.github.crustack.clapi.core.model.opencollection
+package io.github.makeforge.clapi.core.model.opencollection
 
 import kotlinx.serialization.Serializable
 
@@ -74,7 +74,7 @@ object ExternalSecretVariableSerializer :
 Encapsulates all connection, authentication, and secret identification parameters needed to retrieve a secret from GCP Secret Manager via REST.
 
 ```kotlin
-package io.github.crustack.clapi.core.network.gcp
+package io.github.makeforge.clapi.core.network.gcp
 
 data class GcpSecretManagerConfig(
     val projectId: String,
@@ -97,7 +97,7 @@ data class GcpSecretManagerConfig(
 ### Payload Response Models
 
 ```kotlin
-package io.github.crustack.clapi.core.network.gcp
+package io.github.makeforge.clapi.core.network.gcp
 
 import kotlinx.serialization.Serializable
 

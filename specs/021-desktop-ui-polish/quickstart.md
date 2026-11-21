@@ -90,7 +90,7 @@
 
 ```bash
 # Verify no component file exceeds 1,000 lines
-find ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components -name "*.kt" -exec wc -l {} + | awk '$1 > 1000 { print }'
+find ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components -name "*.kt" -exec wc -l {} + | awk '$1 > 1000 { print }'
 ```
 - **Expected Outcome**: Output is completely empty (zero files > 1,000 lines).
 

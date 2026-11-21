@@ -101,7 +101,7 @@ specs/012-keepassxc-secret-manager/
 
 ```text
 core-model/
-└── src/commonMain/kotlin/io/github/crustack/clapi/core/model/opencollection/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/core/model/opencollection/
     └── OpenCollectionEnvironment.kt     # ExternalSecretType.KEEPASSXC & KeePassXcExternalSecret
 
 core-storage/
@@ -110,18 +110,18 @@ core-storage/
 
 core-network/
 ├── build.gradle.kts                     # Dependency: org.purejava:keepassxc-proxy-access:1.3.2
-├── src/commonMain/kotlin/io/github/crustack/clapi/core/network/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/core/network/
 │   └── keepassxc/
 │       ├── KeePassXcClient.kt           # Client interface, data models, and status types
 │       └── KeePassXcClientManager.kt    # Lifecycle manager (lazy connection, zero idle proxy)
 │   └── vault/
 │       └── SecretResolutionService.kt   # KeePassXC resolution pipeline support
-└── src/desktopMain/kotlin/io/github/crustack/clapi/core/network/
+└── src/desktopMain/kotlin/io/github/makeforge/clapi/core/network/
     └── keepassxc/
         └── PureJavaKeePassXcClient.kt   # KeepassProxyAccess implementation
 
 ui-shared/
-└── src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/
     ├── state/
     │   └── AppState.kt                  # MutableExternalSecret (url, targetField, customFilters)
     ├── components/

@@ -63,11 +63,11 @@ specs/003-folder-request-defaults/
 ### Source Code (repository root)
 
 ```text
-core-model/src/commonMain/kotlin/io/github/crustack/clapi/core/model/
+core-model/src/commonMain/kotlin/io/github/makeforge/clapi/core/model/
 ├── RequestModels.kt                               # Add AuthType.INHERIT
 └── McpModels.kt                                   # Extend RequestKind with RequestKind.FOLDER
 
-ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/
+ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/
 ├── i18n/
 │   ├── Strings.kt                                 # Update terminology strings (folders vs collections)
 │   └── resources/i18n/*.json                      # Translation bundles

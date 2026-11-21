@@ -85,24 +85,24 @@ specs/007-collection-level-protobuf/
 
 ```text
 core-model/
-└── src/commonMain/kotlin/io/github/crustack/clapi/core/model/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/core/model/
     ├── McpModels.kt                                 # Extend RequestKind with COLLECTION
     └── opencollection/
         └── OpenCollectionDocument.kt                # Add CollectionProtobufConfig, ProtoFile, ProtoFileImportPath
 
 core-network/
-├── src/commonMain/kotlin/io/github/crustack/clapi/core/network/grpc/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/core/network/grpc/
 │   └── GrpcModels.kt                                # Add includePaths to GrpcCallRequest
-└── src/desktopMain/kotlin/io/github/crustack/clapi/core/network/grpc/
+└── src/desktopMain/kotlin/io/github/makeforge/clapi/core/network/grpc/
     ├── NettyDynamicGrpcClient.kt                    # Forward includePaths to ProtoParser
     └── ProtocJarParser.kt                           # Resolve directory & ancestor include paths for protoc
 
 feature-requests/
-└── src/commonMain/kotlin/io/github/crustack/clapi/feature/requests/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/feature/requests/
     └── RequestExecutionService.kt                   # Forward collection importPaths during gRPC execution
 
 ui-shared/
-└── src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/
+└── src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/
     ├── MainScreen.kt                                # Route RequestKind.COLLECTION to CollectionEditor
     ├── components/
         ├── CollectionEditor.kt                      # New: CollectionEditor composable with Protobuf tab
@@ -118,7 +118,7 @@ ui-shared/
         └── AppState.kt                              # Add collectionProtoFiles, collectionImportPaths, openCollection()
 
 qa-tests/
-└── src/test/kotlin/io/github/crustack/clapi/
+└── src/test/kotlin/io/github/makeforge/clapi/
     ├── testsupport/DummyApiServer.kt                # Support imported metadata.proto on test server start
     └── qa/GrpcApiE2ETest.kt                         # Test collection-level proto files and importPaths
 ```

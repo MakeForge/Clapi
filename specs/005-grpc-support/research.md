@@ -40,7 +40,7 @@ In a GUI API client (like Insomnia or Postman), users select `.proto` files dyna
 gRPC requests must be persisted and serialized in full compliance with the OpenCollection v1.0.0 schema (`opencollection_v1.0.0.json`), supporting polymorphic serialization in Kotlin Multiplatform and round-trip export/import.
 
 ### Research Findings & Decision
-- **Decision**: Define typed Kotlin data models in `core-model` within the `io.github.crustack.clapi.core.model.opencollection` package:
+- **Decision**: Define typed Kotlin data models in `core-model` within the `io.github.makeforge.clapi.core.model.opencollection` package:
   - `GrpcRequestItem` implementing `OpenCollectionItem` with `info: GrpcRequestInfo`, `grpc: GrpcRequestDetails`, `runtime: GrpcRequestRuntime?`, `docs: String?`, and `extensions: Map<String, JsonElement>`.
   - `GrpcRequestInfo`: `name`, `description`, `type = "grpc"`, `seq`, `tags`.
   - `GrpcRequestDetails`: `url`, `method`, `methodType` (`"unary"`, `"client-streaming"`, `"server-streaming"`, `"bidi-streaming"`), `protoFilePath`, `metadata: List<GrpcMetadata>`, `message: String` (or variants), `auth: AuthConfig?`.

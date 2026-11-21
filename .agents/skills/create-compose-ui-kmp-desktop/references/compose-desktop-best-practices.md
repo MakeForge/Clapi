@@ -87,7 +87,7 @@ Desktop applications rely on mouse hover indicators, tooltips, and appropriate c
 
 * **Pointer Hover Icon**: Use `Modifier.pointerHoverIcon(PointerIcon.Hand)` on clickable cards, buttons, or custom interactable items.
 * **Hover States**: Apply visual feedback (subtle container color shifts, `ClapiColors.HoverOverlay`, or outline highlights) when the mouse hovers over interactive components.
-* **Tooltips**: Use [`IconButtonWithTooltip`](/ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SharedTooltip.kt) or [`HoverTooltip`](/ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SharedTooltip.kt) for action buttons.
+* **Tooltips**: Use [`IconButtonWithTooltip`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/SharedTooltip.kt) or [`HoverTooltip`](/ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/SharedTooltip.kt) for action buttons.
   > [!WARNING]
   > Never add `.hoverable(interactionSource)` directly onto an `IconButton` modifier. `IconButton` already handles hover and press interactions via its internal `clickable`. Doing so intercepts pointer press events and prevents button clicks from firing when nested inside clickable rows.
 

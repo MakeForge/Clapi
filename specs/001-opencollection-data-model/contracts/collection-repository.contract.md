@@ -13,9 +13,9 @@ Specifies the interface boundaries for collection operations. Callers (such as t
 
 ### 2.1 Storage Driver Interface (FR-033, FR-034)
 ```kotlin
-package io.github.crustack.clapi.core.storage
+package io.github.makeforge.clapi.core.storage
 
-import io.github.crustack.clapi.core.model.OpenCollectionDocument
+import io.github.makeforge.clapi.core.model.OpenCollectionDocument
 
 sealed interface StorageLocation {
     data class FilePath(val path: String) : StorageLocation
@@ -47,10 +47,10 @@ interface CollectionStorageDriver {
 
 ### 2.2 Canonical Collection Repository Interface (FR-025)
 ```kotlin
-package io.github.crustack.clapi.core.storage
+package io.github.makeforge.clapi.core.storage
 
-import io.github.crustack.clapi.core.model.OpenCollectionDocument
-import io.github.crustack.clapi.core.model.OpenCollectionItem
+import io.github.makeforge.clapi.core.model.OpenCollectionDocument
+import io.github.makeforge.clapi.core.model.OpenCollectionItem
 import kotlinx.coroutines.flow.Flow
 
 interface CanonicalCollectionRepository {

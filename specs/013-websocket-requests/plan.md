@@ -86,19 +86,19 @@ specs/013-websocket-requests/
 
 ```text
 core-model/
-├── src/commonMain/kotlin/io/github/crustack/clapi/core/model/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/core/model/
 │   ├── McpModels.kt                                 # RequestKind.WEBSOCKET
 │   └── opencollection/
 │       └── OpenCollectionItem.kt                    # WebSocketRequestItem, details, payload, settings
 
 core-network/
-├── src/commonMain/kotlin/io/github/crustack/clapi/core/network/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/core/network/
 │   └── websocket/
 │       ├── WebSocketClientManager.kt                # Interactive session management
 │       └── KtorWebSocketClientManager.kt
 
 ui-shared/
-├── src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/
+├── src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/
 │   ├── theme/
 │   │   ├── AppColorPalette.kt                       # methodWebSocket color definitions
 │   │   └── ClapiTheme.kt                            # ClapiColors.MethodWebSocket
@@ -115,7 +115,7 @@ ui-shared/
 │       └── AppState.kt                              # RequestTabState WebSocket state fields
 
 qa-tests/
-├── src/test/kotlin/io/github/crustack/clapi/qa/
+├── src/test/kotlin/io/github/makeforge/clapi/qa/
 │   ├── WebSocketE2ETest.kt                          # E2E test against DummyApiServer
 │   └── OpenCollectionRoundTripE2ETest.kt            # Round-trip fixture with WebSocket request
 ```

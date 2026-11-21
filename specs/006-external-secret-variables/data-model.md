@@ -24,7 +24,7 @@ Represents global application-level credentials for connecting to an external se
 Conforms strictly to OpenCollection v1.0.0 (`$defs/ExternalSecrets`).
 
 ```kotlin
-package io.github.crustack.clapi.core.model.opencollection
+package io.github.makeforge.clapi.core.model.opencollection
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonContentPolymorphicSerializer
@@ -121,7 +121,7 @@ class MutableExternalSecret(
 
 Represents HTTP response payloads from HashiCorp Vault KV v2 secret engine:
 ```kotlin
-package io.github.crustack.clapi.core.network.vault
+package io.github.makeforge.clapi.core.network.vault
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject

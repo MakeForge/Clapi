@@ -126,6 +126,6 @@ This guide describes how to validate the AWS Secrets Manager integration end-to-
 
 Run the automated integration test suite:
 ```bash
-./gradlew :qa-tests:test --tests "io.github.crustack.clapi.qa.AwsSecretsManagerIntegrationTest"
+./gradlew :qa-tests:test --tests "io.github.makeforge.clapi.qa.AwsSecretsManagerIntegrationTest"
 ```
 **Expected Outcome**: Tests execute against LocalStack Secrets Manager and pass with 0 failures.

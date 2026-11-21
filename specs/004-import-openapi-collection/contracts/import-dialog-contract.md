@@ -1,7 +1,7 @@
 # Contract: Import Specification Dialog
 
 **Feature**: OpenAPI & OpenCollection Import Dialog
-**Path**: `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ImportSpecificationDialog.kt`
+**Path**: `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/ImportSpecificationDialog.kt`
 
 ## Composable Contract
 
