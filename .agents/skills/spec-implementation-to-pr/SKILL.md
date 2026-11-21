@@ -104,7 +104,7 @@ Check:
 3. Important architecture and design decisions are respected.
 4. Error handling and validation are implemented.
 5. Relevant tests exist.
-6. Documentation is updated where required.
+6. Documentation in `docs/` is evaluated against the current `docs/` scope (`docs/.vitepress/config.mts`) and updated, extended, or added if warranted by `plan.md` or substantive user-facing changes (and intentionally left unchanged for minor tweaks, bug fixes, or small additions that do not fit the docs scope).
 7. `CHANGELOG.md` is updated with a concise entry (including a link to the corresponding GitHub issue) under the active unreleased `## [X.Y.Z] - TBD` section, and `appVersion` in `gradle.properties` matches (creating a new SemVer-bumped `TBD` section and updating `appVersion` if the previous version is already released/tagged `v*`, per `AGENTS.md`).
 8. No unrelated changes have been included.
 

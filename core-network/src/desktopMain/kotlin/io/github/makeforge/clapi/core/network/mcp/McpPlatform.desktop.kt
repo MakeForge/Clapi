@@ -4,7 +4,9 @@ import io.github.makeforge.clapi.core.model.McpConnectionConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.awt.Desktop
 import java.net.ServerSocket
@@ -46,19 +48,28 @@ actual fun createStdioTransport(config: McpConnectionConfig): McpTransport {
     val lines = Channel<String>(Channel.UNLIMITED)
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     val stdoutJob = scope.launch {
-        process.inputStream.bufferedReader(Charsets.UTF_8).use { reader ->
-            while (true) {
-                val line = reader.readLine() ?: break
-                lines.send(line)
+        try {
+            process.inputStream.bufferedReader(Charsets.UTF_8).use { reader ->
+                while (isActive) {
+                    val line = reader.readLine() ?: break
+                    if (lines.trySend(line).isClosed) break
+                }
             }
+        } catch (_: java.io.IOException) {
+            // Expected when the child process is destroyed or its stream is closed during shutdown.
+        } finally {
+            lines.close()
         }
-        lines.close()
     }
     val stderrJob = scope.launch {
-        process.errorStream.bufferedReader(Charsets.UTF_8).use { reader ->
-            while (true) {
-                reader.readLine() ?: break
+        try {
+            process.errorStream.bufferedReader(Charsets.UTF_8).use { reader ->
+                while (isActive) {
+                    reader.readLine() ?: break
+                }
             }
+        } catch (_: java.io.IOException) {
+            // Expected when the child process is destroyed or its stream is closed during shutdown.
         }
     }
     val hook = thread(start = false, isDaemon = true, name = "mcp-stdio-shutdown") {
@@ -76,6 +87,7 @@ actual fun createStdioTransport(config: McpConnectionConfig): McpTransport {
             stdoutJob.cancel()
             stderrJob.cancel()
             process.destroy()
+            scope.cancel()
             runCatching { Runtime.getRuntime().removeShutdownHook(hook) }
         },
     )

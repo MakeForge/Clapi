@@ -199,7 +199,7 @@ The `sample-server` module provides local endpoints for automated testing and ma
 
 - **VitePress Documentation**: Full documentation site located in `docs/` (run with `npm run docs:dev`).
 - **Installation Guide**: [docs/guide/installation.md](docs/guide/installation.md)
-- **Architecture Reference**: [docs/reference/architecture.md](docs/settings/architecture.md)
+- **Architecture Reference**: [docs/settings/architecture.md](docs/settings/architecture.md)
 - **MCP Client Guide**: [docs/request-types/mcp/index.md](docs/request-types/mcp/index.md)
 - **Scripting Reference**: [docs/scripting/index.md](docs/automation/index.md)
-- **Keyboard Shortcuts**: [docs/reference/shortcuts.md](docs/settings/shortcuts.md)
+- **Keyboard Shortcuts**: [docs/settings/shortcuts.md](docs/settings/shortcuts.md)

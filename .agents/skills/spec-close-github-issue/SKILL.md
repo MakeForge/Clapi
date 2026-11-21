@@ -1,6 +1,6 @@
 ---
 name: spec-close-github-issue
-description: Find an existing GitHub issue for a given specification ID (e.g., 001-grpc-support), locate the implementing commit(s) in git history by commit message, and close the issue as completed with clickable commit references.
+description: Find an existing GitHub issue for a given specification ID (e.g., 001-grpc-support), locate the implementing commit(s) in git history by commit message, and close the issue as completed with clickable commit references and the most recent milestone assigned.
 ---
 
 # Close Spec GitHub Issue
@@ -42,14 +42,24 @@ Implemented in <implementing_sha_1> (spec defined in <spec_sha>).
 
 *(If multiple implementation commits exist, list all implementing SHAs separated by commas, e.g., `Implemented in a1b2c3d, e4f5g6h.` If no separate `spec:` commit exists, simply write `Implemented in <implementing_sha>.`)*
 
-### Step 5: Close the Issue as Completed
-Immediately call `issue_write` to close the issue:
+### Step 5: Determine the Most Recent Milestone
+Before closing the issue, identify the most recent milestone number to assign:
+1. If a GitHub MCP milestone-listing tool is available (e.g., `list_milestones`), list the repository's milestones and select the most recent open milestone (highest milestone number / latest version).
+2. If the GitHub MCP server does not expose a milestone-listing tool:
+   - Determine the expected current milestone title from `gradle.properties` (`v<appVersion>`) and/or by inspecting recently updated issues via `issue_read`.
+   - Resolve its sequential GitHub milestone number (starting from `1`, or based on existing releases/tags), and after calling `issue_write`, verify via `issue_read` that the issue's `milestone` matches the most recent milestone (incrementing if a newer milestone exists).
+   - If the repository has no milestones, skip setting `milestone` and note it in the summary.
+
+### Step 6: Close the Issue as Completed
+Immediately call `issue_write` to close the issue and assign the milestone:
 - `method`: `"update"`
 - `issue_number`: `<issue_number>`
 - `state`: `"closed"`
 - `state_reason`: `"completed"`
+- `milestone`: `<milestone_number>` *(most recent milestone from Step 5, if available)*
 
-### Step 6: Report Summary
+### Step 7: Report Summary
 Provide a brief confirmation to the user including:
 - Issue number, title, and URL
+- Assigned milestone (title and number)
 - Matched commit SHA(s) and commit message(s) referenced in the closing comment
