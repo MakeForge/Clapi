@@ -20,7 +20,7 @@ class SidebarMultipleCollectionsUiTest {
 
     @Test
     fun displays_collections_header_and_adds_new_collection() {
-        val state = AppState(withDemoData = false, openDefaultTab = false)
+        val state = AppState(openDefaultTab = false)
         composeRule.setContent { MainScreen(state) }
         composeRule.waitForIdle()
 
@@ -42,7 +42,7 @@ class SidebarMultipleCollectionsUiTest {
 
     @Test
     fun clicking_collection_node_opens_dedicated_collection_tab() {
-        val state = AppState(withDemoData = false, openDefaultTab = false).apply {
+        val state = AppState(openDefaultTab = false).apply {
             collectionsExpanded = true
         }
         val col = state.createNewCollection("Payments API")
@@ -60,7 +60,7 @@ class SidebarMultipleCollectionsUiTest {
 
     @Test
     fun toggling_collections_header_expands_and_collapses_list() {
-        val state = AppState(withDemoData = false, openDefaultTab = false).apply {
+        val state = AppState(openDefaultTab = false).apply {
             collectionsExpanded = true
         }
         val col = state.createNewCollection("Orders API")
@@ -84,7 +84,7 @@ class SidebarMultipleCollectionsUiTest {
 
     @Test
     fun inline_renaming_collection_to_existing_name_auto_disambiguates() {
-        val state = AppState(withDemoData = false, openDefaultTab = false).apply {
+        val state = AppState(openDefaultTab = false).apply {
             collectionsExpanded = true
         }
         val col1 = state.createNewCollection("Test API")

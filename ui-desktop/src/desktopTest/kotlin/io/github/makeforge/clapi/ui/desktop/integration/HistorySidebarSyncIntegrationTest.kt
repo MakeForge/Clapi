@@ -7,12 +7,13 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import io.github.makeforge.clapi.ui.shared.state.AppStateExamples
 
 class HistorySidebarSyncIntegrationTest {
 
     @Test
     fun go_to_collection_from_history_syncs_sidebar_scroll_selection_and_active_tab() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         state.collectionExpandedState["c1"] = false
 
         state.openRequest(
@@ -42,7 +43,7 @@ class HistorySidebarSyncIntegrationTest {
 
     @Test
     fun history_entries_track_collection_changes_for_rename_and_delete() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
 
         state.recordHistory(
             requestId = "r2",

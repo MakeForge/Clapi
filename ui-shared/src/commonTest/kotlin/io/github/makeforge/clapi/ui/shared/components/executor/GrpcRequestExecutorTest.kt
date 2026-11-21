@@ -27,7 +27,7 @@ class GrpcRequestExecutorTest {
 
     @Test
     fun grpc_request_injects_bearer_basic_apikey_oauth2_and_inherited_auth_into_metadata() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
 
         // 1. Bearer Auth
         val bearerTab = RequestTabState(
@@ -122,7 +122,7 @@ class GrpcRequestExecutorTest {
 
     @Test
     fun grpc_post_request_script_propagates_setNextRequest_to_target_request() = runTest {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
 
         val nextNode = CollectionNode(
             id = "req-after-grpc",

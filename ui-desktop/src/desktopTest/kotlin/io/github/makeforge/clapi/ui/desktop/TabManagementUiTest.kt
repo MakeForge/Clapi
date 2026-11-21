@@ -21,6 +21,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import io.github.makeforge.clapi.ui.shared.state.AppStateExamples
 
 /**
  * Compose UI tests covering:
@@ -248,7 +249,7 @@ class TabManagementUiTest {
 
     @Test
     fun rename_request_updates_sidebar_name_and_open_tab_state() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         state.openRequest(requestId = "r1", name = "Get all users", method = HttpMethodType.GET, url = "{{baseUrl}}/users")
         composeRule.setContent { MainScreen(state) }
         composeRule.waitForIdle()
@@ -264,7 +265,7 @@ class TabManagementUiTest {
 
     @Test
     fun show_in_sidebar_action_selects_request_indicator() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         state.openRequest(requestId = "r2", name = "Create user", method = HttpMethodType.POST, url = "{{baseUrl}}/users")
         val tabId = "r2"
         composeRule.setContent { MainScreen(state) }
@@ -279,7 +280,7 @@ class TabManagementUiTest {
 
     @Test
     fun hovering_long_request_name_shows_tooltip() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         state.renameRequestEverywhere("r1", "Get User By ID and Validate Permissions")
         composeRule.setContent { MainScreen(state) }
         composeRule.waitForIdle()
@@ -366,7 +367,7 @@ class TabManagementUiTest {
 
     @Test
     fun show_in_sidebar_selects_request_and_switches_tab() {
-        val state = AppState(withDemoData = true).apply {
+        val state = AppStateExamples.demo().apply {
             // Open two collection requests as tabs
             openRequest(requestId = "r1", name = "Get all users", method = HttpMethodType.GET, url = "{{baseUrl}}/users")
             openRequest(requestId = "r4", name = "Login", method = HttpMethodType.POST, url = "{{baseUrl}}/auth/login")
@@ -395,7 +396,7 @@ class TabManagementUiTest {
 
     @Test
     fun switching_tabs_updates_sidebar_selection() {
-        val state = AppState(withDemoData = true).apply {
+        val state = AppStateExamples.demo().apply {
             openRequest(requestId = "r1", name = "Get all users", method = HttpMethodType.GET, url = "u1")
             openRequest(requestId = "r4", name = "Login", method = HttpMethodType.POST, url = "u2")
         }
@@ -419,7 +420,7 @@ class TabManagementUiTest {
 
     @Test
     fun sidebar_highlights_request_matching_active_tab() {
-        val state = AppState(withDemoData = true).apply {
+        val state = AppStateExamples.demo().apply {
             openRequest(requestId = "r1", name = "Get all users", method = HttpMethodType.GET, url = "{{baseUrl}}/users")
             // Simulate what startup does
             syncSidebarToActiveTab()
@@ -435,7 +436,7 @@ class TabManagementUiTest {
 
     @Test
     fun openFolder_creates_dedicated_folder_tab_with_folder_icon() {
-        val state = AppState(withDemoData = false, openDefaultTab = false)
+        val state = AppState(openDefaultTab = false)
         val folder = io.github.makeforge.clapi.ui.shared.state.CollectionNode(
             id = "f1",
             name = "Auth Settings",
@@ -455,7 +456,7 @@ class TabManagementUiTest {
 
     @Test
     fun clicking_folder_name_in_sidebar_opens_and_focuses_tab() {
-        val state = AppState(withDemoData = false, openDefaultTab = false).apply {
+        val state = AppState(openDefaultTab = false).apply {
             collectionsExpanded = true
         }
         val folder = io.github.makeforge.clapi.ui.shared.state.CollectionNode(
@@ -490,7 +491,7 @@ class TabManagementUiTest {
 
     @Test
     fun saving_folder_settings_persists_to_collection_node() {
-        val state = AppState(withDemoData = false, openDefaultTab = false)
+        val state = AppState(openDefaultTab = false)
         val folder = io.github.makeforge.clapi.ui.shared.state.CollectionNode(
             id = "f-save",
             name = "Settings Folder",
@@ -533,7 +534,7 @@ class TabManagementUiTest {
 
     @Test
     fun folderEditor_displays_variables_tab_and_no_params_tab() {
-        val state = AppState(withDemoData = false, openDefaultTab = false)
+        val state = AppState(openDefaultTab = false)
         val folder = io.github.makeforge.clapi.ui.shared.state.CollectionNode(
             id = "f-editor-test",
             name = "Folder Variables Test",

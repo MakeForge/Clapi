@@ -33,7 +33,7 @@ class Phase1SecurityAndCancellationTest {
 
     @Test
     fun secretLogRedactor_masks_secrets_of_length_3_or_more_sorted_by_descending_length() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         val env = EnvState(name = "Prod").apply {
             variables.add(MutableKeyValue(key = "api_key", value = "sk-live-123456", enabled = true, secret = true))
             variables.add(MutableKeyValue(key = "short_secret", value = "ab", enabled = true, secret = true))
@@ -69,7 +69,7 @@ class Phase1SecurityAndCancellationTest {
 
     @Test
     fun closeTab_and_closeTabsByIds_cancel_inFlight_currentJob_and_reset_isLoading() = runTest {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         state.addTab()
         state.addTab()
         state.addTab()
@@ -110,7 +110,7 @@ class Phase1SecurityAndCancellationTest {
 
     @Test
     fun resolveExternalSecretsForTab_rethrows_CancellationException() = runTest {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         state.addTab()
         val tab = state.activeTab!!
         val env = EnvState(name = "TestEnv").apply {

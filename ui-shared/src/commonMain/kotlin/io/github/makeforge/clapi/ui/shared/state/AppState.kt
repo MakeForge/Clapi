@@ -38,7 +38,7 @@ import kotlinx.serialization.json.JsonPrimitive
 
 // ── Global application state ────────────────────────────────────
 
-class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
+class AppState(openDefaultTab: Boolean = true) {
     val dynamicVariableRegistry: DynamicVariableRegistry = DynamicVariableRegistry()
 
     // ── workspace mode ──
@@ -48,8 +48,8 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     var sidebarExpanded      by mutableStateOf(true)
     var sidebarWidth         by mutableStateOf(260f)
     var historyExpanded      by mutableStateOf(false)
-    var collectionsExpanded  by mutableStateOf(withDemoData)
-    var environmentsExpanded by mutableStateOf(withDemoData)
+    var collectionsExpanded  by mutableStateOf(false)
+    var environmentsExpanded by mutableStateOf(false)
     var sidebarSearchQuery   by mutableStateOf("")
     var selectedCollectionId by mutableStateOf<String?>(null)
     var selectedRequestId    by mutableStateOf<String?>(null)
@@ -409,18 +409,10 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                 }
             }
         }
-    val environments = mutableStateListOf<EnvState>().also {
-        if (withDemoData) {
-            it.addAll(AppStateDemoData.environments())
-        }
-    }
+    val environments = mutableStateListOf<EnvState>()
 
     // ── global variables (lowest priority, overridden by environment + local) ──
-    val globalVariables = mutableStateListOf<MutableKeyValue>().also {
-        if (withDemoData) {
-            it.addAll(AppStateDemoData.globalVariables())
-        }
-    }
+    val globalVariables = mutableStateListOf<MutableKeyValue>()
     val collectionVariables = mutableStateMapOf<String, String>()
     val collectionVariablesById = mutableStateMapOf<String, androidx.compose.runtime.snapshots.SnapshotStateMap<String, String>>()
 
@@ -583,17 +575,9 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     val settings = AppSettings()
 
     // ── history data ──
-    val historyItems = mutableStateListOf<HistoryItem>().also {
-        if (withDemoData) {
-            it.addAll(AppStateDemoData.historyItems())
-        }
-    }
+    val historyItems = mutableStateListOf<HistoryItem>()
 
-    val collections = mutableStateListOf<CollectionNode>().also {
-        if (withDemoData) {
-            it.addAll(AppStateDemoData.collections())
-        }
-    }
+    val collections = mutableStateListOf<CollectionNode>()
 
     init {
         ensureRequestRefsInitialized()
@@ -1912,7 +1896,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         }
     }
 
-    private fun syncHistoryWithCollections() {
+    internal fun syncHistoryWithCollections() {
         val references = buildRequestReferenceMap()
         var changed = false
         val synced = historyItems.mapNotNull { item ->
@@ -1954,7 +1938,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         }
     }
 
-    private fun ensureRequestRefsInitialized() {
+    internal fun ensureRequestRefsInitialized() {
         ensureRequestRefsInitializedRecursive(collections)
     }
 

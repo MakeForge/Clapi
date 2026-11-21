@@ -15,6 +15,7 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import io.github.makeforge.clapi.ui.shared.state.AppStateExamples
 
 /**
  * Regression tests for the four UI issues fixed in this batch:
@@ -38,7 +39,7 @@ class UiRegressionFixTest {
      */
     @Test
     fun collection_context_menu_has_all_expected_items() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val rootId = state.collections.first().id
         composeRule.setContent { MainScreen(state) }
 
@@ -69,7 +70,7 @@ class UiRegressionFixTest {
      */
     @Test
     fun request_context_menu_has_all_expected_items() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val requestId = state.collections.first().children.first().id
         composeRule.setContent { MainScreen(state) }
 
@@ -94,7 +95,7 @@ class UiRegressionFixTest {
      */
     @Test
     fun environment_context_menu_has_all_expected_items() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val envName = state.environments.first().name
         composeRule.setContent { MainScreen(state) }
 
@@ -118,7 +119,7 @@ class UiRegressionFixTest {
 
     @Test
     fun environment_edit_button_opens_edit_dialog() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val envName = state.environments.first().name
         composeRule.setContent { MainScreen(state) }
 
@@ -229,7 +230,7 @@ class UiRegressionFixTest {
      */
     @Test
     fun request_tooltip_is_hidden_on_startup() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val requestId = state.collections.first().children.first().id
         composeRule.setContent { MainScreen(state) }
         composeRule.waitForIdle()

@@ -16,6 +16,7 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import io.github.makeforge.clapi.ui.shared.state.AppStateExamples
 
 class SidebarWebSocketBadgeTest {
 
@@ -34,7 +35,7 @@ class SidebarWebSocketBadgeTest {
 
     @Test
     fun folderAddButton_showsHttpGrpcAndWebSocketOptionsInContextMenu() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val firstCollectionId = state.collections.first().id
         composeRule.setContent {
             ClapiTheme {
@@ -52,7 +53,7 @@ class SidebarWebSocketBadgeTest {
 
     @Test
     fun selectingNewWebSocketRequest_createsWebSocketNodeAndDisplaysBadgesInSidebarAndTab() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val rootFolder = state.collections.first()
         val beforeCount = rootFolder.children.size
 

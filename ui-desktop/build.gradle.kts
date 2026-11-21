@@ -54,10 +54,24 @@ roborazzi {
     generateComposePreviewDesktopTests {
         enable = true
         packages = listOf("io.github.makeforge.clapi.ui.desktop.preview")
-//        outputDir.set(
-//            rootProject.file("docs/screenshots")
-//        )
+
     }
+}
+
+val copyScreenshots = tasks.register<Copy>("copyScreenshots") {
+    group = "roborazzi"
+    description = "Copies MainScreen preview screenshots from build/outputs/roborazzi to docs/screenshots"
+    mustRunAfter("recordRoborazziDesktop")
+    from(layout.buildDirectory.dir("outputs/roborazzi")) {
+        include("*MainScreenPreviews*")
+    }
+    into(rootProject.file("docs/screenshots"))
+}
+
+tasks.register("copyMainScreenPreviews") {
+    group = "roborazzi"
+    description = "Alias for copyScreenshots"
+    dependsOn(copyScreenshots)
 }
 
 configurations.named("desktopRuntimeClasspath") {
@@ -427,5 +441,12 @@ tasks.register("analyzeReleaseSize") {
             }
         }
         println("\n=====================================================================\n")
+    }
+}
+tasks.named("desktopTest") {
+    onlyIf {
+        !gradle.startParameter.taskNames.any {
+            it.contains("recordRoborazziDesktop")
+        }
     }
 }

@@ -18,6 +18,7 @@ import io.github.makeforge.clapi.core.model.ResponseMetrics
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import org.junit.Rule
 import org.junit.Test
+import io.github.makeforge.clapi.ui.shared.state.AppStateExamples
 
 class MainScreenUiTest {
 
@@ -76,7 +77,7 @@ class MainScreenUiTest {
 
     @Test
     fun renders_toolbar_brand_and_environment() {
-        composeRule.setContent { MainScreen(AppState(withDemoData = true)) }
+        composeRule.setContent { MainScreen(AppStateExamples.demo()) }
 
         composeRule.onNodeWithText("Clapi").assertIsDisplayed()
         // "Development" appears in both toolbar chip and sidebar environment list
@@ -101,7 +102,7 @@ class MainScreenUiTest {
 
     @Test
     fun clicking_sidebar_history_item_opens_request_tab() {
-        val state = AppState(withDemoData = true).apply { historyExpanded = true }
+        val state = AppStateExamples.demo().apply { historyExpanded = true }
         composeRule.setContent { MainScreen(state) }
 
         // Click the first history item via the sidebar
@@ -200,7 +201,7 @@ class MainScreenUiTest {
 
     @Test
     fun sidebar_search_filters_collection_tree() {
-        composeRule.setContent { MainScreen(AppState(withDemoData = true)) }
+        composeRule.setContent { MainScreen(AppStateExamples.demo()) }
 
         composeRule.onNodeWithTag("sidebar-search-input").performTextInput("Auth")
         composeRule.waitForIdle()

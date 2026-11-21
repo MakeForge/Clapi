@@ -19,7 +19,7 @@ class ImportExportFixturesIntegrationTest {
 
     @Test
     fun imports_collection_and_environment_from_deterministic_fixtures() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
 
         val importedCollection = ImportExportRepository.importCollectionFromString(state, collectionFixture.readText())
         val importedEnvironment = ImportExportRepository.importEnvironmentFromString(state, environmentFixture.readText())
@@ -34,14 +34,14 @@ class ImportExportFixturesIntegrationTest {
 
     @Test
     fun fixture_collection_and_environment_roundtrip_restores_nested_collection_and_variables() {
-        val source = AppState(openDefaultTab = false, withDemoData = false)
+        val source = AppState(openDefaultTab = false)
 
         ImportExportRepository.importCollectionFromString(source, collectionFixture.readText())
         ImportExportRepository.importEnvironmentFromString(source, environmentFixture.readText())
 
         val exportedCollection = ImportExportRepository.exportCollectionToString(source.collections.single())
 
-        val restored = AppState(openDefaultTab = false, withDemoData = false)
+        val restored = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(restored, exportedCollection)
         source.environments.forEach { env ->
             val exportedEnv = ImportExportRepository.exportEnvironmentToString(env)
@@ -83,7 +83,7 @@ class ImportExportFixturesIntegrationTest {
 
     @Test
     fun imported_mcp_sampling_llm_and_stdio_fields_are_present() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state, collectionFixture.readText())
         val llm = findRequest(state.collections, "MCP Sampling LLM")
         assertNotNull(llm)
@@ -97,7 +97,7 @@ class ImportExportFixturesIntegrationTest {
 
     @Test
     fun imported_sse_folder_has_accept_event_stream_and_stays_http() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state, collectionFixture.readText())
         val getEvents = findRequest(state.collections, "SSE GET events")
         assertNotNull(getEvents)
@@ -115,7 +115,7 @@ class ImportExportFixturesIntegrationTest {
 
     @Test
     fun imported_json5_folder_keeps_authored_comments() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state, collectionFixture.readText())
 
         val bodyTypes = findFolder(state.collections, "Body Types")

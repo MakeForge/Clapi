@@ -34,7 +34,7 @@ class PostmanImportSapBydFixtureTest {
     @Test
     fun sap_byd_fixture_is_detected_as_postman_collection() {
         // Indirect detection: import succeeds without throwing ImportExportException.
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         val name = ImportExportRepository.importCollectionFromString(state, fixture.readText())
         assertEquals("New Business", name, "Collection should be detected and imported as Postman v2.1")
     }
@@ -43,7 +43,7 @@ class PostmanImportSapBydFixtureTest {
 
     @Test
     fun sap_byd_fixture_imports_via_repository() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         val name = ImportExportRepository.importCollectionFromString(state, fixture.readText())
         assertEquals("New Business", name)
         assertEquals(1, state.collections.size)
@@ -52,7 +52,7 @@ class PostmanImportSapBydFixtureTest {
 
     @Test
     fun sap_byd_fixture_has_one_top_level_folder() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state, fixture.readText())
         val col = state.collections[0]
         val folders = col.children.filter { it.isFolder }
@@ -62,7 +62,7 @@ class PostmanImportSapBydFixtureTest {
 
     @Test
     fun sap_byd_fixture_no_top_level_requests_only_folder() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state, fixture.readText())
         val col = state.collections[0]
         val topLevelRequests = col.children.filter { !it.isFolder }
@@ -73,7 +73,7 @@ class PostmanImportSapBydFixtureTest {
 
     @Test
     fun sap_byd_folder_contains_14_requests() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state, fixture.readText())
         val folder = state.collections[0].children.first { it.isFolder }
         val requests = folder.children.filter { !it.isFolder }
@@ -82,7 +82,7 @@ class PostmanImportSapBydFixtureTest {
 
     @Test
     fun sap_byd_folder_request_names_are_correct() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state, fixture.readText())
         val folder = state.collections[0].children.first { it.isFolder }
         val names = folder.children.filter { !it.isFolder }.map { it.name }
@@ -98,7 +98,7 @@ class PostmanImportSapBydFixtureTest {
 
     @Test
     fun sap_byd_folder_request_methods_map_correctly() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state, fixture.readText())
         val folder = state.collections[0].children.first { it.isFolder }
         val methods = folder.children.filter { !it.isFolder }.map { it.method }
@@ -116,7 +116,7 @@ class PostmanImportSapBydFixtureTest {
 
     @Test
     fun sap_byd_first_request_url_uses_raw_field() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state, fixture.readText())
         val folder = state.collections[0].children.first { it.isFolder }
         val firstReq = folder.children.first()
@@ -128,7 +128,7 @@ class PostmanImportSapBydFixtureTest {
 
     @Test
     fun sap_byd_get_metadata_url_contains_query_params() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state, fixture.readText())
         val folder = state.collections[0].children.first { it.isFolder }
         val metadataReq = folder.children[1] // "Get metadata"
@@ -143,7 +143,7 @@ class PostmanImportSapBydFixtureTest {
 
     @Test
     fun sap_byd_first_request_has_two_enabled_headers() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state, fixture.readText())
         val folder = state.collections[0].children.first { it.isFolder }
         val firstReq = folder.children.first()
@@ -155,7 +155,7 @@ class PostmanImportSapBydFixtureTest {
 
     @Test
     fun sap_byd_get_metadata_skips_disabled_accept_header() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state, fixture.readText())
         val folder = state.collections[0].children.first { it.isFolder }
         val metadataReq = folder.children[1] // "Get metadata" — Accept header is disabled
@@ -165,7 +165,7 @@ class PostmanImportSapBydFixtureTest {
 
     @Test
     fun sap_byd_post_requests_have_three_headers() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state, fixture.readText())
         val folder = state.collections[0].children.first { it.isFolder }
         val createQuote = folder.children[2] // "Create sales quote (prices are determined)"
@@ -179,7 +179,7 @@ class PostmanImportSapBydFixtureTest {
 
     @Test
     fun sap_byd_get_requests_have_no_body() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state, fixture.readText())
         val folder = state.collections[0].children.first { it.isFolder }
         val firstReq = folder.children.first() // GET "Get xsrf-token"
@@ -192,7 +192,7 @@ class PostmanImportSapBydFixtureTest {
 
     @Test
     fun sap_byd_create_quote_has_raw_body() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state, fixture.readText())
         val folder = state.collections[0].children.first { it.isFolder }
         val createQuote = folder.children[2] // "Create sales quote (prices are determined)"
@@ -211,7 +211,7 @@ class PostmanImportSapBydFixtureTest {
     fun sap_byd_individual_requests_have_no_per_request_auth() {
         // Collection-level auth (basic) is on the root, not individual requests.
         // PostmanImporter only reads per-request auth → requests should have no auth type.
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state, fixture.readText())
         val folder = state.collections[0].children.first { it.isFolder }
         val createQuote = folder.children[2]
@@ -225,7 +225,7 @@ class PostmanImportSapBydFixtureTest {
 
     @Test
     fun sap_byd_first_request_test_script_is_converted() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state, fixture.readText())
         val folder = state.collections[0].children.first { it.isFolder }
         val firstReq = folder.children.first() // "Get xsrf-token"
@@ -243,7 +243,7 @@ class PostmanImportSapBydFixtureTest {
 
     @Test
     fun sap_byd_create_quote_test_script_converts_pm_expect() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state, fixture.readText())
         val folder = state.collections[0].children.first { it.isFolder }
         val createQuote = folder.children[2] // "Create sales quote (prices are determined)"
@@ -256,7 +256,7 @@ class PostmanImportSapBydFixtureTest {
 
     @Test
     fun sap_byd_create_quote_prerequest_script_converts_pm_environment() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state, fixture.readText())
         val folder = state.collections[0].children.first { it.isFolder }
         val createQuote = folder.children[2] // has prerequest script with pm.environment.set
@@ -270,7 +270,7 @@ class PostmanImportSapBydFixtureTest {
 
     @Test
     fun sap_byd_all_request_scripts_have_no_unconverted_pm_calls() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state, fixture.readText())
         val folder = state.collections[0].children.first { it.isFolder }
         folder.children.filter { !it.isFolder }.forEach { req ->
@@ -283,11 +283,11 @@ class PostmanImportSapBydFixtureTest {
 
     @Test
     fun sap_byd_exported_as_clapi_format_can_be_reimported() {
-        val state1 = AppState(openDefaultTab = false, withDemoData = false)
+        val state1 = AppState(openDefaultTab = false)
         ImportExportRepository.importCollectionFromString(state1, fixture.readText())
         val exported = ImportExportRepository.exportCollectionToString(state1.collections[0])
 
-        val state2 = AppState(openDefaultTab = false, withDemoData = false)
+        val state2 = AppState(openDefaultTab = false)
         val name2 = ImportExportRepository.importCollectionFromString(state2, exported)
         assertEquals("New Business", name2)
         assertEquals(1, state2.collections.size)

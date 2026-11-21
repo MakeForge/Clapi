@@ -55,7 +55,7 @@ class GeneralImprovementsUiTest {
 
     @Test
     fun double_clicking_folder_triggers_inline_rename_without_dialog() {
-        val state = AppState(withDemoData = false, openDefaultTab = false).apply {
+        val state = AppState(openDefaultTab = false).apply {
             collectionsExpanded = true
         }
         val folder = CollectionNode(
@@ -99,7 +99,7 @@ class GeneralImprovementsUiTest {
 
     @Test
     fun inline_rename_folder_renames_open_folder_tab_as_well() {
-        val state = AppState(withDemoData = false, openDefaultTab = false).apply {
+        val state = AppState(openDefaultTab = false).apply {
             collectionsExpanded = true
         }
         val folder = CollectionNode(
@@ -138,7 +138,7 @@ class GeneralImprovementsUiTest {
 
     @Test
     fun double_clicking_request_triggers_inline_rename_without_dialog() {
-        val state = AppState(withDemoData = false, openDefaultTab = false).apply {
+        val state = AppState(openDefaultTab = false).apply {
             collectionsExpanded = true
         }
         val req = CollectionNode(
@@ -186,7 +186,7 @@ class GeneralImprovementsUiTest {
 
     @Test
     fun shift_tab_in_editor_focuses_next_open_tab_and_wraps_around() {
-        val state = AppState(withDemoData = false, openDefaultTab = false)
+        val state = AppState(openDefaultTab = false)
         state.addTab(name = "Tab 1", method = HttpMethodType.GET)
         state.addTab(name = "Tab 2", method = HttpMethodType.POST)
         state.addTab(name = "Tab 3", method = HttpMethodType.PUT)
@@ -229,7 +229,7 @@ class GeneralImprovementsUiTest {
     @Test
     fun ctrl_space_in_variable_aware_text_field_shows_dropdown_and_does_not_insert_whitespace() {
         var textValue by mutableStateOf("https://example.com/api/")
-        val state = AppState(withDemoData = false, openDefaultTab = false).apply {
+        val state = AppState(openDefaultTab = false).apply {
             environments.add(EnvState("Dev").apply {
                 variables.add(MutableKeyValue("token", "secret123"))
                 variables.add(MutableKeyValue("host", "api.example.com"))
@@ -283,7 +283,7 @@ class GeneralImprovementsUiTest {
     @Test
     fun ctrl_space_with_subsequent_space_input_is_suppressed() {
         var textValue by mutableStateOf("https://example.com/api/")
-        val state = AppState(withDemoData = false, openDefaultTab = false).apply {
+        val state = AppState(openDefaultTab = false).apply {
             environments.add(EnvState("Dev").apply {
                 variables.add(MutableKeyValue("token", "secret123"))
             })
@@ -352,7 +352,7 @@ class GeneralImprovementsUiTest {
 
     @Test
     fun deleting_folder_in_sidebar_closes_folder_tab_and_nested_request_tabs() {
-        val state = AppState(withDemoData = false, openDefaultTab = false).apply {
+        val state = AppState(openDefaultTab = false).apply {
             collectionsExpanded = true
             settings.confirmBeforeDelete = false
         }
@@ -395,7 +395,7 @@ class GeneralImprovementsUiTest {
 
     @Test
     fun single_click_folder_name_opens_tab_and_expands_without_collapsing() {
-        val state = AppState(withDemoData = false, openDefaultTab = false).apply {
+        val state = AppState(openDefaultTab = false).apply {
             collectionsExpanded = true
         }
         val folder = CollectionNode(
@@ -430,7 +430,7 @@ class GeneralImprovementsUiTest {
 
     @Test
     fun tabs_repository_load_only_reopens_existing_items() {
-        val originState = AppState(withDemoData = false, openDefaultTab = false)
+        val originState = AppState(openDefaultTab = false)
         val validReq = CollectionNode(
             id = "req-valid",
             name = "Valid Req",
@@ -470,7 +470,7 @@ class GeneralImprovementsUiTest {
         TabsRepository.save(originState)
 
         // New state has ONLY validFolder and validReq (deletedFolder was deleted)
-        val restoredState = AppState(withDemoData = false, openDefaultTab = false)
+        val restoredState = AppState(openDefaultTab = false)
         val restoredReq = CollectionNode(
             id = "req-valid",
             name = "Valid Req",

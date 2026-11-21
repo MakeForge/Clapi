@@ -22,12 +22,13 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import io.github.makeforge.clapi.ui.shared.state.AppStateExamples
 
 class AppStateCollectionTest {
 
     @Test
     fun addRequestToCollection_adds_child_and_opens_tab() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val collectionId = state.collections.first().id
         val childrenBefore = state.collections.first().children.size
         val tabsBefore = state.openTabs.size
@@ -41,7 +42,7 @@ class AppStateCollectionTest {
 
     @Test
     fun addRequestToCollection_ignores_nonexistent_collection() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val tabsBefore = state.openTabs.size
 
         state.addRequestToCollection("nonexistent-id")
@@ -51,7 +52,7 @@ class AppStateCollectionTest {
 
     @Test
     fun addRequestToCollection_adds_into_nested_folder() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val root = state.collections.first()
         val nested = CollectionNode(
             id = "nested-folder",
@@ -73,7 +74,7 @@ class AppStateCollectionTest {
 
     @Test
     fun addMcpAndSse_add_into_nested_folder() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val root = state.collections.first()
         val nested = CollectionNode(
             id = "nested-folder-mcp-sse",
@@ -97,7 +98,7 @@ class AppStateCollectionTest {
 
     @Test
     fun addTabInSelectedCollection_uses_selected_collection() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val secondCollection = state.collections[1]
         state.selectedCollectionId = secondCollection.id
         val childrenBefore = secondCollection.children.size
@@ -109,7 +110,7 @@ class AppStateCollectionTest {
 
     @Test
     fun addTabInSelectedCollection_falls_back_to_first_collection() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         state.selectedCollectionId = null
         val firstCollection = state.collections.first()
         val childrenBefore = firstCollection.children.size
@@ -121,7 +122,7 @@ class AppStateCollectionTest {
 
     @Test
     fun addTabInSelectedCollection_creates_orphan_tab_when_no_collections() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         state.collections.clear()
         state.selectedCollectionId = null
         val tabsBefore = state.openTabs.size
@@ -133,7 +134,7 @@ class AppStateCollectionTest {
 
     @Test
     fun selectedCollectionId_updates_on_assignment() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         assertNull(state.selectedCollectionId)
 
         state.selectedCollectionId = "c1"
@@ -142,7 +143,7 @@ class AppStateCollectionTest {
 
     @Test
     fun addRequestToCollection_generates_unique_name() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val collectionId = state.collections.first().id
 
         state.addRequestToCollection(collectionId)
@@ -272,7 +273,7 @@ class AppStateCollectionTest {
 
     @Test
     fun collapse_and_expand_all_collections_updates_folder_state_map() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
 
         state.collapseAllCollections()
         assertTrue(state.collectionExpandedState.values.all { expanded -> !expanded })
@@ -283,7 +284,7 @@ class AppStateCollectionTest {
 
     @Test
     fun renameRequestEverywhere_updates_tab_and_sidebar_node_name() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val requestId = "r1"
 
         state.openRequest(requestId = requestId, name = "Get all users", method = HttpMethodType.GET, url = "{{baseUrl}}/users")
@@ -297,7 +298,7 @@ class AppStateCollectionTest {
     fun renameRequestEverywhere_name_persists_after_syncTabToCollectionNode() {
         // Regression test for Bug 2: rename from sidebar used to be overwritten
         // when the user pressed Cmd+S because the open tab still held the old name.
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val requestId = "r1"
 
         state.openRequest(requestId = requestId, name = "Get all users", method = HttpMethodType.GET, url = "{{baseUrl}}/users")
@@ -315,7 +316,7 @@ class AppStateCollectionTest {
 
     @Test
     fun syncTabToCollectionNode_writes_mcp_config_for_export() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val collectionId = state.collections.first().id
         state.addMcpConnectionToCollection(collectionId)
         val tab = state.openTabs.last()
@@ -354,7 +355,7 @@ class AppStateCollectionTest {
 
     @Test
     fun addSseRequestToCollection_prefills_get_and_accept_header() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val collectionId = state.collections.first().id
         state.addSseRequestToCollection(collectionId)
         val node = state.collections.first().children.first { it.name == "New SSE Request" }
@@ -373,7 +374,7 @@ class AppStateCollectionTest {
 
     @Test
     fun addSseRequestToCollection_generates_unique_name() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val collectionId = state.collections.first().id
         state.addSseRequestToCollection(collectionId)
         state.addSseRequestToCollection(collectionId)
@@ -384,7 +385,7 @@ class AppStateCollectionTest {
 
     @Test
     fun syncTabToCollectionNode_persists_sse_accept_and_clears_when_json() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val collectionId = state.collections.first().id
         state.addSseRequestToCollection(collectionId)
         val tab = state.openTabs.last()
@@ -441,7 +442,7 @@ class AppStateCollectionTest {
 
     @Test
     fun revealRequestInSidebar_sets_selectedRequestId_for_collection_request() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         state.selectedRequestId = null
 
         state.revealRequestInSidebar("r1")
@@ -451,7 +452,7 @@ class AppStateCollectionTest {
 
     @Test
     fun revealRequestInSidebar_expands_ancestor_folder_for_collection_request() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         // Collapse the parent collection "c1" first
         state.collectionExpandedState["c1"] = false
 
@@ -463,7 +464,7 @@ class AppStateCollectionTest {
 
     @Test
     fun revealRequestInSidebar_sets_selectedRequestId_even_for_orphan_request() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         // "orphan-999" is NOT in any collection; revealRequestInSidebar should
         // fail and surface a not-found error.
         val ok = state.revealRequestInSidebar("orphan-999")
@@ -474,7 +475,7 @@ class AppStateCollectionTest {
 
     @Test
     fun revealRequestInSidebar_sets_scroll_target_for_collection_request() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
 
         state.revealRequestInSidebar("r2")
 
@@ -483,7 +484,7 @@ class AppStateCollectionTest {
 
     @Test
     fun revealRequestInSidebar_for_request_not_in_history_does_not_mutate_history() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         // Ensure r3 exists in collections but is not currently in demo history.
         assertTrue(state.historyItems.none { it.requestId == "r3" })
 
@@ -511,7 +512,7 @@ class AppStateCollectionTest {
 
     @Test
     fun revealRequestInSidebar_switches_active_tab_to_matching_request() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         // Open two requests from collections as tabs
         state.openRequest(requestId = "r1", name = "Get all users", method = HttpMethodType.GET, url = "{{baseUrl}}/users")
         state.openRequest(requestId = "r4", name = "Login", method = HttpMethodType.POST, url = "{{baseUrl}}/auth/login")
@@ -527,7 +528,7 @@ class AppStateCollectionTest {
 
     @Test
     fun revealRequestInSidebar_uses_tab_collection_and_signature_when_tab_id_is_stale() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
 
         val requestA = CollectionNode("ra", "Users", isFolder = false, method = HttpMethodType.GET, url = "https://a.example.com/users")
         val requestB = CollectionNode("rb", "Users", isFolder = false, method = HttpMethodType.GET, url = "https://b.example.com/users")
@@ -555,7 +556,7 @@ class AppStateCollectionTest {
 
     @Test
     fun syncSidebarToActiveTab_prefers_signature_over_existing_stale_tab_id_for_duplicates() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
 
         val requestA = CollectionNode("ra", "Users", isFolder = false, method = HttpMethodType.GET, url = "https://a.example.com/users")
         val requestB = CollectionNode("rb", "Users", isFolder = false, method = HttpMethodType.GET, url = "https://b.example.com/users")
@@ -584,7 +585,7 @@ class AppStateCollectionTest {
 
     @Test
     fun syncSidebarToActiveTab_keeps_valid_duplicate_request_id_after_other_duplicate_is_moved() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
 
         val c1r1 = CollectionNode("c1-r1", "r1", isFolder = false, method = HttpMethodType.GET, url = "https://api.example.com/r1")
         val c2r1 = CollectionNode("c2-r1", "r1", isFolder = false, method = HttpMethodType.GET, url = "https://api.example.com/r1")
@@ -609,7 +610,7 @@ class AppStateCollectionTest {
 
     @Test
     fun notifyCollectionsChanged_updates_open_tab_collection_metadata_after_request_move() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
 
         val c1r1 = CollectionNode("c1-r1", "r1", isFolder = false, method = HttpMethodType.GET, url = "https://api.example.com/r1")
         state.collections.add(CollectionNode("c1", "c1", isFolder = true, children = mutableStateListOf(c1r1)))
@@ -631,7 +632,7 @@ class AppStateCollectionTest {
 
     @Test
     fun revealRequestInSidebar_prefers_signature_when_duplicate_request_names_exist() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
 
         val reqA = CollectionNode("req-a", "Users", isFolder = false, method = HttpMethodType.GET, url = "https://api-a.example.com/users")
         val reqB = CollectionNode("req-b", "Users", isFolder = false, method = HttpMethodType.GET, url = "https://api-b.example.com/users")
@@ -662,7 +663,7 @@ class AppStateCollectionTest {
 
     @Test
     fun syncSidebarToActiveTab_sets_selectedRequestId_and_expands_ancestors() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         // Simulate restored state: tab open for r1, ancestors collapsed
         state.openRequest(requestId = "r1", name = "Get all users", method = HttpMethodType.GET, url = "{{baseUrl}}/users")
         state.collectionExpandedState["c1"] = false
@@ -757,7 +758,7 @@ class AppStateCollectionTest {
 
     @Test
     fun syncSidebarToActiveTab_does_not_scroll_when_request_already_selected() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         // Simulate sidebar click path: request already selected before active-tab sync runs.
         state.openRequest(requestId = "r1", name = "Get all users", method = HttpMethodType.GET, url = "{{baseUrl}}/users")
         state.selectedRequestId = "r1"
@@ -776,7 +777,7 @@ class AppStateCollectionTest {
         // Simulate: TabsRepository restores a tab with id "r1",
         // WorkspaceRepository restores collections containing node id "r1".
         // After syncSidebarToActiveTab, sidebar should highlight it.
-        val state = AppState(openDefaultTab = false, withDemoData = true)
+        val state = AppStateExamples.demo(openDefaultTab = false)
         // Manually add tab as TabsRepository.load would
         state.openTabs.add(RequestTabState(id = "r1", name = "Get all users", method = HttpMethodType.GET, url = "{{baseUrl}}/users"))
         state.activeTabIndex = 0
@@ -898,7 +899,7 @@ class AppStateCollectionTest {
 
     @Test
     fun `rename from sidebar does not make clean tab dirty`() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         state.openRequest("r1", "Get all users", HttpMethodType.GET, "{{baseUrl}}/users")
         val tab = state.openTabs.first { it.id == "r1" }
         assertFalse(tab.isDirty, "Tab must be clean after opening from collection")
@@ -985,7 +986,7 @@ class AppStateCollectionTest {
 
     @Test
     fun `rename from tab chip updates both tab and collection node`() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val requestId = "r1"
 
         state.openRequest(requestId = requestId, name = "Get all users", method = HttpMethodType.GET, url = "{{baseUrl}}/users")
@@ -1012,7 +1013,7 @@ class AppStateCollectionTest {
 
     @Test
     fun `deleteRequest closes the matching open tab`() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         state.openRequest("r1", "Get all users", HttpMethodType.GET, "{{baseUrl}}/users")
         assertTrue(state.openTabs.any { it.id == "r1" }, "Tab must be open before delete")
 
@@ -1024,7 +1025,7 @@ class AppStateCollectionTest {
 
     @Test
     fun `closeTabsByIds removes multiple tabs and keeps others`() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         state.openRequest("r1", "Get all users", HttpMethodType.GET, "{{baseUrl}}/users")
         state.openRequest("r2", "Create user", HttpMethodType.POST, "{{baseUrl}}/users")
         state.openRequest("r3", "Update user", HttpMethodType.PUT, "{{baseUrl}}/users/1")
@@ -1039,7 +1040,7 @@ class AppStateCollectionTest {
 
     @Test
     fun `closeTabsByIds with non-open id is a no-op`() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val tabsBefore = state.openTabs.size
 
         state.closeTabsByIds(listOf("nonexistent-id"))
@@ -1050,7 +1051,7 @@ class AppStateCollectionTest {
 
     @Test
     fun `closeTabsByIds sets activeTabIndex correctly when active tab is closed`() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         state.openRequest("r1", "Get all users", HttpMethodType.GET, "{{baseUrl}}/users")
         state.openRequest("r2", "Create user", HttpMethodType.POST, "{{baseUrl}}/users")
         // Make r2 the active tab
@@ -1122,7 +1123,7 @@ class AppStateCollectionTest {
 
     @Test
     fun `updateTabsCollectionName updates matching tabs`() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         // Open a request from the "API Demo" collection (c1 in demo data)
         state.openRequest("r1", "Get all users", HttpMethodType.GET, "{{baseUrl}}/users")
         val tab = state.openTabs.first { it.id == "r1" }
@@ -1136,7 +1137,7 @@ class AppStateCollectionTest {
 
     @Test
     fun `updateTabsCollectionName does not touch tabs from other collections`() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         state.openRequest("r1", "Get all users", HttpMethodType.GET, "{{baseUrl}}/users")
         state.openRequest("r4", "Login", HttpMethodType.POST, "{{baseUrl}}/auth/login")
         val r1Tab = state.openTabs.first { it.id == "r1" }
@@ -1162,7 +1163,7 @@ class AppStateCollectionTest {
 
     @Test
     fun syncSidebarToActiveTab_uses_requestRef_when_tab_id_is_stale() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
 
         val req = CollectionNode(
             id = "real-id",
@@ -1199,7 +1200,7 @@ class AppStateCollectionTest {
 
     @Test
     fun revealRequestInSidebar_uses_requestRef_when_tab_id_is_stale() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
 
         val req = CollectionNode(
             id = "real-id",
@@ -1242,7 +1243,7 @@ class AppStateCollectionTest {
         // Two collections each containing a request with identical name + method + url.
         // Opening both from the sidebar (within the same session) gives each tab a
         // correct collectionId.  Show-in-sidebar must resolve to the right one.
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
 
         val r1a = CollectionNode("r1a", "GetUsers", isFolder = false, method = HttpMethodType.GET, url = "https://api.example.com/users")
         val r1b = CollectionNode("r1b", "GetUsers", isFolder = false, method = HttpMethodType.GET, url = "https://api.example.com/users")
@@ -1266,7 +1267,7 @@ class AppStateCollectionTest {
     @Test
     fun syncSidebarToActiveTab_resolves_correct_request_when_same_name_and_url_in_different_collections() {
         // Clicking a tab in the topbar must sync the sidebar to the correct duplicate.
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
 
         val r1a = CollectionNode("r1a", "GetUsers", isFolder = false, method = HttpMethodType.GET, url = "https://api.example.com/users")
         val r1b = CollectionNode("r1b", "GetUsers", isFolder = false, method = HttpMethodType.GET, url = "https://api.example.com/users")
@@ -1291,7 +1292,7 @@ class AppStateCollectionTest {
     fun tabMatchesRequestScope_uses_collectionId_only_ignoring_stale_collection_name() {
         // After a collection rename between sessions, the stored collectionName on the tab
         // may be stale.  The resolver must trust collectionId, not the name.
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
 
         val req = CollectionNode("req1", "GetUsers", isFolder = false, method = HttpMethodType.GET, url = "https://api.example.com/users")
         state.collections.add(CollectionNode("c1", "New API Name", isFolder = true, children = mutableStateListOf(req)))
@@ -1319,7 +1320,7 @@ class AppStateCollectionTest {
 
     @Test
     fun nestedFolderInheritance_threeLevelCascadingHeadersAndParams() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
 
         val leafRequest = CollectionNode(
             id = "req-leaf-1",
@@ -1432,7 +1433,7 @@ class AppStateCollectionTest {
 
     @Test
     fun nestedFolderInheritance_childAuthOverridesRootAuth() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
 
         val leafRequest = CollectionNode(
             id = "req-leaf-2",
@@ -1490,7 +1491,7 @@ class AppStateCollectionTest {
 
     @Test
     fun nestedFolderInheritance_requestOverrideHeadersAndParamsOnWire() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
 
         val leafRequest = CollectionNode(
             id = "req-leaf-3",
@@ -1555,7 +1556,7 @@ class AppStateCollectionTest {
 
     @Test
     fun folderSettings_editingVariablesPersistsToNodeAndExcludesParams() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
 
         val folder = CollectionNode(
             id = "f-vars-1",
@@ -1598,7 +1599,7 @@ class AppStateCollectionTest {
 
     @Test
     fun folderVariables_canBeUsedInRequestUrlAsBaseUrl() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
 
         val requestNode = CollectionNode(
             id = "req-base-1",
@@ -1636,7 +1637,7 @@ class AppStateCollectionTest {
 
     @Test
     fun folderVariables_precedence_environmentOverridesFolder_folderOverridesGlobal() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
 
         // Global variable
         state.globalVariables.add(MutableKeyValue("baseUrl", "https://global.example.com", enabled = true))
@@ -1712,7 +1713,7 @@ class AppStateCollectionTest {
 
     @Test
     fun nestedFolderScriptCascading_chainsAncestorPreRequestScripts() = runBlocking {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         val env = EnvState(name = "Test Env")
         state.environments.add(env)
         state.selectedEnvIndex = state.environments.size - 1
@@ -1767,7 +1768,7 @@ class AppStateCollectionTest {
 
     @Test
     fun variableSourceInfo_resolves_environmentPrecedenceOverFolder() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         val env = EnvState(name = "Dev")
         env.variables.add(MutableKeyValue("baseUrl", "https://env.example.com"))
         state.environments.add(env)
@@ -1807,7 +1808,7 @@ class AppStateCollectionTest {
 
     @Test
     fun variableSourceInfo_resolves_folderValueWhenNotInEnvironment() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         val env = EnvState(name = "Dev")
         state.environments.add(env)
         state.selectedEnvIndex = 0
@@ -1846,7 +1847,7 @@ class AppStateCollectionTest {
 
     @Test
     fun variableSourceInfo_showsNeitherWhenUndefined() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         val env = EnvState(name = "Dev")
         state.environments.add(env)
         state.selectedEnvIndex = 0
@@ -1881,7 +1882,7 @@ class AppStateCollectionTest {
 
     @Test
     fun variableSourceInfo_settingValueInEnvironment_overridesFolder() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         val env = EnvState(name = "Dev")
         state.environments.add(env)
         state.selectedEnvIndex = 0
@@ -1923,7 +1924,7 @@ class AppStateCollectionTest {
 
     @Test
     fun variableSourceInfo_liveFolderTabEditsAreReflected() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         val reqNode = CollectionNode(
             id = "req-5",
             name = "Get Item",

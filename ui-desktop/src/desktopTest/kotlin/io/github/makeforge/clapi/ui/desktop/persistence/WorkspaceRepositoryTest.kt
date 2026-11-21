@@ -331,7 +331,7 @@ class WorkspaceRepositoryTest {
     @Test
     fun environments_persist_with_zero_collections_in_global_document_config() {
         // FR-015: Environments live in config.environments of the global document even when no collection exists.
-        val source = AppState(openDefaultTab = false, withDemoData = false)
+        val source = AppState(openDefaultTab = false)
         source.collections.clear()
         source.environments.clear()
         source.environments.add(
@@ -353,7 +353,7 @@ class WorkspaceRepositoryTest {
         assertTrue(globalDoc.items.isEmpty())
         assertEquals(1, globalDoc.config?.environments?.size)
 
-        val restored = AppState(openDefaultTab = false, withDemoData = false)
+        val restored = AppState(openDefaultTab = false)
         WorkspaceRepository.load(restored)
 
         assertTrue(restored.collections.isEmpty())
@@ -370,7 +370,7 @@ class WorkspaceRepositoryTest {
     @Test
     fun importing_collection_merges_environments_by_name_without_overwriting_existing_entries() {
         // FR-016: Merge by name keeps existing entries and adds missing variables/fields.
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         state.environments.add(
             EnvState(
                 name = "Dev",
@@ -422,7 +422,7 @@ class WorkspaceRepositoryTest {
     @Test
     fun single_collection_export_omits_config_and_environments() {
         // FR-017: Single-collection export produces a standalone document with no config and no environments.
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         state.environments.add(
             EnvState("Dev", variables = listOf(MutableKeyValue("k", "v")))
         )
@@ -461,7 +461,7 @@ class WorkspaceRepositoryTest {
             """.trimIndent(),
         )
 
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         WorkspaceRepository.load(state)
 
         assertTrue(state.collections.isEmpty(), "Legacy clapi.workspace collections must be ignored")

@@ -43,7 +43,7 @@ class SettingsStorageKeysTest {
 
     @Test
     fun resolveExternalSecretsForTab_reads_vault_token_persisted_by_SettingsRepository() = runTest {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         state.settings.vaultServerUrl = "http://127.0.0.1:8200"
         state.settings.vaultToken = "persisted-vault-token-123"
         SettingsRepository.save(state.settings)

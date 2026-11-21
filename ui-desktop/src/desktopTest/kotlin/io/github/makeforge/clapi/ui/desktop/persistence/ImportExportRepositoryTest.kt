@@ -9,6 +9,7 @@ import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+import io.github.makeforge.clapi.ui.shared.state.AppStateExamples
 
 class ImportExportRepositoryTest {
 
@@ -28,7 +29,7 @@ class ImportExportRepositoryTest {
 
     @Test
     fun exportAndImportSingleCollection_roundTripsWithCollectionSchema() {
-        val source = AppState(withDemoData = true)
+        val source = AppStateExamples.demo()
         val collection = source.collections.first()
 
         val content = ImportExportRepository.exportCollectionToString(collection)
@@ -88,7 +89,7 @@ class ImportExportRepositoryTest {
 
     @Test
     fun exportAndImportEnvironment_roundTripsWithEnvironmentSchema() {
-        val source = AppState(withDemoData = true)
+        val source = AppStateExamples.demo()
         val environment = source.environments.first()
 
         val content = ImportExportRepository.exportEnvironmentToString(environment)

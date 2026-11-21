@@ -12,6 +12,7 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import io.github.makeforge.clapi.ui.shared.state.AppStateExamples
 
 class CollectionEditorNavigationUiTest {
 
@@ -20,7 +21,7 @@ class CollectionEditorNavigationUiTest {
 
     @Test
     fun opens_collection_tab_when_clicking_collection_header_in_sidebar() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         composeRule.setContent { MainScreen(state) }
         composeRule.waitForIdle()
 
@@ -35,7 +36,7 @@ class CollectionEditorNavigationUiTest {
 
     @Test
     fun clicking_collection_again_focuses_existing_tab_without_duplication() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         composeRule.setContent { MainScreen(state) }
         composeRule.waitForIdle()
 

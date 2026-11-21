@@ -61,7 +61,7 @@ class GraphQlRequestExecutorTest {
 
     @Test
     fun graphql_request_honors_tab_retry_policy_when_enabled() = runTest {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val tab = RequestTabState(
             name = "GraphQL Retry",
             url = "https://api.example.com/graphql",
@@ -93,7 +93,7 @@ class GraphQlRequestExecutorTest {
 
     @Test
     fun graphql_get_request_performs_single_pass_variable_resolution_without_secondary_expansion() = runTest {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val env = EnvState(
             name = "TestEnv",
             variables = listOf(
@@ -138,7 +138,7 @@ class GraphQlRequestExecutorTest {
 
     @Test
     fun graphql_request_includes_requestScopedScriptVars_at_layer_0_and_propagates_setNextRequest() = runTest {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val env = EnvState(
             name = "Env",
             variables = listOf(MutableKeyValue("token", "env-token", enabled = true)),
@@ -199,7 +199,7 @@ class GraphQlRequestExecutorTest {
 
     @Test
     fun graphql_request_honors_per_tab_timeout_followRedirects_and_maxRedirects_overrides() = runTest {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         state.settings.requestTimeoutSec = 30
         state.settings.followRedirects = true
         state.settings.maxRedirects = 20

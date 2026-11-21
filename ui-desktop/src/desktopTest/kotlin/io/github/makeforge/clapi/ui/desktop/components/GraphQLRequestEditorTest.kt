@@ -22,7 +22,7 @@ class GraphQLRequestEditorTest {
 
     @Test
     fun graphqlEditor_rendersAddressBarAndTabs() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val tab = RequestTabState(
             name = "Test GraphQL",
             url = "https://api.example.com/graphql",
@@ -49,7 +49,7 @@ class GraphQLRequestEditorTest {
 
     @Test
     fun graphqlEditor_switchTabs() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val tab = RequestTabState(
             name = "Test GraphQL",
             url = "https://api.example.com/graphql",
@@ -77,7 +77,7 @@ class GraphQLRequestEditorTest {
 
     @Test
     fun graphqlEditor_methodSwitch() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val tab = RequestTabState(
             name = "Test GraphQL",
             url = "https://api.example.com/graphql",
@@ -103,7 +103,7 @@ class GraphQLRequestEditorTest {
 
     @Test
     fun graphqlEditor_variantsManagement() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val tab = RequestTabState(
             name = "Test GraphQL",
             url = "https://api.example.com/graphql",
@@ -136,7 +136,7 @@ class GraphQLRequestEditorTest {
 
     @Test
     fun graphqlEditor_prettifyQueryAction() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val tab = RequestTabState(
             name = "Test GraphQL",
             url = "https://api.example.com/graphql",

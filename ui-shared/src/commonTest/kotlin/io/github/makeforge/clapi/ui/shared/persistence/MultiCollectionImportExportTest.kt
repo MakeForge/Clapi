@@ -56,7 +56,7 @@ class MultiCollectionImportExportTest {
 
     @Test
     fun importCollectionFromString_creates_distinct_collection_with_disambiguation() {
-        val state = AppState(withDemoData = false, openDefaultTab = false)
+        val state = AppState(openDefaultTab = false)
         state.createNewCollection("Payments API")
 
         val colToImport = CollectionNode(

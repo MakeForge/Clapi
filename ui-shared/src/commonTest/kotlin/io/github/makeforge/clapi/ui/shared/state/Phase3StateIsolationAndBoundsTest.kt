@@ -11,7 +11,7 @@ class Phase3StateIsolationAndBoundsTest {
 
     @Test
     fun per_tab_testResults_remain_isolated_across_tab_switches() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         val tabA = RequestTabState(id = "tab-a", name = "Tab A").apply {
             testResults.add(TestResultEntry(name = "A-1", passed = true))
             testResults.add(TestResultEntry(name = "A-2", passed = true))
@@ -38,7 +38,7 @@ class Phase3StateIsolationAndBoundsTest {
 
     @Test
     fun consoleLogs_and_networkEventLogs_enforce_maximum_bounds_and_evict_oldest_entries() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
 
         for (i in 1..1_200) {
             state.logNetworkEvent("event-$i", LogLevel.INFO, echoToConsole = true)
@@ -54,7 +54,7 @@ class Phase3StateIsolationAndBoundsTest {
 
     @Test
     fun historyItems_streamChunks_and_webSocketLogMessages_enforce_maximum_bounds() {
-        val state = AppState(openDefaultTab = false, withDemoData = false)
+        val state = AppState(openDefaultTab = false)
         val rootFolder = CollectionNode(
             id = "col-root",
             name = "Root",

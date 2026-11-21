@@ -23,6 +23,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import io.github.makeforge.clapi.core.model.RequestKind
 import io.github.makeforge.clapi.ui.shared.state.hasSseAccept
+import io.github.makeforge.clapi.ui.shared.state.AppStateExamples
 
 class NewFeaturesUiTest {
 
@@ -76,7 +77,7 @@ class NewFeaturesUiTest {
 
     @Test
     fun add_button_exists_for_each_collection() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         composeRule.setContent { MainScreen(state) }
 
         // Each collection should have an add button with testTag
@@ -88,7 +89,7 @@ class NewFeaturesUiTest {
 
     @Test
     fun collection_context_menu_shows_actions() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         composeRule.setContent { MainScreen(state) }
 
         // Click the "..." button for the first collection
@@ -107,7 +108,7 @@ class NewFeaturesUiTest {
 
     @Test
     fun add_subfolder_from_context_menu_adds_node_to_tree() {
-        val state = AppState(withDemoData = true).apply { settings.confirmBeforeDelete = false }
+        val state = AppStateExamples.demo().apply { settings.confirmBeforeDelete = false }
         val rootId = state.collections.first().id
         val before = state.collections.first().children.count { it.isFolder }
         composeRule.setContent { MainScreen(state) }
@@ -124,7 +125,7 @@ class NewFeaturesUiTest {
 
     @Test
     fun delete_subfolder_from_context_menu_removes_node_from_tree() {
-        val state = AppState(withDemoData = true).apply { settings.confirmBeforeDelete = false }
+        val state = AppStateExamples.demo().apply { settings.confirmBeforeDelete = false }
         val root = state.collections.first()
         val folder = io.github.makeforge.clapi.ui.shared.components.sidebar.addSubfolderInCollections(state.collections, root.id, "Temp Folder")
             ?: error("Folder creation failed")
@@ -140,7 +141,7 @@ class NewFeaturesUiTest {
 
     @Test
     fun subfolder_icon_is_distinct_from_root_collection_icon() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val root = state.collections.first()
         val sub = io.github.makeforge.clapi.ui.shared.components.sidebar.addSubfolderInCollections(state.collections, root.id, "Nested")
             ?: error("Folder creation failed")
@@ -153,7 +154,7 @@ class NewFeaturesUiTest {
 
     @Test
     fun collection_menu_shows_expand_and_collapse_actions() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val rootId = state.collections.first().id
         composeRule.setContent { MainScreen(state) }
 
@@ -166,7 +167,7 @@ class NewFeaturesUiTest {
 
     @Test
     fun collapse_and_expand_from_collection_menu_hides_and_restores_children() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val rootId = state.collections.first().id
         composeRule.setContent { MainScreen(state) }
 
@@ -185,7 +186,7 @@ class NewFeaturesUiTest {
 
     @Test
     fun environment_row_does_not_resize_when_actions_become_visible() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val envName = state.environments.first().name
         composeRule.setContent { MainScreen(state) }
 
@@ -205,7 +206,7 @@ class NewFeaturesUiTest {
 
     @Test
     fun adding_tab_in_collection_increases_tab_count() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val tabsBefore = state.openTabs.size
 
         composeRule.setContent { MainScreen(state) }
@@ -223,7 +224,7 @@ class NewFeaturesUiTest {
 
     @Test
     fun duplicate_request_updates_ui_immediately() {
-        val state = AppState(withDemoData = true).apply { settings.confirmBeforeDelete = false }
+        val state = AppStateExamples.demo().apply { settings.confirmBeforeDelete = false }
         val before = state.collections.first().children.size
         composeRule.setContent { MainScreen(state) }
 
@@ -240,7 +241,7 @@ class NewFeaturesUiTest {
 
     @Test
     fun delete_request_updates_ui_immediately() {
-        val state = AppState(withDemoData = true).apply { settings.confirmBeforeDelete = false }
+        val state = AppStateExamples.demo().apply { settings.confirmBeforeDelete = false }
         val before = state.collections.first().children.size
         composeRule.setContent { MainScreen(state) }
 
@@ -259,7 +260,7 @@ class NewFeaturesUiTest {
 
     @Test
     fun delete_request_closes_open_tab_in_topbar() {
-        val state = AppState(withDemoData = true).apply { settings.confirmBeforeDelete = false }
+        val state = AppStateExamples.demo().apply { settings.confirmBeforeDelete = false }
         composeRule.setContent { MainScreen(state) }
 
         // Open r1 as a tab
@@ -278,7 +279,7 @@ class NewFeaturesUiTest {
 
     @Test
     fun delete_collection_closes_all_its_open_tabs_in_topbar() {
-        val state = AppState(withDemoData = true).apply { settings.confirmBeforeDelete = false }
+        val state = AppStateExamples.demo().apply { settings.confirmBeforeDelete = false }
         composeRule.setContent { MainScreen(state) }
 
         // Open two requests from the "Users API" collection (c1 contains r1, r2, r3)
@@ -301,7 +302,7 @@ class NewFeaturesUiTest {
 
     @Test
     fun add_request_updates_ui_immediately() {
-        val state = AppState(withDemoData = true).apply { settings.confirmBeforeDelete = false }
+        val state = AppStateExamples.demo().apply { settings.confirmBeforeDelete = false }
         val before = state.collections.first().children.size
         val firstCollectionId = state.collections.first().id
         composeRule.setContent { MainScreen(state) }
@@ -318,7 +319,7 @@ class NewFeaturesUiTest {
 
     @Test
     fun add_request_from_context_menu_adds_node() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val root = state.collections.first()
         val before = root.children.size
         composeRule.setContent { MainScreen(state) }
@@ -334,7 +335,7 @@ class NewFeaturesUiTest {
 
     @Test
     fun add_mcp_from_context_menu_adds_node_and_opens_tab() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val root = state.collections.first()
         val before = root.children.size
         val tabsBefore = state.openTabs.size
@@ -352,7 +353,7 @@ class NewFeaturesUiTest {
 
     @Test
     fun add_sse_from_context_menu_adds_node_and_opens_tab() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val root = state.collections.first()
         val before = root.children.size
         val tabsBefore = state.openTabs.size
@@ -370,7 +371,7 @@ class NewFeaturesUiTest {
 
     @Test
     fun add_request_from_nested_folder_context_menu() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         val root = state.collections.first()
         val folder = io.github.makeforge.clapi.ui.shared.components.sidebar.addSubfolderInCollections(state.collections, root.id, "Nested")
             ?: error("Folder creation failed")
@@ -387,7 +388,7 @@ class NewFeaturesUiTest {
 
     @Test
     fun open_request_shows_selected_indicator() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         composeRule.setContent { MainScreen(state) }
 
         composeRule.onNodeWithText("Get all users").performClick()

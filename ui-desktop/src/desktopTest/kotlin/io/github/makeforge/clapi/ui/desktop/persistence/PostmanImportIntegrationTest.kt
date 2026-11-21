@@ -17,7 +17,7 @@ class PostmanImportIntegrationTest {
 
     @Test
     fun importCollectionFromString_acceptsPostmanV2Collection() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val postmanJson = """
         {
           "info": {
@@ -54,7 +54,7 @@ class PostmanImportIntegrationTest {
 
     @Test
     fun importCollectionFromString_preservesFolderStructure() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val postmanJson = """
         {
           "info": {
@@ -88,7 +88,7 @@ class PostmanImportIntegrationTest {
 
     @Test
     fun importCollectionFromString_deduplicatesCollectionName() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val postmanJson = """
         {
           "info": {"name": "My API","schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
@@ -103,7 +103,7 @@ class PostmanImportIntegrationTest {
 
     @Test
     fun importCollectionFromString_throwsForUnrecognizedFormat() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         assertFailsWith<ImportExportException> {
             ImportExportRepository.importCollectionFromString(state, """{"foo":"bar"}""")
         }
@@ -111,7 +111,7 @@ class PostmanImportIntegrationTest {
 
     @Test
     fun importCollectionFromString_acceptsOpenCollectionFormat() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val openCollectionJson = """
         {
           "opencollection": "1.0.0",
@@ -127,7 +127,7 @@ class PostmanImportIntegrationTest {
 
     @Test
     fun importCollectionFromString_openCollectionFormat_regenerates_collection_and_folder_ids_per_import() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val openCollectionJson = """
         {
           "opencollection": "1.0.0",
@@ -162,7 +162,7 @@ class PostmanImportIntegrationTest {
 
     @Test
     fun importCollectionFromString_openCollectionFormat_preserves_scripts() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val openCollectionJson = """
         {
           "opencollection": "1.0.0",
@@ -195,7 +195,7 @@ class PostmanImportIntegrationTest {
 
     @Test
     fun importEnvironmentFromString_acceptsPostmanEnvironment() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val envJson = """
         {
           "name": "Production",
@@ -223,7 +223,7 @@ class PostmanImportIntegrationTest {
 
     @Test
     fun importEnvironmentFromString_deduplicatesName() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val envJson = """{"name":"Dev","values":[{"key":"x","value":"1","enabled":true}]}"""
         ImportExportRepository.importEnvironmentFromString(state, envJson)
         val name2 = ImportExportRepository.importEnvironmentFromString(state, envJson)
@@ -233,7 +233,7 @@ class PostmanImportIntegrationTest {
 
     @Test
     fun importEnvironmentFromString_stillAcceptsClapiFormat() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val clapiEnvJson = """
         {
           "type": "clapiEnvironment",
@@ -249,7 +249,7 @@ class PostmanImportIntegrationTest {
 
     @Test
     fun importCollectionFromString_acceptsWrappedPostmanExport() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val wrapped = """
         {
           "collection": {
@@ -272,7 +272,7 @@ class PostmanImportIntegrationTest {
 
     @Test
     fun importCollectionFromString_convertsScripts() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val postmanJson = """
         {
           "info": {"name":"Scripts","schema":"https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
@@ -298,7 +298,7 @@ class PostmanImportIntegrationTest {
 
     @Test
     fun importCollectionFromString_infersRawJsonFromContentTypeHeader() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val postmanJson = """
         {
           "info": {"name":"BodyType Header","schema":"https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
@@ -325,7 +325,7 @@ class PostmanImportIntegrationTest {
 
     @Test
     fun importCollectionFromString_infersRawJsonFromBodyShapeWhenLanguageMissing() {
-        val state = AppState(withDemoData = false)
+        val state = AppState()
         val postmanJson = """
         {
           "info": {"name":"BodyType Shape","schema":"https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},

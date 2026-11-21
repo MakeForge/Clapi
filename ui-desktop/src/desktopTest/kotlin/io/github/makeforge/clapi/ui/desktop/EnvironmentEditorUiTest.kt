@@ -25,6 +25,7 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import io.github.makeforge.clapi.ui.shared.state.AppStateExamples
 
 class EnvironmentEditorUiTest {
 
@@ -33,7 +34,7 @@ class EnvironmentEditorUiTest {
 
     @Test
     fun environment_editor_shows_variable_rows_with_test_tags() {
-        val state = AppState(withDemoData = true).apply {
+        val state = AppStateExamples.demo().apply {
             environments.first().variables.clear()
             environments.first().variables.add(MutableKeyValue("baseUrl", "http://localhost:8080"))
             environments.first().variables.add(MutableKeyValue("token", "abc123"))
@@ -51,7 +52,7 @@ class EnvironmentEditorUiTest {
 
     @Test
     fun environment_editor_input_can_be_edited_and_saved() {
-        val state = AppState(withDemoData = true).apply {
+        val state = AppStateExamples.demo().apply {
             environments.first().variables.clear()
             environments.first().variables.add(MutableKeyValue("baseUrl", "http://localhost:8080"))
             openEnvEdit(0)
@@ -70,7 +71,7 @@ class EnvironmentEditorUiTest {
 
     @Test
     fun environment_editor_does_not_save_empty_variable_rows() {
-        val state = AppState(withDemoData = true).apply {
+        val state = AppStateExamples.demo().apply {
             environments.first().variables.clear()
             openEnvEdit(0)
         }
@@ -95,7 +96,7 @@ class EnvironmentEditorUiTest {
      */
     @Test
     fun environment_dialog_title_bar_drag_moves_dialog() {
-        val state = AppState(withDemoData = true).apply { openEnvEdit(0) }
+        val state = AppStateExamples.demo().apply { openEnvEdit(0) }
         composeRule.setContent { MainScreen(state) }
         composeRule.waitForIdle()
 
@@ -124,7 +125,7 @@ class EnvironmentEditorUiTest {
      */
     @Test
     fun environment_dialog_drag_to_edge_stays_within_viewport() {
-        val state = AppState(withDemoData = true).apply { openEnvEdit(0) }
+        val state = AppStateExamples.demo().apply { openEnvEdit(0) }
         composeRule.setContent { MainScreen(state) }
         composeRule.waitForIdle()
 
@@ -156,7 +157,7 @@ class EnvironmentEditorUiTest {
      */
     @Test
     fun environment_dialog_title_bar_drag_moves_dialog_horizontally() {
-        val state = AppState(withDemoData = true).apply { openEnvEdit(0) }
+        val state = AppStateExamples.demo().apply { openEnvEdit(0) }
         composeRule.setContent { MainScreen(state) }
         composeRule.waitForIdle()
 
@@ -184,7 +185,7 @@ class EnvironmentEditorUiTest {
      */
     @Test
     fun environment_dialog_smooth_drag_with_small_increments() {
-        val state = AppState(withDemoData = true).apply { openEnvEdit(0) }
+        val state = AppStateExamples.demo().apply { openEnvEdit(0) }
         composeRule.setContent { MainScreen(state) }
         composeRule.waitForIdle()
 
@@ -350,7 +351,7 @@ class EnvironmentEditorUiTest {
 
     @Test
     fun right_resize_grows_width_and_keeps_left_edge() {
-        val state = AppState(withDemoData = true).apply { openEnvEdit(0) }
+        val state = AppStateExamples.demo().apply { openEnvEdit(0) }
         composeRule.setContent { MainScreen(state) }
         composeRule.waitForIdle()
 
@@ -377,7 +378,7 @@ class EnvironmentEditorUiTest {
 
     @Test
     fun bottom_and_corner_resize_change_the_expected_edges() {
-        val state = AppState(withDemoData = true).apply {
+        val state = AppStateExamples.demo().apply {
             settings.environmentDialogWidthDp = 640f
             settings.environmentDialogHeightDp = 480f
             openEnvEdit(0)
@@ -426,7 +427,7 @@ class EnvironmentEditorUiTest {
 
     @Test
     fun resize_after_move_keeps_anchored_edges_and_does_not_dismiss() {
-        val state = AppState(withDemoData = true).apply { openEnvEdit(0) }
+        val state = AppStateExamples.demo().apply { openEnvEdit(0) }
         composeRule.setContent { MainScreen(state) }
         composeRule.waitForIdle()
 
@@ -459,7 +460,7 @@ class EnvironmentEditorUiTest {
     fun resized_dialog_size_is_restored_from_settings() {
         PlatformStorage.remove("settings.environmentDialogWidthDp")
         PlatformStorage.remove("settings.environmentDialogHeightDp")
-        val state = AppState(withDemoData = true).apply { openEnvEdit(0) }
+        val state = AppStateExamples.demo().apply { openEnvEdit(0) }
         composeRule.setContent { MainScreen(state) }
         composeRule.waitForIdle()
 
@@ -487,7 +488,7 @@ class EnvironmentEditorUiTest {
 
     @Test
     fun restored_dialog_size_is_clamped_to_viewport() {
-        val state = AppState(withDemoData = true).apply {
+        val state = AppStateExamples.demo().apply {
             settings.environmentDialogWidthDp = 8000f
             settings.environmentDialogHeightDp = 8000f
             openEnvEdit(0)
@@ -503,7 +504,7 @@ class EnvironmentEditorUiTest {
     }
 
     private fun envEditorState(vararg variables: MutableKeyValue): AppState =
-        AppState(withDemoData = true).apply {
+        AppStateExamples.demo().apply {
             environments.first().variables.clear()
             variables.forEach { environments.first().variables.add(it) }
             openEnvEdit(0)

@@ -39,7 +39,7 @@ class WorkspaceMigrationTest {
         runBlocking { repo.saveGlobalCollection(legacyDoc) }
 
         WorkspaceRepository.canonicalRepository = repo
-        val state = AppState(withDemoData = false, openDefaultTab = false)
+        val state = AppState(openDefaultTab = false)
         WorkspaceRepository.load(state)
 
         // Loaded into 1 primary collection wrapping the 2 legacy folders
@@ -59,7 +59,7 @@ class WorkspaceMigrationTest {
         val repo = DefaultCanonicalCollectionRepository()
         WorkspaceRepository.canonicalRepository = repo
 
-        val state = AppState(withDemoData = false, openDefaultTab = false)
+        val state = AppState(openDefaultTab = false)
         val col1 = CollectionNode(
             id = "c1",
             name = "Users API",
@@ -89,7 +89,7 @@ class WorkspaceMigrationTest {
         assertTrue(saved)
 
         // Load into a new AppState instance
-        val reloadedState = AppState(withDemoData = false, openDefaultTab = false)
+        val reloadedState = AppState(openDefaultTab = false)
         WorkspaceRepository.load(reloadedState)
 
         assertEquals(2, reloadedState.collections.size)

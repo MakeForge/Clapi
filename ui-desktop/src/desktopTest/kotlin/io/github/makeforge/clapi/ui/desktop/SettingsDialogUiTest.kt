@@ -17,6 +17,7 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import io.github.makeforge.clapi.ui.shared.state.AppStateExamples
 
 /**
  * Compose UI tests covering:
@@ -126,7 +127,7 @@ class SettingsDialogUiTest {
 
     @Test
     fun clear_history_requires_confirmation_and_clears_entries() {
-        val state = AppState(withDemoData = true)
+        val state = AppStateExamples.demo()
         composeRule.setContent { MainScreen(state = state) }
 
         composeRule.onNodeWithTag("settings-button", useUnmergedTree = true).performClick()

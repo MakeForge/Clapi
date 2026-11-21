@@ -158,7 +158,7 @@ ui-shared/src/commonMain/kotlin/io/github/makeforge/ui/shared/
 │   └── SyntaxHighlighter.kt        Language enum + format helpers
 ├── state/
 │   ├── AppState.kt                 Root Compose state: tabs, environments, collections, settings
-│   └── AppStateDemoData.kt         Demo data helpers
+│   └── AppStateExamples.kt         Example and demo state helpers
 ├── persistence/
 │   ├── ImportExportRepository.kt   Single-collection OpenCollection (JSON/YAML) + environment import/export
 │   ├── OpenCollectionModelMapping.kt Mapping between UI CollectionNode/EnvState and OpenCollection models
