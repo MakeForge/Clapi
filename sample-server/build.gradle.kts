@@ -1,3 +1,4 @@
+// Modified by MakeForge (2026)
 plugins {
     kotlin("jvm")
     application

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Modified by MakeForge (2026)
 # Launches the Clapi sample MCP mock over stdio (MCP 2025-06-18).
 # Used by the test collection env var mcpStdioCommand.
 set -euo pipefail

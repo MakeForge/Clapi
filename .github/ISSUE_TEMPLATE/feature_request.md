@@ -3,6 +3,7 @@ name: Feature request
 about: Suggest an idea for this project
 labels: enhancement
 ---
+<!-- Modified by MakeForge (2026) -->
 
 **Is your feature request related to a problem? Please describe.**
 

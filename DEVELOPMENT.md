@@ -1,3 +1,4 @@
+<!-- Modified by MakeForge (2026) -->
 # Development Guide
 
 Everything you need to build, run, test, and contribute to Clapi.

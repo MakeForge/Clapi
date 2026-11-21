@@ -1,3 +1,4 @@
+// Modified by MakeForge (2026)
 package io.github.makeforge.clapi.ui.shared.components
 
 import androidx.compose.foundation.background
@@ -148,6 +149,31 @@ fun HelpAboutDialog(
                         HelpText("Build: Kotlin Multiplatform + Compose Multiplatform")
                         HelpText("Supported platforms: macOS, Windows, Linux")
                     }
+
+                    HelpSection("License & Attribution", DocsLinks.techstack) {
+                        HelpText("Licensed under the Apache License, Version 2.0. Copyright 2026 MakeForge.")
+                        HelpText("Includes software originally developed for ReqLab by snj07 (Copyright 2026 ReqLab Contributors), modified by MakeForge (2026).")
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            HelpLink(
+                                text = "LICENSE",
+                                url = "https://github.com/MakeForge/Clapi/blob/main/LICENSE",
+                                testTag = "help-about-license-link",
+                            )
+                            HelpLink(
+                                text = "NOTICE",
+                                url = "https://github.com/MakeForge/Clapi/blob/main/NOTICE",
+                                testTag = "help-about-notice-link",
+                            )
+                            HelpLink(
+                                text = "Third-Party Licenses",
+                                url = DocsLinks.techstack,
+                                testTag = "help-about-third-party-link",
+                            )
+                        }
+                    }
                 }
                     }
                 PlatformColumnVerticalScrollbar(
@@ -195,6 +221,25 @@ private fun HelpText(text: String) {
         fontSize = 12.sp,
         lineHeight = 18.sp,
     )
+}
+
+@Composable
+private fun HelpLink(text: String, url: String, testTag: String) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(4.dp))
+            .clickable { openUrlInBrowser(url) }
+            .padding(vertical = 2.dp)
+            .testTag(testTag),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = text,
+            color = ClapiColors.Primary,
+            fontSize = 12.sp,
+            textDecoration = TextDecoration.Underline,
+        )
+    }
 }
 
 @Composable

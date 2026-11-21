@@ -1,3 +1,4 @@
+<!-- Modified by MakeForge (2026) -->
 # RTK — Token-Optimized CLI
 
 **rtk** is a CLI proxy that filters and compresses command outputs, saving 60-90% tokens.

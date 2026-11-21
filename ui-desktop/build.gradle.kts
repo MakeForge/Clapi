@@ -1,3 +1,4 @@
+// Modified by MakeForge (2026)
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import dev.nucleusframework.desktop.application.dsl.TargetFormat
 import java.io.FileOutputStream
@@ -200,6 +201,40 @@ tasks.matching { it.name == "createDistributable" || it.name == "createReleaseDi
     }
 }
 
+val stageDistributionLegalFiles = tasks.register<Sync>("stageDistributionLegalFiles") {
+    group = "distribution"
+    description = "Stages root LICENSE and NOTICE files into packaged app resources."
+    from(rootProject.file("LICENSE"))
+    from(rootProject.file("NOTICE"))
+    into(layout.buildDirectory.dir("generated/distribution-legal/app-resources/common"))
+}
+
+val stageNsisLicenseFile = tasks.register<Copy>("stageNsisLicenseFile") {
+    group = "distribution"
+    description = "Stages root LICENSE as LICENSE.txt for the Windows NSIS installer."
+    from(rootProject.file("LICENSE")) {
+        rename { "LICENSE.txt" }
+    }
+    into(layout.buildDirectory.dir("generated/distribution-legal/nsis"))
+}
+
+tasks.named<org.gradle.jvm.tasks.Jar>("desktopJar") {
+    from(rootProject.file("LICENSE")) { into("META-INF") }
+    from(rootProject.file("NOTICE")) { into("META-INF") }
+}
+
+tasks.matching {
+    it.name == "prepareAppResources" || it.name == "prepareSandboxedAppResources"
+}.configureEach {
+    dependsOn(stageDistributionLegalFiles)
+}
+
+tasks.matching {
+    it.name != "stageNsisLicenseFile" && it.name.contains("Nsis", ignoreCase = true)
+}.configureEach {
+    dependsOn(stageNsisLicenseFile)
+}
+
 // ─── Desktop application + native packaging ───────────────────────────────────
 // Version flows from gradle.properties → root build.gradle.kts → project.version
 // Change it in ONE place: gradle.properties  appVersion=x.y.z
@@ -261,9 +296,11 @@ nucleus.application {
         packageName    = "Clapi"
         packageVersion = project.version.toString()   // e.g. "1.0.0"
         description    = "Clapi – API testing for every platform"
-        copyright      = "Clapi Contributors"
-        vendor         = "Clapi"
+        copyright      = "Copyright 2026 MakeForge; portions originally Copyright ReqLab Contributors"
+        vendor         = "MakeForge"
         homepage       = "https://github.com/makeforge/Clapi"
+        licenseFile.set(rootProject.file("LICENSE"))
+        appResourcesRootDir.set(layout.buildDirectory.dir("generated/distribution-legal/app-resources"))
         cleanupNativeLibs = true
 
         macOS {
@@ -282,6 +319,7 @@ nucleus.application {
                 createDesktopShortcut = true
                 createStartMenuShortcut = true
                 runAfterFinish = true
+                license.set(layout.buildDirectory.file("generated/distribution-legal/nsis/LICENSE.txt"))
             }
         }
         linux {
@@ -304,6 +342,14 @@ abstract class PackageClapiJarTask : DefaultTask() {
     @get:PathSensitive(PathSensitivity.NONE)
     abstract val mainJar: RegularFileProperty
 
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val licenseFile: RegularFileProperty
+
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val noticeFile: RegularFileProperty
+
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.NONE)
     abstract val runtimeClasspath: ConfigurableFileCollection
@@ -324,17 +370,25 @@ abstract class PackageClapiJarTask : DefaultTask() {
             mainAttributes[Attributes.Name.MAIN_CLASS] = mainClassName.get()
         }
 
+        val mainJarFile = mainJar.get().asFile
         val allJars = buildList {
-            add(mainJar.get().asFile)
+            add(mainJarFile)
             addAll(runtimeClasspath.files.filter { it.isFile && it.name.endsWith(".jar") })
         }
 
         val serviceMap = linkedMapOf<String, LinkedHashSet<String>>()
+        val thirdPartyNotices = linkedMapOf<String, String>()
+        val thirdPartyLicenses = linkedMapOf<String, String>()
         val seenEntries = hashSetOf("META-INF/", "META-INF/MANIFEST.MF")
 
         JarOutputStream(FileOutputStream(outFile).buffered(), manifest).use { jarOut ->
+            // Embed Clapi's canonical LICENSE and NOTICE at the top level of META-INF.
+            writeTextEntry(jarOut, seenEntries, "META-INF/LICENSE", licenseFile.get().asFile.readBytes())
+            writeTextEntry(jarOut, seenEntries, "META-INF/NOTICE", noticeFile.get().asFile.readBytes())
+
             for (jarFile in allJars) {
                 if (!jarFile.exists()) continue
+                val isMainJar = jarFile == mainJarFile
                 ZipFile(jarFile).use { zip ->
                     val entries = zip.entries()
                     while (entries.hasMoreElements()) {
@@ -350,6 +404,27 @@ abstract class PackageClapiJarTask : DefaultTask() {
                                         .filter { line -> line.isNotBlank() && !line.trimStart().startsWith("#") }
                                 }
                                 serviceMap.getOrPut(name) { linkedSetOf() }.addAll(lines)
+                            }
+                            continue
+                        }
+
+                        // Preserve third-party NOTICE and LICENSE files from bundled dependencies
+                        // rather than dropping duplicates or colliding with Clapi's own META-INF files.
+                        if (!entry.isDirectory && isTopLevelMetaInfNotice(name)) {
+                            if (!isMainJar) {
+                                val text = zip.getInputStream(entry).bufferedReader(Charsets.UTF_8).use { it.readText().trim() }
+                                if (text.isNotEmpty()) {
+                                    thirdPartyNotices["${jarFile.name} ($name)"] = text
+                                }
+                            }
+                            continue
+                        }
+                        if (!entry.isDirectory && isTopLevelMetaInfLicense(name)) {
+                            if (!isMainJar) {
+                                val text = zip.getInputStream(entry).bufferedReader(Charsets.UTF_8).use { it.readText().trim() }
+                                if (text.isNotEmpty()) {
+                                    thirdPartyLicenses["${jarFile.name} ($name)"] = text
+                                }
                             }
                             continue
                         }
@@ -371,6 +446,30 @@ abstract class PackageClapiJarTask : DefaultTask() {
                 }
             }
 
+            if (thirdPartyNotices.isNotEmpty()) {
+                val mergedNotices = buildString {
+                    thirdPartyNotices.forEach { (source, content) ->
+                        append("===============================================================================\n")
+                        append("NOTICE from ").append(source).append('\n')
+                        append("===============================================================================\n\n")
+                        append(content).append("\n\n")
+                    }
+                }
+                writeTextEntry(jarOut, seenEntries, "META-INF/THIRD-PARTY-NOTICES.txt", mergedNotices.toByteArray(Charsets.UTF_8))
+            }
+
+            if (thirdPartyLicenses.isNotEmpty()) {
+                val mergedLicenses = buildString {
+                    thirdPartyLicenses.forEach { (source, content) ->
+                        append("===============================================================================\n")
+                        append("LICENSE from ").append(source).append('\n')
+                        append("===============================================================================\n\n")
+                        append(content).append("\n\n")
+                    }
+                }
+                writeTextEntry(jarOut, seenEntries, "META-INF/THIRD-PARTY-LICENSES.txt", mergedLicenses.toByteArray(Charsets.UTF_8))
+            }
+
             // Write merged META-INF/services/* entries.
             if (serviceMap.isNotEmpty() && seenEntries.add("META-INF/services/")) {
                 jarOut.putNextEntry(ZipEntry("META-INF/services/"))
@@ -382,6 +481,31 @@ abstract class PackageClapiJarTask : DefaultTask() {
                 jarOut.closeEntry()
             }
         }
+    }
+
+    private fun writeTextEntry(jarOut: JarOutputStream, seenEntries: MutableSet<String>, path: String, bytes: ByteArray) {
+        if (!seenEntries.add(path)) return
+        jarOut.putNextEntry(ZipEntry(path))
+        jarOut.write(bytes)
+        jarOut.closeEntry()
+    }
+
+    private fun isTopLevelMetaInfNotice(name: String): Boolean {
+        if (!name.startsWith("META-INF/", ignoreCase = true)) return false
+        val rest = name.substring("META-INF/".length)
+        if ('/' in rest) return false
+        return rest.equals("NOTICE", ignoreCase = true) ||
+            rest.equals("NOTICE.txt", ignoreCase = true) ||
+            rest.equals("NOTICE.md", ignoreCase = true)
+    }
+
+    private fun isTopLevelMetaInfLicense(name: String): Boolean {
+        if (!name.startsWith("META-INF/", ignoreCase = true)) return false
+        val rest = name.substring("META-INF/".length)
+        if ('/' in rest) return false
+        return rest.equals("LICENSE", ignoreCase = true) ||
+            rest.equals("LICENSE.txt", ignoreCase = true) ||
+            rest.equals("LICENSE.md", ignoreCase = true)
     }
 
     private fun isExcludedEntry(name: String): Boolean {
@@ -404,6 +528,8 @@ val packageClapiJar = tasks.register<PackageClapiJarTask>("packageClapiJar") {
 
     mainClassName.set("io.github.makeforge.clapi.ui.desktop.MainKt")
     mainJar.set(desktopJarTask.flatMap { it.archiveFile })
+    licenseFile.set(rootProject.file("LICENSE"))
+    noticeFile.set(rootProject.file("NOTICE"))
     runtimeClasspath.from(desktopRuntimeClasspath)
     outputJar.set(layout.buildDirectory.file("distribute/Clapi-${project.version}.jar"))
 

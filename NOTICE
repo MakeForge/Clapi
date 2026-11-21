@@ -1,9 +1,9 @@
-
 Clapi
 Copyright 2026 MakeForge
 
 This product includes software originally developed for
-ReqLab by snj07.
+ReqLab by snj07 (Sanjay Sharma).
+Copyright 2026 ReqLab Contributors
 
 Original project:
 https://github.com/snj07/req-lab
@@ -11,7 +11,7 @@ https://github.com/snj07/req-lab
 The original project was made available under the
 Apache License, Version 2.0.
 
-Modifications have been made by MakeForge, including
+Modifications have been made by MakeForge (2026), including
 rebranding, code changes, and additional functionality.
 
 The original Apache License 2.0 terms and applicable

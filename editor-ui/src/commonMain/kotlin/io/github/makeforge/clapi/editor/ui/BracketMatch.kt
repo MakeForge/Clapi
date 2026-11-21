@@ -1,3 +1,4 @@
+// Modified by MakeForge (2026)
 package io.github.makeforge.clapi.editor.ui
 
 private val BRACKET_OPEN = mapOf('(' to ')', '[' to ']', '{' to '}')

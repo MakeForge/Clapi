@@ -1,3 +1,4 @@
+// Modified by MakeForge (2026)
 package io.github.makeforge.clapi.ui.desktop
 
 import androidx.compose.foundation.layout.Column
@@ -347,6 +348,9 @@ class MainScreenUiTest {
         composeRule.onNodeWithText("Help & About").assertIsDisplayed()
         composeRule.onNodeWithText("Documentation").assertIsDisplayed()
         composeRule.onNodeWithTag("help-about-docs-link").assertIsDisplayed()
+        composeRule.onNodeWithText("License & Attribution").assertExists()
+        composeRule.onNodeWithTag("help-about-license-link").assertExists()
+        composeRule.onNodeWithTag("help-about-notice-link").assertExists()
         composeRule.onNodeWithTag("help-about-close").performClick()
         composeRule.waitForIdle()
         kotlin.test.assertFalse(state.showHelpDialog)

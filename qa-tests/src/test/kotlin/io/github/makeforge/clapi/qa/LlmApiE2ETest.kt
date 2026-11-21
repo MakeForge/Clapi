@@ -1,3 +1,4 @@
+// Modified by MakeForge (2026)
 package io.github.makeforge.clapi.qa
 
 import io.github.makeforge.clapi.core.model.AuthConfig

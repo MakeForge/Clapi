@@ -1,3 +1,4 @@
+// Modified by MakeForge (2026)
 package io.github.makeforge.clapi.editor.ui
 
 import io.github.makeforge.clapi.editor.core.JsonMode

@@ -1,3 +1,4 @@
+<!-- Modified by MakeForge (2026) -->
 <p align="center">
   <img src="ui-desktop/src/desktopMain/resources/icons/clapi-icon-128.png" alt="Clapi" width="100" />
 </p>
@@ -90,4 +91,4 @@ See the workflow: [`.github/workflows/release.yml`](https://github.com/MakeForge
 
 ## License
 
-Apache 2.0 — see [LICENSE](LICENSE).
+Apache 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).

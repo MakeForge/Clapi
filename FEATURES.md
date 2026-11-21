@@ -1,3 +1,4 @@
+<!-- Modified by MakeForge (2026) -->
 # Clapi Features
 
 Clapi is a desktop-first API testing and development tool built with Kotlin and Compose Multiplatform. It is designed for fast request iteration, multi-protocol execution, scriptable validations, and reproducible API workflows across macOS, Linux, and Windows.

@@ -1,3 +1,4 @@
+// Modified by MakeForge (2026)
 package io.github.makeforge.clapi.ui.desktop.components
 
 import androidx.compose.ui.unit.IntOffset

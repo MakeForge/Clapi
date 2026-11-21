@@ -1,3 +1,4 @@
+<!-- Modified by MakeForge (2026) -->
 # Changelog
 
 All notable changes to Clapi are documented here.
@@ -22,5 +23,7 @@ All notable changes to Clapi are documented here.
 - **Persistent Logging & Documentation**: Asynchronous persistent file and diagnostics logging ([#46](https://github.com/MakeForge/Clapi/issues/46)) and VitePress documentation site ([#40](https://github.com/MakeForge/Clapi/issues/40)).
 
 ### Fixes
+
+- **Apache 2.0 License Compliance & Packaging**: Bundled `LICENSE` and `NOTICE` in native installers and the runnable fat JAR (preserving third-party dependency notices/licenses), added License & Attribution details to Help & About, preserved upstream ReqLab copyright attribution in `NOTICE`, and added modification notices to ReqLab-derived source files.
 
 ---
