@@ -1,18 +1,16 @@
 package io.github.makeforge.clapi.ui.shared.platform
 
+import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.ui.semantics.semantics
-import java.awt.datatransfer.DataFlavor
-import java.awt.dnd.DnDConstants
-import java.awt.dnd.DropTarget
-import java.awt.dnd.DropTargetAdapter
-import java.awt.dnd.DropTargetDragEvent
-import java.awt.dnd.DropTargetDropEvent
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.awtEventOrNull
+import androidx.compose.ui.draganddrop.DragAndDropEvent
+import androidx.compose.ui.draganddrop.DragAndDropTarget
+import androidx.compose.ui.draganddrop.awtTransferable
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
@@ -25,26 +23,35 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.utf16CodePoint
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.semantics.semantics
+import dev.nucleusframework.window.tao.TaoDragAndDropPayload
+import eu.anifantakis.lib.ksafe.KSafe
+import io.github.vinceglb.filekit.FileKit
+import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
+import io.github.vinceglb.filekit.dialogs.FileKitMode
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.openDirectoryPicker
+import io.github.vinceglb.filekit.dialogs.openFilePicker
+import io.github.vinceglb.filekit.dialogs.openFileSaver
+import io.github.vinceglb.filekit.path
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import javax.swing.SwingUtilities
+import kotlinx.coroutines.withContext
 import java.awt.Cursor
 import java.awt.Desktop
-import java.awt.FileDialog
-import java.awt.Frame
 import java.awt.Toolkit
+import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
 import java.io.File
-import java.io.FilenameFilter
-import java.util.Base64
 import java.text.SimpleDateFormat
+import java.util.Base64
 import java.util.Date
 import java.util.UUID
 import java.util.prefs.Preferences
-import eu.anifantakis.lib.ksafe.KSafe
 
 actual fun generateUuid(): String = UUID.randomUUID().toString()
 
@@ -58,7 +65,7 @@ actual fun copyToClipboard(text: String) {
 actual fun readFromClipboard(): String? {
     return try {
         val clipboard = Toolkit.getDefaultToolkit().systemClipboard
-        val data = clipboard.getData(java.awt.datatransfer.DataFlavor.stringFlavor)
+        val data = clipboard.getData(DataFlavor.stringFlavor)
         data as? String
     } catch (_: Exception) {
         null
@@ -90,88 +97,98 @@ actual fun Modifier.platformDiagonalResizeCursorStyle(isNwSe: Boolean): Modifier
 
 private val fileIoScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+/**
+ * Optional hook for tests to intercept [saveFileForExport] without opening an OS dialog.
+ */
+var testSaveFileInterceptor: ((content: String, defaultFilename: String) -> Boolean)? = null
+
 actual fun pickFileForImport(onResult: (fileName: String, content: String) -> Unit) {
-    val dialog = FileDialog(null as Frame?, "Import Specification", FileDialog.LOAD).apply {
-        applyRememberedDirectory()
-        filenameFilter = FilenameFilter { _, name ->
-            setOf("json", "yaml", "yml").any { ext -> name.endsWith(".$ext", ignoreCase = true) }
-        }
-        isVisible = true
-    }
+    fileIoScope.launch {
+        val picked = runCatching {
+            FileKit.openFilePicker(
+                type = FileKitType.File(extensions = listOf("json", "yaml", "yml")),
+                directory = rememberedPlatformDirectory(),
+                dialogSettings = FileKitDialogSettings(
+                    title = "Import Specification",
+                ),
+            )
+        }.getOrNull() ?: return@launch
 
-    val selectedDir = dialog.directory
-    val selectedFile = dialog.file
-
-    if (selectedDir != null && selectedFile != null) {
-        val selected = File(selectedDir, selectedFile)
+        val selected = File(picked.path)
         rememberChooserDirectory(selected)
-        fileIoScope.launch {
-            runCatching { selected.readText() }
-                .onSuccess { content ->
-                    SwingUtilities.invokeLater {
-                        onResult(selected.name, content)
-                    }
+        runCatching { selected.readText() }
+            .onSuccess { content ->
+                withContext(Dispatchers.Main) {
+                    onResult(selected.name, content)
                 }
-        }
+            }
     }
 }
 
 actual fun pickBinaryFileForRequest(onResult: (PickedBinaryFile) -> Unit) {
-    val dialog = FileDialog(null as Frame?, "Select File", FileDialog.LOAD).apply {
-        applyRememberedDirectory()
-        isVisible = true
-    }
-    val selectedDir = dialog.directory
-    val selectedFile = dialog.file
-    if (selectedDir != null && selectedFile != null) {
-        val selected = File(selectedDir, selectedFile)
+    fileIoScope.launch {
+        val picked = runCatching {
+            FileKit.openFilePicker(
+                type = FileKitType.File(),
+                directory = rememberedPlatformDirectory(),
+                dialogSettings = FileKitDialogSettings(
+                    title = "Select File",
+                ),
+            )
+        }.getOrNull() ?: return@launch
+
+        val selected = File(picked.path)
         rememberChooserDirectory(selected)
-        fileIoScope.launch {
-            runCatching {
-                val bytes = selected.readBytes()
-                Base64.getEncoder().encodeToString(bytes)
-            }.onSuccess { base64 ->
-                SwingUtilities.invokeLater {
-                    onResult(PickedBinaryFile(name = selected.name, base64Content = base64))
-                }
+        runCatching {
+            val bytes = selected.readBytes()
+            Base64.getEncoder().encodeToString(bytes)
+        }.onSuccess { base64 ->
+            withContext(Dispatchers.Main) {
+                onResult(PickedBinaryFile(name = selected.name, base64Content = base64))
             }
         }
     }
 }
 
 actual fun pickProtoFile(onResult: (filePath: String) -> Unit) {
-    val dialog = FileDialog(null as Frame?, "Select Proto File", FileDialog.LOAD).apply {
-        applyRememberedDirectory()
-        filenameFilter = FilenameFilter { _, name -> name.endsWith(".proto", ignoreCase = true) }
-        isVisible = true
-    }
-    val selectedDir = dialog.directory
-    val selectedFile = dialog.file
-    if (selectedDir != null && selectedFile != null) {
-        val selected = File(selectedDir, selectedFile)
+    fileIoScope.launch {
+        val picked = runCatching {
+            FileKit.openFilePicker(
+                type = FileKitType.File(extensions = listOf("proto")),
+                directory = rememberedPlatformDirectory(),
+                dialogSettings = FileKitDialogSettings(
+                    title = "Select Proto File",
+                ),
+            )
+        }.getOrNull() ?: return@launch
+
+        val selected = File(picked.path)
         rememberChooserDirectory(selected)
-        onResult(selected.absolutePath)
+        withContext(Dispatchers.Main) {
+            onResult(selected.absolutePath)
+        }
     }
 }
 
 actual fun pickProtoFiles(onResult: (filePaths: List<String>) -> Unit) {
-    val dialog = FileDialog(null as Frame?, "Select Proto Files", FileDialog.LOAD).apply {
-        applyRememberedDirectory()
-        isMultipleMode = true
-        filenameFilter = FilenameFilter { _, name -> name.endsWith(".proto", ignoreCase = true) }
-        isVisible = true
-    }
-    val files = dialog.files
-    if (files != null && files.isNotEmpty()) {
-        rememberChooserDirectory(files.first())
-        onResult(files.map { it.absolutePath })
-    } else {
-        val selectedDir = dialog.directory
-        val selectedFile = dialog.file
-        if (selectedDir != null && selectedFile != null) {
-            val selected = File(selectedDir, selectedFile)
-            rememberChooserDirectory(selected)
-            onResult(listOf(selected.absolutePath))
+    fileIoScope.launch {
+        val pickedList = runCatching {
+            FileKit.openFilePicker(
+                type = FileKitType.File(extensions = listOf("proto")),
+                mode = FileKitMode.Multiple(),
+                directory = rememberedPlatformDirectory(),
+                dialogSettings = FileKitDialogSettings(
+                    title = "Select Proto Files",
+                ),
+            )
+        }.getOrNull()
+
+        if (!pickedList.isNullOrEmpty()) {
+            val files = pickedList.map { File(it.path) }
+            rememberChooserDirectory(files.first())
+            withContext(Dispatchers.Main) {
+                onResult(files.map { it.absolutePath })
+            }
         }
     }
 }
@@ -180,30 +197,30 @@ actual fun openFileInDefaultApp(filePath: String) {
     runCatching {
         val file = File(filePath)
         if (!file.exists()) return
-        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN)) {
-            Desktop.getDesktop().open(file)
-        } else {
-            val os = System.getProperty("os.name", "").lowercase()
-            when {
-                os.contains("win") -> ProcessBuilder("cmd", "/c", "start", "\"\"", file.absolutePath).start()
-                os.contains("mac") -> ProcessBuilder("open", file.absolutePath).start()
-                else -> ProcessBuilder("xdg-open", file.absolutePath).start()
+        val os = System.getProperty("os.name", "").lowercase()
+        when {
+            os.contains("linux") -> ProcessBuilder("xdg-open", file.absolutePath).start()
+            Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN) -> {
+                Desktop.getDesktop().open(file)
             }
+            os.contains("win") -> ProcessBuilder("cmd", "/c", "start", "\"\"", file.absolutePath).start()
+            os.contains("mac") -> ProcessBuilder("open", file.absolutePath).start()
+            else -> ProcessBuilder("xdg-open", file.absolutePath).start()
         }
     }
 }
 
 actual fun openUrlInBrowser(url: String) {
     runCatching {
-        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-            Desktop.getDesktop().browse(java.net.URI.create(url))
-        } else {
-            val os = System.getProperty("os.name", "").lowercase()
-            when {
-                os.contains("win") -> ProcessBuilder("cmd", "/c", "start", "\"\"", url).start()
-                os.contains("mac") -> ProcessBuilder("open", url).start()
-                else -> ProcessBuilder("xdg-open", url).start()
+        val os = System.getProperty("os.name", "").lowercase()
+        when {
+            os.contains("linux") -> ProcessBuilder("xdg-open", url).start()
+            Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE) -> {
+                Desktop.getDesktop().browse(java.net.URI.create(url))
             }
+            os.contains("win") -> ProcessBuilder("cmd", "/c", "start", "\"\"", url).start()
+            os.contains("mac") -> ProcessBuilder("open", url).start()
+            else -> ProcessBuilder("xdg-open", url).start()
         }
     }
 }
@@ -229,26 +246,22 @@ actual fun platformDocsBaseUrlOverride(): String? {
 }
 
 actual fun saveFileForExport(content: String, defaultFilename: String) {
-    val dialog = FileDialog(null as Frame?, "Export", FileDialog.SAVE).apply {
-        applyRememberedDirectory()
-        file = defaultFilename
-        val ext = defaultFilename.substringAfterLast('.', "").lowercase()
-        if (ext == "yaml" || ext == "yml") {
-            filenameFilter = FilenameFilter { _, name ->
-                name.endsWith(".yaml", ignoreCase = true) || name.endsWith(".yml", ignoreCase = true)
-            }
-        } else if (ext == "json") {
-            filenameFilter = FilenameFilter { _, name ->
-                name.endsWith(".json", ignoreCase = true)
-            }
-        }
-        isVisible = true
+    if (testSaveFileInterceptor?.invoke(content, defaultFilename) == true) {
+        return
     }
-    val selectedDir = dialog.directory
-    val selectedFile = dialog.file
-    if (selectedDir != null && selectedFile != null) {
-        var file = File(selectedDir, selectedFile)
-        val ext = defaultFilename.substringAfterLast('.', "").lowercase()
+    fileIoScope.launch {
+        val suggestedName = defaultFilename.substringBeforeLast('.', defaultFilename)
+        val ext = defaultFilename.substringAfterLast('.', "").lowercase().ifBlank { null }
+        val picked = runCatching {
+            FileKit.openFileSaver(
+                suggestedName = suggestedName,
+                extension = ext,
+                directory = rememberedPlatformDirectory(),
+                dialogSettings = FileKitDialogSettings(title = "Export"),
+            )
+        }.getOrNull() ?: return@launch
+
+        var file = File(picked.path)
         if (ext == "yaml" || ext == "yml") {
             if (!file.name.endsWith(".yaml", ignoreCase = true) && !file.name.endsWith(".yml", ignoreCase = true)) {
                 file = File(file.absolutePath + ".yaml")
@@ -259,37 +272,32 @@ actual fun saveFileForExport(content: String, defaultFilename: String) {
             }
         }
         rememberChooserDirectory(file)
-        val targetFile = file
-        fileIoScope.launch {
-            runCatching { targetFile.writeText(content) }
-        }
+        runCatching { file.writeText(content) }
     }
 }
 
 actual fun pickDirectory(onResult: (directoryPath: String) -> Unit) {
-    javax.swing.SwingUtilities.invokeLater {
-        val chooser = javax.swing.JFileChooser().apply {
-            fileSelectionMode = javax.swing.JFileChooser.DIRECTORIES_ONLY
-            dialogTitle = "Select Destination Directory"
-            val remembered = FileChooserMemory.directoryToOpen(PlatformStorage.getString(FileChooserMemory.LAST_DIR_KEY)) { candidate ->
-                File(candidate).isDirectory
-            }
-            if (remembered != null) currentDirectory = File(remembered)
-        }
-        val result = chooser.showOpenDialog(null)
-        if (result == javax.swing.JFileChooser.APPROVE_OPTION && chooser.selectedFile != null) {
-            val dir = chooser.selectedFile
-            rememberChooserDirectory(dir)
+    fileIoScope.launch {
+        val picked = runCatching {
+            FileKit.openDirectoryPicker(
+                directory = rememberedPlatformDirectory(),
+                dialogSettings = FileKitDialogSettings(title = "Select Destination Directory"),
+            )
+        }.getOrNull() ?: return@launch
+
+        val dir = File(picked.path)
+        rememberChooserDirectory(dir)
+        withContext(Dispatchers.Main) {
             onResult(dir.absolutePath)
         }
     }
 }
 
-private fun FileDialog.applyRememberedDirectory() {
+private fun rememberedPlatformDirectory(): PlatformFile? {
     val path = FileChooserMemory.directoryToOpen(PlatformStorage.getString(FileChooserMemory.LAST_DIR_KEY)) { candidate ->
         File(candidate).isDirectory
     }
-    if (path != null) directory = path
+    return path?.let { PlatformFile(File(it)) }
 }
 
 private fun rememberChooserDirectory(file: File) {
@@ -315,19 +323,19 @@ actual fun resetCtrlSpaceTrigger() {
 }
 
 actual fun handleCtrlSpaceKeyEvent(
-    event: androidx.compose.ui.input.key.KeyEvent,
+    event: KeyEvent,
     onTrigger: () -> Unit,
 ): Boolean {
     val awt = event.awtEventOrNull
     val isCtrlOrMeta = event.isCtrlPressed || event.isMetaPressed ||
             (awt != null && (awt.isControlDown || awt.isMetaDown))
 
-    val isSpaceKey = event.key == androidx.compose.ui.input.key.Key.Spacebar ||
+    val isSpaceKey = event.key == Key.Spacebar ||
             awt?.keyCode == java.awt.event.KeyEvent.VK_SPACE
 
     // 1. KeyDown / KEY_PRESSED with Spacebar and Ctrl/Meta
     if (isCtrlOrMeta && !event.isAltPressed && !event.isShiftPressed && isSpaceKey) {
-        if (event.type == androidx.compose.ui.input.key.KeyEventType.KeyDown ||
+        if (event.type == KeyEventType.KeyDown ||
             awt?.id == java.awt.event.KeyEvent.KEY_PRESSED
         ) {
             awt?.consume()
@@ -335,7 +343,7 @@ actual fun handleCtrlSpaceKeyEvent(
             onTrigger()
             return true
         }
-        if (event.type == androidx.compose.ui.input.key.KeyEventType.KeyUp ||
+        if (event.type == KeyEventType.KeyUp ||
             awt?.id == java.awt.event.KeyEvent.KEY_RELEASED
         ) {
             awt?.consume()
@@ -356,12 +364,28 @@ actual fun handleCtrlSpaceKeyEvent(
     return false
 }
 
+private var lastClickTargetId: String? = null
+private var lastClickTimestampMs: Long = 0L
+private const val DOUBLE_CLICK_TIMEOUT_MS = 400L
+
 actual fun isPointerDoubleClick(targetId: String, event: PointerEvent): Boolean {
     val mouse = event.awtEventOrNull
     if (mouse != null) {
         return mouse.clickCount >= 2
     }
-    return testDoubleClickActive
+    if (testDoubleClickActive) {
+        return true
+    }
+    val now = System.currentTimeMillis()
+    val isDouble = (targetId == lastClickTargetId) && (now - lastClickTimestampMs in 1..DOUBLE_CLICK_TIMEOUT_MS)
+    if (isDouble) {
+        lastClickTargetId = null
+        lastClickTimestampMs = 0L
+    } else {
+        lastClickTargetId = targetId
+        lastClickTimestampMs = now
+    }
+    return isDouble
 }
 
 actual object PlatformStorage {
@@ -487,73 +511,70 @@ actual object PlatformStorage {
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 actual fun Modifier.fileDropTarget(
     onFileDropped: (fileName: String, content: String) -> Unit,
 ): Modifier {
-    val window = java.awt.Window.getWindows().firstOrNull { it.isShowing }
     val currentOnFileDropped by rememberUpdatedState(onFileDropped)
 
-    DisposableEffect(window) {
-        val target = window ?: return@DisposableEffect onDispose {}
-        val previousDropTarget = target.dropTarget
-
-        val listener = object : DropTargetAdapter() {
-            override fun dragOver(dtde: DropTargetDragEvent) {
-                if (dtde.isDataFlavorSupported(DataFlavor.javaFileListFlavor) || dtde.isDataFlavorSupported(DataFlavor.stringFlavor)) {
-                    dtde.acceptDrag(DnDConstants.ACTION_COPY)
-                } else {
-                    dtde.rejectDrag()
-                }
-            }
-
-            override fun drop(dtde: DropTargetDropEvent) {
+    val dropTarget = remember {
+        object : DragAndDropTarget {
+            override fun onDrop(event: DragAndDropEvent): Boolean {
                 try {
-                    if (dtde.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
-                        dtde.acceptDrop(DnDConstants.ACTION_COPY)
-                        val files = dtde.transferable.getTransferData(DataFlavor.javaFileListFlavor) as? List<*>
-                        val file = files?.filterIsInstance<File>()?.firstOrNull { f ->
-                            val ext = f.extension.lowercase()
-                            ext in setOf("yaml", "yml", "json")
-                        }
-                        if (file != null) {
-                            fileIoScope.launch {
-                                val text = runCatching { file.readText() }.getOrNull()
-                                if (text != null) {
-                                    SwingUtilities.invokeLater {
-                                        currentOnFileDropped(file.name, text)
-                                    }
-                                }
+                    val payload = event.nativeEvent as? TaoDragAndDropPayload
+                    val files: List<File> = when {
+                        payload != null -> payload.files.map { File(it) }
+                        else -> {
+                            val transferable = runCatching { event.awtTransferable }.getOrNull()
+                            if (transferable != null && transferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+                                (transferable.getTransferData(DataFlavor.javaFileListFlavor) as? List<*>)
+                                    ?.filterIsInstance<File>()
+                                    .orEmpty()
+                            } else {
+                                emptyList()
                             }
-                            dtde.dropComplete(true)
-                            return
-                        }
-                    } else if (dtde.isDataFlavorSupported(DataFlavor.stringFlavor)) {
-                        dtde.acceptDrop(DnDConstants.ACTION_COPY)
-                        val text = dtde.transferable.getTransferData(DataFlavor.stringFlavor) as? String
-                        if (!text.isNullOrBlank()) {
-                            currentOnFileDropped("dropped-spec.yaml", text)
-                            dtde.dropComplete(true)
-                            return
                         }
                     }
-                    dtde.rejectDrop()
-                } catch (e: Exception) {
-                    dtde.dropComplete(false)
+
+                    val matchingFile = files.firstOrNull { f ->
+                        f.extension.lowercase() in setOf("yaml", "yml", "json")
+                    }
+                    if (matchingFile != null) {
+                        fileIoScope.launch {
+                            val text = runCatching { matchingFile.readText() }.getOrNull()
+                            if (text != null) {
+                                withContext(Dispatchers.Main) {
+                                    currentOnFileDropped(matchingFile.name, text)
+                                }
+                            }
+                        }
+                        return true
+                    }
+
+                    val transferable = runCatching { event.awtTransferable }.getOrNull()
+                    if (transferable != null && transferable.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+                        val text = transferable.getTransferData(DataFlavor.stringFlavor) as? String
+                        if (!text.isNullOrBlank()) {
+                            currentOnFileDropped("dropped-spec.yaml", text)
+                            return true
+                        }
+                    }
+                } catch (_: Exception) {
+                    return false
                 }
+                return false
             }
         }
+    }
 
-        val newDropTarget = DropTarget(target, DnDConstants.ACTION_COPY, listener, true)
-        target.dropTarget = newDropTarget
-
-        onDispose {
-            target.dropTarget = previousDropTarget
+    return this
+        .dragAndDropTarget(
+            shouldStartDragAndDrop = { true },
+            target = dropTarget,
+        )
+        .semantics {
+            set(FileDropSemanticsKey, currentOnFileDropped)
         }
-    }
-
-    return this.semantics {
-        set(FileDropSemanticsKey, currentOnFileDropped)
-    }
 }
 

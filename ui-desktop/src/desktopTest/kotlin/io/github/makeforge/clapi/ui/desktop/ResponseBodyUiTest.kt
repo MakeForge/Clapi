@@ -270,18 +270,11 @@ class ResponseBodyUiTest {
         composeRule.setContent { MainScreen(stateWithJsonResponse()) }
         composeRule.waitForIdle()
 
-        // The desktop export opens a modal FileDialog. Dismiss it on the EDT
-        // so this UI test can exercise the post-dialog focus behavior unattended.
-        val dismissChooser = javax.swing.Timer(100) {
-            java.awt.Window.getWindows().firstOrNull { window ->
-                window.isShowing && (window is java.awt.FileDialog ||
-                    (window is javax.swing.JDialog && window.contentPane.components.any { it is javax.swing.JFileChooser }))
-            }?.dispose()
-        }.apply { start() }
+        io.github.makeforge.clapi.ui.shared.platform.testSaveFileInterceptor = { _, _ -> true }
         try {
             composeRule.onNodeWithTag("response-download-button").performClick()
         } finally {
-            dismissChooser.stop()
+            io.github.makeforge.clapi.ui.shared.platform.testSaveFileInterceptor = null
         }
         composeRule.waitForIdle()
 

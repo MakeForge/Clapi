@@ -1,4 +1,6 @@
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
+import dev.nucleusframework.desktop.application.dsl.CompressionLevel
+import dev.nucleusframework.desktop.application.dsl.TargetFormat
 import java.io.FileOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
@@ -8,6 +10,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.nucleus)
     alias(libs.plugins.roborazzi)
 }
 
@@ -25,9 +28,13 @@ kotlin {
                 implementation(compose.runtime)
                 implementation(compose.foundation)
                 implementation(compose.material3)
+                implementation(libs.nucleus.application)
+                implementation(libs.nucleus.core.runtime)
+                implementation(libs.nucleus.decorated.window.tao)
+                implementation(libs.nucleus.decorated.window.material3)
+                implementation(libs.filekit.dialogs)
                 implementation(project(":ui-shared"))
                 implementation(libs.coroutines.core)
-                implementation(libs.coroutines.swing)
                 implementation(libs.kotlin.logging)
                 implementation(libs.slf4j.api)
                 implementation(libs.tinylog.api)
@@ -147,8 +154,10 @@ private fun stripEmbeddedJarBlobs(jarFile: File) {
 }
 
 tasks.matching { it.name == "createDistributable" || it.name == "createReleaseDistributable" }.configureEach {
+    val binariesDirProvider = layout.buildDirectory.dir("compose/binaries")
+    notCompatibleWithConfigurationCache("Strips embedded protoc 2.x binaries from distributable JARs")
     doLast {
-        val binariesDir = layout.buildDirectory.dir("compose/binaries").get().asFile
+        val binariesDir = binariesDirProvider.get().asFile
         if (binariesDir.exists()) {
             binariesDir.walkTopDown()
                 .filter { it.isFile && it.extension == "jar" && it.name.startsWith("protoc-jar-") }
@@ -160,11 +169,10 @@ tasks.matching { it.name == "createDistributable" || it.name == "createReleaseDi
 // ─── Desktop application + native packaging ───────────────────────────────────
 // Version flows from gradle.properties → root build.gradle.kts → project.version
 // Change it in ONE place: gradle.properties  appVersion=x.y.z
-compose.desktop {
-    application {
-        mainClass = "io.github.makeforge.clapi.ui.desktop.MainKt"
-        // Baseline without any jvmArgs: 316MB
-        // # SerialGC: 230MB
+nucleus.application {
+    mainClass = "io.github.makeforge.clapi.ui.desktop.MainKt"
+    // Baseline without any jvmArgs: 316MB
+    // # SerialGC: 230MB
 //        jvmArgs += listOf(
 //            "-Xms64m",
 //            "-Xmx256m",
@@ -174,7 +182,7 @@ compose.desktop {
 //            "-Xss256k",
 //            "-XX:MaxMetaspaceSize=96m"
 //        )
-        // Generational ZGC: 245MB
+    // Generational ZGC: 245MB
 //        jvmArgs += listOf(
 //            "-Xms64m",
 //            "-Xmx1g",
@@ -185,7 +193,7 @@ compose.desktop {
 //            "-Xss256k",
 //            "-XX:MaxMetaspaceSize=128m"
 //        )
-        // Generational ZGC + JIT code & Direct Cache: 204MB
+    // Generational ZGC + JIT code & Direct Cache: 204MB
 //        jvmArgs += listOf(
 //            "-Xms64m",
 //            "-Xmx1g",
@@ -198,75 +206,83 @@ compose.desktop {
 //            "-XX:ReservedCodeCacheSize=64m",
 //            "-XX:MaxDirectMemorySize=64m"
 //        )
-        // Generational ZGC + JIT code & Direct Cache mildly: 208MB
-        jvmArgs += listOf(
-            "-Xms64m",
-            "-Xmx2g",                        // High ceiling so large JSON/binary responses never crash the app
-            "-XX:SoftMaxHeapSize=192m",      // ZGC aggressively keeps idle heap at or below 192 MB
-            "-XX:+UseZGC",
-            "-XX:+ZGenerational",            // Low-latency generational GC (JDK 21+)
-            "-XX:ZUncommitDelay=10",         // Returns spike RAM back to OS 10 seconds after closing a big tab
-            "-XX:+UseStringDeduplication",   // Huge win for JSON payloads with repeated keys ("id", "type", "created_at")
-            "-Xss256k",
-            "-XX:MaxMetaspaceSize=128m",
-            "-XX:ReservedCodeCacheSize=96m",
-            "-XX:MaxDirectMemorySize=256m"   // Give Ktor/OkHttp/Skia enough direct buffer headroom for large downloads
+    // Generational ZGC + JIT code & Direct Cache mildly: 208MB
+    jvmArgs += listOf(
+        "-Xms64m",
+        "-Xmx2g",                        // High ceiling so large JSON/binary responses never crash the app
+        "-XX:SoftMaxHeapSize=192m",      // ZGC aggressively keeps idle heap at or below 192 MB
+        "-XX:+UseZGC",
+        "-XX:+ZGenerational",            // Low-latency generational GC (JDK 21+)
+        "-XX:ZUncommitDelay=10",         // Returns spike RAM back to OS 10 seconds after closing a big tab
+        "-XX:+UseStringDeduplication",   // Huge win for JSON payloads with repeated keys ("id", "type", "created_at")
+        "-Xss256k",
+        "-XX:MaxMetaspaceSize=128m",
+        "-XX:ReservedCodeCacheSize=96m",
+        "-XX:MaxDirectMemorySize=256m"   // Give Ktor/OkHttp/Skia enough direct buffer headroom for large downloads
+    )
+
+    buildTypes.release.proguard {
+        isEnabled.set(false)
+    }
+
+    nativeDistributions {
+        modules(
+            "java.base",
+            "java.datatransfer",
+            "java.desktop",
+            "java.instrument",
+            "java.logging",
+            "java.management",
+            "java.naming",
+            "java.net.http",
+            "java.prefs",
+            "java.security.jgss",
+            "java.sql",
+            "java.xml",
+            "jdk.crypto.ec",
+            "jdk.security.auth",
+            "jdk.unsupported",
         )
 
-        buildTypes.release.proguard {
-            isEnabled.set(false)
+        // Target every platform; each CI runner builds only what it supports.
+        targetFormats(
+            TargetFormat.Dmg,  // macOS
+            TargetFormat.Nsis, // Windows (switched from Msi)
+            TargetFormat.Deb,  // Linux (Debian)
+            TargetFormat.Rpm,  // Linux (Fedora)
+        )
+
+        packageName    = "Clapi"
+        packageVersion = project.version.toString()   // e.g. "1.0.0"
+        description    = "Clapi – API testing for every platform"
+        copyright      = "Clapi Contributors"
+        vendor         = "Clapi"
+        homepage       = "https://github.com/makeforge/Clapi"
+        cleanupNativeLibs = true
+
+        macOS {
+            bundleID = "io.github.makeforge.clapi"
+            iconFile.set(project.file("src/desktopMain/resources/icons/clapi.icns"))
+            // dmgPackageVersion inherits packageVersion automatically
         }
-
-        nativeDistributions {
-            modules(
-                "java.base",
-                "java.datatransfer",
-                "java.desktop",
-                "java.instrument",
-                "java.logging",
-                "java.management",
-                "java.naming",
-                "java.net.http",
-                "java.prefs",
-                "java.security.jgss",
-                "java.sql",
-                "java.xml",
-                "jdk.crypto.ec",
-                "jdk.unsupported",
-            )
-
-            // Target every platform; each CI runner builds only what it supports.
-            targetFormats(
-                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg,  // macOS
-                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Msi,  // Windows
-                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb,  // Linux (Debian)
-                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Rpm,  // Linux (Fedora)
-            )
-
-            packageName    = "Clapi"
-            packageVersion = project.version.toString()   // e.g. "1.0.0"
-            description    = "Clapi – API testing for every platform"
-            copyright      = "Clapi Contributors"
-            vendor         = "Clapi"
-
-            macOS {
-                bundleID = "io.github.makeforge.clapi"
-                iconFile.set(project.file("src/desktopMain/resources/icons/clapi.icns"))
-                // dmgPackageVersion inherits packageVersion automatically
+        windows {
+            menuGroup          = "Clapi"
+            iconFile.set(project.file("src/desktopMain/resources/icons/clapi.ico"))
+            nsis {
+                oneClick = false
+                perMachine = false
+                allowElevation = true
+                allowToChangeInstallationDirectory = true
+                createDesktopShortcut = true
+                createStartMenuShortcut = true
+                runAfterFinish = true
             }
-            windows {
-                dirChooser         = true
-                perUserInstall     = true
-                shortcut           = true
-                menuGroup          = "Clapi"
-                iconFile.set(project.file("src/desktopMain/resources/icons/clapi.ico"))
-            }
-            linux {
-                packageName        = "clapi"
-                debMaintainer      = "makeforge@yahoo.com"
-                appCategory        = "Development"
-                iconFile.set(project.file("src/desktopMain/resources/icons/clapi-icon-256.png"))
-            }
+        }
+        linux {
+            packageName        = "clapi"
+            debMaintainer      = "makeforge@yahoo.com"
+            appCategory        = "Development"
+            iconFile.set(project.file("src/desktopMain/resources/icons/clapi-icon-256.png"))
         }
     }
 }
@@ -415,16 +431,6 @@ tasks.withType<Test>().configureEach {
             includeTestsMatching("*Roborazzi*")
             includeTestsMatching("*Preview*")
         }
-    }
-}
-
-tasks.withType<JavaExec>().configureEach {
-    if (name == "run") {
-        jvmArgs(
-            "-Dapple.awt.application.name=Clapi",
-            "-Djava.awt.application.name=Clapi",
-            "-Xdock:name=Clapi",
-        )
     }
 }
 
