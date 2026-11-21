@@ -23,7 +23,7 @@ class PlatformStorageTest {
     private val SMALL_KEY  = "test.platform.small"
     private val LARGE_KEY  = "test.platform.large"
 
-    private val pstoreDir = File(System.getProperty("user.home"), ".clapi/pstore")
+    private val pstoreDir get() = PlatformStorage.pstoreDirectory
 
     /** Mirrors the internal key → filename mapping in PlatformStorage. */
     private fun backingFile(key: String): File =

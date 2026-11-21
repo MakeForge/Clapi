@@ -44,6 +44,10 @@ allprojects {
             freeCompilerArgs.add("-Xskip-metadata-version-check")
         }
     }
+
+    tasks.withType<Test>().configureEach {
+        systemProperty("clapi.dir", "${project.layout.buildDirectory.get().asFile.absolutePath}/test-clapi-storage")
+    }
 }
 
 // Force a single instance of every CodeMirror sub-package so that
