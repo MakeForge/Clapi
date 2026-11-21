@@ -1,8 +1,12 @@
 package io.github.makeforge.clapi.ui.shared.i18n
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.test.assertFalse
 
@@ -85,6 +89,65 @@ class I18nCompletenessTest {
     )
 
     // ── Completeness ──
+
+    private fun parseBundleKeysAndValues(lang: AppLanguage): Map<String, String> {
+        val raw = loadTranslationBundle(lang.code)
+        assertNotNull(raw, "Translation bundle for '${lang.code}' must exist")
+        return Json.parseToJsonElement(raw)
+            .jsonObject
+            .mapValues { (_, v) -> v.jsonPrimitive.content }
+    }
+
+    @Test
+    fun all_language_bundles_have_exact_key_parity_with_english() {
+        val enKeys = parseBundleKeysAndValues(AppLanguage.EN).keys
+        assertTrue(enKeys.isNotEmpty(), "English bundle must not be empty")
+
+        for (lang in AppLanguage.entries) {
+            if (lang == AppLanguage.EN) continue
+            val langMap = parseBundleKeysAndValues(lang)
+            val missing = (enKeys - langMap.keys).sorted()
+            val extra = (langMap.keys - enKeys).sorted()
+            assertTrue(
+                missing.isEmpty(),
+                "Language '${lang.code}' is missing ${missing.size} key(s) present in en.json: $missing"
+            )
+            assertTrue(
+                extra.isEmpty(),
+                "Language '${lang.code}' has ${extra.size} extra key(s) not present in en.json: $extra"
+            )
+        }
+    }
+
+    @Test
+    fun all_language_bundles_have_no_duplicate_keys_and_no_blank_values() {
+        val keyLineRegex = Regex("""^\s*"([^"]+)"\s*:""")
+        for (lang in AppLanguage.entries) {
+            val raw = loadTranslationBundle(lang.code)
+            assertNotNull(raw, "Translation bundle for '${lang.code}' must exist")
+
+            val seen = mutableSetOf<String>()
+            val duplicates = mutableListOf<String>()
+            for (line in raw.lineSequence()) {
+                val match = keyLineRegex.find(line) ?: continue
+                val key = match.groupValues[1]
+                if (!seen.add(key)) {
+                    duplicates.add(key)
+                }
+            }
+            assertTrue(
+                duplicates.isEmpty(),
+                "Language '${lang.code}' has duplicate JSON key(s): $duplicates"
+            )
+
+            val entries = parseBundleKeysAndValues(lang)
+            val blankKeys = entries.filterValues { it.isBlank() }.keys.sorted()
+            assertTrue(
+                blankKeys.isEmpty(),
+                "Language '${lang.code}' has blank translation value(s) for key(s): $blankKeys"
+            )
+        }
+    }
 
     @Test
     fun all_languages_resolve_all_required_keys() {

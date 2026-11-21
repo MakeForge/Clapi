@@ -22,12 +22,5 @@ All notable changes to Clapi are documented here.
 
 ### Fixes
 
-- Removed legacy collection models and unified request execution, variable resolution, and secret resolution pipelines ([#18](https://github.com/MakeForge/Clapi/issues/18), [#35](https://github.com/MakeForge/Clapi/issues/35)).
-- Resolved high-severity desktop UI layout, scrollbar, and interaction issues ([#36](https://github.com/MakeForge/Clapi/issues/36)).
-- Reduced desktop release artifact size, startup latency, peak memory usage, and GC churn ([#38](https://github.com/MakeForge/Clapi/issues/38), [#39](https://github.com/MakeForge/Clapi/issues/39)).
-- Fixed horizontal request tab drag-and-drop pointer handling, scrollable tab bar behavior, and flaky sidebar multi-selection.
-- Fixed GCP service account / default credentials handling, KeePassXC secret editing, and secret connection status display.
-- Updated dependencies to resolve Guava (`CVE-2026-102554`) and `org.json` (`CVE-2026-59171`).
-- Stabilized CI, QA, and release workflows (embedded MCP server readiness in QA tests, tinylog runtime reconfiguration, `packageClapiJar` Gradle task definition, and `security-sbom.yml` permissions).
 
 ---
