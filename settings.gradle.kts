@@ -24,7 +24,6 @@ include(
     ":core-storage",
     ":core-scripting",
     ":qa-tests",
-    ":feature-requests",
     ":ui-shared",
     ":ui-desktop",
     ":sample-server"

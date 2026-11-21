@@ -11,9 +11,11 @@ import io.github.crustack.clapi.core.model.RequestBody
 import io.github.crustack.clapi.core.model.RequestDefinition
 import io.github.crustack.clapi.core.model.opencollection.OAuth2Flow
 import io.github.crustack.clapi.core.network.VariableResolver
+import io.github.crustack.clapi.core.network.dynamicvar.OAuth2ResolvedConfig
 import io.github.crustack.clapi.core.network.oauth2.KtorOAuth2TokenClient
 import io.github.crustack.clapi.core.network.oauth2.OAuth2Exception
 import io.github.crustack.clapi.core.network.oauth2.OAuth2TokenClient
+import io.github.crustack.clapi.core.network.oauth2.OAuth2TokenManager
 import io.github.crustack.clapi.core.network.oauth2.OAuth2TokenState
 import io.github.crustack.clapi.ui.shared.components.splitRequestUrl
 import io.github.crustack.clapi.ui.shared.platform.currentTimeMillis
@@ -155,6 +157,7 @@ suspend fun ensureValidOAuth2Token(
     tab: RequestTabState,
     variableLayers: List<Map<String, String>>,
     tokenClient: OAuth2TokenClient = KtorOAuth2TokenClient(),
+    tokenManager: OAuth2TokenManager = OAuth2TokenManager.Shared,
 ): Boolean {
     val effectiveAuthType = if (tab.authType == AuthType.INHERIT) {
         state.resolveInheritedAuth(tab)?.authType ?: AuthType.NONE
@@ -178,14 +181,6 @@ suspend fun ensureValidOAuth2Token(
     val rawPassword = inherited?.oauth2Password ?: tab.authOAuth2Password
     val rawScope = inherited?.oauth2Scope ?: tab.authOAuth2Scope
 
-    val tokenUrl = VariableResolver.resolve(rawTokenUrl, variableLayers)
-    val refreshTokenUrl = VariableResolver.resolve(rawRefreshTokenUrl, variableLayers).ifBlank { tokenUrl }
-    val clientId = VariableResolver.resolve(rawClientId, variableLayers)
-    val clientSecret = VariableResolver.resolve(rawClientSecret, variableLayers)
-    val username = VariableResolver.resolve(rawUsername, variableLayers)
-    val password = VariableResolver.resolve(rawPassword, variableLayers)
-    val scope = VariableResolver.resolve(rawScope, variableLayers).ifBlank { null }
-
     val currentTokenState = OAuth2TokenState(
         accessToken = tab.authOAuth2AccessToken,
         refreshToken = tab.authOAuth2RefreshToken.ifBlank { null },
@@ -197,101 +192,52 @@ suspend fun ensureValidOAuth2Token(
         return true
     }
 
-    if (tokenUrl.isBlank()) {
-        val msg = "OAuth2 Access Token URL is missing"
-        tab.authOAuth2FetchError = msg
-        tab.lastError = msg
-        state.log(msg, LogLevel.ERROR)
-        return false
-    }
+    val config = OAuth2ResolvedConfig(
+        flow = flow,
+        tokenUrl = rawTokenUrl,
+        refreshTokenUrl = rawRefreshTokenUrl,
+        clientId = rawClientId,
+        clientSecret = rawClientSecret,
+        credentialsPlacement = credentialsPlacement,
+        username = rawUsername,
+        password = rawPassword,
+        scope = rawScope.ifBlank { null },
+    )
 
     state.log("OAuth2 access token is missing or expired for '${tab.name}'. Fetching new token...")
 
-    var tokenAcquired = false
-
-    val currentRefreshToken = currentTokenState.refreshToken
-    if (!currentRefreshToken.isNullOrBlank()) {
-        val refreshResult = tokenClient.refreshToken(
-            tokenUrl = refreshTokenUrl,
-            refreshToken = currentRefreshToken,
-            clientId = clientId,
-            clientSecret = clientSecret,
-            placement = credentialsPlacement,
-            scope = scope,
-        )
-        refreshResult.fold(
-            onSuccess = { resp ->
-                tab.authOAuth2AccessToken = resp.accessToken
-                if (!resp.refreshToken.isNullOrBlank()) {
-                    tab.authOAuth2RefreshToken = resp.refreshToken.orEmpty()
-                }
-                if (!resp.idToken.isNullOrBlank()) {
-                    tab.authOAuth2IdToken = resp.idToken.orEmpty()
-                }
-                val newState = OAuth2TokenState.fromResponse(resp)
+    val result = tokenManager.ensureValidToken(
+        config = config,
+        currentState = currentTokenState,
+        variableLayers = variableLayers,
+        tokenClient = tokenClient,
+        log = { msg, isError ->
+            state.log(msg, if (isError) LogLevel.ERROR else LogLevel.INFO)
+        },
+        onTokenUpdated = { newState ->
+            tab.authOAuth2AccessToken = newState.accessToken
+            if (!newState.refreshToken.isNullOrBlank()) {
+                tab.authOAuth2RefreshToken = newState.refreshToken.orEmpty()
+            }
+            if (!newState.idToken.isNullOrBlank()) {
+                tab.authOAuth2IdToken = newState.idToken.orEmpty()
+            }
+            if (newState.expiresAtEpochMs != null) {
                 tab.authOAuth2ExpiresAtEpochMs = newState.expiresAtEpochMs
-                tab.authOAuth2FetchError = null
-                state.log("OAuth2 access token automatically refreshed for '${tab.name}'")
-                tokenAcquired = true
-            },
-            onFailure = { err ->
-                state.log("OAuth2 token refresh failed: ${err.message}. Falling back to primary credentials grant...", LogLevel.WARNING)
             }
-        )
-    }
+            tab.authOAuth2FetchError = null
+        },
+    )
 
-    if (!tokenAcquired) {
-        val primaryResult = when (flow) {
-            OAuth2Flow.CLIENT_CREDENTIALS -> {
-                tokenClient.fetchClientCredentialsToken(
-                    tokenUrl = tokenUrl,
-                    clientId = clientId,
-                    clientSecret = clientSecret,
-                    placement = credentialsPlacement,
-                    scope = scope,
-                )
-            }
-            OAuth2Flow.RESOURCE_OWNER_PASSWORD_CREDENTIALS -> {
-                tokenClient.fetchPasswordToken(
-                    tokenUrl = tokenUrl,
-                    clientId = clientId,
-                    clientSecret = clientSecret,
-                    placement = credentialsPlacement,
-                    username = username,
-                    password = password,
-                    scope = scope,
-                )
-            }
-            else -> {
-                Result.failure(OAuth2Exception("Cannot automatically fetch token for flow ${flow.value}. Please authenticate manually."))
-            }
-        }
-        primaryResult.fold(
-            onSuccess = { resp ->
-                tab.authOAuth2AccessToken = resp.accessToken
-                if (!resp.refreshToken.isNullOrBlank()) {
-                    tab.authOAuth2RefreshToken = resp.refreshToken.orEmpty()
-                }
-                if (!resp.idToken.isNullOrBlank()) {
-                    tab.authOAuth2IdToken = resp.idToken.orEmpty()
-                }
-                val newState = OAuth2TokenState.fromResponse(resp)
-                tab.authOAuth2ExpiresAtEpochMs = newState.expiresAtEpochMs
-                tab.authOAuth2FetchError = null
-                state.log("OAuth2 access token automatically acquired for '${tab.name}'")
-                tokenAcquired = true
-            },
-            onFailure = { err ->
-                val msg = "OAuth2 token acquisition failed: ${err.message ?: "Unknown error"}"
-                tab.authOAuth2FetchError = msg
-                tab.lastError = msg
-                state.log(msg, LogLevel.ERROR)
-                return false
-            }
-        )
-    }
-
-    return tokenAcquired
+    return result.fold(
+        onSuccess = { true },
+        onFailure = { err ->
+            val msg = err.message ?: "OAuth2 token acquisition failed"
+            tab.authOAuth2FetchError = msg
+            tab.lastError = msg
+            false
+        },
+    )
 }
 
 /**

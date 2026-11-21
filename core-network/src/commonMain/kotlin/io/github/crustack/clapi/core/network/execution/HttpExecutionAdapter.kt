@@ -1,4 +1,4 @@
-package io.github.crustack.clapi.feature.requests
+package io.github.crustack.clapi.core.network.execution
 
 import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.core.model.BodyType
@@ -85,6 +85,15 @@ interface HttpExecutionAdapter {
         variableLayers: List<Map<String, String>>,
         removeUnresolved: Boolean = false,
     ): String
+
+    /**
+     * Resolves template variables across all fields of [request] against [variableLayers].
+     */
+    fun resolveRequest(
+        request: RequestDefinition,
+        variableLayers: List<Map<String, String>>,
+        removeUnresolved: Boolean = false,
+    ): RequestDefinition = request
 
     companion object : HttpExecutionAdapter by DefaultHttpExecutionAdapter
 }
@@ -313,6 +322,54 @@ object DefaultHttpExecutionAdapter : HttpExecutionAdapter {
         variableLayers: List<Map<String, String>>,
         removeUnresolved: Boolean,
     ): String = VariableResolver.resolve(value, variableLayers, removeUnresolved)
+
+    override fun resolveRequest(
+        request: RequestDefinition,
+        variableLayers: List<Map<String, String>>,
+        removeUnresolved: Boolean,
+    ): RequestDefinition {
+        if (variableLayers.isEmpty()) return request
+        fun res(text: String): String = resolveVariables(text, variableLayers, removeUnresolved)
+        return request.copy(
+            url = res(request.url),
+            queryParams = request.queryParams.map {
+                if (it.enabled) it.copy(key = res(it.key), value = res(it.value)) else it
+            },
+            headers = request.headers.map {
+                if (it.enabled) it.copy(key = res(it.key), value = res(it.value)) else it
+            },
+            cookies = request.cookies.map {
+                if (it.enabled) it.copy(key = res(it.key), value = res(it.value)) else it
+            },
+            auth = request.auth.copy(
+                params = request.auth.params.mapValues { (_, v) -> res(v) },
+            ),
+            body = request.body.copy(
+                content = request.body.content?.let(::res),
+                formEntries = request.body.formEntries.map {
+                    if (it.enabled) it.copy(key = res(it.key), value = res(it.value)) else it
+                },
+                formDataEntries = request.body.formDataEntries.map {
+                    if (it.enabled) {
+                        it.copy(
+                            key = res(it.key),
+                            value = res(it.value),
+                            description = res(it.description),
+                        )
+                    } else {
+                        it
+                    }
+                },
+                graphQl = request.body.graphQl?.let { gql ->
+                    gql.copy(
+                        query = res(gql.query),
+                        operationName = gql.operationName?.let(::res),
+                        variablesJson = gql.variablesJson?.let(::res),
+                    )
+                },
+            ),
+        )
+    }
 
     private fun normalizeToRootFirst(parentHierarchy: List<FolderItem>): List<FolderItem> {
         if (parentHierarchy.size <= 1) return parentHierarchy

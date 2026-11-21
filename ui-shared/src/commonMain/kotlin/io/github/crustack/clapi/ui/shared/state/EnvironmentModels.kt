@@ -79,7 +79,13 @@ class EnvState(
     var externalSecretsProvider by mutableStateOf(externalSecretsProvider)
     val externalSecrets = mutableStateListOf<MutableExternalSecret>().also { it.addAll(externalSecrets) }
 
-    /** Produce a flat variable map for resolution (e.g. {{baseUrl}} → value). */
+    /**
+     * Produce a flat variable map for resolution (e.g. {{baseUrl}} → value).
+     * Excludes `secret = true` variables whose in-memory value is blank so they do not shadow
+     * lower-precedence variable layers (Folder, Collection, Global) with an empty string.
+     */
     fun toVariableMap(): Map<String, String> =
-        variables.filter { it.enabled }.associate { it.key to it.value }
+        variables
+            .filter { it.enabled && (!it.secret || it.value.isNotBlank()) }
+            .associate { it.key to it.value }
 }

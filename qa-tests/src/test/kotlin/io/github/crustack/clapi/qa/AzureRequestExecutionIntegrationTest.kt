@@ -8,7 +8,7 @@ import io.github.crustack.clapi.core.network.NetworkEvent
 import io.github.crustack.clapi.core.network.RetryPolicy
 import io.github.crustack.clapi.core.network.vault.SecretResolutionService
 import io.github.crustack.clapi.core.storage.opencollection.OpenCollectionSerializer
-import io.github.crustack.clapi.feature.requests.RequestExecutionService
+import io.github.crustack.clapi.core.network.execution.RequestExecutionService
 import io.github.crustack.clapi.server.module
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO

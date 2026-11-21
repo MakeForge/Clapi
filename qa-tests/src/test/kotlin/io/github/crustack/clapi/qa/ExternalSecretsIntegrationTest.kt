@@ -1,5 +1,7 @@
 package io.github.crustack.clapi.qa
 
+import io.github.crustack.clapi.core.model.AuthConfig
+import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.core.model.BodyType
 import io.github.crustack.clapi.core.model.HttpMethodType
 import io.github.crustack.clapi.core.model.KeyValueEntry
@@ -13,7 +15,7 @@ import io.github.crustack.clapi.core.network.RetryPolicy
 import io.github.crustack.clapi.core.network.vault.KtorHashiCorpVaultClient
 import io.github.crustack.clapi.core.network.vault.SecretResolutionService
 import io.github.crustack.clapi.core.storage.opencollection.OpenCollectionSerializer
-import io.github.crustack.clapi.feature.requests.RequestExecutionService
+import io.github.crustack.clapi.core.network.execution.RequestExecutionService
 import io.github.crustack.clapi.server.module
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -207,5 +209,60 @@ class ExternalSecretsIntegrationTest {
         assertNotNull(successEvent, "Expected NetworkEvent.Success from sample server")
         assertEquals(200, successEvent.response.statusCode)
         assertTrue(successEvent.response.bodyText.contains("foo_client_123"), "Expected client_id resolved from Vault")
+    }
+
+    @Test
+    fun unreferenced_secret_variable_does_not_shadow_lower_priority_collection_variable_and_post_script_secret_in_auth_params_is_resolved() = runBlocking {
+        val httpClient = HttpClient(CIO) {
+            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        }
+        val apiClient = KtorApiClient(httpClient, RetryPolicy(maxAttempts = 1))
+        val service = RequestExecutionService(
+            apiClient = apiClient,
+            secretResolutionService = SecretResolutionService(KtorHashiCorpVaultClient()),
+        )
+
+        val request = RequestDefinition(
+            id = "req-secret-auth-and-layer",
+            name = "Secret Auth and Layer Echo",
+            method = HttpMethodType.GET,
+            url = "http://127.0.0.1:$serverPort/api/echo-headers",
+            headers = listOf(
+                KeyValueEntry("X-Fallback-Var", "{{SHARED_VAR}}"),
+            ),
+            auth = AuthConfig(
+                type = AuthType.BEARER,
+                params = mapOf("token" to "{{_secret.client_secret}}"),
+            ),
+            createdAtEpochMillis = 1000L,
+            updatedAtEpochMillis = 1000L,
+        )
+
+        val externalSecrets = listOf(
+            HashicorpVaultExternalSecret(name = "client_secret", path = "payment/foo"),
+        )
+        // UNUSED_SECRET is declared as a secret variable, while SHARED_VAR is in a lower variable layer
+        val secretVariables = listOf(
+            SecretVariable(name = "UNUSED_SECRET"),
+        )
+
+        val events = service.executeWithSecrets(
+            request = request,
+            variableLayers = listOf(
+                mapOf("SHARED_VAR" to "collection-fallback-value"),
+            ),
+            externalSecrets = externalSecrets,
+            secretVariables = secretVariables,
+            vaultUrl = VAULT_URL,
+            vaultToken = VAULT_TOKEN,
+            processEnvProvider = { null },
+        ).toList()
+
+        val successEvent = events.filterIsInstance<NetworkEvent.Success>().firstOrNull()
+        assertNotNull(successEvent)
+        assertEquals(200, successEvent.response.statusCode)
+        assertTrue(successEvent.response.bodyText.contains("collection-fallback-value"))
+        assertTrue(successEvent.response.bodyText.contains("sk_live_secret_456"))
+        apiClient.close()
     }
 }

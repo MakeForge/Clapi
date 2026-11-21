@@ -20,6 +20,7 @@ import org.junit.BeforeClass
 import org.junit.Test
 import java.net.ServerSocket
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class NetworkClientWsAndMultipartE2ETest {
@@ -76,7 +77,7 @@ class NetworkClientWsAndMultipartE2ETest {
     }
 
     @Test
-    fun websocket_request_over_ws_url_succeeds() = runBlocking {
+    fun websocket_request_over_ws_url_throws_unsupported_operation() = runBlocking {
         val client = KtorApiClient(retryPolicy = RetryPolicy(maxAttempts = 1))
         val request = RequestDefinition(
             id = "ws-1",
@@ -87,9 +88,10 @@ class NetworkClientWsAndMultipartE2ETest {
             updatedAtEpochMillis = 1L,
         )
 
-        val events = client.execute(request).toList()
-        val success = events.last() as NetworkEvent.Success
-        assertEquals(101, success.response.statusCode)
-        assertTrue(success.response.bodyText.contains("Connected") || success.response.bodyText.contains("Echo:"))
+        val ex = assertFailsWith<UnsupportedOperationException> {
+            client.execute(request).toList()
+        }
+        assertTrue(ex.message!!.contains("WebSocketClient"))
+        client.close()
     }
 }

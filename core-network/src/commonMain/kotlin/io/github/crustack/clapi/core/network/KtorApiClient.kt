@@ -66,6 +66,10 @@ class KtorApiClient(
     private val allowJson5InJsonBodies: Boolean = true,
 ) : ApiClient {
 
+    override fun close() {
+        runCatching { httpClient.close() }
+    }
+
     override fun execute(
         request: RequestDefinition,
         variableLayers: List<Map<String, String>>
@@ -81,10 +85,8 @@ class KtorApiClient(
 
             try {
                 val resolvedUrl = VariableResolver.resolve(request.url, variableLayers)
-                if (resolvedUrl.startsWith("ws://") || resolvedUrl.startsWith("wss://")) {
-                    val wsResponse = executeWebSocketRequest(request, resolvedUrl, startTime)
-                    emit(NetworkEvent.Success(wsResponse))
-                    return@flow
+                if (resolvedUrl.startsWith("ws://", ignoreCase = true) || resolvedUrl.startsWith("wss://", ignoreCase = true)) {
+                    throw UnsupportedOperationException("WebSocket sessions must be executed via WebSocketClient")
                 }
 
                 val preparedRequest = buildRequest(request, variableLayers)
@@ -132,6 +134,7 @@ class KtorApiClient(
                 delay(delayMs)
             } catch (throwable: Throwable) {
                 if (throwable is CancellationException) throw throwable
+                if (throwable is UnsupportedOperationException) throw throwable
                 lastThrowable = throwable
                 logger.error("Request failed at attempt $attempt", throwable)
                 interceptors.forEach { interceptor -> interceptor.onFailure(throwable, attempt) }
@@ -255,48 +258,6 @@ class KtorApiClient(
 
     private fun normalizeApiKeyPlacement(value: String?): String =
         if (value.equals("query", ignoreCase = true)) "query" else "header"
-
-    private suspend fun executeWebSocketRequest(
-        request: RequestDefinition,
-        resolvedUrl: String,
-        requestStartTime: Long,
-    ): ResponseDefinition {
-        val session = httpClient.webSocketSession {
-            url(resolvedUrl)
-        }
-
-        val transcript = mutableListOf<String>()
-        withTimeout(5_000) {
-            val firstFrame = session.incoming.receiveCatching().getOrNull()
-            (firstFrame as? Frame.Text)?.readText()?.let { transcript += it }
-            session.send(Frame.Text("hello"))
-            val secondFrame = session.incoming.receiveCatching().getOrNull()
-            (secondFrame as? Frame.Text)?.readText()?.let { transcript += it }
-        }
-        runCatching { session.outgoing.close() }
-
-        val endTime = currentTimeMillis()
-        val body = transcript.joinToString("\n")
-        val bodySize = body.encodeToByteArray().size.toLong()
-
-        return ResponseDefinition(
-            requestId = request.id,
-            statusCode = 101,
-            statusText = "Switching Protocols",
-            headers = emptyList(),
-            cookies = emptyList(),
-            bodyText = body,
-            contentType = "text/plain",
-            executedAtEpochMillis = endTime,
-            metrics = ResponseMetrics(
-                statusCode = 101,
-                responseTimeMs = endTime - requestStartTime,
-                responseSizeBytes = bodySize,
-                serverMs = endTime - requestStartTime,
-                downloadMs = 0,
-            )
-        )
-    }
 
     private fun applyRawBody(
         builder: HttpRequestBuilder,

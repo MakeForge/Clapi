@@ -2091,4 +2091,35 @@ class ClapiScriptEngineTest {
         assertTrue(r.success, r.error ?: "")
         assertTrue(r.assertions.single().passed, r.assertions.single().message ?: "")
     }
+
+    @Test
+    fun sendRequest_callback_safely_parses_response_with_tabs_control_chars_line_separators_quotes_and_backslashes() = runTest {
+        val rawBodyWithSpecialChars = "{\"msg\":\"col1\\tcol2\\b\\f\\\"quoted\\\"\\\\slash\u2028lineSep\u2029paraSep\"}"
+        val engineWithSubReq = ClapiScriptEngine(
+            sendRequestExecutor = {
+                SendRequestResult(
+                    statusCode = 200,
+                    statusText = "OK\t\u2028",
+                    headers = mapOf("X-Custom" to "val\t\"1\""),
+                    body = rawBodyWithSpecialChars,
+                    elapsedMs = 12L,
+                )
+            },
+        )
+
+        val result = engineWithSubReq.executePreRequestScript(
+            """
+            clapi.sendRequest("https://example.com/sub", function(err, res) {
+                var parsed = res.json();
+                clapi.environment.set("sub_msg", parsed.msg);
+                clapi.environment.set("sub_hdr", res.headers.get("x-custom"));
+            });
+            """.trimIndent(),
+            ctx(),
+        )
+
+        assertTrue(result.success, "Expected success without JS syntax error, got: ${result.error}, logs: ${result.logs}")
+        assertEquals("col1\tcol2\b\u000C\"quoted\"\\slash\u2028lineSep\u2029paraSep", result.newVariables["sub_msg"])
+        assertEquals("val\t\"1\"", result.newVariables["sub_hdr"])
+    }
 }

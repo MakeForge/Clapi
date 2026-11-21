@@ -3,19 +3,27 @@ package io.github.crustack.clapi.ui.shared.components.executor
 import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.core.network.aws.AwsSecretsManagerClient
 import io.github.crustack.clapi.core.network.azure.AzureKeyVaultClient
-import io.github.crustack.clapi.core.network.gcp.GcpSecretManagerClient
-import io.github.crustack.clapi.core.network.keeper.KeeperClient
 import io.github.crustack.clapi.core.network.dynamicvar.DynamicVariableContext
 import io.github.crustack.clapi.core.network.dynamicvar.DynamicVariableRegistry
 import io.github.crustack.clapi.core.network.dynamicvar.OAuth2ResolvedConfig
+import io.github.crustack.clapi.core.network.gcp.GcpSecretManagerClient
 import io.github.crustack.clapi.core.network.getEnvironmentVariable
+import io.github.crustack.clapi.core.network.keeper.KeeperClient
 import io.github.crustack.clapi.core.network.keepassxc.KeePassXcClient
 import io.github.crustack.clapi.core.network.oauth2.KtorOAuth2TokenClient
 import io.github.crustack.clapi.core.network.oauth2.OAuth2TokenClient
+import io.github.crustack.clapi.core.network.oauth2.OAuth2TokenManager
 import io.github.crustack.clapi.core.network.oauth2.OAuth2TokenState
+import io.github.crustack.clapi.core.network.vault.AwsProviderConfig
+import io.github.crustack.clapi.core.network.vault.AzureProviderConfig
+import io.github.crustack.clapi.core.network.vault.GcpProviderConfig
+import io.github.crustack.clapi.core.network.vault.KeeperProviderConfig
+import io.github.crustack.clapi.core.network.vault.KeepassXcProviderConfig
 import io.github.crustack.clapi.core.network.vault.SecretDeclaration
+import io.github.crustack.clapi.core.network.vault.SecretResolutionContext
 import io.github.crustack.clapi.core.network.vault.SecretResolutionService
-import io.github.crustack.clapi.ui.shared.platform.PlatformStorage
+import io.github.crustack.clapi.core.network.vault.VaultProviderConfig
+import io.github.crustack.clapi.ui.shared.persistence.SettingsStorageKeys
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.LogLevel
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
@@ -55,61 +63,77 @@ internal suspend fun resolveExternalSecretsForTab(
         )
     } ?: emptyList()
 
-    val envVarsMap = state.selectedEnvironment?.variables
-        ?.filter { it.enabled && it.key.isNotBlank() }
-        ?.associate { it.key.trim() to it.value }
-        ?: emptyMap()
+    val envVarsMap = state.selectedEnvironment?.toVariableMap() ?: emptyMap()
+    val variableLayers = state.activeVariableLayers(tab)
 
     return try {
+        val vaultToken = state.settings.vaultToken.ifBlank {
+            SettingsStorageKeys.getSecretWithFallback(SettingsStorageKeys.VAULT_TOKEN).orEmpty()
+        }
         val awsSecretAccessKey = state.settings.awsSecretAccessKey.ifBlank {
-            PlatformStorage.getSecretString("clapi.settings.awsSecretAccessKey").orEmpty()
+            SettingsStorageKeys.getSecretWithFallback(SettingsStorageKeys.AWS_SECRET_ACCESS_KEY).orEmpty()
         }
         val awsSessionToken = state.settings.awsSessionToken.ifBlank {
-            PlatformStorage.getSecretString("clapi.settings.awsSessionToken").orEmpty()
+            SettingsStorageKeys.getSecretWithFallback(SettingsStorageKeys.AWS_SESSION_TOKEN).orEmpty()
         }
         val azureClientSecret = state.settings.azureClientSecret.ifBlank {
-            PlatformStorage.getSecretString("settings.azureClientSecret").orEmpty()
+            SettingsStorageKeys.getSecretWithFallback(SettingsStorageKeys.AZURE_CLIENT_SECRET).orEmpty()
         }
         val gcpAccessToken = state.settings.gcpAccessToken.ifBlank {
-            PlatformStorage.getSecretString("settings.gcpAccessToken").orEmpty()
+            SettingsStorageKeys.getSecretWithFallback(SettingsStorageKeys.GCP_ACCESS_TOKEN).orEmpty()
         }
         val keeperConfigJson = state.settings.keeperConfigJson.ifBlank {
-            PlatformStorage.getSecretString("settings.keeperConfig").orEmpty()
+            SettingsStorageKeys.getSecretWithFallback(SettingsStorageKeys.KEEPER_CONFIG).orEmpty()
         }
+
+        val context = SecretResolutionContext(
+            declarations = declarations,
+            secretVariableNames = secretVariableNames,
+            vault = VaultProviderConfig(
+                url = state.settings.vaultServerUrl,
+                token = vaultToken,
+                mountPath = state.settings.vaultMountPath.ifBlank { "secret" },
+                namespace = state.settings.vaultNamespace.ifBlank { null },
+            ),
+            aws = AwsProviderConfig(
+                region = state.settings.awsRegion.ifBlank { "us-east-1" },
+                accessKeyId = state.settings.awsAccessKeyId.ifBlank { null },
+                secretAccessKey = awsSecretAccessKey.ifBlank { null },
+                sessionToken = awsSessionToken.ifBlank { null },
+                endpointUrl = state.settings.awsEndpointUrl.ifBlank { null },
+                versionStage = state.settings.awsVersionStage.ifBlank { "AWSCURRENT" },
+                clientOverride = awsClient,
+            ),
+            azure = AzureProviderConfig(
+                vaultName = state.settings.azureVaultName,
+                tenantId = state.settings.azureTenantId,
+                clientId = state.settings.azureClientId,
+                clientSecret = azureClientSecret,
+                authorityHost = state.settings.azureAuthorityHost,
+                apiVersion = state.settings.azureApiVersion,
+                clientOverride = azureClient,
+            ),
+            gcp = GcpProviderConfig(
+                projectId = state.settings.gcpProjectId,
+                accessToken = gcpAccessToken,
+                endpointUrl = state.settings.gcpEndpointUrl,
+                clientOverride = gcpClient,
+            ),
+            keeper = KeeperProviderConfig(
+                configJson = keeperConfigJson,
+                clientOverride = keeperClient,
+            ),
+            keepassXc = KeepassXcProviderConfig(
+                clientOverride = keepassClient,
+            ),
+            variableLayers = variableLayers,
+            variableValues = envVarsMap,
+            processEnvProvider = processEnvProvider,
+        )
 
         secretResolutionService.resolveAllSecrets(
             texts = textsToScan,
-            declarations = declarations,
-            secretVariableNames = secretVariableNames,
-            vaultUrl = state.settings.vaultServerUrl,
-            vaultToken = state.settings.vaultToken.ifBlank {
-                PlatformStorage.getSecretString("clapi.settings.vaultToken").orEmpty()
-            },
-            mountPath = state.settings.vaultMountPath.ifBlank { "secret" },
-            namespace = state.settings.vaultNamespace.ifBlank { null },
-            variableValues = envVarsMap,
-            keepassClient = keepassClient,
-            awsRegion = state.settings.awsRegion.ifBlank { "us-east-1" },
-            awsAccessKeyId = state.settings.awsAccessKeyId.ifBlank { null },
-            awsSecretAccessKey = awsSecretAccessKey.ifBlank { null },
-            awsSessionToken = awsSessionToken.ifBlank { null },
-            awsEndpointUrl = state.settings.awsEndpointUrl.ifBlank { null },
-            awsVersionStage = state.settings.awsVersionStage.ifBlank { "AWSCURRENT" },
-            awsClient = awsClient,
-            azureVaultName = state.settings.azureVaultName,
-            azureTenantId = state.settings.azureTenantId,
-            azureClientId = state.settings.azureClientId,
-            azureClientSecret = azureClientSecret,
-            azureAuthorityHost = state.settings.azureAuthorityHost,
-            azureApiVersion = state.settings.azureApiVersion,
-            azureClient = azureClient,
-            gcpProjectId = state.settings.gcpProjectId,
-            gcpAccessToken = gcpAccessToken,
-            gcpEndpointUrl = state.settings.gcpEndpointUrl,
-            gcpClient = gcpClient,
-            keeperConfigJson = keeperConfigJson,
-            keeperClient = keeperClient,
-            processEnvProvider = processEnvProvider,
+            context = context,
         )
     } catch (e: Exception) {
         val errorMsg = e.message ?: "Failed to resolve external secrets"
@@ -126,6 +150,7 @@ internal fun buildDynamicVariableContext(
     tab: RequestTabState,
     variableLayers: List<Map<String, String>>,
     tokenClient: OAuth2TokenClient = KtorOAuth2TokenClient(),
+    tokenManager: OAuth2TokenManager = OAuth2TokenManager.Shared,
 ): DynamicVariableContext {
     val effectiveAuthType = if (tab.authType == AuthType.INHERIT) {
         state.resolveInheritedAuth(tab)?.authType ?: AuthType.NONE
@@ -174,6 +199,7 @@ internal fun buildDynamicVariableContext(
         oauth2TokenState = currentTokenState,
         variableLayers = variableLayers,
         oauth2TokenClient = tokenClient,
+        oauth2TokenManager = tokenManager,
         onOAuth2TokenUpdated = { accessToken, refreshToken, idToken, expiresAtEpochMs ->
             tab.authOAuth2AccessToken = accessToken
             if (!refreshToken.isNullOrBlank()) {
@@ -200,8 +226,9 @@ internal suspend fun resolveDynamicVariablesForTab(
     variableLayers: List<Map<String, String>>,
     registry: DynamicVariableRegistry = state.dynamicVariableRegistry,
     tokenClient: OAuth2TokenClient = KtorOAuth2TokenClient(),
+    tokenManager: OAuth2TokenManager = OAuth2TokenManager.Shared,
 ): Map<String, String>? {
-    val context = buildDynamicVariableContext(state, tab, variableLayers, tokenClient)
+    val context = buildDynamicVariableContext(state, tab, variableLayers, tokenClient, tokenManager)
     return try {
         registry.resolveDynamicVariables(textsToScan, context)
     } catch (e: Exception) {

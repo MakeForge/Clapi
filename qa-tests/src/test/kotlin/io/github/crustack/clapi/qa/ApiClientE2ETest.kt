@@ -11,7 +11,7 @@ import io.github.crustack.clapi.core.model.RequestDefinition
 import io.github.crustack.clapi.core.network.KtorApiClient
 import io.github.crustack.clapi.core.network.NetworkEvent
 import io.github.crustack.clapi.core.network.RetryPolicy
-import io.github.crustack.clapi.feature.requests.RequestExecutionService
+import io.github.crustack.clapi.core.network.execution.RequestExecutionService
 import io.github.crustack.clapi.testsupport.DummyApiServer
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -268,6 +268,31 @@ class ApiClientE2ETest {
         val terminal = events.last()
         assertIs<NetworkEvent.Success>(terminal)
         assertEquals(500, terminal.response.statusCode)
+    }
+
+    @Test
+    fun layer_0_ephemeral_script_variables_override_environment_variables_on_the_wire() = runTest {
+        val client = KtorApiClient(retryPolicy = RetryPolicy(maxAttempts = 1))
+        val service = RequestExecutionService(client)
+
+        val request = requestOf(
+            method = HttpMethodType.GET,
+            url = "$baseUrl/auth/protected",
+            auth = AuthConfig(
+                type = AuthType.BEARER,
+                params = mapOf("token" to "{{ephemeral_var}}"),
+            ),
+        )
+
+        val layers = listOf(
+            mapOf("ephemeral_var" to "dummy-token"),
+            mapOf("ephemeral_var" to "invalid-env-token"),
+        )
+
+        val events = service.execute(request, layers).toList()
+        val success = events.filterIsInstance<NetworkEvent.Success>().first()
+        assertEquals(200, success.response.statusCode)
+        client.close()
     }
 
     private fun assertSuccessStatus(events: List<NetworkEvent>, expectedStatus: Int) {

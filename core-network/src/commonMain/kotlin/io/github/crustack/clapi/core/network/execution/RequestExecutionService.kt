@@ -1,17 +1,16 @@
-package io.github.crustack.clapi.feature.requests
+package io.github.crustack.clapi.core.network.execution
 
-import io.github.crustack.clapi.core.model.RequestBody
 import io.github.crustack.clapi.core.model.RequestDefinition
 import io.github.crustack.clapi.core.model.opencollection.AwsSecretsManagerExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.AzureKeyVaultExternalSecret
-import io.github.crustack.clapi.core.model.opencollection.GcpSecretsManagerExternalSecret
-import io.github.crustack.clapi.core.model.opencollection.KeeperSecurityExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.ExternalSecretVariable
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
+import io.github.crustack.clapi.core.model.opencollection.GcpSecretsManagerExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.GraphQLRequestItem
 import io.github.crustack.clapi.core.model.opencollection.GrpcRequestItem
 import io.github.crustack.clapi.core.model.opencollection.HashicorpVaultExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestItem
+import io.github.crustack.clapi.core.model.opencollection.KeeperSecurityExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.OpenCollectionDocument
 import io.github.crustack.clapi.core.model.opencollection.RegularVariable
 import io.github.crustack.clapi.core.model.opencollection.SecretVariable
@@ -20,16 +19,22 @@ import io.github.crustack.clapi.core.network.ApiClient
 import io.github.crustack.clapi.core.network.NetworkEvent
 import io.github.crustack.clapi.core.network.VariableResolver
 import io.github.crustack.clapi.core.network.azure.AzureKeyVaultClient
+import io.github.crustack.clapi.core.network.dynamicvar.DynamicVariableRegistry
 import io.github.crustack.clapi.core.network.gcp.GcpSecretManagerClient
-import io.github.crustack.clapi.core.network.keeper.KeeperClient
 import io.github.crustack.clapi.core.network.getEnvironmentVariable
 import io.github.crustack.clapi.core.network.grpc.DynamicGrpcClient
 import io.github.crustack.clapi.core.network.grpc.GrpcCallRequest
 import io.github.crustack.clapi.core.network.grpc.GrpcCallResponse
-import io.github.crustack.clapi.core.network.dynamicvar.DynamicVariableRegistry
 import io.github.crustack.clapi.core.network.grpc.parseGrpcEndpoint
+import io.github.crustack.clapi.core.network.keeper.KeeperClient
+import io.github.crustack.clapi.core.network.vault.AwsProviderConfig
+import io.github.crustack.clapi.core.network.vault.AzureProviderConfig
+import io.github.crustack.clapi.core.network.vault.GcpProviderConfig
+import io.github.crustack.clapi.core.network.vault.KeeperProviderConfig
 import io.github.crustack.clapi.core.network.vault.SecretDeclaration
+import io.github.crustack.clapi.core.network.vault.SecretResolutionContext
 import io.github.crustack.clapi.core.network.vault.SecretResolutionService
+import io.github.crustack.clapi.core.network.vault.VaultProviderConfig
 import kotlinx.coroutines.flow.Flow
 
 class RequestExecutionService(
@@ -39,37 +44,8 @@ class RequestExecutionService(
     private val secretResolutionService: SecretResolutionService = SecretResolutionService(),
     val dynamicVariableRegistry: DynamicVariableRegistry = DynamicVariableRegistry(),
 ) {
-    suspend fun resolveSecrets(
-        texts: Iterable<String>,
-        externalSecrets: List<ExternalSecretVariable> = emptyList(),
-        secretVariables: List<VariableEntry> = emptyList(),
-        variableValues: Map<String, String> = emptyMap(),
-        vaultUrl: String? = null,
-        vaultToken: String? = null,
-        mountPath: String = "secret",
-        namespace: String? = null,
-        awsRegion: String = "us-east-1",
-        awsAccessKeyId: String? = null,
-        awsSecretAccessKey: String? = null,
-        awsSessionToken: String? = null,
-        awsEndpointUrl: String? = null,
-        awsVersionStage: String? = "AWSCURRENT",
-        azureVaultName: String = "",
-        azureTenantId: String = "",
-        azureClientId: String = "",
-        azureClientSecret: String = "",
-        azureAuthorityHost: String = "https://login.microsoftonline.com",
-        azureApiVersion: String = "7.4",
-        azureClient: AzureKeyVaultClient? = null,
-        gcpProjectId: String = "",
-        gcpAccessToken: String = "",
-        gcpEndpointUrl: String = "https://secretmanager.googleapis.com",
-        gcpClient: GcpSecretManagerClient? = null,
-        keeperConfigJson: String = "",
-        keeperClient: KeeperClient? = null,
-        processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
-    ): Map<String, String> {
-        val declarations = externalSecrets.mapNotNull { sec ->
+    private fun toDeclarations(externalSecrets: List<ExternalSecretVariable>): List<SecretDeclaration> =
+        externalSecrets.mapNotNull { sec ->
             when (sec) {
                 is HashicorpVaultExternalSecret -> SecretDeclaration(
                     name = sec.name,
@@ -118,40 +94,130 @@ class RequestExecutionService(
                 else -> null
             }
         }
-        val secretVarNames = secretVariables.filter {
+
+    private fun extractSecretVarNames(secretVariables: List<VariableEntry>): Set<String> =
+        secretVariables.filter {
             it.disabled != true && it is SecretVariable
         }.map { it.name }.toSet()
 
+    suspend fun resolveSecrets(
+        texts: Iterable<String>,
+        externalSecrets: List<ExternalSecretVariable> = emptyList(),
+        secretVariables: List<VariableEntry> = emptyList(),
+        context: SecretResolutionContext,
+    ): Map<String, String> {
+        val declarations = if (externalSecrets.isNotEmpty()) {
+            toDeclarations(externalSecrets)
+        } else {
+            context.declarations
+        }
+        val secretVarNames = if (secretVariables.isNotEmpty()) {
+            extractSecretVarNames(secretVariables)
+        } else {
+            context.secretVariableNames
+        }
         return secretResolutionService.resolveAllSecrets(
             texts = texts,
-            declarations = declarations,
-            secretVariableNames = secretVarNames,
-            vaultUrl = vaultUrl,
-            vaultToken = vaultToken,
-            mountPath = mountPath,
-            namespace = namespace,
-            variableValues = variableValues,
-            awsRegion = awsRegion,
-            awsAccessKeyId = awsAccessKeyId,
-            awsSecretAccessKey = awsSecretAccessKey,
-            awsSessionToken = awsSessionToken,
-            awsEndpointUrl = awsEndpointUrl,
-            awsVersionStage = awsVersionStage,
-            azureVaultName = azureVaultName,
-            azureTenantId = azureTenantId,
-            azureClientId = azureClientId,
-            azureClientSecret = azureClientSecret,
-            azureAuthorityHost = azureAuthorityHost,
-            azureApiVersion = azureApiVersion,
-            azureClient = azureClient,
-            gcpProjectId = gcpProjectId,
-            gcpAccessToken = gcpAccessToken,
-            gcpEndpointUrl = gcpEndpointUrl,
-            gcpClient = gcpClient,
-            keeperConfigJson = keeperConfigJson,
-            keeperClient = keeperClient,
-            processEnvProvider = processEnvProvider,
+            context = context.copy(
+                declarations = declarations,
+                secretVariableNames = secretVarNames,
+            ),
         )
+    }
+
+    suspend fun resolveSecrets(
+        texts: Iterable<String>,
+        externalSecrets: List<ExternalSecretVariable> = emptyList(),
+        secretVariables: List<VariableEntry> = emptyList(),
+        variableValues: Map<String, String> = emptyMap(),
+        vaultUrl: String? = null,
+        vaultToken: String? = null,
+        mountPath: String = "secret",
+        namespace: String? = null,
+        awsRegion: String = "us-east-1",
+        awsAccessKeyId: String? = null,
+        awsSecretAccessKey: String? = null,
+        awsSessionToken: String? = null,
+        awsEndpointUrl: String? = null,
+        awsVersionStage: String? = "AWSCURRENT",
+        azureVaultName: String = "",
+        azureTenantId: String = "",
+        azureClientId: String = "",
+        azureClientSecret: String = "",
+        azureAuthorityHost: String = "https://login.microsoftonline.com",
+        azureApiVersion: String = "7.4",
+        azureClient: AzureKeyVaultClient? = null,
+        gcpProjectId: String = "",
+        gcpAccessToken: String = "",
+        gcpEndpointUrl: String = "https://secretmanager.googleapis.com",
+        gcpClient: GcpSecretManagerClient? = null,
+        keeperConfigJson: String = "",
+        keeperClient: KeeperClient? = null,
+        processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
+    ): Map<String, String> = resolveSecrets(
+        texts = texts,
+        externalSecrets = externalSecrets,
+        secretVariables = secretVariables,
+        context = SecretResolutionContext(
+            vault = VaultProviderConfig(
+                url = vaultUrl,
+                token = vaultToken,
+                mountPath = mountPath,
+                namespace = namespace,
+            ),
+            aws = AwsProviderConfig(
+                region = awsRegion,
+                accessKeyId = awsAccessKeyId,
+                secretAccessKey = awsSecretAccessKey,
+                sessionToken = awsSessionToken,
+                endpointUrl = awsEndpointUrl,
+                versionStage = awsVersionStage,
+            ),
+            azure = AzureProviderConfig(
+                vaultName = azureVaultName,
+                tenantId = azureTenantId,
+                clientId = azureClientId,
+                clientSecret = azureClientSecret,
+                authorityHost = azureAuthorityHost,
+                apiVersion = azureApiVersion,
+                clientOverride = azureClient,
+            ),
+            gcp = GcpProviderConfig(
+                projectId = gcpProjectId,
+                accessToken = gcpAccessToken,
+                endpointUrl = gcpEndpointUrl,
+                clientOverride = gcpClient,
+            ),
+            keeper = KeeperProviderConfig(
+                configJson = keeperConfigJson,
+                clientOverride = keeperClient,
+            ),
+            variableValues = variableValues,
+            processEnvProvider = processEnvProvider,
+        ),
+    )
+
+    suspend fun executeWithSecrets(
+        request: RequestDefinition,
+        variableLayers: List<Map<String, String>> = emptyList(),
+        externalSecrets: List<ExternalSecretVariable> = emptyList(),
+        secretVariables: List<VariableEntry> = emptyList(),
+        context: SecretResolutionContext,
+    ): Flow<NetworkEvent> {
+        val textsToScan = request.extractTemplateStrings()
+        val effectiveContext = if (context.variableLayers.isEmpty() && variableLayers.isNotEmpty()) {
+            context.copy(variableLayers = variableLayers)
+        } else {
+            context
+        }
+        val secretMap = resolveSecrets(
+            texts = textsToScan,
+            externalSecrets = externalSecrets,
+            secretVariables = secretVariables,
+            context = effectiveContext,
+        )
+        val effectiveLayers = if (secretMap.isNotEmpty()) listOf(secretMap) + variableLayers else variableLayers
+        return execute(request, effectiveLayers)
     }
 
     suspend fun executeWithSecrets(
@@ -184,44 +250,76 @@ class RequestExecutionService(
         keeperClient: KeeperClient? = null,
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
     ): Flow<NetworkEvent> {
-        val textsToScan = mutableListOf<String>()
-        textsToScan.add(request.url)
-        request.headers.forEach { textsToScan.add(it.value) }
-        request.queryParams.forEach { textsToScan.add(it.value) }
-        request.body?.content?.let { textsToScan.add(it) }
         val mergedVariables = buildMap { for (layer in variableLayers.asReversed()) putAll(layer) }
+        return executeWithSecrets(
+            request = request,
+            variableLayers = variableLayers,
+            externalSecrets = externalSecrets,
+            secretVariables = secretVariables,
+            context = SecretResolutionContext(
+                vault = VaultProviderConfig(
+                    url = vaultUrl,
+                    token = vaultToken,
+                    mountPath = mountPath,
+                    namespace = namespace,
+                ),
+                aws = AwsProviderConfig(
+                    region = awsRegion,
+                    accessKeyId = awsAccessKeyId,
+                    secretAccessKey = awsSecretAccessKey,
+                    sessionToken = awsSessionToken,
+                    endpointUrl = awsEndpointUrl,
+                    versionStage = awsVersionStage,
+                ),
+                azure = AzureProviderConfig(
+                    vaultName = azureVaultName,
+                    tenantId = azureTenantId,
+                    clientId = azureClientId,
+                    clientSecret = azureClientSecret,
+                    authorityHost = azureAuthorityHost,
+                    apiVersion = azureApiVersion,
+                    clientOverride = azureClient,
+                ),
+                gcp = GcpProviderConfig(
+                    projectId = gcpProjectId,
+                    accessToken = gcpAccessToken,
+                    endpointUrl = gcpEndpointUrl,
+                    clientOverride = gcpClient,
+                ),
+                keeper = KeeperProviderConfig(
+                    configJson = keeperConfigJson,
+                    clientOverride = keeperClient,
+                ),
+                variableLayers = variableLayers,
+                variableValues = mergedVariables,
+                processEnvProvider = processEnvProvider,
+            ),
+        )
+    }
+
+    suspend fun executeGrpcWithSecrets(
+        requestItem: GrpcRequestItem,
+        protoFilePathOverride: String? = null,
+        variableLayers: List<Map<String, String>> = emptyList(),
+        externalSecrets: List<ExternalSecretVariable> = emptyList(),
+        secretVariables: List<VariableEntry> = emptyList(),
+        context: SecretResolutionContext,
+        includePaths: List<String> = emptyList(),
+    ): GrpcCallResponse {
+        val textsToScan = requestItem.extractTemplateStrings()
+        val effectiveContext = if (context.variableLayers.isEmpty() && variableLayers.isNotEmpty()) {
+            context.copy(variableLayers = variableLayers)
+        } else {
+            context
+        }
         val secretMap = resolveSecrets(
             texts = textsToScan,
             externalSecrets = externalSecrets,
             secretVariables = secretVariables,
-            vaultUrl = vaultUrl,
-            vaultToken = vaultToken,
-            mountPath = mountPath,
-            namespace = namespace,
-            variableValues = mergedVariables,
-            awsRegion = awsRegion,
-            awsAccessKeyId = awsAccessKeyId,
-            awsSecretAccessKey = awsSecretAccessKey,
-            awsSessionToken = awsSessionToken,
-            awsEndpointUrl = awsEndpointUrl,
-            awsVersionStage = awsVersionStage,
-            azureVaultName = azureVaultName,
-            azureTenantId = azureTenantId,
-            azureClientId = azureClientId,
-            azureClientSecret = azureClientSecret,
-            azureAuthorityHost = azureAuthorityHost,
-            azureApiVersion = azureApiVersion,
-            azureClient = azureClient,
-            gcpProjectId = gcpProjectId,
-            gcpAccessToken = gcpAccessToken,
-            gcpEndpointUrl = gcpEndpointUrl,
-            gcpClient = gcpClient,
-            keeperConfigJson = keeperConfigJson,
-            keeperClient = keeperClient,
-            processEnvProvider = processEnvProvider,
+            context = effectiveContext,
         )
         val effectiveLayers = if (secretMap.isNotEmpty()) listOf(secretMap) + variableLayers else variableLayers
-        return execute(request, effectiveLayers)
+        return executeGrpc(requestItem, protoFilePathOverride, effectiveLayers, includePaths)
     }
 
     suspend fun executeGrpcWithSecrets(
@@ -256,43 +354,53 @@ class RequestExecutionService(
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
         includePaths: List<String> = emptyList(),
     ): GrpcCallResponse {
-        val textsToScan = mutableListOf<String>()
-        textsToScan.add(requestItem.grpc.url)
-        textsToScan.add(requestItem.grpc.message.orEmpty())
-        requestItem.grpc.metadata.forEach { textsToScan.add(it.value) }
         val mergedVariables = buildMap { for (layer in variableLayers.asReversed()) putAll(layer) }
-        val secretMap = resolveSecrets(
-            texts = textsToScan,
+        return executeGrpcWithSecrets(
+            requestItem = requestItem,
+            protoFilePathOverride = protoFilePathOverride,
+            variableLayers = variableLayers,
             externalSecrets = externalSecrets,
             secretVariables = secretVariables,
-            vaultUrl = vaultUrl,
-            vaultToken = vaultToken,
-            mountPath = mountPath,
-            namespace = namespace,
-            variableValues = mergedVariables,
-            awsRegion = awsRegion,
-            awsAccessKeyId = awsAccessKeyId,
-            awsSecretAccessKey = awsSecretAccessKey,
-            awsSessionToken = awsSessionToken,
-            awsEndpointUrl = awsEndpointUrl,
-            awsVersionStage = awsVersionStage,
-            azureVaultName = azureVaultName,
-            azureTenantId = azureTenantId,
-            azureClientId = azureClientId,
-            azureClientSecret = azureClientSecret,
-            azureAuthorityHost = azureAuthorityHost,
-            azureApiVersion = azureApiVersion,
-            azureClient = azureClient,
-            gcpProjectId = gcpProjectId,
-            gcpAccessToken = gcpAccessToken,
-            gcpEndpointUrl = gcpEndpointUrl,
-            gcpClient = gcpClient,
-            keeperConfigJson = keeperConfigJson,
-            keeperClient = keeperClient,
-            processEnvProvider = processEnvProvider,
+            includePaths = includePaths,
+            context = SecretResolutionContext(
+                vault = VaultProviderConfig(
+                    url = vaultUrl,
+                    token = vaultToken,
+                    mountPath = mountPath,
+                    namespace = namespace,
+                ),
+                aws = AwsProviderConfig(
+                    region = awsRegion,
+                    accessKeyId = awsAccessKeyId,
+                    secretAccessKey = awsSecretAccessKey,
+                    sessionToken = awsSessionToken,
+                    endpointUrl = awsEndpointUrl,
+                    versionStage = awsVersionStage,
+                ),
+                azure = AzureProviderConfig(
+                    vaultName = azureVaultName,
+                    tenantId = azureTenantId,
+                    clientId = azureClientId,
+                    clientSecret = azureClientSecret,
+                    authorityHost = azureAuthorityHost,
+                    apiVersion = azureApiVersion,
+                    clientOverride = azureClient,
+                ),
+                gcp = GcpProviderConfig(
+                    projectId = gcpProjectId,
+                    accessToken = gcpAccessToken,
+                    endpointUrl = gcpEndpointUrl,
+                    clientOverride = gcpClient,
+                ),
+                keeper = KeeperProviderConfig(
+                    configJson = keeperConfigJson,
+                    clientOverride = keeperClient,
+                ),
+                variableLayers = variableLayers,
+                variableValues = mergedVariables,
+                processEnvProvider = processEnvProvider,
+            ),
         )
-        val effectiveLayers = if (secretMap.isNotEmpty()) listOf(secretMap) + variableLayers else variableLayers
-        return executeGrpc(requestItem, protoFilePathOverride, effectiveLayers, includePaths)
     }
 
     fun execute(

@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.core.model.BodyType
 import io.github.crustack.clapi.core.model.KeyValueEntry
 import io.github.crustack.clapi.core.model.json.Json5
@@ -55,6 +56,8 @@ import io.github.crustack.clapi.core.network.grpc.ProtoParseException
 import io.github.crustack.clapi.core.network.grpc.parseGrpcEndpoint
 import io.github.crustack.clapi.core.storage.git.ProtoPathResolver
 import io.github.crustack.clapi.editor.core.LanguageMode
+import io.github.crustack.clapi.ui.shared.components.executor.buildAuthConfig
+import io.ktor.util.encodeBase64
 import io.github.crustack.clapi.ui.shared.generated.resources.Res
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_arrow_drop_down
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_code
@@ -311,6 +314,41 @@ fun resolveGrpcCallRequest(
             VariableResolver.resolve(entry.key, allLayers, removeUnresolved = false) to
                 VariableResolver.resolve(entry.value, allLayers, removeUnresolved = false)
         }
+        .toMutableList()
+
+    val authConfig = buildAuthConfig(tab, state)
+    when (authConfig.type) {
+        AuthType.NONE, AuthType.INHERIT -> Unit
+        AuthType.BASIC -> {
+            val username = VariableResolver.resolve(authConfig.params["username"].orEmpty(), allLayers, removeUnresolved = false)
+            val password = VariableResolver.resolve(authConfig.params["password"].orEmpty(), allLayers, removeUnresolved = false)
+            if ((username.isNotBlank() || password.isNotBlank()) &&
+                resolvedMetadata.none { it.first.equals("authorization", ignoreCase = true) }
+            ) {
+                val encoded = "$username:$password".encodeToByteArray().encodeBase64()
+                resolvedMetadata.add("authorization" to "Basic $encoded")
+            }
+        }
+        AuthType.BEARER, AuthType.JWT -> {
+            val token = VariableResolver.resolve(authConfig.params["token"].orEmpty(), allLayers, removeUnresolved = false)
+            if (token.isNotBlank() && resolvedMetadata.none { it.first.equals("authorization", ignoreCase = true) }) {
+                resolvedMetadata.add("authorization" to "Bearer $token")
+            }
+        }
+        AuthType.API_KEY -> {
+            val key = VariableResolver.resolve(authConfig.params["key"].orEmpty(), allLayers, removeUnresolved = false)
+            val value = VariableResolver.resolve(authConfig.params["value"].orEmpty(), allLayers, removeUnresolved = false)
+            if (key.isNotBlank() && resolvedMetadata.none { it.first.equals(key, ignoreCase = true) }) {
+                resolvedMetadata.add(key to value)
+            }
+        }
+        AuthType.OAUTH2 -> {
+            val accessToken = VariableResolver.resolve(authConfig.params["accessToken"].orEmpty(), allLayers, removeUnresolved = false)
+            if (accessToken.isNotBlank() && resolvedMetadata.none { it.first.equals("authorization", ignoreCase = true) }) {
+                resolvedMetadata.add("authorization" to "Bearer $accessToken")
+            }
+        }
+    }
 
     val enabledImportPaths = ProtoPathResolver.resolveAll(
         state.collectionImportPaths.filter { it.enabled }.map { it.path },

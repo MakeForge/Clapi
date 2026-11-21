@@ -23,7 +23,7 @@ import io.github.crustack.clapi.core.network.oauth2.OAuth2TokenResponse
 import io.github.crustack.clapi.core.network.oauth2.OAuth2TokenState
 import io.github.crustack.clapi.core.storage.opencollection.OpenCollectionSchemaValidator
 import io.github.crustack.clapi.core.storage.opencollection.OpenCollectionSerializer
-import io.github.crustack.clapi.feature.requests.RequestExecutionService
+import io.github.crustack.clapi.core.network.execution.RequestExecutionService
 import io.github.crustack.clapi.testsupport.DummyApiServer
 import io.grpc.Status
 import kotlinx.coroutines.test.runTest

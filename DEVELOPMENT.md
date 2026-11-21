@@ -20,12 +20,11 @@ Everything you need to build, run, test, and contribute to Clapi.
 ```
 clapi/
 ├── core-model/          # Shared domain models (RequestDefinition, ResponseDefinition, …)
-├── core-network/        # Ktor-backed HTTP engine, interceptors, retry, WebSocket
+├── core-network/        # Ktor-backed HTTP engine, request execution service & adapter, interceptors, retry, WebSocket, external secrets, OAuth2
 ├── core-storage/        # Persistence contracts and JSON file adapter
 ├── core-scripting/      # Script engine contracts (pre-request / post-request scripts)
 ├── editor-core/         # Pure-Kotlin editor engine: document model, lexer, fold map, diagnostics
 ├── editor-ui/           # Compose editor renderer: EditorRenderer, EditorViewModel, IdleLexer
-├── feature-requests/    # Request use-cases wiring core-model + core-network
 ├── ui-shared/           # Compose UI code (desktop/JVM target) — 95% of all UI
 ├── ui-desktop/          # Thin Compose Desktop launcher (~74 lines)
 ├── qa-tests/            # JVM integration + end-to-end tests

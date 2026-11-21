@@ -10,12 +10,50 @@ import io.github.crustack.clapi.ui.shared.state.DEFAULT_ENVIRONMENT_DIALOG_HEIGH
 import io.github.crustack.clapi.ui.shared.state.DEFAULT_ENVIRONMENT_DIALOG_WIDTH_DP
 
 /**
+ * Canonical storage keys used for persisting settings and secret manager credentials
+ * via [PlatformStorage], with transparent fallback support for legacy `"clapi.settings.*"` keys.
+ */
+object SettingsStorageKeys {
+    const val PREFIX = "settings."
+    const val LEGACY_PREFIX = "clapi.settings."
+
+    const val VAULT_TOKEN = "${PREFIX}vaultToken"
+    const val AWS_SECRET_ACCESS_KEY = "${PREFIX}awsSecretAccessKey"
+    const val AWS_SESSION_TOKEN = "${PREFIX}awsSessionToken"
+    const val AZURE_CLIENT_SECRET = "${PREFIX}azureClientSecret"
+    const val GCP_SERVICE_ACCOUNT_JSON = "${PREFIX}gcpServiceAccountJson"
+    const val GCP_ACCESS_TOKEN = "${PREFIX}gcpAccessToken"
+    const val KEEPER_CONFIG = "${PREFIX}keeperConfig"
+    const val KEEPASSXC_KEY = "${PREFIX}keepassxcKey"
+
+    const val LEGACY_VAULT_TOKEN = "${LEGACY_PREFIX}vaultToken"
+    const val LEGACY_AWS_SECRET_ACCESS_KEY = "${LEGACY_PREFIX}awsSecretAccessKey"
+    const val LEGACY_AWS_SESSION_TOKEN = "${LEGACY_PREFIX}awsSessionToken"
+    const val LEGACY_AZURE_CLIENT_SECRET = "${LEGACY_PREFIX}azureClientSecret"
+    const val LEGACY_GCP_ACCESS_TOKEN = "${LEGACY_PREFIX}gcpAccessToken"
+    const val LEGACY_KEEPER_CONFIG = "${LEGACY_PREFIX}keeperConfig"
+
+    /**
+     * Reads a secret string from [PlatformStorage] using [canonicalKey] (`"settings.*"`),
+     * falling back to [legacyKey] (`"clapi.settings.*"`) if not present under the canonical key.
+     */
+    fun getSecretWithFallback(
+        canonicalKey: String,
+        legacyKey: String? = canonicalKey.replaceFirst(PREFIX, LEGACY_PREFIX),
+    ): String? {
+        val primary = PlatformStorage.getSecretString(canonicalKey)?.takeIf { it.isNotBlank() }
+        if (primary != null) return primary
+        return legacyKey?.let { PlatformStorage.getSecretString(it)?.takeIf { s -> s.isNotBlank() } }
+    }
+}
+
+/**
  * Persists [AppSettings] using [PlatformStorage].
  * Call [load] on startup and [save] after any settings mutation.
  */
 object SettingsRepository {
 
-    private const val PREFIX = "settings."
+    private const val PREFIX = SettingsStorageKeys.PREFIX
 
     // ── Load ───────────────────────────────────────────────────────────────
 

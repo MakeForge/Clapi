@@ -1,17 +1,24 @@
-package io.github.crustack.clapi.feature.requests
+package io.github.crustack.clapi.core.network.execution
 
+import io.github.crustack.clapi.core.model.AuthConfig
+import io.github.crustack.clapi.core.model.AuthType
+import io.github.crustack.clapi.core.model.BodyType
+import io.github.crustack.clapi.core.model.FormDataEntry
+import io.github.crustack.clapi.core.model.GraphQlBody
 import io.github.crustack.clapi.core.model.HttpMethodType
 import io.github.crustack.clapi.core.model.KeyValueEntry
+import io.github.crustack.clapi.core.model.RequestBody
 import io.github.crustack.clapi.core.model.RequestDefinition
 import io.github.crustack.clapi.core.model.opencollection.HashicorpVaultExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.SecretVariable
 import io.github.crustack.clapi.core.network.ApiClient
 import io.github.crustack.clapi.core.network.NetworkEvent
 import io.github.crustack.clapi.core.network.vault.HashiCorpVaultClient
+import io.github.crustack.clapi.core.network.vault.SecretResolutionContext
 import io.github.crustack.clapi.core.network.vault.SecretResolutionService
+import io.github.crustack.clapi.core.network.vault.VaultProviderConfig
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -208,5 +215,71 @@ class RequestExecutionServiceSecretsTest {
             "Secret variable 'API_SECRET' could not be resolved from process environment or external secrets.",
             ex.message,
         )
+    }
+
+    @Test
+    fun executeWithSecrets_with_SecretResolutionContext_extracts_and_resolves_secrets_in_auth_params_formEntries_formDataEntries_and_graphQl() = runTest {
+        val vaultClient = FakeVaultClient(
+            mapOf(
+                "kv/all" to mapOf(
+                    "auth_sec" to "bearer-999",
+                    "form_sec" to "form-888",
+                    "mp_sec" to "mp-777",
+                    "gql_sec" to "gql-666",
+                ),
+            ),
+        )
+        val resolutionService = SecretResolutionService(vaultClient)
+        val apiClient = RecordingApiClient()
+        val service = RequestExecutionService(
+            apiClient = apiClient,
+            secretResolutionService = resolutionService,
+        )
+
+        val request = RequestDefinition(
+            id = "req-full",
+            name = "Full Extract",
+            method = HttpMethodType.POST,
+            url = "https://example.com/graphql",
+            auth = AuthConfig(
+                type = AuthType.BEARER,
+                params = mapOf("token" to "{{_secret.auth_sec}}"),
+            ),
+            body = RequestBody(
+                type = BodyType.GRAPHQL,
+                formEntries = listOf(KeyValueEntry("f", "{{_secret.form_sec}}")),
+                formDataEntries = listOf(FormDataEntry(key = "m", value = "{{_secret.mp_sec}}")),
+                graphQl = GraphQlBody(
+                    query = "query { item }",
+                    variablesJson = "{\"secret\":\"{{_secret.gql_sec}}\"}",
+                ),
+            ),
+            createdAtEpochMillis = 1000L,
+            updatedAtEpochMillis = 1000L,
+        )
+
+        val externalSecrets = listOf(
+            HashicorpVaultExternalSecret(name = "auth_sec", path = "kv/all"),
+            HashicorpVaultExternalSecret(name = "form_sec", path = "kv/all"),
+            HashicorpVaultExternalSecret(name = "mp_sec", path = "kv/all"),
+            HashicorpVaultExternalSecret(name = "gql_sec", path = "kv/all"),
+        )
+
+        service.executeWithSecrets(
+            request = request,
+            externalSecrets = externalSecrets,
+            context = SecretResolutionContext(
+                vault = VaultProviderConfig(
+                    url = "http://127.0.0.1:8200",
+                    token = "tok",
+                ),
+            ),
+        )
+
+        val secretLayer = apiClient.lastLayers.first()
+        assertEquals("bearer-999", secretLayer["_secret.auth_sec"])
+        assertEquals("form-888", secretLayer["_secret.form_sec"])
+        assertEquals("mp-777", secretLayer["_secret.mp_sec"])
+        assertEquals("gql-666", secretLayer["_secret.gql_sec"])
     }
 }
