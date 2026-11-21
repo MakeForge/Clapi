@@ -776,6 +776,7 @@ private fun GrpcMessageEditor(
 ) {
     val definedVarNames: Set<String> = state.allDefinedVariableNames(tab)
     var popupVariable by remember { mutableStateOf<String?>(null) }
+    var popupRange by remember { mutableStateOf<IntRange?>(null) }
     val allowJson5 = state.settings.allowJson5InJsonBodies
     val bodyViewModel = remember(tab, allowJson5) {
         tab.getOrCreateBodyViewModel(
@@ -806,7 +807,9 @@ private fun GrpcMessageEditor(
             placeholder = "{\n  \"key\": \"value\"\n}",
             testTagPrefix = "grpc-message-editor",
             onCursorTap = { offset ->
-                popupVariable = if (offset >= 0) variableNameAtOffset(tab.grpcMessageBody, offset) else null
+                val found = if (offset >= 0) findVariableTokenRangeAtOffset(tab.grpcMessageBody, offset) else null
+                popupRange = found?.first
+                popupVariable = found?.second
             },
             lineVariableSpans = { lineText, _ ->
                 variableRangesForLine(lineText, definedVarNames)
@@ -821,7 +824,26 @@ private fun GrpcMessageEditor(
                 variableName = popupVariable!!,
                 state = state,
                 tab = tab,
-                onDismiss = { popupVariable = null },
+                onDismiss = {
+                    popupVariable = null
+                    popupRange = null
+                },
+                onApply = { newVarToken ->
+                    val tokenToReplace = "{{${popupVariable!!}}}"
+                    val targetRange = popupRange?.takeIf {
+                        it.first in tab.grpcMessageBody.indices && it.last in tab.grpcMessageBody.indices &&
+                            tab.grpcMessageBody.substring(it) == tokenToReplace
+                    }
+                    val newContent = if (targetRange != null) {
+                        tab.grpcMessageBody.replaceRange(targetRange, "{{$newVarToken}}")
+                    } else if (tab.grpcMessageBody.contains(tokenToReplace)) {
+                        tab.grpcMessageBody.replaceFirst(tokenToReplace, "{{$newVarToken}}")
+                    } else {
+                        tab.grpcMessageBody
+                    }
+                    tab.grpcMessageBody = newContent
+                    onDirty()
+                },
             )
         }
     }
