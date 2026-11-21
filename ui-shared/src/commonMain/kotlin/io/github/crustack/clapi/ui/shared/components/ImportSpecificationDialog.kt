@@ -57,6 +57,7 @@ import io.github.crustack.clapi.core.model.importers.SpecFormat
 import io.github.crustack.clapi.core.model.opencollection.Environment
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
 import io.github.crustack.clapi.core.storage.importers.SpecificationImporter
+import io.github.crustack.clapi.ui.shared.components.sidebar.collapseNodeRecursively
 import io.github.crustack.clapi.ui.shared.generated.resources.Res
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_assignment
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_close

@@ -3,13 +3,13 @@ package io.github.crustack.clapi.ui.desktop.integration
 import io.github.crustack.clapi.core.model.HttpMethodType
 import io.github.crustack.clapi.ui.shared.MainScreen
 
-import io.github.crustack.clapi.ui.shared.components.deleteRequestFromCollections
-import io.github.crustack.clapi.ui.shared.components.duplicateRequestInCollections
-import io.github.crustack.clapi.ui.shared.components.moveFolderAfterFolder
-import io.github.crustack.clapi.ui.shared.components.moveFolderBeforeFolder
-import io.github.crustack.clapi.ui.shared.components.moveRequestAfterRequest
-import io.github.crustack.clapi.ui.shared.components.moveRequestBeforeRequest
-import io.github.crustack.clapi.ui.shared.components.isValidFolderDropTarget
+import io.github.crustack.clapi.ui.shared.components.sidebar.deleteRequestFromCollections
+import io.github.crustack.clapi.ui.shared.components.sidebar.duplicateRequestInCollections
+import io.github.crustack.clapi.ui.shared.components.sidebar.moveFolderAfterFolder
+import io.github.crustack.clapi.ui.shared.components.sidebar.moveFolderBeforeFolder
+import io.github.crustack.clapi.ui.shared.components.sidebar.moveRequestAfterRequest
+import io.github.crustack.clapi.ui.shared.components.sidebar.moveRequestBeforeRequest
+import io.github.crustack.clapi.ui.shared.components.sidebar.isValidFolderDropTarget
 import io.github.crustack.clapi.ui.shared.persistence.TabsRepository
 import io.github.crustack.clapi.ui.shared.state.AppState
 import org.junit.Test

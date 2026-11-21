@@ -1,11 +1,11 @@
-package io.github.crustack.clapi.ui.shared.components
+package io.github.crustack.clapi.ui.shared.components.sidebar
 
+import androidx.compose.runtime.mutableStateListOf
 import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.core.model.BodyType
 import io.github.crustack.clapi.core.model.HttpMethodType
 import io.github.crustack.clapi.core.model.KeyValueEntry
 import io.github.crustack.clapi.ui.shared.state.CollectionNode
-import androidx.compose.runtime.mutableStateListOf
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
