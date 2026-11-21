@@ -30,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -187,7 +188,8 @@ internal fun CollectionTreeNode(
 
     var showMenu by remember { mutableStateOf(false) }
     var showAddMenu by remember { mutableStateOf(false) }
-    var modifierHeldOnPress by remember { mutableStateOf(false) }
+    val modifierHeldOnPress = remember { booleanArrayOf(false) }
+    val childControlPressed = remember { booleanArrayOf(false) }
 
     val handleRowPointerPress: (PointerEvent) -> Unit = { event ->
         if (event.buttons.isSecondaryPressed && (isFolderNode || isRequest)) {
@@ -196,7 +198,7 @@ internal fun CollectionTreeNode(
             val isCtrl = event.keyboardModifiers.isCtrlPressed || event.keyboardModifiers.isMetaPressed
             val isShift = event.keyboardModifiers.isShiftPressed
             if (isCtrl || isShift) {
-                modifierHeldOnPress = true
+                modifierHeldOnPress[0] = true
                 if (isFolderNode) {
                     state.selectSidebarFolder(
                         folderId = node.id,
@@ -213,7 +215,10 @@ internal fun CollectionTreeNode(
                     )
                 }
             } else {
-                modifierHeldOnPress = false
+                modifierHeldOnPress[0] = false
+                if (isPointerDoubleClick(node.id, event)) {
+                    onStartInlineRename(node.id)
+                }
             }
         }
     }
@@ -319,7 +324,13 @@ internal fun CollectionTreeNode(
                 }
                 .hoverable(interactionSource)
                 .handPointerHover()
-                .onPointerEvent(PointerEventType.Press) { handleRowPointerPress(it) }
+                .onPointerEvent(PointerEventType.Press) { event ->
+                    if (childControlPressed[0]) {
+                        childControlPressed[0] = false
+                        return@onPointerEvent
+                    }
+                    handleRowPointerPress(event)
+                }
                 .pointerInput(node.id, isRequest, isFolderNode) {
                     when {
                         isRequest -> detectDragGestures(
@@ -342,14 +353,9 @@ internal fun CollectionTreeNode(
                         )
                     }
                 }
-                .onPointerEvent(PointerEventType.Press) {
-                    if (it.buttons.isPrimaryPressed && isPointerDoubleClick(node.id, it)) {
-                        onStartInlineRename(node.id)
-                    }
-                }
                 .clickable {
-                    if (modifierHeldOnPress) {
-                        modifierHeldOnPress = false
+                    if (modifierHeldOnPress[0]) {
+                        modifierHeldOnPress[0] = false
                         return@clickable
                     }
                     if (inlineRenamingId == node.id) return@clickable
@@ -395,6 +401,9 @@ internal fun CollectionTreeNode(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier
                         .handPointerHover()
+                        .onPointerEvent(PointerEventType.Press) {
+                            childControlPressed[0] = true
+                        }
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
@@ -522,12 +531,6 @@ internal fun CollectionTreeNode(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
                         .weight(1f)
-                        .onPointerEvent(PointerEventType.Press) {
-                            handleRowPointerPress(it)
-                            if (it.buttons.isPrimaryPressed && isPointerDoubleClick(node.id, it)) {
-                                onStartInlineRename(node.id)
-                            }
-                        }
                         .then(
                             if (node.isFolder) {
                                 Modifier
@@ -536,8 +539,8 @@ internal fun CollectionTreeNode(
                                         interactionSource = remember { MutableInteractionSource() },
                                         indication = null,
                                         onClick = {
-                                            if (modifierHeldOnPress) {
-                                                modifierHeldOnPress = false
+                                            if (modifierHeldOnPress[0]) {
+                                                modifierHeldOnPress[0] = false
                                                 return@clickable
                                             }
                                             state.selectSidebarFolder(
@@ -561,8 +564,8 @@ internal fun CollectionTreeNode(
                                         interactionSource = remember { MutableInteractionSource() },
                                         indication = null,
                                         onClick = {
-                                            if (modifierHeldOnPress) {
-                                                modifierHeldOnPress = false
+                                            if (modifierHeldOnPress[0]) {
+                                                modifierHeldOnPress[0] = false
                                                 return@clickable
                                             }
                                             state.selectSidebarRequest(
@@ -591,11 +594,15 @@ internal fun CollectionTreeNode(
             if (isFolderNode || isRequest) {
             val actionsInteraction = remember { MutableInteractionSource() }
             Row(
-                modifier = Modifier.clickable(
-                    interactionSource = actionsInteraction,
-                    indication = null,
-                    onClick = { /* consume so the folder row does not toggle */ },
-                ),
+                modifier = Modifier
+                    .onPointerEvent(PointerEventType.Press) {
+                        childControlPressed[0] = true
+                    }
+                    .clickable(
+                        interactionSource = actionsInteraction,
+                        indication = null,
+                        onClick = { /* consume so the folder row does not toggle */ },
+                    ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
             if (isFolderNode) {
@@ -702,6 +709,7 @@ internal fun CollectionTreeNode(
         ) {
             Column {
                 node.children.forEach { child ->
+                    key(child.id) {
                     CollectionTreeNode(
                         node = child,
                         depth = depth + 1,
@@ -748,6 +756,7 @@ internal fun CollectionTreeNode(
                         onCommitInlineRename = onCommitInlineRename,
                         onCancelInlineRename = onCancelInlineRename,
                     )
+                    }
                 }
             }
         }

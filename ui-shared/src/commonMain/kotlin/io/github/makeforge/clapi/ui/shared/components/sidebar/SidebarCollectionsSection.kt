@@ -99,7 +99,7 @@ internal fun LazyListScope.sidebarCollectionsSection(
         }
 
         val onDuplicateSelectedFolders: () -> Unit = {
-            val toDuplicate = state.selectedFolderIds.toList()
+            val toDuplicate = pruneRedundantDescendantFolders(state.collections, state.selectedFolderIds.toList())
             for (id in toDuplicate) {
                 duplicateFolderInCollections(state.collections, id)
             }
@@ -109,7 +109,7 @@ internal fun LazyListScope.sidebarCollectionsSection(
         }
 
         val onDeleteSelectedFolders: () -> Unit = {
-            val toDelete = state.selectedFolderIds.toList()
+            val toDelete = pruneRedundantDescendantFolders(state.collections, state.selectedFolderIds.toList())
             val action = {
                 val allRequestIdsToClose = mutableListOf<String>()
                 for (id in toDelete) {
@@ -119,7 +119,7 @@ internal fun LazyListScope.sidebarCollectionsSection(
                     }
                 }
                 state.closeTabsByIds(allRequestIdsToClose)
-                state.selectedFolderIds.clear()
+                state.clearSidebarSelection()
                 state.notifyCollectionsChanged()
                 persistWorkspaceAsync()
                 state.log("Folder(s) deleted: ${toDelete.size}", LogLevel.INFO)
@@ -136,7 +136,7 @@ internal fun LazyListScope.sidebarCollectionsSection(
         }
 
         val onDuplicateSelectedRequests: () -> Unit = {
-            val toDuplicate = state.selectedRequestIds.toList()
+            val toDuplicate = state.selectedRequestIds.distinct()
             for (id in toDuplicate) {
                 duplicateRequestInCollections(state.collections, id)
             }
@@ -146,13 +146,13 @@ internal fun LazyListScope.sidebarCollectionsSection(
         }
 
         val onDeleteSelectedRequests: () -> Unit = {
-            val toDelete = state.selectedRequestIds.toList()
+            val toDelete = state.selectedRequestIds.distinct()
             val action = {
                 for (id in toDelete) {
                     deleteRequestFromCollections(state.collections, id)
                 }
                 state.closeTabsByIds(toDelete)
-                state.selectedRequestIds.clear()
+                state.clearSidebarSelection()
                 state.notifyCollectionsChanged()
                 persistWorkspaceAsync()
                 state.log("Request(s) deleted: ${toDelete.size}", LogLevel.INFO)
@@ -216,8 +216,9 @@ internal fun LazyListScope.sidebarCollectionsSection(
                     onDeleteCollection = { target ->
                         if (target.isCollection) {
                             val action = {
+                                val removedIds = collectAllRequestIds(target)
                                 state.deleteCollection(target.id)
-                                state.selectedFolderIds.remove(target.id)
+                                state.pruneSidebarSelection(removedIds)
                                 persistWorkspaceAsync()
                                 state.log("Collection deleted: ${target.name}", LogLevel.INFO)
                             }
@@ -237,7 +238,7 @@ internal fun LazyListScope.sidebarCollectionsSection(
                                 if (deleted != null) {
                                     val deletedIds = collectAllRequestIds(deleted)
                                     state.closeTabsByIds(deletedIds)
-                                    state.selectedFolderIds.remove(target.id)
+                                    state.pruneSidebarSelection(deletedIds)
                                     state.notifyCollectionsChanged()
                                     persistWorkspaceAsync()
                                     state.log("Folder deleted: ${target.name}", LogLevel.INFO)
@@ -291,7 +292,7 @@ internal fun LazyListScope.sidebarCollectionsSection(
                         val action = {
                             deleteRequestFromCollections(state.collections, target.id)
                             state.closeTabsByIds(listOf(target.id))
-                            state.selectedRequestIds.remove(target.id)
+                            state.pruneSidebarSelection(listOf(target.id))
                             state.notifyCollectionsChanged()
                             persistWorkspaceAsync()
                             state.log("Request deleted: ${target.name}", LogLevel.INFO)
