@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.makeforge.clapi.core.model.opencollection.ExternalSecretType
+import io.github.makeforge.clapi.ui.shared.components.DenseDropdownMenuItem
 import io.github.makeforge.clapi.core.network.keepassxc.DefaultKeePassXcClientManager
 import io.github.makeforge.clapi.core.network.keepassxc.KeePassXcStatus
 import io.github.makeforge.clapi.core.network.keepassxc.createKeePassXcClient
@@ -130,7 +131,7 @@ internal fun <T> SettingDropdown(
                 options.forEach { (value, text) ->
                     val isSelected = value == selected
                     val itemIcon = optionIcon?.invoke(value)
-                    DropdownMenuItem(
+                    DenseDropdownMenuItem(
                         leadingIcon = itemIcon?.let { ic ->
                             {
                                 Icon(

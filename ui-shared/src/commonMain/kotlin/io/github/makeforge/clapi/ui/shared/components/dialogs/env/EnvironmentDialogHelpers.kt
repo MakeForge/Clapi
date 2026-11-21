@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -25,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.makeforge.clapi.core.model.opencollection.ExternalSecretType
+import io.github.makeforge.clapi.ui.shared.components.DenseDropdownMenuItem
 import io.github.makeforge.clapi.ui.shared.components.IconButtonWithTooltip
 import io.github.makeforge.clapi.ui.shared.components.externalSecretIcon
 import io.github.makeforge.clapi.ui.shared.generated.resources.*
@@ -339,7 +339,7 @@ internal fun ExternalSecretProviderDropdown(
             onDismissRequest = { expanded = false },
         ) {
             SupportedExternalSecretProviders.forEach { providerType ->
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     leadingIcon = {
                         Icon(
                             painter = painterResource(externalSecretIcon(providerType)),

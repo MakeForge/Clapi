@@ -13,7 +13,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import io.github.makeforge.clapi.core.model.RabbitMqConnectionStatus
 import io.github.makeforge.clapi.core.model.opencollection.RabbitMqConnectionConfig
 import io.github.makeforge.clapi.core.model.opencollection.RabbitMqOperationMode
+import io.github.makeforge.clapi.ui.shared.components.DenseDropdownMenuItem
 import io.github.makeforge.clapi.ui.shared.components.DocsHelpButton
 import io.github.makeforge.clapi.ui.shared.components.RabbitMqBadge
 import io.github.makeforge.clapi.ui.shared.components.SaveButton
@@ -140,7 +140,7 @@ fun RabbitMqConnectionBar(
             }
             DropdownMenu(expanded = modeMenuOpen, onDismissRequest = { modeMenuOpen = false }) {
                 RabbitMqOperationMode.entries.forEach { mode ->
-                    DropdownMenuItem(
+                    DenseDropdownMenuItem(
                         text = { Text("${mode.badge} — ${mode.value.replaceFirstChar { it.uppercase() }}") },
                         onClick = {
                             tab.rabbitMqMode = mode

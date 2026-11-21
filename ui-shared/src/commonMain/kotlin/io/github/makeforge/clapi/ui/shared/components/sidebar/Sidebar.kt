@@ -23,7 +23,6 @@ import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -48,6 +47,7 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import io.github.makeforge.clapi.ui.shared.components.DenseDropdownMenuItem
 import io.github.makeforge.clapi.ui.shared.components.SharedTooltipCoordinator
 import io.github.makeforge.clapi.ui.shared.components.SidebarTooltipOverlay
 import io.github.makeforge.clapi.ui.shared.components.sharedSidebarTooltipState
@@ -385,7 +385,7 @@ fun Sidebar(
                         onDismissRequest = { showExportMenu = false },
                         modifier = Modifier.testTag("sidebar-export-menu"),
                     ) {
-                        DropdownMenuItem(
+                        DenseDropdownMenuItem(
                             text = { Text("OpenCollection YAML Format") },
                             leadingIcon = {
                                 Icon(painter = painterResource(Res.drawable.ic_upload), contentDescription = null, modifier = Modifier.size(16.dp))
@@ -404,7 +404,7 @@ fun Sidebar(
                             },
                             modifier = Modifier.testTag("export-opencollection-yaml-item"),
                         )
-                        DropdownMenuItem(
+                        DenseDropdownMenuItem(
                             text = { Text("OpenAPI YAML") },
                             leadingIcon = {
                                 Icon(painter = painterResource(Res.drawable.ic_upload), contentDescription = null, modifier = Modifier.size(16.dp))

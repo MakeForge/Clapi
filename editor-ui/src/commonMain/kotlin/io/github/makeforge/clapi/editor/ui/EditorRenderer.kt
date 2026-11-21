@@ -45,8 +45,11 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.MenuItemColors
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -991,7 +994,7 @@ fun EditorRenderer(
                 onDismissRequest = { contextMenuVisible = false },
                 offset           = DpOffset.Zero,
             ) {
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text    = { Text(labels.undo) },
                     enabled = !isReadOnly && viewModel.canUndo(),
                     onClick = {
@@ -1001,7 +1004,7 @@ fun EditorRenderer(
                     modifier = if (testTagPrefix.isNotEmpty())
                         Modifier.testTag("$testTagPrefix-context-undo") else Modifier,
                 )
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text    = { Text(labels.redo) },
                     enabled = !isReadOnly && viewModel.canRedo(),
                     onClick = {
@@ -1011,7 +1014,7 @@ fun EditorRenderer(
                     modifier = if (testTagPrefix.isNotEmpty())
                         Modifier.testTag("$testTagPrefix-context-redo") else Modifier,
                 )
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text    = { Text(labels.copy) },
                     enabled = hasSelection,
                     onClick = {
@@ -1022,7 +1025,7 @@ fun EditorRenderer(
                     modifier = if (testTagPrefix.isNotEmpty())
                         Modifier.testTag("$testTagPrefix-context-copy") else Modifier,
                 )
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text    = { Text(labels.cut) },
                     enabled = hasSelection && !isReadOnly,
                     onClick = {
@@ -1036,7 +1039,7 @@ fun EditorRenderer(
                     modifier = if (testTagPrefix.isNotEmpty())
                         Modifier.testTag("$testTagPrefix-context-cut") else Modifier,
                 )
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text    = { Text(labels.paste) },
                     enabled = !isReadOnly,
                     onClick = {
@@ -1051,7 +1054,7 @@ fun EditorRenderer(
                     modifier = if (testTagPrefix.isNotEmpty())
                         Modifier.testTag("$testTagPrefix-context-paste") else Modifier,
                 )
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text    = { Text(labels.selectAll) },
                     onClick = {
                         contextMenuVisible = false
@@ -1060,7 +1063,7 @@ fun EditorRenderer(
                     modifier = if (testTagPrefix.isNotEmpty())
                         Modifier.testTag("$testTagPrefix-context-selectall") else Modifier,
                 )
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text    = { Text(labels.duplicateLine) },
                     enabled = !isReadOnly,
                     onClick = {
@@ -1070,7 +1073,7 @@ fun EditorRenderer(
                     modifier = if (testTagPrefix.isNotEmpty())
                         Modifier.testTag("$testTagPrefix-context-duplicate") else Modifier,
                 )
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text    = { Text(labels.toggleComment) },
                     enabled = !isReadOnly,
                     onClick = {
@@ -1084,6 +1087,31 @@ fun EditorRenderer(
             } // end context-menu anchor Box
         }
     }
+}
+
+@Composable
+private fun DenseDropdownMenuItem(
+    text: @Composable () -> Unit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    leadingIcon: (@Composable () -> Unit)? = null,
+    trailingIcon: (@Composable () -> Unit)? = null,
+    enabled: Boolean = true,
+    colors: MenuItemColors = MenuDefaults.itemColors(),
+    contentPadding: PaddingValues = MenuDefaults.DropdownMenuItemContentPadding,
+    interactionSource: MutableInteractionSource? = null,
+) {
+    DropdownMenuItem(
+        text = text,
+        onClick = onClick,
+        modifier = modifier.height(32.dp),
+        leadingIcon = leadingIcon,
+        trailingIcon = trailingIcon,
+        enabled = enabled,
+        colors = colors,
+        contentPadding = contentPadding,
+        interactionSource = interactionSource,
+    )
 }
 
 private const val LARGE_EDIT_SCROLL_SUPPRESS_THRESHOLD_CHARS = 100_000

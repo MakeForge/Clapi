@@ -15,7 +15,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import io.github.makeforge.clapi.core.model.opencollection.RabbitMqExchangeType
 import io.github.makeforge.clapi.core.model.opencollection.RabbitMqOperationMode
 import io.github.makeforge.clapi.core.model.opencollection.RabbitMqReplyStrategy
+import io.github.makeforge.clapi.ui.shared.components.DenseDropdownMenuItem
 import io.github.makeforge.clapi.ui.shared.components.handPointerHover
 import io.github.makeforge.clapi.ui.shared.state.RequestTabState
 import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
@@ -127,7 +127,7 @@ fun RabbitMqAmqpTab(
                     }
                     DropdownMenu(expanded = exTypeOpen, onDismissRequest = { exTypeOpen = false }) {
                         RabbitMqExchangeType.entries.forEach { t ->
-                            DropdownMenuItem(
+                            DenseDropdownMenuItem(
                                 text = { Text(t.value) },
                                 onClick = {
                                     tab.rabbitMqExchange = tab.rabbitMqExchange.copy(type = t)
@@ -240,7 +240,7 @@ fun RabbitMqAmqpTab(
                         }
                         DropdownMenu(expanded = replyStratOpen, onDismissRequest = { replyStratOpen = false }) {
                             RabbitMqReplyStrategy.entries.forEach { strat ->
-                                DropdownMenuItem(
+                                DenseDropdownMenuItem(
                                     text = { Text(strat.value) },
                                     onClick = {
                                         tab.rabbitMqSettings = tab.rabbitMqSettings.copy(replyStrategy = strat)

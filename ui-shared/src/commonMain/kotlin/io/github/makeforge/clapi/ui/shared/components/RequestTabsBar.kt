@@ -26,7 +26,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -598,12 +597,12 @@ private fun RequestTabChip(
             expanded = showContextMenu,
             onDismissRequest = { showContextMenu = false },
         ) {
-            if (showClose) DropdownMenuItem(
+            if (showClose) DenseDropdownMenuItem(
                 text = { Text(Strings.close) },
                 onClick = { showContextMenu = false; onClose() },
                 modifier = Modifier.testTag("tab-ctx-close"),
             )
-            DropdownMenuItem(
+            DenseDropdownMenuItem(
                 text = { Text(Strings.t("rename")) },
                 onClick = {
                     showContextMenu = false
@@ -611,27 +610,27 @@ private fun RequestTabChip(
                 },
                 modifier = Modifier.testTag("tab-ctx-rename"),
             )
-            DropdownMenuItem(
+            DenseDropdownMenuItem(
                 text = { Text(Strings.t("show_in_sidebar")) },
                 onClick = { showContextMenu = false; onShowInSidebar() },
                 modifier = Modifier.testTag("tab-ctx-show-sidebar"),
             )
-            DropdownMenuItem(
+            DenseDropdownMenuItem(
                 text = { Text(Strings.t("close_others")) },
                 onClick = { showContextMenu = false; onCloseOthers() },
                 modifier = Modifier.testTag("tab-ctx-close-others"),
             )
-            DropdownMenuItem(
+            DenseDropdownMenuItem(
                 text = { Text(Strings.t("close_tabs_to_left")) },
                 onClick = { showContextMenu = false; onCloseToLeft() },
                 modifier = Modifier.testTag("tab-ctx-close-left"),
             )
-            DropdownMenuItem(
+            DenseDropdownMenuItem(
                 text = { Text(Strings.t("close_tabs_to_right")) },
                 onClick = { showContextMenu = false; onCloseToRight() },
                 modifier = Modifier.testTag("tab-ctx-close-right"),
             )
-            DropdownMenuItem(
+            DenseDropdownMenuItem(
                 text = { Text(Strings.t("close_all")) },
                 onClick = { showContextMenu = false; onCloseAll() },
                 modifier = Modifier.testTag("tab-ctx-close-all"),

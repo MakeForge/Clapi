@@ -153,20 +153,20 @@ class NewFeaturesUiTest {
     }
 
     @Test
-    fun collection_menu_shows_expand_and_collapse_actions() {
+    fun collection_menu_shows_expand_all_and_collapse_all_without_single_expand_collapse() {
         val state = AppStateExamples.demo()
         val rootId = state.collections.first().id
         composeRule.setContent { MainScreen(state) }
 
         composeRule.onNodeWithTag("collection-actions-$rootId", useUnmergedTree = true).performClick()
-        composeRule.onNodeWithText("Expand", useUnmergedTree = true).assertIsDisplayed()
-        composeRule.onNodeWithText("Collapse", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Expand", useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithText("Collapse", useUnmergedTree = true).assertDoesNotExist()
         composeRule.onNodeWithText("Expand All", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithText("Collapse All", useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test
-    fun collapse_and_expand_from_collection_menu_hides_and_restores_children() {
+    fun collapse_all_and_expand_all_from_collection_menu_hides_and_restores_children() {
         val state = AppStateExamples.demo()
         val rootId = state.collections.first().id
         composeRule.setContent { MainScreen(state) }
@@ -174,14 +174,100 @@ class NewFeaturesUiTest {
         composeRule.onNodeWithTag("collection-node-r1", useUnmergedTree = true).assertIsDisplayed()
 
         composeRule.onNodeWithTag("collection-actions-$rootId", useUnmergedTree = true).performClick()
-        composeRule.onNodeWithText("Collapse", useUnmergedTree = true).performClick()
+        composeRule.onNodeWithText("Collapse All", useUnmergedTree = true).performClick()
         composeRule.waitForIdle()
         composeRule.onAllNodesWithTag("collection-node-r1", useUnmergedTree = true).assertCountEquals(0)
 
         composeRule.onNodeWithTag("collection-actions-$rootId", useUnmergedTree = true).performClick()
-        composeRule.onNodeWithText("Expand", useUnmergedTree = true).performClick()
+        composeRule.onNodeWithText("Expand All", useUnmergedTree = true).performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("collection-node-r1", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun folder_collapse_all_and_expand_all_only_affect_that_folder_subtree() {
+        val state = AppStateExamples.demo()
+        val root = state.collections.first()
+        val folderA = io.github.makeforge.clapi.ui.shared.components.sidebar.addSubfolderInCollections(state.collections, root.id, "FolderA")
+            ?: error("FolderA creation failed")
+        val nestedA = io.github.makeforge.clapi.ui.shared.components.sidebar.addSubfolderInCollections(state.collections, folderA.id, "NestedA")
+            ?: error("NestedA creation failed")
+        val folderB = io.github.makeforge.clapi.ui.shared.components.sidebar.addSubfolderInCollections(state.collections, root.id, "FolderB")
+            ?: error("FolderB creation failed")
+        val nestedB = io.github.makeforge.clapi.ui.shared.components.sidebar.addSubfolderInCollections(state.collections, folderB.id, "NestedB")
+            ?: error("NestedB creation failed")
+
+        state.collectionExpandedState[root.id] = true
+        state.collectionExpandedState[folderA.id] = true
+        state.collectionExpandedState[nestedA.id] = true
+        state.collectionExpandedState[folderB.id] = true
+        state.collectionExpandedState[nestedB.id] = true
+
+        composeRule.setContent { MainScreen(state) }
+
+        composeRule.onNodeWithTag("collection-actions-${folderA.id}", useUnmergedTree = true).performClick()
+        composeRule.onNodeWithText("Collapse All", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(false, state.collectionExpandedState[folderA.id])
+        assertEquals(false, state.collectionExpandedState[nestedA.id])
+        assertEquals(true, state.collectionExpandedState[root.id])
+        assertEquals(true, state.collectionExpandedState[folderB.id])
+        assertEquals(true, state.collectionExpandedState[nestedB.id])
+
+        // Collapse FolderB separately, then Expand All on FolderA — FolderB must stay collapsed
+        state.collectionExpandedState[folderB.id] = false
+        state.collectionExpandedState[nestedB.id] = false
+
+        composeRule.onNodeWithTag("collection-actions-${folderA.id}", useUnmergedTree = true).performClick()
+        composeRule.onNodeWithText("Expand All", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(true, state.collectionExpandedState[folderA.id])
+        assertEquals(true, state.collectionExpandedState[nestedA.id])
+        assertEquals(false, state.collectionExpandedState[folderB.id])
+        assertEquals(false, state.collectionExpandedState[nestedB.id])
+    }
+
+    @Test
+    fun folder_context_menu_items_follow_expected_order() {
+        val state = AppStateExamples.demo()
+        val root = state.collections.first()
+        val folder = io.github.makeforge.clapi.ui.shared.components.sidebar.addSubfolderInCollections(state.collections, root.id, "OrderedFolder")
+            ?: error("Folder creation failed")
+        composeRule.setContent { MainScreen(state) }
+
+        composeRule.onNodeWithTag("collection-actions-${folder.id}", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        val expectedLabels = listOf(
+            "Add Folder",
+            "Rename",
+            "Add Request",
+            "gRPC Request",
+            "WebSocket Request",
+            "GraphQL Request",
+            "RabbitMQ",
+            "New MCP Connection",
+            "New SSE Request",
+            "Expand All",
+            "Collapse All",
+            "Delete",
+        )
+        val topPositions = expectedLabels.map { label ->
+            composeRule.onNodeWithText(label, useUnmergedTree = true)
+                .assertIsDisplayed()
+                .getUnclippedBoundsInRoot()
+                .top
+        }
+        for (i in 0 until topPositions.lastIndex) {
+            assertTrue(
+                topPositions[i] < topPositions[i + 1],
+                "Expected '${expectedLabels[i]}' (${topPositions[i]}) to appear above '${expectedLabels[i + 1]}' (${topPositions[i + 1]})",
+            )
+        }
+        composeRule.onNodeWithText("Expand", useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithText("Collapse", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test

@@ -22,7 +22,4 @@ All notable changes to Clapi are documented here.
 
 ### Fixes
 
-- **Linux Window Flicker Workaround**: Temporarily switched Linux builds to Nucleus's legacy AWT backend (`nucleus.decorated-window-jni`) to avoid an X11 focus-transition transparency flicker bug in the Tao backend (macOS and Windows remain on Tao).
-
-
 ---

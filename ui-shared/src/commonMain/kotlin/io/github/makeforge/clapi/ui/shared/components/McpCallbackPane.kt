@@ -19,7 +19,6 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -358,7 +357,7 @@ private fun CallbackDropdown(
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { option ->
-                DropdownMenuItem(
+                DenseDropdownMenuItem(
                     text = { Text(option, fontFamily = CodeFontFamily, fontSize = 13.sp) },
                     onClick = {
                         onSelect(option)

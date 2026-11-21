@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -44,6 +43,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.makeforge.clapi.ui.shared.components.dialogs.env.parseHexColor
+import io.github.makeforge.clapi.ui.shared.components.DenseDropdownMenuItem
 import io.github.makeforge.clapi.ui.shared.components.IconButtonWithTooltip
 import io.github.makeforge.clapi.ui.shared.components.sharedSidebarTooltipState
 import io.github.makeforge.clapi.ui.shared.generated.resources.Res
@@ -179,7 +179,7 @@ internal fun EnvironmentRow(
                     )
                 }
                 DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                    DropdownMenuItem(
+                    DenseDropdownMenuItem(
                         text = { Text(Strings.t("duplicate_environment")) },
                         leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_content_copy), contentDescription = null, modifier = Modifier.size(16.dp)) },
                         onClick = {
@@ -187,7 +187,7 @@ internal fun EnvironmentRow(
                             onDuplicate()
                         }
                     )
-                    DropdownMenuItem(
+                    DenseDropdownMenuItem(
                         text = { Text(Strings.t("rename_environment")) },
                         leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_edit), contentDescription = null, modifier = Modifier.size(16.dp)) },
                         onClick = {
@@ -195,7 +195,7 @@ internal fun EnvironmentRow(
                             onRename()
                         }
                     )
-                    DropdownMenuItem(
+                    DenseDropdownMenuItem(
                         text = { Text(Strings.t("delete_environment")) },
                         leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_delete), contentDescription = null, modifier = Modifier.size(16.dp)) },
                         onClick = {

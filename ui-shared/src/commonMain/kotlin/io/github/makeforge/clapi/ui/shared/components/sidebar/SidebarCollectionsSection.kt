@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.makeforge.clapi.ui.shared.components.DenseDropdownMenuItem
 import io.github.makeforge.clapi.ui.shared.components.IconButtonWithTooltip
 import io.github.makeforge.clapi.ui.shared.generated.resources.*
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
@@ -75,7 +76,7 @@ internal fun LazyListScope.sidebarCollectionsSection(
                             expanded = showHeaderMenu,
                             onDismissRequest = { showHeaderMenu = false },
                         ) {
-                            DropdownMenuItem(
+                            DenseDropdownMenuItem(
                                 text = { Text(Strings.exportCollections, fontSize = 12.sp) },
                                 leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_download), contentDescription = null, modifier = Modifier.size(14.dp)) },
                                 onClick = {
