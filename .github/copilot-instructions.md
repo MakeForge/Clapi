@@ -35,3 +35,8 @@ rtk proxy <cmd>       # Run raw (no filtering) but track usage
 
 ## IntelliJ MCP
 You can utilize connected IntelliJ MCP to e.g. easily search through external library code, find files more easily. Leverage it whenever useful.
+
+## Changelog & Versioning
+After implementing any feature, bug fix, or notable CI/test/build fix, update `CHANGELOG.md` (and `gradle.properties` `appVersion` if starting a new SemVer version) following the **Changelog & Versioning Policy** in [AGENTS.md](../AGENTS.md):
+- Format: `## [X.Y.Z] - TBD` (unreleased) or `## [X.Y.Z] - YYYY-MM-DD` (released), with `### New Features` and `### Fixes` subsections and clickable GitHub issue links where applicable.
+- If the topmost version in `CHANGELOG.md` is already released (dated or has a `vX.Y.Z` Git tag), create a new SemVer-bumped `## [X.Y.Z] - TBD` section and update `appVersion` in `gradle.properties` to match.
