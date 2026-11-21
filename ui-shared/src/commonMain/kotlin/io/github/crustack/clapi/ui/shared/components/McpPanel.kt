@@ -68,6 +68,7 @@ import io.github.crustack.clapi.core.model.McpRoot
 import io.github.crustack.clapi.core.model.McpSamplingMode
 import io.github.crustack.clapi.core.model.McpTool
 import io.github.crustack.clapi.core.model.McpTransportType
+import io.github.crustack.clapi.ui.shared.components.executor.buildAuthConfig
 import io.github.crustack.clapi.ui.shared.generated.resources.Res
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_add
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_close

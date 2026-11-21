@@ -7,8 +7,8 @@ import io.github.crustack.clapi.core.model.HttpMethodType
 import io.github.crustack.clapi.core.model.KeyValueEntry
 import io.github.crustack.clapi.editor.core.LanguageMode
 import io.github.crustack.clapi.editor.ui.EditorViewModel
-import io.github.crustack.clapi.ui.shared.components.buildAuthConfig
-import io.github.crustack.clapi.ui.shared.components.enabledHeadersForSend
+import io.github.crustack.clapi.ui.shared.components.executor.buildAuthConfig
+import io.github.crustack.clapi.ui.shared.components.executor.enabledHeadersForSend
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotSame

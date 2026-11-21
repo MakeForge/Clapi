@@ -69,8 +69,8 @@ import io.github.crustack.clapi.ui.shared.components.SettingsDialog
 import io.github.crustack.clapi.ui.shared.components.SidebarResizeDivider
 import io.github.crustack.clapi.ui.shared.components.TopToolbar
 import io.github.crustack.clapi.ui.shared.components.VerticalSplitPane
-import io.github.crustack.clapi.ui.shared.components.saveRequest
-import io.github.crustack.clapi.ui.shared.components.sendRequest
+import io.github.crustack.clapi.ui.shared.components.executor.saveRequest
+import io.github.crustack.clapi.ui.shared.components.executor.sendRequest
 import io.github.crustack.clapi.ui.shared.components.sidebar.Sidebar
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.persistence.SettingsRepository

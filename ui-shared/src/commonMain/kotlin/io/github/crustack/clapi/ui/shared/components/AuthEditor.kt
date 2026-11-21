@@ -1,7 +1,5 @@
 package io.github.crustack.clapi.ui.shared.components
 
-import org.jetbrains.compose.resources.painterResource
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,7 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -52,19 +49,21 @@ import io.github.crustack.clapi.core.network.oauth2.KtorOAuth2TokenClient
 import io.github.crustack.clapi.core.network.oauth2.OAuth2TokenClient
 import io.github.crustack.clapi.core.network.oauth2.OAuth2TokenResponse
 import io.github.crustack.clapi.core.network.oauth2.OAuth2TokenState
+import io.github.crustack.clapi.ui.shared.components.executor.resolveExternalSecretsForTab
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_content_copy
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_visibility
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_visibility_off
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.platform.copyToClipboard
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.LogLevel
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
-import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
-import io.github.crustack.clapi.ui.shared.generated.resources.Res
-import io.github.crustack.clapi.ui.shared.generated.resources.ic_content_copy
-import io.github.crustack.clapi.ui.shared.generated.resources.ic_visibility
-import io.github.crustack.clapi.ui.shared.generated.resources.ic_visibility_off
+import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.painterResource
 
 /**
  * Editor panel for the request authentication configuration.

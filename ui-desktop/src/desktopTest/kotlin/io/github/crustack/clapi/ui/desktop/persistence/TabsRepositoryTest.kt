@@ -12,7 +12,7 @@ import io.github.crustack.clapi.ui.shared.state.HeaderKind
 import io.github.crustack.clapi.ui.shared.state.MutableFormDataRow
 import io.github.crustack.clapi.ui.shared.state.MutableKeyValue
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
-import io.github.crustack.clapi.ui.shared.components.saveRequest
+import io.github.crustack.clapi.ui.shared.components.executor.saveRequest
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout

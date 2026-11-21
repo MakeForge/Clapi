@@ -54,6 +54,9 @@ import io.github.crustack.clapi.core.model.opencollection.WebSocketMessageType
 import io.github.crustack.clapi.core.model.opencollection.WebSocketMessageVariant
 import io.github.crustack.clapi.core.network.ConnectionState
 import io.github.crustack.clapi.core.network.websocket.WebSocketClientManager
+import io.github.crustack.clapi.ui.shared.components.executor.connectWebSocketTab
+import io.github.crustack.clapi.ui.shared.components.executor.disconnectWebSocketTab
+import io.github.crustack.clapi.ui.shared.components.executor.sendWebSocketMessage
 import io.github.crustack.clapi.ui.shared.generated.resources.Res
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_add
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_arrow_drop_down
@@ -62,7 +65,6 @@ import io.github.crustack.clapi.ui.shared.generated.resources.ic_content_copy
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_delete
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_edit
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_play_arrow
-import io.github.crustack.clapi.ui.shared.generated.resources.ic_save
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_send
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_stop
 import io.github.crustack.clapi.ui.shared.i18n.Strings
@@ -76,7 +78,6 @@ import io.github.crustack.clapi.ui.shared.state.RequestTabState
 import io.github.crustack.clapi.ui.shared.state.WebSocketEditorTab
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
 import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
 import org.jetbrains.compose.resources.painterResource
