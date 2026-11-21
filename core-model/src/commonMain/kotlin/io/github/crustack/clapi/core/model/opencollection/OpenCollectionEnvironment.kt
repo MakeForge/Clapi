@@ -2,6 +2,7 @@ package io.github.crustack.clapi.core.model.opencollection
 
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
@@ -18,12 +19,34 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
+@Serializable
+enum class VariableType(val value: String) {
+    @SerialName("string")
+    STRING("string"),
+    @SerialName("number")
+    NUMBER("number"),
+    @SerialName("boolean")
+    BOOLEAN("boolean"),
+    @SerialName("null")
+    NULL("null"),
+    @SerialName("object")
+    OBJECT("object");
+
+    override fun toString(): String = value
+
+    companion object {
+        fun fromValue(value: String?): VariableType? =
+            entries.firstOrNull { it.value.equals(value, ignoreCase = true) }
+    }
+}
+
 @Serializable(with = VariableValueSerializer::class)
 sealed interface VariableValue {
     val asString: String
 
     companion object {
         fun of(value: String): VariableValue = StringVariableValue(value)
+        fun of(type: VariableType, data: String): VariableValue = TypedVariableValue(type, data)
         fun of(type: String, data: String): VariableValue = TypedVariableValue(type, data)
     }
 }
@@ -34,8 +57,16 @@ data class StringVariableValue(val value: String) : VariableValue {
 }
 
 @Serializable
-data class TypedVariableValue(val type: String, val data: String) : VariableValue {
+data class TypedVariableValue(
+    val type: VariableType = VariableType.STRING,
+    val data: String
+) : VariableValue {
     override val asString: String get() = data
+
+    constructor(type: String, data: String) : this(
+        type = VariableType.fromValue(type) ?: VariableType.STRING,
+        data = data
+    )
 }
 
 object VariableValueSerializer : KSerializer<VariableValue> {
@@ -48,7 +79,8 @@ object VariableValueSerializer : KSerializer<VariableValue> {
             when (element) {
                 is JsonPrimitive -> StringVariableValue(element.content)
                 is JsonObject -> {
-                    val type = element["type"]?.jsonPrimitive?.content ?: "string"
+                    val typeStr = element["type"]?.jsonPrimitive?.content ?: "string"
+                    val type = VariableType.fromValue(typeStr) ?: VariableType.STRING
                     val data = element["data"]?.jsonPrimitive?.content ?: ""
                     TypedVariableValue(type = type, data = data)
                 }
@@ -66,7 +98,7 @@ object VariableValueSerializer : KSerializer<VariableValue> {
                 is TypedVariableValue -> {
                     val obj = JsonObject(
                         mapOf(
-                            "type" to JsonPrimitive(value.type),
+                            "type" to JsonPrimitive(value.type.value),
                             "data" to JsonPrimitive(value.data)
                         )
                     )
@@ -97,11 +129,25 @@ data class RegularVariable(
 @Serializable
 data class SecretVariable(
     override val name: String,
-    val type: String = "string",
+    val type: VariableType = VariableType.STRING,
     override val description: Description? = null,
     override val disabled: Boolean? = null,
     val secret: Boolean = true,
-) : VariableEntry
+) : VariableEntry {
+    constructor(
+        name: String,
+        type: String,
+        description: Description? = null,
+        disabled: Boolean? = null,
+        secret: Boolean = true
+    ) : this(
+        name = name,
+        type = VariableType.fromValue(type) ?: VariableType.STRING,
+        description = description,
+        disabled = disabled,
+        secret = secret
+    )
+}
 
 object VariableEntrySerializer : JsonContentPolymorphicSerializer<VariableEntry>(VariableEntry::class) {
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<VariableEntry> {
@@ -113,34 +159,75 @@ object VariableEntrySerializer : JsonContentPolymorphicSerializer<VariableEntry>
     }
 }
 
+@Serializable
+enum class CertificateType(val value: String) {
+    @SerialName("pem")
+    PEM("pem"),
+    @SerialName("pkcs12")
+    PKCS12("pkcs12");
+
+    override fun toString(): String = value
+
+    companion object {
+        fun fromValue(value: String?): CertificateType? =
+            entries.firstOrNull { it.value.equals(value, ignoreCase = true) }
+    }
+}
+
 @Serializable(with = ClientCertificateSerializer::class)
 sealed interface ClientCertificate {
     val domain: String
-    val type: String
+    val type: CertificateType
     val passphrase: String?
 }
 
 @Serializable
 data class PemCertificate(
     override val domain: String,
-    override val type: String = "pem",
+    override val type: CertificateType = CertificateType.PEM,
     val certificateFilePath: String,
     val privateKeyFilePath: String,
     override val passphrase: String? = null,
-) : ClientCertificate
+) : ClientCertificate {
+    constructor(
+        domain: String,
+        type: String,
+        certificateFilePath: String,
+        privateKeyFilePath: String,
+        passphrase: String? = null
+    ) : this(
+        domain = domain,
+        type = CertificateType.fromValue(type) ?: CertificateType.PEM,
+        certificateFilePath = certificateFilePath,
+        privateKeyFilePath = privateKeyFilePath,
+        passphrase = passphrase
+    )
+}
 
 @Serializable
 data class Pkcs12Certificate(
     override val domain: String,
-    override val type: String = "pkcs12",
+    override val type: CertificateType = CertificateType.PKCS12,
     val pkcs12FilePath: String,
     override val passphrase: String? = null,
-) : ClientCertificate
+) : ClientCertificate {
+    constructor(
+        domain: String,
+        type: String,
+        pkcs12FilePath: String,
+        passphrase: String? = null
+    ) : this(
+        domain = domain,
+        type = CertificateType.fromValue(type) ?: CertificateType.PKCS12,
+        pkcs12FilePath = pkcs12FilePath,
+        passphrase = passphrase
+    )
+}
 
 object ClientCertificateSerializer : JsonContentPolymorphicSerializer<ClientCertificate>(ClientCertificate::class) {
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<ClientCertificate> {
         val type = element.jsonObject["type"]?.jsonPrimitive?.content
-        return if (type == "pkcs12") {
+        return if (type == CertificateType.PKCS12.value || type == "pkcs12") {
             Pkcs12Certificate.serializer()
         } else {
             PemCertificate.serializer()
@@ -161,10 +248,38 @@ data class Environment(
 )
 
 @Serializable
+enum class ExternalSecretType(val value: String) {
+    @SerialName("hashicorp-vault-server")
+    HASHICORP_VAULT_SERVER("hashicorp-vault-server"),
+    @SerialName("hashicorp-vault-cloud")
+    HASHICORP_VAULT_CLOUD("hashicorp-vault-cloud"),
+    @SerialName("aws-secrets-manager")
+    AWS_SECRETS_MANAGER("aws-secrets-manager"),
+    @SerialName("azure-key-vault")
+    AZURE_KEY_VAULT("azure-key-vault"),
+    @SerialName("gcp-secrets-manager")
+    GCP_SECRETS_MANAGER("gcp-secrets-manager"),
+    @SerialName("one-password")
+    ONE_PASSWORD("one-password");
+
+    override fun toString(): String = value
+
+    companion object {
+        fun fromValue(value: String?): ExternalSecretType? =
+            entries.firstOrNull { it.value.equals(value, ignoreCase = true) }
+    }
+}
+
+@Serializable
 data class ExternalSecrets(
-    val type: String, // e.g. "hashicorp-vault-server"
+    val type: ExternalSecretType = ExternalSecretType.HASHICORP_VAULT_SERVER,
     val variables: List<ExternalSecretVariable> = emptyList(),
-)
+) {
+    constructor(type: String, variables: List<ExternalSecretVariable> = emptyList()) : this(
+        type = ExternalSecretType.fromValue(type) ?: ExternalSecretType.HASHICORP_VAULT_SERVER,
+        variables = variables
+    )
+}
 
 @Serializable(with = ExternalSecretVariableSerializer::class)
 sealed interface ExternalSecretVariable {

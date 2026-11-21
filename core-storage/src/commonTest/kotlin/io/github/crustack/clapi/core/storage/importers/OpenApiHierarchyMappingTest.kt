@@ -4,6 +4,7 @@ import io.github.crustack.clapi.core.model.importers.ImportScanResult
 import io.github.crustack.clapi.core.model.importers.SpecFormat
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestItem
+import io.github.crustack.clapi.core.model.opencollection.HttpRequestParamType
 import io.github.crustack.clapi.core.model.opencollection.RawBody
 import io.github.crustack.clapi.core.model.opencollection.RegularVariable
 import kotlinx.coroutines.test.runTest
@@ -109,7 +110,7 @@ class OpenApiHierarchyMappingTest {
         assertEquals("GET", listUsersReq.http.method)
         assertEquals("{{baseUrl}}/users", listUsersReq.http.url)
         assertTrue(listUsersReq.http.headers.any { it.name == "X-Trace-Id" && it.value == "trace-1234" })
-        assertTrue(listUsersReq.http.params.any { it.name == "limit" && it.value == "25" && it.type == "query" })
+        assertTrue(listUsersReq.http.params.any { it.name == "limit" && it.value == "25" && it.type == HttpRequestParamType.QUERY })
 
         val createUserReq = usersFolder.items.filterIsInstance<HttpRequestItem>().find { it.info.name == "Create a new user" }
         assertNotNull(createUserReq)
@@ -122,7 +123,7 @@ class OpenApiHierarchyMappingTest {
         assertEquals(1, ordersFolder.items.size)
         val getOrderReq = ordersFolder.items.filterIsInstance<HttpRequestItem>().first()
         assertEquals("Get order by ID", getOrderReq.info.name)
-        assertTrue(getOrderReq.http.params.any { it.name == "orderId" && it.type == "path" })
+        assertTrue(getOrderReq.http.params.any { it.name == "orderId" && it.type == HttpRequestParamType.PATH })
     }
 
     @Test

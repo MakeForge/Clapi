@@ -22,9 +22,12 @@ import io.github.crustack.clapi.core.model.opencollection.FormUrlEncodedBody
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestBody
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestHeader
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestItem
+import io.github.crustack.clapi.core.model.opencollection.HttpRequestParamType
 import io.github.crustack.clapi.core.model.opencollection.MultipartFormBody
+import io.github.crustack.clapi.core.model.opencollection.MultipartPartType
 import io.github.crustack.clapi.core.model.opencollection.OpenCollectionDocument
 import io.github.crustack.clapi.core.model.opencollection.RawBody
+import io.github.crustack.clapi.core.model.opencollection.RequestBodyType
 import io.github.crustack.clapi.core.model.opencollection.RegularVariable
 import io.github.crustack.clapi.core.model.opencollection.SecretVariable
 import io.github.crustack.clapi.core.network.VariableResolver
@@ -92,7 +95,7 @@ object DefaultHttpExecutionAdapter : HttpExecutionAdapter {
         } ?: HttpMethodType.GET
 
         val queryParams = requestItem.http.params
-            .filter { it.type == "query" && it.disabled != true }
+            .filter { it.type == HttpRequestParamType.QUERY && it.disabled != true }
             .map {
                 KeyValueEntry(
                     key = it.name,
@@ -320,7 +323,7 @@ object DefaultHttpExecutionAdapter : HttpExecutionAdapter {
             is AuthApiKey -> io.github.crustack.clapi.core.model.AuthConfig(
                 type = AuthType.API_KEY,
                 params = mapOf("key" to auth.key, "value" to auth.value),
-                placement = auth.placement
+                placement = auth.placement.value
             )
             is AuthOAuth2 -> io.github.crustack.clapi.core.model.AuthConfig(
                 type = AuthType.OAUTH2,
@@ -370,10 +373,10 @@ object DefaultHttpExecutionAdapter : HttpExecutionAdapter {
                 val clapiBodyType = reqMeta?.get("bodyType")?.jsonPrimitive?.contentOrNull
                     ?: (requestItem.extensions["clapi"] as? JsonObject)?.get("bodyType")?.jsonPrimitive?.contentOrNull
                 val customType = clapiBodyType?.let { runCatching { BodyType.valueOf(it) }.getOrNull() }
-                val effectiveType = customType ?: when (body.type.lowercase()) {
-                    "json" -> BodyType.JSON
-                    "xml" -> BodyType.XML
-                    "sparql", "text" -> BodyType.RAW_TEXT
+                val effectiveType = customType ?: when (body.type) {
+                    RequestBodyType.JSON -> BodyType.JSON
+                    RequestBodyType.XML -> BodyType.XML
+                    RequestBodyType.SPARQL, RequestBodyType.TEXT -> BodyType.RAW_TEXT
                     else -> BodyType.RAW_TEXT
                 }
                 RequestBody(type = effectiveType, content = body.data)
@@ -393,7 +396,7 @@ object DefaultHttpExecutionAdapter : HttpExecutionAdapter {
             is MultipartFormBody -> {
                 val enabledParts = body.data.filter { it.disabled != true }
                 val formDataEntries = enabledParts.map { part ->
-                    val isFile = part.type.equals("file", ignoreCase = true)
+                    val isFile = part.type == MultipartPartType.FILE
                     val strVal = when (val v = part.value) {
                         is JsonPrimitive -> v.contentOrNull ?: ""
                         else -> v.toString()

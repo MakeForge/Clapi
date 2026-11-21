@@ -6,6 +6,7 @@ import io.github.crustack.clapi.core.model.opencollection.CollectionProtobufConf
 import io.github.crustack.clapi.core.model.opencollection.OpenCollectionDocument
 import io.github.crustack.clapi.core.model.opencollection.ProtoFile
 import io.github.crustack.clapi.core.model.opencollection.ProtoFileImportPath
+import io.github.crustack.clapi.core.model.opencollection.ProtoFileType
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -49,7 +50,7 @@ class OpenCollectionProtobufStorageTest {
         val protoConfig = deserialized.config!!.protobuf!!
 
         assertEquals(2, protoConfig.protoFiles.size)
-        assertEquals("file", protoConfig.protoFiles[0].type)
+        assertEquals(ProtoFileType.FILE, protoConfig.protoFiles[0].type)
         assertEquals("shared/protos/greeter.proto", protoConfig.protoFiles[0].path)
         assertEquals("/absolute/path/to/service.proto", protoConfig.protoFiles[1].path)
 
