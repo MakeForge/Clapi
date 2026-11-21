@@ -132,9 +132,9 @@ object DocsLinks {
     val ksafeEncryption: String
         get() = url("/security/ksafe-encryption")
 
-    /** External Libraries documentation page. */
-    val externalLibraries: String
-        get() = url("/security/external-libraries")
+    /** Techstack documentation page. */
+    val techstack: String
+        get() = url("/about/techstack")
 
     /** SBOM & Vulnerabilities documentation page. */
     val sbomVulnerabilities: String

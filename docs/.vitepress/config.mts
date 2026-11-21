@@ -96,7 +96,7 @@ export default defineConfig({
         items: [
           { text: 'SBOM & Vulnerability Audits', link: '/about/sbom-vulnerabilities' },
           { text: 'Zero Telemetry Guarantee', link: '/about/zero-telemetry' },
-          { text: 'Open Source Libraries', link: '/about/external-libraries' },
+          { text: 'Techstack', link: '/about/techstack' },
           { text: 'Encrypted Credentials', link: '/about/encrypted-credentials' }
         ],
         activeMatch: '/about/'
@@ -258,7 +258,7 @@ export default defineConfig({
           items: [
             { text: 'SBOM & Vulnerability Audits', link: '/about/sbom-vulnerabilities' },
             { text: 'Zero Telemetry Guarantee', link: '/about/zero-telemetry' },
-            { text: 'Open Source Libraries', link: '/about/external-libraries' },
+            { text: 'Techstack', link: '/about/techstack' },
             { text: 'Encrypted Credentials', link: '/about/encrypted-credentials' }
           ]
         }
