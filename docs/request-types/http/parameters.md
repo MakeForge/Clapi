@@ -25,7 +25,7 @@ The **Params** tab allows toggling, editing, and adding query parameters:
 | **Description** | Optional human-readable documentation note for the parameter. |
 
 ::: tip Inserting Variables & Secrets
-Press **`Ctrl + Space`** inside any parameter key or value cell to open the autocomplete popup and quickly insert variables and secrets. See the [Keyboard Shortcuts](/reference/shortcuts) page for details.
+Press **`Ctrl + Space`** inside any parameter key or value cell to open the autocomplete popup and quickly insert variables and secrets. See the [Keyboard Shortcuts](/settings/shortcuts) page for details.
 :::
 
 ## Bidirectional Synchronization

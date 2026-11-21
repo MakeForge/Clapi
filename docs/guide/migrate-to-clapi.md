@@ -19,6 +19,14 @@ Already have API collections in **Postman** or **Insomnia**, or an **OpenAPI Sch
    - Select your exported `.yaml`, `.yml`, or `.json` file (supported formats `OpenAPI 3.0+`, `OpenCollection`, `Postman`, and `Insomnia` are badged right below the file picker).
    - Clapi imports your folder hierarchy, requests, environments, authentication configs, and automatically translates `insomnia.*` and `pm.*` scripts to `clapi.*`.
 
+<ThemedScreenshot
+  light="/generated/screenshots/ImportSpecificationDialogPreviewsKt.ImportSpecificationDialogPreviewLight.W640dp_H560dp.png"
+  dark="/generated/screenshots/ImportSpecificationDialogPreviewsKt.ImportSpecificationDialogPreviewDark.W640dp_H560dp.png"
+  alt="Clapi Import Specification Dialog"
+  :crop="false"
+  max-width="640px"
+/>
+
 See the full [Importing & Migrating Guide](./import-export.md) for detailed feature mappings and script translation reference.
 
 🎉 **Congratulations!** You've completed your first API flow in Clapi.

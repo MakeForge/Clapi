@@ -86,16 +86,7 @@ import io.github.makeforge.clapi.ui.shared.theme.CodeFontFamily
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-enum class CollectionEditorTab(val label: String) {
-    INFO("Info"),
-    STORAGE("Storage"),
-    VARIABLES("Variables"),
-    HEADERS("Headers"),
-    AUTH("Auth"),
-    PRE_REQUEST("Pre-request"),
-    TESTS("Tests"),
-    PROTOBUF("Protobuf"),
-}
+typealias CollectionEditorTab = io.github.makeforge.clapi.ui.shared.state.CollectionEditorTab
 
 /**
  * Dedicated editor for configuring collection-level resources and settings
@@ -111,7 +102,7 @@ fun CollectionEditor(
     onPickImportPaths: ((onSelected: (List<String>) -> Unit) -> Unit)? = null,
     onOpenFile: ((String) -> Unit)? = null,
 ) {
-    var selectedTab by remember { mutableStateOf(CollectionEditorTab.INFO) }
+    var selectedTab by remember(tab) { mutableStateOf(tab.selectedCollectionEditorTab) }
 
     fun markDirty() {
         tab.markDirty()
@@ -202,7 +193,10 @@ fun CollectionEditor(
                             if (isSelected) ClapiColors.SurfaceContainer
                             else Color.Transparent
                         )
-                        .clickable { selectedTab = editorTab }
+                        .clickable {
+                            selectedTab = editorTab
+                            tab.selectedCollectionEditorTab = editorTab
+                        }
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                         .testTag(tag),
                 ) {

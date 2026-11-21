@@ -13,6 +13,13 @@ description: Writing automated tests against HTTP status codes, headers, respons
 
 In the **Tests** tab, you can write automated assertions that validate whether the received response meets your API contract. Tests execute immediately upon response arrival, and the results appear in the **Tests** sub-tab in the response viewer.
 
+<ThemedScreenshot
+  light="/generated/screenshots/MainScreenTestsPreviewsKt.MainScreenTestsPreviewLight.W1600dp_H800dp.png"
+  dark="/generated/screenshots/MainScreenTestsPreviewsKt.MainScreenTestsPreviewDark.W1600dp_H800dp.png"
+  alt="Clapi Post-Response Scripting and Test Results View"
+  :crop="true"
+/>
+
 ## Writing Assertions
 
 Clapi provides a BDD/Chai-compatible assertion syntax:

@@ -15,6 +15,14 @@ Environments allow maintaining different configurations (such as base URLs, API 
 
 ## Creating Environments
 
+<ThemedScreenshot
+  light="/generated/screenshots/EnvironmentEditDialogPreviewsKt.EnvironmentEditDialogPreviewLight.W1200dp_H800dp.png"
+  dark="/generated/screenshots/EnvironmentEditDialogPreviewsKt.EnvironmentEditDialogPreviewDark.W1200dp_H800dp.png"
+  alt="Clapi Environment Editor Dialog"
+  :crop="false"
+  max-width="960px"
+/>
+
 1. In the sidebar, expand the **Environments** section.
 2. Click `+` to create a new environment (e.g. `Staging`).
 3. Add key-value variables:
@@ -24,7 +32,7 @@ Environments allow maintaining different configurations (such as base URLs, API 
 4. Toggle the **Secret** checkbox for sensitive variables so their values are masked in the UI and encrypted locally via KSafe.
 
 ::: tip Shortcuts for Inserting Variables & Secrets
-While editing requests, press **`Ctrl + Space`** inside any variable-aware input field (URL bar, headers, parameters, auth credentials, or request body) to open the autocomplete popup and quickly insert variables and secrets from your active environment. See the [Keyboard Shortcuts](/reference/shortcuts) page for details.
+While editing requests, press **`Ctrl + Space`** inside any variable-aware input field (URL bar, headers, parameters, auth credentials, or request body) to open the autocomplete popup and quickly insert variables and secrets from your active environment. See the [Keyboard Shortcuts](/settings/shortcuts) page for details.
 :::
 
 ## Fast Switching

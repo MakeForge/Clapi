@@ -15,6 +15,14 @@ gRPC relies on Protocol Buffer definitions (`.proto`) to define service contract
 
 ## Loading Proto Files in a gRPC Request
 
+<ThemedScreenshot
+  light="/generated/screenshots/SelectProtoFileDialogPreviewsKt.SelectProtoFileDialogPreviewLight.W580dp_H540dp.png"
+  dark="/generated/screenshots/SelectProtoFileDialogPreviewsKt.SelectProtoFileDialogPreviewDark.W580dp_H540dp.png"
+  alt="Clapi Select Proto File Dialog"
+  :crop="false"
+  max-width="580px"
+/>
+
 Click the **Proto** button in a gRPC request's top bar to open the **Select Proto File** dialog. You can choose from three workflows:
 
 ### 1. Select a Proto Folder (Recommended for Multi-File Schemas)

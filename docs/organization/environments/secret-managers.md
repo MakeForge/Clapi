@@ -14,7 +14,7 @@ description: Integrating with KeePassXC, AWS Secrets Manager, Azure Key Vault, G
 Storing production API keys or database passwords directly in shared configuration files is unsafe. Clapi integrates natively with enterprise secret vaults. You store only the secret reference (e.g. <code v-pre>{{my-api-key}}</code>), and Clapi resolves the actual secret dynamically at runtime.
 
 ::: tip Inserting Secrets with Shortcuts
-You can quickly insert external secrets and variables anywhere in your requests (URL bar, headers, parameters, auth fields, body editor) using the keyboard shortcut **`Ctrl + Space`**. This opens the autocomplete dropdown listing all configured vault secrets and active environment variables. See the [Keyboard Shortcuts](/reference/shortcuts) page for details.
+You can quickly insert external secrets and variables anywhere in your requests (URL bar, headers, parameters, auth fields, body editor) using the keyboard shortcut **`Ctrl + Space`**. This opens the autocomplete dropdown listing all configured vault secrets and active environment variables. See the [Keyboard Shortcuts](/settings/shortcuts) page for details.
 :::
 
 All master passwords and tokens used to connect to these secret vaults are encrypted locally via **KSafe** (`AES-256-GCM`).

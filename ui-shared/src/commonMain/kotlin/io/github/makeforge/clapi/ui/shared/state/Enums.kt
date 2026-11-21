@@ -10,6 +10,17 @@ enum class RequestEditorTab(val label: String) {
     VARIABLES("Variables")
 }
 
+enum class CollectionEditorTab(val label: String) {
+    INFO("Info"),
+    STORAGE("Storage"),
+    VARIABLES("Variables"),
+    HEADERS("Headers"),
+    AUTH("Auth"),
+    PRE_REQUEST("Pre-request"),
+    TESTS("Tests"),
+    PROTOBUF("Protobuf"),
+}
+
 enum class GrpcEditorTab(val label: String) {
     MESSAGE("Message"), HEADERS("Headers"), AUTH("Auth"), SCRIPTS("Scripts")
 }

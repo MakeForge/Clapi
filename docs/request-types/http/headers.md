@@ -44,5 +44,5 @@ Clapi provides built-in auto-completion for common HTTP request headers and MIME
 - `User-Agent`: Customizable per collection or globally
 
 ::: tip Inserting Variables & Secrets
-Press **`Ctrl + Space`** inside any header key or value input to trigger autocomplete for environment variables and external secrets. See the [Keyboard Shortcuts](/reference/shortcuts) page for details.
+Press **`Ctrl + Space`** inside any header key or value input to trigger autocomplete for environment variables and external secrets. See the [Keyboard Shortcuts](/settings/shortcuts) page for details.
 :::

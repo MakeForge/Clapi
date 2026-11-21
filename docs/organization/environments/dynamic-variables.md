@@ -18,7 +18,7 @@ Dynamic variables generate fresh values on **every request execution** instead o
 2. **User-Defined Dynamic Variables** powered by Clapi's sandboxed V8 JavaScript engine, allowing you to define custom per-request generators with optional primitive parameters (for example, <code v-pre>{{secondsFromNow(10)}}</code>) and read-only access to the outgoing request context (`context.request`).
 
 > [!TIP]
-> Press **`Ctrl+Space`** inside any variable-aware input field (URL bar, headers, query parameters, auth fields, or body editor) to open the variable autocomplete dropdown and insert built-in or user-defined dynamic variables with their parameter signatures. See [Keyboard Shortcuts](/reference/shortcuts) for all editor shortcuts.
+> Press **`Ctrl+Space`** inside any variable-aware input field (URL bar, headers, query parameters, auth fields, or body editor) to open the variable autocomplete dropdown and insert built-in or user-defined dynamic variables with their parameter signatures. See [Keyboard Shortcuts](/settings/shortcuts) for all editor shortcuts.
 
 ## Built-in Dynamic System Variables
 
@@ -168,7 +168,7 @@ If an active environment defines a dynamic variable with the same name as a coll
 
 ### OpenCollection JSON & YAML Format
 
-Dynamic variables are persisted natively in OpenCollection JSON and YAML files with their return data type (`type: string | number | boolean | object`) and `script`, making them first-class citizens in [Git Sync Collaboration](/organization/git-sync-overview) and workspace exports:
+Dynamic variables are persisted natively in OpenCollection JSON and YAML files with their return data type (`type: string | number | boolean | object`) and `script`, making them first-class citizens in [Git Sync Collaboration](/organization/collaboration/git-sync-overview) and workspace exports:
 
 ```yaml
 environments:

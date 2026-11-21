@@ -14,7 +14,7 @@ description: Configuring Basic, Bearer, API Key, OAuth 2.0 PKCE, and AWS SigV4 a
 Clapi supports a complete spectrum of authentication protocols. Authentication can be configured directly on individual requests or inherited automatically from parent folders and collections.
 
 ::: tip Inserting Credentials with Shortcuts
-You can insert saved variables or external secrets into any credential input (Bearer tokens, Basic Auth passwords, API keys, OAuth client secrets) by pressing **`Ctrl + Space`** to open the autocomplete list. See the [Keyboard Shortcuts](/reference/shortcuts) page for details.
+You can insert saved variables or external secrets into any credential input (Bearer tokens, Basic Auth passwords, API keys, OAuth client secrets) by pressing **`Ctrl + Space`** to open the autocomplete list. See the [Keyboard Shortcuts](/settings/shortcuts) page for details.
 :::
 
 ## Supported Auth Types

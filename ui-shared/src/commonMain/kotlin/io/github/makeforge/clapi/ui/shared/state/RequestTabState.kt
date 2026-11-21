@@ -63,6 +63,7 @@ class RequestTabState(
     var folderPath by mutableStateOf(folderPath)
 
     var selectedEditorTab by mutableStateOf(RequestEditorTab.PARAMS)
+    var selectedCollectionEditorTab by mutableStateOf(CollectionEditorTab.INFO)
     var collectionSnapshotProvider by mutableStateOf<(() -> String)?>(null)
 
     val params  = mutableStateListOf<MutableKeyValue>()

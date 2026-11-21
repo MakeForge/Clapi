@@ -15,6 +15,13 @@ As API collections grow, organizing requests into nested folders is essential. I
 
 ## Folder Settings Editor
 
+<ThemedScreenshot
+  light="/generated/screenshots/MainScreenFolderPreviewsKt.MainScreenFolderPreviewLight.W1600dp_H800dp.png"
+  dark="/generated/screenshots/MainScreenFolderPreviewsKt.MainScreenFolderPreviewDark.W1600dp_H800dp.png"
+  alt="Clapi Folder Settings and Cascading Defaults"
+  :crop="true"
+/>
+
 Clicking any folder in the sidebar opens a dedicated **Folder Settings** tab:
 1. **Params**: Query parameters automatically cascaded to child requests.
 2. **Headers**: Default HTTP headers cascaded to child requests.

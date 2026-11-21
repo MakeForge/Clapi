@@ -81,6 +81,7 @@ fun SelectProtoFileDialog(
     collectionProtoFiles: List<String> = emptyList(),
     isGitSyncEnabled: Boolean = false,
     initialSyncToGit: Boolean = false,
+    useDialogWindow: Boolean = true,
     onSave: (protoFilePath: String) -> Unit = {},
     onSaveWithSync: ((protoFilePath: String, syncToGit: Boolean) -> Unit)? = null,
     onSaveWithClose: ((protoFilePath: String, syncToGit: Boolean, closeDialog: Boolean) -> Unit)? = null,
@@ -165,15 +166,11 @@ fun SelectProtoFileDialog(
 
     val dragState = rememberDraggableDialogState()
 
-    Dialog(onDismissRequest = { requestDismiss() }) {
-        Box(
-            modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = { requestDismiss() }),
-            contentAlignment = Alignment.Center,
-        ) {
-            Column(
-                modifier = modifier
-                    .draggableDialogCard(dragState, cornerRadius = 12.dp)
-                    .widthIn(min = 460.dp, max = 580.dp)
+    val dialogCard: @Composable () -> Unit = {
+        Column(
+            modifier = modifier
+                .draggableDialogCard(dragState, cornerRadius = 12.dp)
+                .widthIn(min = 460.dp, max = 580.dp)
                     .hotkeys {
                         on(AppHotkeys.Save) {
                             handleSave(closeDialog = false)
@@ -731,6 +728,18 @@ fun SelectProtoFileDialog(
                 }
             }
         }
+
+    if (useDialogWindow) {
+        Dialog(onDismissRequest = { requestDismiss() }) {
+            Box(
+                modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = { requestDismiss() }),
+                contentAlignment = Alignment.Center,
+            ) {
+                dialogCard()
+            }
+        }
+    } else {
+        dialogCard()
     }
 
     if (showUnsavedConfirm) {
