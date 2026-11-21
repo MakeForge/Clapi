@@ -10,15 +10,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import io.github.makeforge.clapi.core.model.HttpMethodType
+import io.github.makeforge.clapi.ui.shared.components.GraphQLBadge
+import io.github.makeforge.clapi.ui.shared.components.GrpcBadge
+import io.github.makeforge.clapi.ui.shared.components.HttpBadge
+import io.github.makeforge.clapi.ui.shared.components.McpMethodBadge
+import io.github.makeforge.clapi.ui.shared.components.MethodBadge
+import io.github.makeforge.clapi.ui.shared.components.WebSocketBadge
 import io.github.makeforge.clapi.ui.shared.generated.resources.Res
-import io.github.makeforge.clapi.ui.shared.generated.resources.ic_add
-import io.github.makeforge.clapi.ui.shared.generated.resources.ic_bolt
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_content_copy
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_delete
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_edit
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_folder
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_folder_open
-import io.github.makeforge.clapi.ui.shared.generated.resources.ic_hub
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_input
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_keyboard_arrow_down
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_keyboard_arrow_up
@@ -57,7 +61,7 @@ fun CollectionTreeNodeAddMenu(
         )
         DropdownMenuItem(
             text = { Text(Strings.t("new_http_request")) },
-            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = null, modifier = Modifier.size(16.dp)) },
+            leadingIcon = { HttpBadge(compact = true) },
             onClick = {
                 onDismissRequest()
                 onAddRequest(node)
@@ -66,7 +70,7 @@ fun CollectionTreeNodeAddMenu(
         )
         DropdownMenuItem(
             text = { Text(Strings.t("new_grpc_request")) },
-            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = null, modifier = Modifier.size(16.dp)) },
+            leadingIcon = { GrpcBadge(compact = true) },
             onClick = {
                 onDismissRequest()
                 onAddGrpcRequest(node)
@@ -75,7 +79,7 @@ fun CollectionTreeNodeAddMenu(
         )
         DropdownMenuItem(
             text = { Text(Strings.t("new_websocket_request")) },
-            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = null, modifier = Modifier.size(16.dp)) },
+            leadingIcon = { WebSocketBadge(compact = true) },
             onClick = {
                 onDismissRequest()
                 onAddWebSocketRequest(node)
@@ -84,7 +88,7 @@ fun CollectionTreeNodeAddMenu(
         )
         DropdownMenuItem(
             text = { Text(Strings.t("new_graphql_request")) },
-            leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = null, modifier = Modifier.size(16.dp)) },
+            leadingIcon = { GraphQLBadge(compact = true) },
             onClick = {
                 onDismissRequest()
                 onAddGraphQLRequest(node)
@@ -211,31 +215,31 @@ fun CollectionTreeNodeContextMenu(
             )
             DropdownMenuItem(
                 text = { Text(Strings.t("add_request")) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = null, modifier = Modifier.size(16.dp)) },
+                leadingIcon = { HttpBadge(compact = true) },
                 onClick = { onDismissRequest(); onAddRequest(node) },
                 modifier = Modifier.testTag("collection-menu-add-request"),
             )
             DropdownMenuItem(
                 text = { Text(Strings.t("new_grpc_request")) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = null, modifier = Modifier.size(16.dp)) },
+                leadingIcon = { GrpcBadge(compact = true) },
                 onClick = { onDismissRequest(); onAddGrpcRequest(node) },
                 modifier = Modifier.testTag("collection-menu-new-grpc"),
             )
             DropdownMenuItem(
                 text = { Text(Strings.t("new_websocket_request")) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = null, modifier = Modifier.size(16.dp)) },
+                leadingIcon = { WebSocketBadge(compact = true) },
                 onClick = { onDismissRequest(); onAddWebSocketRequest(node) },
                 modifier = Modifier.testTag("collection-menu-new-websocket"),
             )
             DropdownMenuItem(
                 text = { Text(Strings.t("new_graphql_request")) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_add), contentDescription = null, modifier = Modifier.size(16.dp)) },
+                leadingIcon = { GraphQLBadge(compact = true) },
                 onClick = { onDismissRequest(); onAddGraphQLRequest(node) },
                 modifier = Modifier.testTag("collection-menu-new-graphql"),
             )
             DropdownMenuItem(
                 text = { Text(Strings.t("new_mcp_connection")) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_hub), contentDescription = null, modifier = Modifier.size(16.dp)) },
+                leadingIcon = { McpMethodBadge(compact = true) },
                 onClick = {
                     onDismissRequest()
                     onAddMcpConnection(node)
@@ -244,7 +248,7 @@ fun CollectionTreeNodeContextMenu(
             )
             DropdownMenuItem(
                 text = { Text(Strings.t("new_sse_request")) },
-                leadingIcon = { Icon(painter = painterResource(Res.drawable.ic_bolt), contentDescription = null, modifier = Modifier.size(16.dp)) },
+                leadingIcon = { MethodBadge(HttpMethodType.GET, compact = true, sse = true) },
                 onClick = {
                     onDismissRequest()
                     onAddSseRequest(node)
