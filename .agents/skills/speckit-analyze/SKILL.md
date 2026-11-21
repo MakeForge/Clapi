@@ -152,6 +152,7 @@ Focus on high-signal findings. Limit to 50 findings total; aggregate remainder i
 - Data entities referenced in plan but absent in spec (or vice versa)
 - Task ordering contradictions (e.g., integration tasks before foundational setup tasks without dependency note)
 - Conflicting requirements (e.g., one requires Next.js while other specifies Vue)
+- Documentation impact mismatch: `plan.md` identifies warranted `docs/` page changes/additions without matching tasks in `tasks.md`, or `tasks.md` includes boilerplate `docs/` tasks when `plan.md` explicitly marked documentation impact as `None`
 
 ### 5. Severity Assignment
 

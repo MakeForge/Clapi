@@ -151,7 +151,7 @@ Examples of foundational tasks (adjust based on your project):
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] TXXX [P] Documentation updates in docs/
+- [ ] TXXX [P] (OPTIONAL — only if warranted by plan.md Documentation Impact and current docs/ scope; omit for minor/small changes) Update/extend/add targeted documentation page(s) in docs/ (and docs/.vitepress/config.mts if adding a new page)
 - [ ] TXXX Code cleanup and refactoring
 - [ ] TXXX Performance optimization across all stories
 - [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/

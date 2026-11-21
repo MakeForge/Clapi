@@ -176,6 +176,9 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Check that implemented features match the original specification
    - Validate that tests pass and coverage meets requirements
    - Confirm the implementation follows the technical plan
+   - **Documentation evaluation (conditional)**:
+     - Verify any `docs/` tasks planned in `tasks.md` / `plan.md` are completed (including `docs/.vitepress/config.mts` nav/sidebar updates if a new page was added).
+     - If no `docs/` tasks were planned, briefly evaluate against `docs/.vitepress/config.mts` whether the implemented changes made an existing `docs/` page inaccurate or introduced a substantial user-facing capability that fits the current `docs/` scope. Only update, extend, or add `docs/` pages if clearly warranted — leave `docs/` untouched for tiny changes, minor UI tweaks/polish, bug fixes, or small feature additions.
    - **Changelog & version update (REQUIRED)**: Follow the **Changelog & Versioning Policy** in `AGENTS.md`:
      - Update `CHANGELOG.md` with a concise summary under `### New Features` or `### Fixes` (including a clickable link to the related GitHub issue if one exists).
      - Check whether the topmost version in `CHANGELOG.md` is already released (has a release date instead of `TBD`, or a matching `vX.Y.Z` Git tag exists); if so, add a new SemVer-bumped `## [X.Y.Z] - TBD` section at the top.
@@ -226,6 +229,7 @@ Report final status with summary of completed work.
 
 - [ ] All tasks in tasks.md completed and marked `[X]`
 - [ ] Implementation validated against specification, plan, and test coverage
+- [ ] Documentation impact evaluated against current `docs/` scope; warranted `docs/` updates completed (or skipped when out of scope)
 - [ ] `CHANGELOG.md` (and `gradle.properties` `appVersion` if needed) updated per `AGENTS.md`
 - [ ] Extension hooks dispatched or skipped according to the rules in Mandatory Post-Execution Hooks above
 - [ ] Completion reported to user with summary of completed work

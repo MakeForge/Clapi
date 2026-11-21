@@ -103,6 +103,18 @@ ios/ or android/
 **Structure Decision**: [Document the selected structure and reference the real
 directories captured above]
 
+### Documentation Impact (`docs/`)
+
+<!--
+  Evaluate against `docs/.vitepress/config.mts` and existing pages in `docs/`.
+  Only list docs changes when the feature changes documented behavior or adds a
+  substantial user-facing capability that fits the current docs scope.
+  Default to `None` for minor UI tweaks, bug fixes, internal refactors, or small additions.
+-->
+
+- **Impact**: [None — `<brief rationale>` | Update / Extend / Add]
+- **Pages**: [Exact `docs/...` file paths to update/extend/add, plus `docs/.vitepress/config.mts` if adding a new page; omit or remove if Impact is None]
+
 ## Complexity Tracking
 
 > **Fill ONLY if Constitution Check has violations that must be justified**

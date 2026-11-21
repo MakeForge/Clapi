@@ -23,6 +23,22 @@
 </p>
 
 <p align="center">
+  <a href="https://makeforge.github.io/Clapi/request-types/http/" title="HTTP / REST"><img src="docs/public/icons/request-types/http.svg" alt="HTTP / REST" width="32" height="32" /></a>
+  &nbsp;&nbsp;
+  <a href="https://makeforge.github.io/Clapi/request-types/graphql/" title="GraphQL"><img src="docs/public/icons/request-types/graphql.svg" alt="GraphQL" width="32" height="32" /></a>
+  &nbsp;&nbsp;
+  <a href="https://makeforge.github.io/Clapi/request-types/websocket/" title="WebSocket"><img src="docs/public/icons/request-types/websocket.svg" alt="WebSocket" width="32" height="32" /></a>
+  &nbsp;&nbsp;
+  <a href="https://makeforge.github.io/Clapi/request-types/grpc/" title="gRPC"><img src="docs/public/icons/request-types/grpc.svg" alt="gRPC" width="44" /></a>
+  &nbsp;&nbsp;
+  <a href="https://makeforge.github.io/Clapi/request-types/rabbitmq/" title="RabbitMQ (AMQP)"><img src="docs/public/icons/request-types/rabbitmq.svg" alt="RabbitMQ (AMQP)" width="32" height="32" /></a>
+  &nbsp;&nbsp;
+  <a href="https://makeforge.github.io/Clapi/request-types/mcp/" title="Model Context Protocol (MCP)"><img src="docs/public/icons/request-types/mcp-server.svg" alt="Model Context Protocol (MCP)" width="32" height="32" /></a>
+  &nbsp;&nbsp;
+  <a href="https://makeforge.github.io/Clapi/request-types/realtime/" title="Server-Sent Events (SSE)"><img src="docs/public/icons/request-types/sse.svg" alt="Server-Sent Events (SSE)" width="32" height="32" /></a>
+</p>
+
+<p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" /></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey.svg" alt="Platform" />
   <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/kotlin-2.1.21-purple.svg" alt="Kotlin" /></a>

@@ -64,6 +64,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Evaluate gates (ERROR if violations unjustified)
    - Phase 0: Generate research.md (resolve all NEEDS CLARIFICATION)
    - Phase 1: Generate data-model.md, contracts/, quickstart.md
+   - Phase 1 (Documentation Impact): Inspect `docs/.vitepress/config.mts` and evaluate whether any `docs/` pages should be updated, extended, or added (only when clearly warranted by the current docs scope — skip for minor/small changes)
    - Re-evaluate Constitution Check post-design
 
 ## Mandatory Post-Execution Hooks
@@ -152,7 +153,15 @@ Command ends after Phase 1 design. Report branch, IMPL_PLAN path, and generated 
    - Do not include full implementation code, model/service/controller bodies, migrations, or complete test suites
    - Keep this artifact as a validation/run guide; implementation details belong in `tasks.md` and the implementation phase
 
-**Output**: data-model.md, /contracts/*, quickstart.md
+4. **Evaluate documentation impact** → `Documentation Impact` section in `plan.md`:
+   - Inspect `docs/.vitepress/config.mts` (and relevant existing pages under `docs/`) to understand the current scope and structure of the documentation site
+   - Decide whether this feature genuinely warrants **updating**, **extending**, or **adding** any page in `docs/`:
+     - **Update/extend existing page(s)** only when the feature changes documented behavior or adds a substantial user-facing capability that clearly belongs on an existing page (e.g., new protocol capability, auth method, secret manager, scripting API, import/export format, setting, or keyboard shortcut)
+     - **Add a new page** (and register it in `docs/.vitepress/config.mts` nav/sidebar) only for a major new user-facing subsystem, protocol/request type, or workflow that fits the current `docs/` taxonomy
+     - **Skip `docs/` changes** for tiny changes, minor UI tweaks/polish, bug fixes, internal refactors, or small feature additions that do not fit the current scope of `docs/` — default to no docs changes unless clearly warranted
+   - Record the explicit decision in `plan.md` under `### Documentation Impact (docs/)`: either `None — <brief rationale>` or the exact `docs/` file path(s) to update/extend/add (plus `docs/.vitepress/config.mts` if adding a new page)
+
+**Output**: data-model.md, /contracts/*, quickstart.md, updated plan.md (including Documentation Impact)
 
 ## Key rules
 
@@ -162,5 +171,6 @@ Command ends after Phase 1 design. Report branch, IMPL_PLAN path, and generated 
 ## Done When
 
 - [ ] Plan workflow executed and design artifacts generated
+- [ ] Documentation impact evaluated against current `docs/` scope and recorded in `plan.md`
 - [ ] Extension hooks dispatched or skipped according to the rules in Mandatory Post-Execution Hooks above
 - [ ] Completion reported to user with branch, plan path, and generated artifacts
