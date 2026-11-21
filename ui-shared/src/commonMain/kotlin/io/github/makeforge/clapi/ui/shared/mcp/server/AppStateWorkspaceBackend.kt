@@ -296,12 +296,24 @@ class AppStateWorkspaceBackend(
         syncFromAppStateToDelegate()
         val res = delegate.executeRequest(input)
         res.scriptLogs.forEach { msg ->
-            appState.consoleLogs.add(ConsoleEntry(message = "[MCP] $msg", level = LogLevel.INFO))
+            appendConsoleEntry(ConsoleEntry(message = "[MCP] $msg", level = LogLevel.INFO))
         }
         res.scriptError?.let { err ->
-            appState.consoleLogs.add(ConsoleEntry(message = "[MCP Error] $err", level = LogLevel.ERROR))
+            appendConsoleEntry(ConsoleEntry(message = "[MCP Error] $err", level = LogLevel.ERROR))
         }
         res
+    }
+
+    private fun appendConsoleEntry(entry: ConsoleEntry) {
+        appState.consoleLogs.add(entry)
+        val overflow = appState.consoleLogs.size - MAX_CONSOLE_LOG_ENTRIES
+        if (overflow > 0) {
+            repeat(overflow) { appState.consoleLogs.removeAt(0) }
+        }
+    }
+
+    private companion object {
+        private const val MAX_CONSOLE_LOG_ENTRIES = 500
     }
 
     override suspend fun subscribeRabbitMq(

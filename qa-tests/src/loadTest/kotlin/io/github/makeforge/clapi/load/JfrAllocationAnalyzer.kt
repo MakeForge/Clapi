@@ -20,6 +20,11 @@ data class JfrAllocationReport(
     val topClapiCallSites: List<AllocationHotspot>,
     val zgcUncommitEvents: Int,
     val zgcTotalUncommittedMb: Double,
+    val gcCount: Int = 0,
+    val allocationRateGcCount: Int = 0,
+    val gcPauseCount: Int = 0,
+    val totalGcPauseMs: Double = 0.0,
+    val maxGcPauseMs: Double = 0.0,
 )
 
 object JfrAllocationAnalyzer {
@@ -28,6 +33,8 @@ object JfrAllocationAnalyzer {
     private val WEIGHT_REGEX = Regex("""weight\s*=\s*([\d.]+)\s*([kMG]?B)""")
     private val STACK_FRAME_REGEX = Regex("""^\s+([a-zA-Z0-9_$.<>]+\([^)]*\))""", RegexOption.MULTILINE)
     private val UNCOMMIT_BYTES_REGEX = Regex("""uncommitted\s*=\s*([\d.]+)\s*([kMG]?B)""")
+    private val GC_CAUSE_REGEX = Regex("""cause\s*=\s*"([^"]+)"""")
+    private val DURATION_REGEX = Regex("""duration\s*=\s*([\d.]+)\s*(ns|us|µs|ms|s)\b""")
 
     fun analyze(jdkHome: File, jfrFile: File): JfrAllocationReport? {
         if (!jfrFile.exists() || jfrFile.length() == 0L) return null
@@ -53,7 +60,23 @@ object JfrAllocationAnalyzer {
             jfrFile.absolutePath,
         ).orEmpty()
 
-        return parse(allocOutput, uncommitOutput)
+        val gcOutput = runJfr(
+            jfrBin,
+            "print",
+            "--events",
+            "jdk.GarbageCollection",
+            jfrFile.absolutePath,
+        ).orEmpty()
+
+        val gcPauseOutput = runJfr(
+            jfrBin,
+            "print",
+            "--events",
+            "jdk.GCPhasePause",
+            jfrFile.absolutePath,
+        ).orEmpty()
+
+        return parse(allocOutput, uncommitOutput, gcOutput, gcPauseOutput)
     }
 
     private fun runJfr(jfrBin: File, vararg args: String): String? {
@@ -83,7 +106,23 @@ object JfrAllocationAnalyzer {
         return (v * mult).toLong()
     }
 
-    private fun parse(allocOutput: String, uncommitOutput: String): JfrAllocationReport {
+    private fun parseDurationMs(value: String, unit: String): Double {
+        val v = value.toDoubleOrNull() ?: return 0.0
+        return when (unit) {
+            "ns" -> v / 1_000_000.0
+            "us", "µs" -> v / 1_000.0
+            "ms" -> v
+            "s" -> v * 1_000.0
+            else -> 0.0
+        }
+    }
+
+    private fun parse(
+        allocOutput: String,
+        uncommitOutput: String,
+        gcOutput: String,
+        gcPauseOutput: String,
+    ): JfrAllocationReport {
         val blocks = allocOutput.split("jdk.ObjectAllocationSample {")
         val byClassBytes = mutableMapOf<String, Long>()
         val byClassCount = mutableMapOf<String, Int>()
@@ -151,6 +190,25 @@ object JfrAllocationAnalyzer {
             uncommittedBytes += parseSizeBytes(m.groupValues[1], m.groupValues[2])
         }
 
+        var gcCount = 0
+        var allocationRateGcCount = 0
+        for (m in GC_CAUSE_REGEX.findAll(gcOutput)) {
+            gcCount++
+            if (m.groupValues[1].contains("Allocation Rate", ignoreCase = true)) {
+                allocationRateGcCount++
+            }
+        }
+
+        var gcPauseCount = 0
+        var totalGcPauseMs = 0.0
+        var maxGcPauseMs = 0.0
+        for (m in DURATION_REGEX.findAll(gcPauseOutput)) {
+            gcPauseCount++
+            val ms = parseDurationMs(m.groupValues[1], m.groupValues[2])
+            totalGcPauseMs += ms
+            if (ms > maxGcPauseMs) maxGcPauseMs = ms
+        }
+
         return JfrAllocationReport(
             totalSampledAllocationMb = totalBytes / (1024.0 * 1024.0),
             sampleCount = totalSamples,
@@ -158,6 +216,11 @@ object JfrAllocationAnalyzer {
             topClapiCallSites = topSites,
             zgcUncommitEvents = uncommitEvents,
             zgcTotalUncommittedMb = uncommittedBytes / (1024.0 * 1024.0),
+            gcCount = gcCount,
+            allocationRateGcCount = allocationRateGcCount,
+            gcPauseCount = gcPauseCount,
+            totalGcPauseMs = totalGcPauseMs,
+            maxGcPauseMs = maxGcPauseMs,
         )
     }
 }

@@ -191,6 +191,8 @@ class HeadlessWorkspaceBackend(
     }
 
     private var inMemoryPrivateState = HeadlessPrivateState()
+    private var cachedPrivateStateMtime: Long = Long.MIN_VALUE
+    private var cachedPrivateStateLength: Long = -1L
     private val consoleLogs = ArrayDeque<SanitizedConsoleEntryDto>(200)
     private val stableItemIds = mutableMapOf<String, String>() // slashPath -> uuid
 
@@ -213,11 +215,19 @@ class HeadlessWorkspaceBackend(
     private fun loadPrivateState(): HeadlessPrivateState {
         val dir = baseDirectory ?: return inMemoryPrivateState
         val path = "$dir/private-state.json"
-        if (!fileExists(path)) return inMemoryPrivateState
+        val file = java.io.File(path)
+        if (!file.exists()) return inMemoryPrivateState
+        val mtime = file.lastModified()
+        val length = file.length()
+        if (mtime == cachedPrivateStateMtime && length == cachedPrivateStateLength) {
+            return inMemoryPrivateState
+        }
         return runCatching {
             val raw = readTextFile(path)
             json.decodeFromString(HeadlessPrivateState.serializer(), raw).also {
                 inMemoryPrivateState = it
+                cachedPrivateStateMtime = mtime
+                cachedPrivateStateLength = length
             }
         }.getOrDefault(inMemoryPrivateState)
     }
@@ -236,6 +246,9 @@ class HeadlessWorkspaceBackend(
                 encoded.forEach { (k, v) -> put(k, v) }
             }
             writeTextFile(path, json.encodeToString(JsonObject.serializer(), merged))
+            val file = java.io.File(path)
+            cachedPrivateStateMtime = file.lastModified()
+            cachedPrivateStateLength = file.length()
         }
     }
 
@@ -1677,7 +1690,7 @@ class HeadlessWorkspaceBackend(
                     statusText = resp.statusText,
                     contentType = resp.contentType,
                     isBinary = isBinary,
-                    totalBytes = if (isBinary) resp.metrics.responseSizeBytes else bodyText.encodeToByteArray().size.toLong(),
+                    totalBytes = if (isBinary) resp.metrics.responseSizeBytes else ResponseSnapshotCache.utf8ByteLength(bodyText),
                     sanitizedRequestHeaders = SecretSanitizer.sanitizeHeaders(resolvedOutHeaders, knownSecrets),
                     sanitizedResponseHeaders = SecretSanitizer.sanitizeHeaders(resp.headers, knownSecrets),
                     sanitizedBodyText = if (isBinary) "" else bodyText,

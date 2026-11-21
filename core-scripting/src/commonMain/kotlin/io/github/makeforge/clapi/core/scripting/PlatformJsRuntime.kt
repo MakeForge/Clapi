@@ -14,3 +14,9 @@ package io.github.makeforge.clapi.core.scripting
 internal expect fun evaluateJs(script: String): String
 
 internal expect fun evaluateJsWithTimeout(script: String, timeoutMs: Long): String
+
+internal expect fun evaluateJsWithGlobals(
+    script: String,
+    globals: Map<String, String?>,
+    timeoutMs: Long = 5_000L,
+): String

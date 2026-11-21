@@ -6,6 +6,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.engine.EmbeddedServer
+import io.ktor.server.engine.connector
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.request.header
@@ -57,7 +58,16 @@ class KtorMcpServerHost(
     @Synchronized
     fun start() {
         if (engine != null) return
-        val srv = embeddedServer(Netty, host = host, port = requestedPort) {
+        val srv = embeddedServer(Netty, configure = {
+            connector {
+                this.host = this@KtorMcpServerHost.host
+                this.port = this@KtorMcpServerHost.requestedPort
+            }
+            // Localhost single-user embedded MCP server does not need 2x CPU Netty pools.
+            connectionGroupSize = 1
+            workerGroupSize = 2
+            callGroupSize = 4
+        }) {
             routing {
                 installClapiMcpRoutes(mcpServer)
             }
