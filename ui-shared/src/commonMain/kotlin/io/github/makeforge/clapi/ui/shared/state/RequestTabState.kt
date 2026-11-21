@@ -32,7 +32,7 @@ import kotlinx.coroutines.Job
 // ── Per-tab state (one per open request tab) ────────────────────
 
 class RequestTabState(
-    val id: String = generateUuid(),
+    id: String = generateUuid(),
     name: String = "Untitled",
     method: HttpMethodType = HttpMethodType.GET,
     url: String = "",
@@ -44,6 +44,7 @@ class RequestTabState(
     collectionSummary: String? = null,
     collectionVersion: String? = null,
 ) {
+    var id: String by mutableStateOf(id)
     val requestId: String get() = id
 
     var name     by mutableStateOf(name)

@@ -102,11 +102,31 @@ private fun collectClapiMetadata(
         if (node.authApiPlacement != null) {
             folderMeta["authApiPlacement"] = JsonPrimitive(node.authApiPlacement)
         }
-        if (folderMeta.isNotEmpty()) {
-            folderMeta["id"] = JsonPrimitive(node.id)
-            folderMeta["name"] = JsonPrimitive(node.name)
-            val key = if (path.isEmpty()) node.id else path
-            out[key] = JsonObject(folderMeta)
+        if (node.isCollection) {
+            folderMeta["isCollection"] = JsonPrimitive(true)
+        }
+        node.summary?.takeIf { it.isNotBlank() }?.let { folderMeta["summary"] = JsonPrimitive(it) }
+        node.version?.takeIf { it.isNotBlank() }?.let { folderMeta["version"] = JsonPrimitive(it) }
+        if (node.protoFiles.isNotEmpty()) {
+            folderMeta["protoFiles"] = buildJsonArray {
+                node.protoFiles.forEach { add(buildJsonObject { put("path", it.path); put("syncToGit", it.syncToGit) }) }
+            }
+        }
+        if (node.importPaths.isNotEmpty()) {
+            folderMeta["importPaths"] = buildJsonArray {
+                node.importPaths.forEach { add(buildJsonObject { put("path", it.path); put("enabled", it.enabled); put("syncToGit", it.syncToGit) }) }
+            }
+        }
+        node.storageExtension?.let { storage ->
+            folderMeta["storage"] = (emptyMap<String, JsonElement>().withStorageExtension(storage))["storage"] ?: buildJsonObject { }
+        }
+        folderMeta["id"] = JsonPrimitive(node.id)
+        folderMeta["name"] = JsonPrimitive(node.name)
+        val folderMetaObj = JsonObject(folderMeta)
+        out[node.name] = folderMetaObj
+        out[node.id] = folderMetaObj
+        if (path.isNotEmpty()) {
+            out[path] = folderMetaObj
         }
         node.children.forEachIndexed { index, child ->
             val childPath = if (path.isEmpty()) index.toString() else "$path/$index"
@@ -1027,7 +1047,14 @@ fun OpenCollectionItem.toCollectionNode(
 ): CollectionNode {
     return when (this) {
         is FolderItem -> {
-            val candidateId = (extensions["id"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
+            val clapiExt = extensions["clapi"] as? JsonObject
+            val meta = clapiExt
+                ?: (if (path.isNotEmpty()) clapiRequests?.get(path) as? JsonObject else null)
+                ?: (extensions["id"] as? JsonPrimitive)?.content?.let { clapiRequests?.get(it) as? JsonObject }
+                ?: clapiRequests?.get(info.name) as? JsonObject
+
+            val candidateId = (meta?.get("id") as? JsonPrimitive)?.contentOrNull
+                ?: (extensions["id"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
             val folderId = if (preserveIds && candidateId != null && candidateId !in existingIds) {
                 candidateId
             } else {
@@ -1060,8 +1087,8 @@ fun OpenCollectionItem.toCollectionNode(
             var authOAuth2Username: String? = null
             var authOAuth2Password: String? = null
 
-            val clapiExt = extensions["clapi"] as? JsonObject
-            val isJwt = (clapiExt?.get("authType") as? JsonPrimitive)?.content == "jwt"
+            val isJwt = (clapiExt?.get("authType") as? JsonPrimitive)?.content == "jwt" ||
+                (meta?.get("authType") as? JsonPrimitive)?.content == "jwt"
 
             when (val a = req?.auth) {
                 is AuthBasic -> {
@@ -1104,18 +1131,14 @@ fun OpenCollectionItem.toCollectionNode(
             val preScript = req?.scripts?.firstOrNull { it.type == ScriptType.BEFORE_REQUEST }?.code
             val postScript = req?.scripts?.firstOrNull { it.type == ScriptType.AFTER_RESPONSE || it.type == ScriptType.TESTS }?.code
 
-            val meta = clapiExt
-                ?: (if (path.isNotEmpty()) clapiRequests?.get(path) as? JsonObject else null)
-                ?: clapiRequests?.get(info.name) as? JsonObject
-                ?: clapiRequests?.get(folderId) as? JsonObject
-
             if (meta != null) {
                 meta["authApiPlacement"]?.jsonPrimitive?.contentOrNull?.let {
                     authApiPlacement = it
                 }
             }
 
-            val isCol = (meta?.get("isCollection") as? JsonPrimitive)?.booleanOrNull == true
+            val isCol = (meta?.get("isCollection") as? JsonPrimitive)?.booleanOrNull == true ||
+                (clapiExt?.get("isCollection") as? JsonPrimitive)?.booleanOrNull == true
             val colSummary = (meta?.get("summary") as? JsonPrimitive)?.contentOrNull
             val colVersion = (meta?.get("version") as? JsonPrimitive)?.contentOrNull
             val colProtoFiles = (meta?.get("protoFiles") as? JsonArray)?.mapNotNull { el ->
@@ -1189,20 +1212,38 @@ fun OpenCollectionItem.toCollectionNode(
                 authOAuth2Password = authOAuth2Password,
                 preRequestScript = preScript,
                 testScript = postScript,
-                children = items.mapIndexed { index, child ->
-                    val childPath = if (path.isEmpty()) index.toString() else "$path/$index"
-                    child.toCollectionNode(
-                        preserveIds = preserveIds,
-                        clapiRequests = clapiRequests,
-                        path = childPath,
-                        existingIds = updatedExistingIds,
-                    )
+                children = buildList {
+                    var currentExistingIds = updatedExistingIds
+                    items.forEachIndexed { index, child ->
+                        val childPath = if (path.isEmpty()) index.toString() else "$path/$index"
+                        val childNode = child.toCollectionNode(
+                            preserveIds = preserveIds,
+                            clapiRequests = clapiRequests,
+                            path = childPath,
+                            existingIds = currentExistingIds,
+                        )
+                        currentExistingIds = currentExistingIds + childNode.id
+                        add(childNode)
+                    }
                 }.toMutableStateList()
             )
         }
         is HttpRequestItem -> {
-            val reqId = generateUuid()
-            var reqRef = (extensions["requestRef"] as? JsonPrimitive)?.content
+            val clapiExt = extensions["clapi"] as? JsonObject
+            val meta = clapiExt
+                ?: (if (path.isNotEmpty()) clapiRequests?.get(path) as? JsonObject else null)
+                ?: (extensions["id"] as? JsonPrimitive)?.content?.let { clapiRequests?.get(it) as? JsonObject }
+                ?: clapiRequests?.get(info.name) as? JsonObject
+
+            val candidateReqId = (meta?.get("id") as? JsonPrimitive)?.contentOrNull
+                ?: (extensions["id"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
+            val reqId = if (preserveIds && candidateReqId != null && candidateReqId !in existingIds) {
+                candidateReqId
+            } else {
+                generateUuid()
+            }
+            var reqRef = (meta?.get("requestRef") as? JsonPrimitive)?.contentOrNull
+                ?: (extensions["requestRef"] as? JsonPrimitive)?.content
 
             val headers = http.headers.map {
                 KeyValueEntry(key = it.name, value = it.value, enabled = it.disabled != true)
@@ -1281,8 +1322,8 @@ fun OpenCollectionItem.toCollectionNode(
                 RequestKind.HTTP
             }
 
-            val clapiExt = extensions["clapi"] as? JsonObject
-            val isJwt = (clapiExt?.get("authType") as? JsonPrimitive)?.content == "jwt"
+            val isJwt = (clapiExt?.get("authType") as? JsonPrimitive)?.content == "jwt" ||
+                (meta?.get("authType") as? JsonPrimitive)?.content == "jwt"
 
             when (val a = http.auth) {
                 is AuthBasic -> {
@@ -1322,9 +1363,6 @@ fun OpenCollectionItem.toCollectionNode(
                 }
             }
 
-            val meta = (if (path.isNotEmpty()) clapiRequests?.get(path) as? JsonObject else null)
-                ?: clapiRequests?.get(info.name) as? JsonObject
-                ?: clapiRequests?.get(reqId) as? JsonObject
             if (meta != null) {
                 meta["bodyType"]?.jsonPrimitive?.contentOrNull?.let { typeName ->
                     runCatching { BodyType.valueOf(typeName) }.getOrNull()?.let { bodyType = it }
@@ -1419,8 +1457,21 @@ fun OpenCollectionItem.toCollectionNode(
             )
         }
         is io.github.makeforge.clapi.core.model.opencollection.GrpcRequestItem -> {
-            val reqId = generateUuid()
-            var reqRef = (extensions["requestRef"] as? JsonPrimitive)?.content
+            val clapiExt = extensions["clapi"] as? JsonObject
+            val meta = clapiExt
+                ?: (if (path.isNotEmpty()) clapiRequests?.get(path) as? JsonObject else null)
+                ?: (extensions["id"] as? JsonPrimitive)?.content?.let { clapiRequests?.get(it) as? JsonObject }
+                ?: clapiRequests?.get(info.name) as? JsonObject
+
+            val candidateReqId = (meta?.get("id") as? JsonPrimitive)?.contentOrNull
+                ?: (extensions["id"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
+            val reqId = if (preserveIds && candidateReqId != null && candidateReqId !in existingIds) {
+                candidateReqId
+            } else {
+                generateUuid()
+            }
+            var reqRef = (meta?.get("requestRef") as? JsonPrimitive)?.contentOrNull
+                ?: (extensions["requestRef"] as? JsonPrimitive)?.content
             var headerEntries: List<KeyValueEntry>? = grpc.metadata.map {
                 KeyValueEntry(key = it.name, value = it.value, enabled = it.disabled != true)
             }
@@ -1451,8 +1502,8 @@ fun OpenCollectionItem.toCollectionNode(
             var authOAuth2Username: String? = null
             var authOAuth2Password: String? = null
 
-            val clapiExt = extensions["clapi"] as? JsonObject
-            val isJwt = (clapiExt?.get("authType") as? JsonPrimitive)?.content == "jwt"
+            val isJwt = (clapiExt?.get("authType") as? JsonPrimitive)?.content == "jwt" ||
+                (meta?.get("authType") as? JsonPrimitive)?.content == "jwt"
 
             when (val a = grpc.auth) {
                 is AuthBasic -> {
@@ -1496,9 +1547,6 @@ fun OpenCollectionItem.toCollectionNode(
             var resolvedGrpcMethod: String? = grpc.method
             var resolvedGrpcMethodType: String? = grpc.methodType?.value ?: "unary"
 
-            val meta = (if (path.isNotEmpty()) clapiRequests?.get(path) as? JsonObject else null)
-                ?: clapiRequests?.get(info.name) as? JsonObject
-                ?: clapiRequests?.get(reqId) as? JsonObject
             if (meta != null) {
                 meta["bodyContents"]?.jsonObject?.let { obj ->
                     bodyContents = obj.mapValues { it.value.jsonPrimitive.content }
@@ -1576,8 +1624,21 @@ fun OpenCollectionItem.toCollectionNode(
             )
         }
         is io.github.makeforge.clapi.core.model.opencollection.WebSocketRequestItem -> {
-            val reqId = generateUuid()
-            val reqRef = (extensions["requestRef"] as? JsonPrimitive)?.content
+            val clapiExt = extensions["clapi"] as? JsonObject
+            val meta = clapiExt
+                ?: (if (path.isNotEmpty()) clapiRequests?.get(path) as? JsonObject else null)
+                ?: (extensions["id"] as? JsonPrimitive)?.content?.let { clapiRequests?.get(it) as? JsonObject }
+                ?: clapiRequests?.get(info.name) as? JsonObject
+
+            val candidateReqId = (meta?.get("id") as? JsonPrimitive)?.contentOrNull
+                ?: (extensions["id"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
+            val reqId = if (preserveIds && candidateReqId != null && candidateReqId !in existingIds) {
+                candidateReqId
+            } else {
+                generateUuid()
+            }
+            val reqRef = (meta?.get("requestRef") as? JsonPrimitive)?.contentOrNull
+                ?: (extensions["requestRef"] as? JsonPrimitive)?.content
             val headerEntries: List<KeyValueEntry> = websocket.headers.map {
                 KeyValueEntry(key = it.name, value = it.value, enabled = it.disabled != true)
             }
@@ -1629,8 +1690,21 @@ fun OpenCollectionItem.toCollectionNode(
             )
         }
         is io.github.makeforge.clapi.core.model.opencollection.GraphQLRequestItem -> {
-            val reqId = generateUuid()
-            val reqRef = (extensions["requestRef"] as? JsonPrimitive)?.content
+            val clapiExt = extensions["clapi"] as? JsonObject
+            val meta = clapiExt
+                ?: (if (path.isNotEmpty()) clapiRequests?.get(path) as? JsonObject else null)
+                ?: (extensions["id"] as? JsonPrimitive)?.content?.let { clapiRequests?.get(it) as? JsonObject }
+                ?: clapiRequests?.get(info.name) as? JsonObject
+
+            val candidateReqId = (meta?.get("id") as? JsonPrimitive)?.contentOrNull
+                ?: (extensions["id"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
+            val reqId = if (preserveIds && candidateReqId != null && candidateReqId !in existingIds) {
+                candidateReqId
+            } else {
+                generateUuid()
+            }
+            val reqRef = (meta?.get("requestRef") as? JsonPrimitive)?.contentOrNull
+                ?: (extensions["requestRef"] as? JsonPrimitive)?.content
             val headerEntries: List<KeyValueEntry> = graphql.headers.map {
                 KeyValueEntry(key = it.name, value = it.value, enabled = it.disabled != true)
             }

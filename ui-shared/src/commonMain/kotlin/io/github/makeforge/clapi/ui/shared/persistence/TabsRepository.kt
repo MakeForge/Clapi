@@ -208,7 +208,7 @@ object TabsRepository {
                 // Find matching request node mapped to the newly generated UUIDs
                 var realId = savedId
                 val candidateCollections = when {
-                    parsedCollectionId != null -> state.collections.filter { it.id == parsedCollectionId }
+                    parsedCollectionId != null -> state.findFolder(parsedCollectionId)?.let { listOf(it) } ?: state.collections.filter { it.id == parsedCollectionId }
                     parsedCollectionName != null -> state.collections.filter { it.name == parsedCollectionName }
                     else -> emptyList()
                 }
