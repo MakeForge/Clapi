@@ -21,15 +21,18 @@ internal suspend fun evaluateJsOffMain(script: String): String =
         evaluateJs(script)
     }
 
-internal actual fun evaluateJs(script: String): String {
+internal actual fun evaluateJs(script: String): String =
+    evaluateJsWithTimeout(script, SCRIPT_TIMEOUT_SECONDS * 1000L)
+
+internal actual fun evaluateJsWithTimeout(script: String, timeoutMs: Long): String {
     return try {
         V8Host.getV8Instance().createV8Runtime<V8Runtime>().use { v8Runtime ->
-            v8Runtime.getGuard(SCRIPT_TIMEOUT_SECONDS * 1000L).use { _ ->
+            v8Runtime.getGuard(timeoutMs.coerceAtLeast(1L)).use { _ ->
                 v8Runtime.getExecutor(script).executeString() ?: ""
             }
         }
     } catch (_: JavetTerminatedException) {
-        """{"error":"Script execution timed out after ${SCRIPT_TIMEOUT_SECONDS} seconds"}"""
+        """{"error":"Script execution timed out after ${timeoutMs}ms"}"""
     } catch (e: JavetException) {
         val msg = (e.message ?: "Unknown JS error")
             .replace("\\", "\\\\")

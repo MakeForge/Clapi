@@ -68,6 +68,18 @@
   margin-right: 0.3em;
 }
 
+/* Secret Manager branding icons inside headers and bullet points */
+.secret-manager-icon {
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: -0.2em;
+  margin: 0 0.35em 0 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
 /* Images & Screenshots */
 .vp-doc img {
   border-radius: 8px;

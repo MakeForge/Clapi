@@ -13,8 +13,6 @@ description: Complete reference table for clapi.test, clapi.expect, variables, r
 
 All scripting capabilities in Clapi are accessible under the global `clapi` namespace (with legacy global aliases preserved).
 
----
-
 ## Test & Assertion API
 
 ### `clapi.test(name, fn)`
@@ -25,8 +23,6 @@ clapi.test("Verify status code", function () {
   clapi.expect(clapi.response.status).to.equal(200);
 });
 ```
-
----
 
 ### Assertion Matchers (`clapi.expect`)
 
@@ -55,8 +51,6 @@ clapi.test("Verify status code", function () {
 #### Supported Chaining Words
 `.to`, `.be`, `.been`, `.is`, `.that`, `.which`, `.and`, `.has`, `.have`, `.with`, `.at`, `.of`, `.same`, `.but`, `.does`, `.still`, `.also`, `.a`, `.an`
 
----
-
 ## Variable Management APIs
 
 ### Environment Variables
@@ -72,8 +66,6 @@ clapi.test("Verify status code", function () {
 ### Global Variables
 - `clapi.globals.get(key)`: Reads from global scope.
 - `clapi.globals.set(key, value)`: Persists to global scope across all environments.
-
----
 
 ## Request & Response Objects
 

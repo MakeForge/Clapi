@@ -1,11 +1,13 @@
 package io.github.makeforge.clapi.ui.shared.components.executor
 
 import io.github.makeforge.clapi.core.model.AuthType
+import io.github.makeforge.clapi.core.network.VariableResolver
 import io.github.makeforge.clapi.core.network.aws.AwsSecretsManagerClient
 import io.github.makeforge.clapi.core.network.azure.AzureKeyVaultClient
 import io.github.makeforge.clapi.core.network.dynamicvar.DynamicVariableContext
 import io.github.makeforge.clapi.core.network.dynamicvar.DynamicVariableRegistry
 import io.github.makeforge.clapi.core.network.dynamicvar.OAuth2ResolvedConfig
+import io.github.makeforge.clapi.core.scripting.RequestContext
 import io.github.makeforge.clapi.core.network.gcp.GcpSecretManagerClient
 import io.github.makeforge.clapi.core.network.getEnvironmentVariable
 import io.github.makeforge.clapi.core.network.keeper.KeeperClient
@@ -196,6 +198,18 @@ internal fun buildDynamicVariableContext(
         expiresAtEpochMs = tab.authOAuth2ExpiresAtEpochMs,
     )
 
+    val requestHeaders = tab.headers
+        .filter { it.enabled && it.key.isNotBlank() }
+        .associate {
+            VariableResolver.resolve(it.key, variableLayers) to VariableResolver.resolve(it.value, variableLayers)
+        }
+    val requestContext = RequestContext(
+        url = VariableResolver.resolve(tab.url, variableLayers),
+        method = tab.method.name,
+        headers = requestHeaders,
+        name = tab.name,
+    )
+
     return DynamicVariableContext(
         effectiveAuthType = effectiveAuthType,
         oauth2Config = oauth2Config,
@@ -219,6 +233,8 @@ internal fun buildDynamicVariableContext(
         log = { msg, isError ->
             state.log(msg, if (isError) LogLevel.ERROR else LogLevel.INFO)
         },
+        userDynamicVariables = state.activeDynamicVariables(tab),
+        requestContext = requestContext,
     )
 }
 

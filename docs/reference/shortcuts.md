@@ -21,8 +21,7 @@ description: Complete reference table of keyboard shortcuts for macOS, Windows, 
 | **Move Active Tab Left** | `⌘ + Shift + [` | `Ctrl + Shift + [` |
 | **Move Active Tab Right** | `⌘ + Shift + ]` | `Ctrl + Shift + ]` |
 | **Focus Search / Filter** | `⌘ + F` | `Ctrl + F` |
-
----
+| **Autocomplete Variables / Secrets** | `Ctrl + Space` | `Ctrl + Space` |
 
 ## Code Editor Shortcuts
 

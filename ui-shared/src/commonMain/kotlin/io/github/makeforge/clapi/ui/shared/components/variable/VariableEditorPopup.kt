@@ -80,12 +80,18 @@ fun resolveVariableSourceInfo(
     state: AppState,
     tab: RequestTabState? = state.activeTab,
 ): VariableSourceInfo {
-    val cleanName = normalizeVariableDisplayName(variableName)
+    val rawCleanName = normalizeVariableDisplayName(variableName)
+    val parsedToken = VariableResolver.parseVariableToken(rawCleanName)
+    val cleanName = parsedToken.name.ifBlank { rawCleanName }
     val env = state.selectedEnvironment
     val envName = env?.name
     val envEffectiveMap = env?.toVariableMap(state.environments).orEmpty()
     val envVar = env?.variables?.firstOrNull { it.key == cleanName && it.enabled }
-    val envValue = envVar?.value ?: envEffectiveMap[cleanName]
+    val envValue = when {
+        envVar != null && envVar.isDynamic -> "[Dynamic Script]"
+        envVar != null -> envVar.value
+        else -> envEffectiveMap[cleanName]
+    }
     val hasEnvValue = envVar != null || cleanName in envEffectiveMap
 
     val targetTab = tab ?: state.activeTab
@@ -98,7 +104,7 @@ fun resolveVariableSourceInfo(
             folderName = targetTab.name
             val fVar = targetTab.variables.firstOrNull { it.key == cleanName && it.enabled }
             if (fVar != null) {
-                folderValue = fVar.value
+                folderValue = if (fVar.isDynamic) "[Dynamic Script]" else fVar.value
                 hasFolderValue = true
             }
         } else {
@@ -117,9 +123,11 @@ fun resolveVariableSourceInfo(
                 folderName = definingFolderNode.name
                 val openTab = state.openTabs.firstOrNull { it.id == definingFolderNode.id && it.isFolderTab }
                 val fVarValue = if (openTab != null) {
-                    openTab.variables.firstOrNull { it.key == cleanName && it.enabled }?.value
+                    val v = openTab.variables.firstOrNull { it.key == cleanName && it.enabled }
+                    if (v != null) (if (v.isDynamic) "[Dynamic Script]" else v.value) else null
                 } else {
-                    definingFolderNode.variableEntries?.firstOrNull { it.key == cleanName && it.enabled }?.value
+                    val v = definingFolderNode.variableEntries?.firstOrNull { it.key == cleanName && it.enabled }
+                    if (v != null) (if (v.isDynamic) "[Dynamic Script]" else v.value) else null
                 }
                 if (fVarValue != null) {
                     folderValue = fVarValue
@@ -136,7 +144,8 @@ fun resolveVariableSourceInfo(
         folderValue
     } else {
         state.activeVariableLayers(targetTab).firstNotNullOfOrNull { it[cleanName] }
-            ?: VariableResolver.resolveDynamicToken(cleanName)
+            ?: state.activeDynamicVariables(targetTab).firstOrNull { it.name == cleanName }?.let { "[Dynamic Script]" }
+            ?: VariableResolver.resolveDynamicToken(rawCleanName)
     }
 
     return VariableSourceInfo(

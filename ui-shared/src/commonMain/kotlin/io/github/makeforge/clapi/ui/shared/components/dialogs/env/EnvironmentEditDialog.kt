@@ -1,5 +1,8 @@
 package io.github.makeforge.clapi.ui.shared.components.dialogs.env
 
+import io.github.makeforge.clapi.ui.shared.components.externalSecretIconByProvider
+import io.github.makeforge.clapi.ui.shared.components.externalSecretHelpUrl
+import io.github.makeforge.clapi.ui.shared.platform.openUrlInBrowser
 import io.github.makeforge.clapi.ui.shared.components.VariableAwareTextField
 import io.github.makeforge.clapi.ui.shared.components.autoFocus
 import io.github.makeforge.clapi.ui.shared.components.handPointerHover
@@ -10,7 +13,7 @@ import io.github.makeforge.clapi.ui.shared.components.draggableNoSlop
 
 
 import org.jetbrains.compose.resources.painterResource
-import io.github.makeforge.clapi.ui.shared.generated.resources.Res
+import io.github.makeforge.clapi.ui.shared.generated.resources.*
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -47,8 +50,12 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.OutlinedButton
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_arrow_drop_down
+import io.github.makeforge.clapi.ui.shared.generated.resources.ic_code
+import io.github.makeforge.clapi.ui.shared.components.dialogs.dynamicvar.DynamicVariableEditorDialog
 import io.github.makeforge.clapi.ui.shared.state.getEligibleParentEnvironments
+import io.github.makeforge.clapi.ui.shared.state.resolveEffectiveDynamicVariables
 import io.github.makeforge.clapi.ui.shared.state.resolveEffectiveVariables
+import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -156,13 +163,28 @@ fun EnvironmentEditDialog(
     var quickAddVarKey by remember(envIndex) { mutableStateOf("") }
     var quickAddVarValue by remember(envIndex) { mutableStateOf("") }
     var quickAddVarSecret by remember(envIndex) { mutableStateOf(false) }
+    var quickAddVarDynamic by remember(envIndex) { mutableStateOf(false) }
+    var quickAddEditingKv by remember(envIndex) { mutableStateOf<MutableKeyValue?>(null) }
 
     var quickAddSecName by remember(envIndex) { mutableStateOf("") }
     var quickAddSecPath by remember(envIndex) { mutableStateOf("") }
     var quickAddSecTargetField by remember(envIndex) { mutableStateOf("") }
     val workingVars = remember(envIndex) {
         mutableStateListOf<MutableKeyValue>().also { list ->
-            env.variables.forEach { v -> list.add(MutableKeyValue(v.key, v.value, v.enabled, v.secret)) }
+            env.variables.forEach { v ->
+                list.add(
+                    MutableKeyValue(
+                        key = v.key,
+                        value = v.value,
+                        enabled = v.enabled,
+                        secret = v.secret,
+                        isDynamic = v.isDynamic,
+                        dynamicScript = v.dynamicScript,
+                        dynamicParameters = v.dynamicParameters,
+                        description = v.description,
+                    )
+                )
+            }
         }
     }
     var searchValue by remember(envIndex) { mutableStateOf(TextFieldValue("")) }
@@ -226,8 +248,19 @@ fun EnvironmentEditDialog(
             workingExtends.value,
             workingColor.value,
             workingProvider,
-            workingVars.filter { it.key.isNotBlank() || it.value.isNotBlank() }
-                .map { listOf(it.key, it.value, it.enabled, it.secret) },
+            workingVars.filter { it.key.isNotBlank() || it.value.isNotBlank() || it.isDynamic }
+                .map {
+                    listOf(
+                        it.key,
+                        it.value,
+                        it.enabled,
+                        it.secret,
+                        it.isDynamic,
+                        it.dynamicScript,
+                        it.dynamicParameters,
+                        it.description,
+                    )
+                },
             workingSecrets.filter { it.name.isNotBlank() || it.path.isNotBlank() || it.url.isNotBlank() }
                 .map { listOf(it.name, it.path, it.description, it.enabled, it.url, it.targetField, it.customFilters.toMap()) },
         )
@@ -244,8 +277,19 @@ fun EnvironmentEditDialog(
         env.color = workingColor.value
         env.variables.clear()
         workingVars.forEach { v ->
-            if (v.key.isNotBlank() || v.value.isNotBlank()) {
-                env.variables.add(MutableKeyValue(v.key, v.value, v.enabled, v.secret))
+            if (v.key.isNotBlank() || v.value.isNotBlank() || v.isDynamic) {
+                env.variables.add(
+                    MutableKeyValue(
+                        key = v.key,
+                        value = v.value,
+                        enabled = v.enabled,
+                        secret = v.secret,
+                        isDynamic = v.isDynamic,
+                        dynamicScript = v.dynamicScript,
+                        dynamicParameters = v.dynamicParameters,
+                        description = v.description,
+                    )
+                )
             }
         }
         state.pruneEmptyVariablesForEnvironment(envIndex)
@@ -729,9 +773,29 @@ fun EnvironmentEditDialog(
                             else {
                                 val parent = state.environments.firstOrNull { it.name == parentName }
                                 if (parent != null) {
-                                    parent.resolveEffectiveVariables(state.environments).keys
+                                    parent.resolveEffectiveVariables(state.environments).keys +
+                                        parent.resolveEffectiveDynamicVariables(state.environments).map { it.name }
                                 } else emptySet()
                             }
+                        }
+
+                        fun addQuickVariable(): MutableKeyValue? {
+                            val trimmed = quickAddVarKey.trim()
+                            if (trimmed.isEmpty()) return null
+                            val added = MutableKeyValue(
+                                key = trimmed,
+                                value = if (quickAddVarDynamic) "" else quickAddVarValue,
+                                enabled = true,
+                                secret = quickAddVarSecret,
+                                isDynamic = quickAddVarDynamic,
+                                dynamicScript = if (quickAddVarDynamic) "return new Date().toISOString();" else "",
+                            )
+                            workingVars.add(0, added)
+                            quickAddVarKey = ""
+                            quickAddVarValue = ""
+                            quickAddVarSecret = false
+                            quickAddVarDynamic = false
+                            return added
                         }
 
                         // Quick-add row on top for variables
@@ -768,14 +832,7 @@ fun EnvironmentEditDialog(
                                     .padding(horizontal = 8.dp, vertical = 5.dp)
                                     .onPreviewKeyEvent {
                                         if (it.type == KeyEventType.KeyDown && it.key == Key.Enter) {
-                                            val trimmed = quickAddVarKey.trim()
-                                            if (trimmed.isNotEmpty()) {
-                                                val added = MutableKeyValue(trimmed, quickAddVarValue, enabled = true, secret = quickAddVarSecret)
-                                                workingVars.add(0, added)
-                                                quickAddVarKey = ""
-                                                quickAddVarValue = ""
-                                                quickAddVarSecret = false
-                                            }
+                                            addQuickVariable()
                                             true
                                         } else false
                                     }
@@ -787,68 +844,118 @@ fun EnvironmentEditDialog(
                                     innerTextField()
                                 },
                             )
-                            BasicTextField(
-                                value = quickAddVarValue,
-                                onValueChange = { quickAddVarValue = it },
-                                textStyle = TextStyle(color = ClapiColors.OnSurface, fontSize = 12.sp),
-                                singleLine = true,
-                                cursorBrush = SolidColor(ClapiColors.Primary),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(28.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(ClapiColors.Surface)
-                                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
-                                    .padding(horizontal = 8.dp, vertical = 5.dp)
-                                    .onPreviewKeyEvent {
-                                        if (it.type == KeyEventType.KeyDown && it.key == Key.Enter) {
-                                            val trimmed = quickAddVarKey.trim()
-                                            if (trimmed.isNotEmpty()) {
-                                                val added = MutableKeyValue(trimmed, quickAddVarValue, enabled = true, secret = quickAddVarSecret)
-                                                workingVars.add(0, added)
-                                                quickAddVarKey = ""
-                                                quickAddVarValue = ""
-                                                quickAddVarSecret = false
+                            if (quickAddVarDynamic) {
+                                Row(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(28.dp)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(ClapiColors.Primary.copy(alpha = 0.1f))
+                                        .border(1.dp, ClapiColors.Primary.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
+                                        .clickable {
+                                            val added = addQuickVariable()
+                                            if (added != null) {
+                                                quickAddEditingKv = added
                                             }
-                                            true
-                                        } else false
-                                    }
-                                    .testTag("env-quick-add-value"),
-                                decorationBox = { innerTextField ->
-                                    if (quickAddVarValue.isEmpty()) {
-                                        Text(Strings.value, color = ClapiColors.OnSurfaceDim, fontSize = 12.sp)
-                                    }
-                                    innerTextField()
-                                },
-                            )
+                                        }
+                                        .pointerHoverIcon(PointerIcon.Hand)
+                                        .padding(horizontal = 8.dp, vertical = 5.dp)
+                                        .testTag("env-quick-add-edit-script"),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Icon(
+                                        painter = painterResource(Res.drawable.ic_code),
+                                        contentDescription = Strings.editScript,
+                                        tint = ClapiColors.Primary,
+                                        modifier = Modifier.size(14.dp),
+                                    )
+                                    Text(
+                                        text = Strings.editScript,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = ClapiColors.Primary,
+                                    )
+                                }
+                            } else {
+                                BasicTextField(
+                                    value = quickAddVarValue,
+                                    onValueChange = { quickAddVarValue = it },
+                                    textStyle = TextStyle(color = ClapiColors.OnSurface, fontSize = 12.sp),
+                                    singleLine = true,
+                                    cursorBrush = SolidColor(ClapiColors.Primary),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(28.dp)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(ClapiColors.Surface)
+                                        .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 8.dp, vertical = 5.dp)
+                                        .onPreviewKeyEvent {
+                                            if (it.type == KeyEventType.KeyDown && it.key == Key.Enter) {
+                                                addQuickVariable()
+                                                true
+                                            } else false
+                                        }
+                                        .testTag("env-quick-add-value"),
+                                    decorationBox = { innerTextField ->
+                                        if (quickAddVarValue.isEmpty()) {
+                                            Text(Strings.value, color = ClapiColors.OnSurfaceDim, fontSize = 12.sp)
+                                        }
+                                        innerTextField()
+                                    },
+                                )
+                            }
                             Row(
                                 modifier = Modifier.width(90.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
+                                val quickTypeLabel = when {
+                                    quickAddVarDynamic -> Strings.dynamic
+                                    quickAddVarSecret -> Strings.t("secret")
+                                    else -> Strings.t("normal")
+                                }
+                                val quickTypeColor = when {
+                                    quickAddVarDynamic -> ClapiColors.Primary
+                                    quickAddVarSecret -> ClapiColors.Tertiary
+                                    else -> ClapiColors.OnSurfaceDim
+                                }
+                                val quickTypeBg = when {
+                                    quickAddVarDynamic -> ClapiColors.Primary.copy(alpha = 0.12f)
+                                    quickAddVarSecret -> ClapiColors.Tertiary.copy(alpha = 0.1f)
+                                    else -> Color.Transparent
+                                }
                                 Text(
-                                    if (quickAddVarSecret) Strings.t("secret") else Strings.t("normal"),
+                                    quickTypeLabel,
                                     fontSize = 11.sp,
-                                    color = if (quickAddVarSecret) ClapiColors.Tertiary else ClapiColors.OnSurfaceDim,
+                                    color = quickTypeColor,
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(4.dp))
-                                        .background(if (quickAddVarSecret) ClapiColors.Tertiary.copy(alpha = 0.1f) else Color.Transparent)
-                                        .clickable { quickAddVarSecret = !quickAddVarSecret }
+                                        .background(quickTypeBg)
+                                        .clickable {
+                                            when {
+                                                !quickAddVarSecret && !quickAddVarDynamic -> {
+                                                    quickAddVarSecret = true
+                                                    quickAddVarDynamic = false
+                                                }
+                                                quickAddVarSecret -> {
+                                                    quickAddVarSecret = false
+                                                    quickAddVarDynamic = true
+                                                }
+                                                else -> {
+                                                    quickAddVarDynamic = false
+                                                    quickAddVarSecret = false
+                                                }
+                                            }
+                                        }
+                                        .pointerHoverIcon(PointerIcon.Hand)
                                         .padding(horizontal = 6.dp, vertical = 3.dp)
                                         .testTag("env-quick-add-secret-toggle"),
                                 )
                             }
                             IconButtonWithTooltip(
-                                onClick = {
-                                    val trimmed = quickAddVarKey.trim()
-                                    if (trimmed.isNotEmpty()) {
-                                        val added = MutableKeyValue(trimmed, quickAddVarValue, enabled = true, secret = quickAddVarSecret)
-                                        workingVars.add(0, added)
-                                        quickAddVarKey = ""
-                                        quickAddVarValue = ""
-                                        quickAddVarSecret = false
-                                    }
-                                },
+                                onClick = { addQuickVariable() },
                                 tooltip = Strings.addVariable,
                                 modifier = Modifier.size(28.dp).testTag("env-quick-add-variable-button"),
                             ) {
@@ -860,6 +967,13 @@ fun EnvironmentEditDialog(
                                 )
                             }
                             Spacer(Modifier.width(10.dp))
+                        }
+
+                        quickAddEditingKv?.let { editingKv ->
+                            DynamicVariableEditorDialog(
+                                kv = editingKv,
+                                onDismiss = { quickAddEditingKv = null },
+                            )
                         }
 
                         Box(
@@ -980,8 +1094,15 @@ fun EnvironmentEditDialog(
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 ) {
+                                    val currentIcon = externalSecretIconByProvider(workingProvider)
+                                    Icon(
+                                        painter = painterResource(currentIcon),
+                                        contentDescription = null,
+                                        tint = Color.Unspecified,
+                                        modifier = Modifier.size(16.dp),
+                                    )
                                     Text(
                                         when (workingProvider) {
                                             "keepassxc" -> "KeePassXC"
@@ -995,7 +1116,8 @@ fun EnvironmentEditDialog(
                                         color = ClapiColors.OnSurface,
                                         fontSize = 12.sp,
                                     )
-                                    Icon(painter = painterResource(Res.drawable.ic_keyboard_arrow_down),
+                                    Icon(
+                                        painter = painterResource(Res.drawable.ic_keyboard_arrow_down),
                                         contentDescription = null,
                                         tint = ClapiColors.OnSurfaceDim,
                                         modifier = Modifier.size(14.dp),
@@ -1006,6 +1128,14 @@ fun EnvironmentEditDialog(
                                     onDismissRequest = { providerMenuExpanded = false },
                                 ) {
                                     DropdownMenuItem(
+                                        leadingIcon = {
+                                            Icon(
+                                                painter = painterResource(Res.drawable.hashicorp),
+                                                contentDescription = null,
+                                                tint = Color.Unspecified,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                        },
                                         text = { Text("HashiCorp Vault (Server)", fontSize = 12.sp) },
                                         onClick = {
                                             workingProvider = "hashicorp-vault-server"
@@ -1014,6 +1144,14 @@ fun EnvironmentEditDialog(
                                         modifier = Modifier.testTag("env-provider-option-hashicorp-vault-server"),
                                     )
                                     DropdownMenuItem(
+                                        leadingIcon = {
+                                            Icon(
+                                                painter = painterResource(Res.drawable.keepassxc),
+                                                contentDescription = null,
+                                                tint = Color.Unspecified,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                        },
                                         text = { Text("KeePassXC", fontSize = 12.sp) },
                                         onClick = {
                                             workingProvider = "keepassxc"
@@ -1022,6 +1160,14 @@ fun EnvironmentEditDialog(
                                         modifier = Modifier.testTag("env-provider-option-keepassxc"),
                                     )
                                     DropdownMenuItem(
+                                        leadingIcon = {
+                                            Icon(
+                                                painter = painterResource(Res.drawable.keepersecurity),
+                                                contentDescription = null,
+                                                tint = Color.Unspecified,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                        },
                                         text = { Text("Keeper Security Cloud", fontSize = 12.sp) },
                                         onClick = {
                                             workingProvider = "keeper-security-cloud"
@@ -1030,6 +1176,14 @@ fun EnvironmentEditDialog(
                                         modifier = Modifier.testTag("env-provider-option-keeper-security-cloud"),
                                     )
                                     DropdownMenuItem(
+                                        leadingIcon = {
+                                            Icon(
+                                                painter = painterResource(Res.drawable.awssecrets),
+                                                contentDescription = null,
+                                                tint = Color.Unspecified,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                        },
                                         text = { Text("AWS Secrets Manager", fontSize = 12.sp) },
                                         onClick = {
                                             workingProvider = "aws-secrets-manager"
@@ -1038,6 +1192,14 @@ fun EnvironmentEditDialog(
                                         modifier = Modifier.testTag("env-provider-option-aws-secrets-manager"),
                                     )
                                     DropdownMenuItem(
+                                        leadingIcon = {
+                                            Icon(
+                                                painter = painterResource(Res.drawable.azurevault),
+                                                contentDescription = null,
+                                                tint = Color.Unspecified,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                        },
                                         text = { Text("Azure Key Vault", fontSize = 12.sp) },
                                         onClick = {
                                             workingProvider = "azure-key-vault"
@@ -1046,12 +1208,37 @@ fun EnvironmentEditDialog(
                                         modifier = Modifier.testTag("env-provider-option-azure-key-vault"),
                                     )
                                     DropdownMenuItem(
+                                        leadingIcon = {
+                                            Icon(
+                                                painter = painterResource(Res.drawable.gcpsecretmanager),
+                                                contentDescription = null,
+                                                tint = Color.Unspecified,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                        },
                                         text = { Text("GCP Secret Manager", fontSize = 12.sp) },
                                         onClick = {
                                             workingProvider = "gcp-secrets-manager"
                                             providerMenuExpanded = false
                                         },
                                         modifier = Modifier.testTag("env-provider-option-gcp-secrets-manager"),
+                                    )
+                                }
+                            }
+
+                            val helpUrl = externalSecretHelpUrl(workingProvider)
+                            if (helpUrl != null) {
+                                IconButtonWithTooltip(
+                                    onClick = { openUrlInBrowser(helpUrl) },
+                                    tooltip = "Secret creation documentation",
+                                    tooltipTag = "env-provider-help-btn",
+                                    modifier = Modifier.size(28.dp).testTag("env-provider-help-btn"),
+                                ) {
+                                    Icon(
+                                        painter = painterResource(Res.drawable.ic_help_outline),
+                                        contentDescription = "Help Documentation",
+                                        tint = ClapiColors.Primary,
+                                        modifier = Modifier.size(16.dp),
                                     )
                                 }
                             }

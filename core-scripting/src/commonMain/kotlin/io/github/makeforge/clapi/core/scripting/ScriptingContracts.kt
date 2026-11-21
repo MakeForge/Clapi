@@ -103,3 +103,40 @@ data class ScriptContext(
     val streamEvents: List<String> = emptyList(),
     val assembledText: String? = null,
 )
+
+@Serializable
+data class RequestContext(
+    val url: String = "",
+    val method: String = "GET",
+    val headers: Map<String, String> = emptyMap(),
+    val name: String = "",
+)
+
+data class DynamicScriptContext(
+    val request: RequestContext? = null,
+    val args: Map<String, Any?> = emptyMap(),
+    val positionalArgs: List<Any?> = emptyList(),
+)
+
+@Serializable
+data class DynamicScriptExecutionResult(
+    val success: Boolean,
+    val returnValue: String? = null,
+    val durationMs: Long = 0L,
+    val consoleLogs: List<String> = emptyList(),
+    val errorMessage: String? = null,
+)
+
+interface DynamicVariableEngine {
+    suspend fun executeDynamicVariable(
+        script: String,
+        context: DynamicScriptContext = DynamicScriptContext(),
+        timeoutMs: Long = 2000L,
+    ): DynamicScriptExecutionResult
+
+    fun evaluateDynamicVariable(
+        script: String,
+        context: DynamicScriptContext = DynamicScriptContext(),
+        timeoutMs: Long = 2000L,
+    ): DynamicScriptExecutionResult
+}

@@ -84,6 +84,7 @@ val jvmDev = tasks.register<JavaExec>("jvmDev") {
                 kotlin.jvm("desktop").compilations.getByName("main").output.allOutputs
     devStorageDir.mkdirs()
     systemProperty("clapi.dir", devStorageDir.absolutePath)
+    systemProperty("clapi.dev", "true")
 }
 
 tasks.register("desktopRunDev") {

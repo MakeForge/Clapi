@@ -208,6 +208,26 @@ actual fun openUrlInBrowser(url: String) {
     }
 }
 
+actual fun isLocalDevMode(): Boolean {
+    val devProp = System.getProperty("clapi.dev")?.trim()
+    if (devProp.equals("true", ignoreCase = true)) return true
+    if (devProp.equals("false", ignoreCase = true)) return false
+
+    val devEnv = System.getenv("CLAPI_DEV")?.trim()
+    if (devEnv.equals("true", ignoreCase = true)) return true
+    if (devEnv.equals("false", ignoreCase = true)) return false
+
+    val clapiDir = System.getProperty("clapi.dir")
+        ?.replace('\\', '/')
+        ?.trimEnd('/')
+    return clapiDir?.endsWith("/.clapi-dev") == true
+}
+
+actual fun platformDocsBaseUrlOverride(): String? {
+    return System.getProperty("clapi.docs.baseUrl")?.takeIf { it.isNotBlank() }
+        ?: System.getenv("CLAPI_DOCS_BASE_URL")?.takeIf { it.isNotBlank() }
+}
+
 actual fun saveFileForExport(content: String, defaultFilename: String) {
     val dialog = FileDialog(null as Frame?, "Export", FileDialog.SAVE).apply {
         applyRememberedDirectory()

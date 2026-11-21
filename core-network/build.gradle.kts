@@ -9,6 +9,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":core-model"))
+            api(project(":core-scripting"))
             implementation(libs.coroutines.core)
             implementation(libs.serialization.json)
             implementation(libs.kotlinx.datetime)

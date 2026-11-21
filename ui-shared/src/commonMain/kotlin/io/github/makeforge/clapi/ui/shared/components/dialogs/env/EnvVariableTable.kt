@@ -42,8 +42,11 @@ import io.github.makeforge.clapi.core.network.keepassxc.createKeePassXcClient
 import io.github.makeforge.clapi.core.network.keeper.createKeeperClient
 import io.github.makeforge.clapi.ui.shared.components.VariableAwareTextField
 import io.github.makeforge.clapi.ui.shared.components.IconButtonWithTooltip
+import io.github.makeforge.clapi.ui.shared.components.dialogs.dynamicvar.DynamicVariableEditorDialog
 import io.github.makeforge.clapi.ui.shared.components.handPointerHover
 import io.github.makeforge.clapi.ui.shared.components.rememberAutoSelectTextFieldValue
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.text.style.TextOverflow
 import io.github.makeforge.clapi.ui.shared.generated.resources.*
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
 import io.github.makeforge.clapi.ui.shared.platform.*
@@ -82,6 +85,7 @@ internal fun EnvVariableRow(
     isOverridden: Boolean = false,
 ) {
     var showValue by remember { mutableStateOf(!kv.secret) }
+    var showDynamicEditor by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
     val keyFocusRequester = remember { FocusRequester() }
@@ -169,45 +173,112 @@ internal fun EnvVariableRow(
             }
         }
 
-        // Value field (masked if secret)
-        EnvTextField(
-            value = kv.value,
-            onValueChange = { if (!kv.secret) kv.value = it },
-            placeholder = if (kv.secret) "-" else Strings.value,
-            masked = kv.secret && !showValue && kv.value.isNotEmpty(),
-            tag = "env-var-value-$index",
-            modifier = Modifier.weight(1f),
-            state = if (kv.secret) null else state,
-            extraVariables = extraVars,
-            excludeVariables = excludeVars,
-        )
+        // Value field (masked if secret, Edit Script button if dynamic)
+        if (kv.isDynamic) {
+            val paramSummary = if (kv.dynamicParameters.isEmpty()) {
+                ""
+            } else {
+                " (${kv.dynamicParameters.joinToString(", ") { it.name }})"
+            }
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(ClapiColors.Primary.copy(alpha = 0.1f))
+                    .border(1.dp, ClapiColors.Primary.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
+                    .clickable { showDynamicEditor = true }
+                    .pointerHoverIcon(PointerIcon.Hand)
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                    .testTag("env-var-edit-script-$index"),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.ic_code),
+                    contentDescription = Strings.editScript,
+                    tint = ClapiColors.Primary,
+                    modifier = Modifier.size(14.dp),
+                )
+                Text(
+                    text = Strings.editScript + paramSummary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = ClapiColors.Primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        } else {
+            EnvTextField(
+                value = kv.value,
+                onValueChange = { if (!kv.secret) kv.value = it },
+                placeholder = if (kv.secret) "-" else Strings.value,
+                masked = kv.secret && !showValue && kv.value.isNotEmpty(),
+                tag = "env-var-value-$index",
+                modifier = Modifier.weight(1f),
+                state = if (kv.secret) null else state,
+                extraVariables = extraVars,
+                excludeVariables = excludeVars,
+            )
+        }
 
-        // Type toggle (Normal / Secret)
+        // Type toggle (Normal / Secret / Dynamic)
         Row(
             modifier = Modifier.width(90.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
+            val typeLabel = when {
+                kv.isDynamic -> Strings.dynamic
+                kv.secret -> Strings.t("secret")
+                else -> Strings.t("normal")
+            }
+            val typeColor = when {
+                kv.isDynamic -> ClapiColors.Primary
+                kv.secret -> ClapiColors.Tertiary
+                else -> ClapiColors.OnSurfaceDim
+            }
+            val typeBg = when {
+                kv.isDynamic -> ClapiColors.Primary.copy(alpha = 0.12f)
+                kv.secret -> ClapiColors.Tertiary.copy(alpha = 0.1f)
+                else -> Color.Transparent
+            }
             Text(
-                if (kv.secret) Strings.t("secret") else Strings.t("normal"),
+                typeLabel,
                 fontSize = 11.sp,
-                color = if (kv.secret) ClapiColors.Tertiary else ClapiColors.OnSurfaceDim,
+                color = typeColor,
                 modifier = Modifier
                     .clip(RoundedCornerShape(4.dp))
-                    .background(if (kv.secret) ClapiColors.Tertiary.copy(alpha = 0.1f) else Color.Transparent)
+                    .background(typeBg)
                     .clickable {
-                        kv.secret = !kv.secret
-                        if (kv.secret) {
-                            showValue = false
-                            kv.value = ""
+                        when {
+                            !kv.secret && !kv.isDynamic -> {
+                                kv.secret = true
+                                kv.isDynamic = false
+                                showValue = false
+                                kv.value = ""
+                            }
+                            kv.secret -> {
+                                kv.secret = false
+                                kv.isDynamic = true
+                                if (kv.dynamicScript.isBlank()) {
+                                    kv.dynamicScript = "return new Date().toISOString();"
+                                }
+                            }
+                            else -> {
+                                kv.isDynamic = false
+                                kv.secret = false
+                            }
                         }
                     }
-                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                    .pointerHoverIcon(PointerIcon.Hand)
+                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                    .testTag("env-var-type-toggle-$index"),
             )
         }
 
         // Reveal / hide value for secrets
-        if (kv.secret) {
+        if (kv.secret && !kv.isDynamic) {
             val toggleTooltip = if (showValue) "Hide value" else "Show value"
             IconButtonWithTooltip(
                 onClick = { showValue = !showValue },
@@ -233,6 +304,13 @@ internal fun EnvVariableRow(
         ) {
             Icon(painter = painterResource(Res.drawable.ic_delete), contentDescription = Strings.delete, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
         }
+    }
+
+    if (showDynamicEditor) {
+        DynamicVariableEditorDialog(
+            kv = kv,
+            onDismiss = { showDynamicEditor = false },
+        )
     }
 }
 

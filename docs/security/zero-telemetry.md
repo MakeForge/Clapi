@@ -1,6 +1,6 @@
 ---
 title: Zero Telemetry & Privacy Guarantee
-description: Clapi's strict privacy policy, zero telemetry architecture, and air-gapped network verification.
+description: Clapi's strict privacy policy, zero telemetry architecture, offline-first design, and enterprise compliance.
 ---
 
 # Zero Telemetry & Privacy Guarantee
@@ -11,38 +11,22 @@ description: Clapi's strict privacy policy, zero telemetry architecture, and air
 
 ## The Clapi Privacy Covenant
 
-Unlike most modern commercial API clients (e.g. Postman, Insomnia) that enforce mandatory cloud logins, continuously sync private endpoint data to third-party databases, and inject analytics tracking SDKs, **Clapi is built on an absolute privacy guarantee**:
+Unlike most modern commercial API clients (e.g. Postman, Insomnia) that enforce mandatory cloud accounts, continuously sync private endpoint data to third-party SaaS databases, and inject analytics tracking SDKs, **Clapi is built on an absolute privacy guarantee**:
 
 ::: tip The Guarantee
-1. **Zero Telemetry**: Clapi contains **no** telemetry agents, tracking pixels, usage analytics, crash-reporting SDKs (no Sentry, Google Analytics, Mixpanel, Segment, or PostHog).
-2. **Zero Spying or Tracking**: Clapi does not collect personal identifiers, device hardware fingerprints, keystrokes, or request payloads.
-3. **No Phantom Network Calls**: Clapi initiates network calls **only** when you explicitly press **Send** or connect to an MCP/WebSocket/gRPC server you specifically configured.
-4. **Local Data Sovereignty**: All collections, environments, certificates, and workspaces live strictly on your local disk.
+1. **Zero Telemetry**: Clapi contains **no** telemetry agents, tracking pixels, usage analytics, or crash-reporting SDKs (no Sentry, Google Analytics, Mixpanel, Segment, or PostHog). No telemetry at all is collected.
+2. **No Cloud Sign-In Required**: There are zero user accounts, zero sign-in walls, and no mandatory cloud registrations. You can download and immediately use every feature of Clapi without creating an account or providing an email.
+3. **100% Offline Capability**: Clapi operates completely offline by default. All collections, environments, certificates, and settings live strictly on your local disk and require no internet connection to function.
+4. **Zero Spying or Tracking**: Clapi does not collect personal identifiers, device hardware fingerprints, keystrokes, or request payloads.
+5. **No Phantom Network Calls**: Clapi initiates network calls **only** when you explicitly trigger **Send** or connect to an MCP/WebSocket/gRPC server you specifically configured.
+6. **Local Data Sovereignty**: All collections, environments, certificates, and workspaces live strictly on your local filesystem under your direct control.
 :::
 
 ---
 
 ## Air-Gapped & Enterprise Compliance
 
-Because Clapi has zero external cloud dependencies, it can run reliably inside:
+Because Clapi has zero external cloud dependencies and operates 100% offline, it can run reliably inside:
 - **Air-Gapped Networks**: High-security, isolated server rooms without public internet access.
 - **Financial & Healthcare Institutions**: Environments regulated by SOC 2, HIPAA, GDPR, and PCI-DSS where leaking proprietary API payloads to SaaS vendors is prohibited.
-- **Defense & Government**: Systems requiring strict supply chain auditing and zero unauthorized outbound network sockets.
-
----
-
-## How to Verify Zero Telemetry
-
-We encourage developers and security teams to verify our privacy claims independently.
-
-### Option 1: Packet Capture with `tcpdump`
-Launch `tcpdump` on your network interface and start Clapi:
-```bash
-sudo tcpdump -i any -n "not port 53" -w clapi_traffic.pcap
-```
-1. Open Clapi.
-2. Browse collections, switch environments, and inspect settings.
-3. Observe the packet capture output: **zero network packets are emitted**.
-
-### Option 2: Local Proxy Inspection (mitmproxy / Wireshark)
-Configure your system HTTP proxy to route through `mitmproxy` (`mitmweb`). You will observe that Clapi makes zero background requests on startup, idle, or shutdown.
+- **Defense & Government**: Systems requiring strict supply chain auditing, air-gapped isolation, and zero unauthorized outbound network sockets.

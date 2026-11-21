@@ -67,6 +67,7 @@ class DynamicVariableRegistry(
     companion object {
         fun defaultProviders(): List<DynamicVariableProvider> = listOf(
             OAuth2DynamicVariableProvider(),
+            UserScriptDynamicVariableProvider(),
         )
 
         private val TOKEN_REGEX = Regex("\\{\\{\\s*([^{}]+?)\\s*\\}\\}")

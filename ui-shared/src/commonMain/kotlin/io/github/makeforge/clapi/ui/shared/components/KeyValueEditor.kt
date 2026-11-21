@@ -23,17 +23,27 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.makeforge.clapi.ui.shared.components.dialogs.dynamicvar.DynamicVariableEditorDialog
 import io.github.makeforge.clapi.ui.shared.generated.resources.Res
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_add
+import io.github.makeforge.clapi.ui.shared.generated.resources.ic_code
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_delete
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_lock
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
@@ -64,7 +74,8 @@ fun KeyValueEditor(
     onDirty: () -> Unit,
 ) {
     val isHeaderEditor = tag == "header"
-    val showTypeColumn = isHeaderEditor || entries.any { it.kind == HeaderKind.INHERITED }
+    val isVariableEditor = tag == "variable"
+    val showTypeColumn = isHeaderEditor || isVariableEditor || entries.any { it.kind == HeaderKind.INHERITED }
     Column(modifier = Modifier.fillMaxSize().background(ClapiColors.Background).padding(8.dp)) {
         // Column header labels
         Row(
@@ -151,6 +162,8 @@ private fun KeyValueRow(
     val isSystemHeader = isHeaderEditor &&
         (kv.kind == HeaderKind.SYSTEM || SystemHeaderRules.isSystemHeader(kv.key))
     val isInherited = kv.kind == HeaderKind.INHERITED
+    val isVariableEditor = tag == "variable"
+    var showDynamicEditor by remember { mutableStateOf(false) }
 
     val initialKey = remember { kv.key }
     val excludeVars = remember(kv.key, initialKey, tag) {
@@ -194,16 +207,52 @@ private fun KeyValueRow(
             tab = tab,
             excludeVariables = excludeVars,
         )
-        InlineTextField(
-            value = kv.value,
-            onValueChange = { if (!isInherited) { kv.value = it; onDirty() } },
-            placeholder = Strings.t("value_upper"),
-            readOnly = isInherited,
-            modifier = Modifier.weight(1f).testTag("$testTag-value"),
-            state = state,
-            tab = tab,
-            excludeVariables = excludeVars,
-        )
+        if (isVariableEditor && kv.isDynamic) {
+            val paramSummary = if (kv.dynamicParameters.isEmpty()) {
+                ""
+            } else {
+                " (${kv.dynamicParameters.joinToString(", ") { it.name }})"
+            }
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(ClapiColors.Primary.copy(alpha = 0.1f))
+                    .border(1.dp, ClapiColors.Primary.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
+                    .clickable(enabled = !isInherited) { showDynamicEditor = true }
+                    .pointerHoverIcon(if (!isInherited) PointerIcon.Hand else PointerIcon.Default)
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                    .testTag("$testTag-edit-script"),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.ic_code),
+                    contentDescription = Strings.editScript,
+                    tint = ClapiColors.Primary,
+                    modifier = Modifier.size(14.dp),
+                )
+                Text(
+                    text = Strings.editScript + paramSummary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = ClapiColors.Primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        } else {
+            InlineTextField(
+                value = kv.value,
+                onValueChange = { if (!isInherited) { kv.value = it; onDirty() } },
+                placeholder = Strings.t("value_upper"),
+                readOnly = isInherited,
+                modifier = Modifier.weight(1f).testTag("$testTag-value"),
+                state = state,
+                tab = tab,
+                excludeVariables = excludeVars,
+            )
+        }
 
         if (showTypeColumn) {
             Row(
@@ -224,6 +273,55 @@ private fun KeyValueRow(
                             modifier = Modifier.testTag("$testTag-type-inherited"),
                         )
                     }
+                    isVariableEditor -> {
+                        val typeLabel = when {
+                            kv.isDynamic -> Strings.dynamic
+                            kv.secret -> Strings.t("secret")
+                            else -> Strings.t("normal")
+                        }
+                        val typeColor = when {
+                            kv.isDynamic -> ClapiColors.Primary
+                            kv.secret -> ClapiColors.Tertiary
+                            else -> ClapiColors.OnSurfaceDim
+                        }
+                        val typeBg = when {
+                            kv.isDynamic -> ClapiColors.Primary.copy(alpha = 0.12f)
+                            kv.secret -> ClapiColors.Tertiary.copy(alpha = 0.1f)
+                            else -> Color.Transparent
+                        }
+                        Text(
+                            text = typeLabel,
+                            fontSize = 11.sp,
+                            color = typeColor,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(typeBg)
+                                .clickable {
+                                    when {
+                                        !kv.secret && !kv.isDynamic -> {
+                                            kv.secret = true
+                                            kv.isDynamic = false
+                                            kv.value = ""
+                                        }
+                                        kv.secret -> {
+                                            kv.secret = false
+                                            kv.isDynamic = true
+                                            if (kv.dynamicScript.isBlank()) {
+                                                kv.dynamicScript = "return new Date().toISOString();"
+                                            }
+                                        }
+                                        else -> {
+                                            kv.isDynamic = false
+                                            kv.secret = false
+                                        }
+                                    }
+                                    onDirty()
+                                }
+                                .pointerHoverIcon(PointerIcon.Hand)
+                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                                .testTag("$testTag-type-toggle"),
+                        )
+                    }
                     else -> {
                         Text(Strings.t("user"), fontSize = 11.sp, color = ClapiColors.OnSurfaceDim)
                     }
@@ -239,6 +337,14 @@ private fun KeyValueRow(
         ) {
             Icon(painter = painterResource(Res.drawable.ic_delete), contentDescription = Strings.t("remove"), tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
         }
+    }
+
+    if (showDynamicEditor) {
+        DynamicVariableEditorDialog(
+            kv = kv,
+            onDismiss = { showDynamicEditor = false },
+            onSaved = onDirty,
+        )
     }
 }
 

@@ -35,6 +35,8 @@ import io.github.makeforge.clapi.core.network.keepassxc.KeePassXcStatus
 import io.github.makeforge.clapi.core.network.keepassxc.createKeePassXcClient
 import io.github.makeforge.clapi.core.network.keeper.createKeeperClient
 import io.github.makeforge.clapi.core.network.keeper.initializeAndBindKeeperStorage
+import io.github.makeforge.clapi.ui.shared.components.externalSecretIcon
+import io.github.makeforge.clapi.ui.shared.components.externalSecretSetupUrl
 import io.github.makeforge.clapi.ui.shared.components.handPointerHover
 import io.github.makeforge.clapi.ui.shared.components.IconButtonWithTooltip
 import io.github.makeforge.clapi.ui.shared.generated.resources.*
@@ -50,6 +52,8 @@ import org.jetbrains.compose.resources.painterResource
 
 @Composable
 internal fun SecretsSettings(s: AppSettings) {
+    val setupUrl = externalSecretSetupUrl(s.vaultProviderType)
+
     SettingDropdown(
         label = Strings.t("secret_provider"),
         description = Strings.t("secret_provider_desc"),
@@ -64,6 +68,33 @@ internal fun SecretsSettings(s: AppSettings) {
         selected = s.vaultProviderType,
         onSelected = { s.vaultProviderType = it },
         tagPrefix = "secrets-provider",
+        optionIcon = { externalSecretIcon(it) },
+        headerAction = setupUrl?.let { url ->
+            {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable { openUrlInBrowser(url) }
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .testTag("secret-manager-setup-btn"),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_open_in_new),
+                        contentDescription = "Setup Secrets",
+                        tint = ClapiColors.Primary,
+                        modifier = Modifier.size(13.dp),
+                    )
+                    Text(
+                        text = "Setup Secrets",
+                        fontSize = 11.sp,
+                        color = ClapiColors.Primary,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+            }
+        },
     )
     SettingsDivider()
 

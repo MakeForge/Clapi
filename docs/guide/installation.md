@@ -21,7 +21,16 @@ description: How to download, install, and run Clapi on macOS, Linux, and Window
 
 Clapi comes as fully-bundled application, **no external JDK or JRE installation is required** when using native installers (`.dmg`, `.deb`, `.rpm`, or `.msi`).
 
----
+## Approximate Application Sizes
+
+Unlike Electron-based API clients that bundle multiple instances of Chromium and exceed 400–600 MB downloads, Clapi is compiled with Compose Multiplatform for JVM desktop:
+
+| Distribution Artifact | Approximate Download Size | Installed On-Disk Size | Prerequisites |
+|---|---|---|---|
+| **Linux `.deb` / `.rpm`** | **~145 – 150 MB** | ~280 – 320 MB | None (Bundled JRE included) |
+| **macOS `.dmg`** | **~140 – 155 MB** | ~280 – 310 MB | None (Bundled JRE included) |
+| **Windows `.msi` / `.exe`** | **~145 – 155 MB** | ~290 – 330 MB | None (Bundled JRE included) |
+| **Universal Fat JAR** | **~130 – 135 MB** | ~135 MB | System JRE / JDK 17+ or 21+ |
 
 ## Installation by Platform
 
@@ -61,8 +70,6 @@ cd Clapi
 brew install --cask clapi
 ```
 :::
-
----
 
 ## Standalone Fat JAR (Universal)
 

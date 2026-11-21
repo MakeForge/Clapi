@@ -28,6 +28,10 @@ Variables can be placed in:
 - Request bodies (JSON, GraphQL, XML, URL-encoded)
 - Basic, Bearer, and API Key authentication fields
 
+::: tip Variable & Secret Shortcuts
+Press **`Ctrl + Space`** inside any variable-aware input field (URL address bar, query params, headers, request body, or authentication inputs) to open the autocomplete popup and quickly insert environment variables, external secrets, and dynamic generators. See the [Keyboard Shortcuts](/reference/shortcuts) page for all shortcuts.
+:::
+
 ---
 
 ## Variable Resolution Hierarchy
@@ -46,15 +50,6 @@ When a variable <code v-pre><code v-pre>{{myVar}}</code></code> is evaluated, Cl
 
 ---
 
-## Dynamic System Variables
+## Dynamic Variables
 
-Clapi includes built-in dynamic variables that generate fresh values on every request execution:
-
-| Dynamic Variable | Description | Example Output |
-|---|---|---|
-| <code v-pre>{{$guid}}</code> | Generates a random v4 UUID | `c9b2f4a1-7e82-4f9a-b892-1bfa3c678231` |
-| <code v-pre>{{$timestamp}}</code> | Current UNIX timestamp in seconds | `1731628100` |
-| <code v-pre>{{$timestampMs}}</code> | Current UNIX timestamp in milliseconds | `1731628100123` |
-| <code v-pre>{{$isoTimestamp}}</code> | Current ISO 8601 UTC timestamp | `2026-11-14T23:45:00.000Z` |
-| <code v-pre>{{$randomInt}}</code> | Random integer between 0 and 1000 | `482` |
-| <code v-pre>{{$randomAlphaNumeric}}</code>| Random 8-character alphanumeric string | `k9J2bX7w` |
+Clapi also supports variables with dynamic values, see the dedicated [Dynamic Variables](./dynamic-variables) subpage.
