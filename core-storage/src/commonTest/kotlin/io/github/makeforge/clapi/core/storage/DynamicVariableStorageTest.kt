@@ -23,7 +23,8 @@ class DynamicVariableStorageTest {
     private fun sampleDocument(): OpenCollectionDocument {
         val envDynamic = DynamicVariable(
             name = "secondsFromNow",
-            script = "const offset = Number(args.seconds || 0);\nreturn new Date(Date.now() + offset * 1000).toISOString();",
+            type = VariableType.NUMBER,
+            script = "const offset = Number(args.seconds || 0);\nreturn 1700000000 + offset;",
             parameters = listOf(
                 DynamicVariableParameter(
                     name = "seconds",
@@ -31,11 +32,12 @@ class DynamicVariableStorageTest {
                     defaultValue = "0",
                 )
             ),
-            description = Description("Generates an ISO-8601 timestamp with an optional seconds offset"),
+            description = Description("Generates an epoch timestamp with an optional seconds offset"),
             disabled = false,
         )
         val colDynamic = DynamicVariable(
             name = "requestSig",
+            type = VariableType.STRING,
             script = "return context.request.method + ':' + context.request.url;",
         )
         return OpenCollectionDocument(
@@ -62,7 +64,7 @@ class DynamicVariableStorageTest {
     fun roundtrips_dynamic_variables_in_opencollection_json() {
         val doc = sampleDocument()
         val jsonText = OpenCollectionSerializer.serializeJson(doc)
-        assertTrue(jsonText.contains("\"type\": \"dynamic\""))
+        assertTrue(jsonText.contains("\"type\": \"number\""))
         assertTrue(jsonText.contains("\"secondsFromNow\""))
 
         val decoded = OpenCollectionSerializer.deserializeJson(jsonText)
@@ -72,17 +74,18 @@ class DynamicVariableStorageTest {
         assertIs<SecretVariable>(envVars[1])
         val dyn = assertIs<DynamicVariable>(envVars[2])
         assertEquals("secondsFromNow", dyn.name)
-        assertEquals(VariableType.DYNAMIC, dyn.type)
-        assertTrue(dyn.script.contains("toISOString()"))
+        assertEquals(VariableType.NUMBER, dyn.type)
+        assertTrue(dyn.script.contains("1700000000"))
         assertEquals(1, dyn.parameters.size)
         assertEquals("seconds", dyn.parameters[0].name)
         assertEquals("0", dyn.parameters[0].defaultValue)
-        assertEquals("Generates an ISO-8601 timestamp with an optional seconds offset", dyn.description?.content)
+        assertEquals("Generates an epoch timestamp with an optional seconds offset", dyn.description?.content)
 
         val colVars = decoded.request?.variables.orEmpty()
         assertEquals(1, colVars.size)
         val colDyn = assertIs<DynamicVariable>(colVars[0])
         assertEquals("requestSig", colDyn.name)
+        assertEquals(VariableType.STRING, colDyn.type)
         assertEquals("return context.request.method + ':' + context.request.url;", colDyn.script)
     }
 
@@ -90,7 +93,7 @@ class DynamicVariableStorageTest {
     fun roundtrips_dynamic_variables_in_opencollection_yaml() {
         val doc = sampleDocument()
         val yamlText = OpenCollectionSerializer.serializeYaml(doc)
-        assertTrue(yamlText.contains("type: dynamic") || yamlText.contains("type: \"dynamic\""))
+        assertTrue(yamlText.contains("type: number") || yamlText.contains("type: \"number\""))
         assertTrue(yamlText.contains("secondsFromNow"))
 
         val decoded = OpenCollectionSerializer.deserializeYaml(yamlText)
@@ -98,8 +101,8 @@ class DynamicVariableStorageTest {
         assertEquals(3, envVars.size)
         val dyn = assertIs<DynamicVariable>(envVars[2])
         assertEquals("secondsFromNow", dyn.name)
-        assertEquals(VariableType.DYNAMIC, dyn.type)
-        assertTrue(dyn.script.contains("toISOString()"))
+        assertEquals(VariableType.NUMBER, dyn.type)
+        assertTrue(dyn.script.contains("1700000000"))
         assertEquals(1, dyn.parameters.size)
         assertEquals("seconds", dyn.parameters[0].name)
         assertEquals("Offset in seconds added to current time", dyn.parameters[0].description)
@@ -109,5 +112,6 @@ class DynamicVariableStorageTest {
         assertEquals(1, colVars.size)
         val colDyn = assertIs<DynamicVariable>(colVars[0])
         assertEquals("requestSig", colDyn.name)
+        assertEquals(VariableType.STRING, colDyn.type)
     }
 }

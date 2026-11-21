@@ -1,6 +1,11 @@
 package io.github.makeforge.clapi.ui.desktop
 
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.click
 import io.github.makeforge.clapi.ui.shared.MainScreen
+import io.github.makeforge.clapi.ui.shared.components.VariableAwareTextField
 import io.github.makeforge.clapi.ui.shared.components.VariableEditorPopup
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -10,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -506,5 +512,99 @@ class VariablePopupTest {
         assertEquals("prod.example.com", updatedMap["host"])
         // Other variables are unaffected
         assertEquals("8080", updatedMap["port"])
+    }
+
+    @Test
+    fun variable_popup_shows_dynamic_script_read_only_for_dynamic_variables() {
+        val state = AppState().apply {
+            environments.clear()
+            environments.add(EnvState("Dev").also { env ->
+                env.variables.add(MutableKeyValue(
+                    key = "number",
+                    value = "",
+                    isDynamic = true,
+                    dynamicScript = "return 42;",
+                ))
+            })
+            selectedEnvIndex = 0
+        }
+
+        composeRule.setContent {
+            VariableEditorPopup(
+                variableName = "number",
+                state = state,
+                onDismiss = {},
+            )
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("variable-editor-popup").assertIsDisplayed()
+        composeRule.onAllNodesWithTag("variable-popup-save").assertCountEquals(0)
+        composeRule.onNodeWithTag("variable-popup-cancel", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("variable-popup-value-input", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onAllNodes(hasText("[Dynamic Script]"), useUnmergedTree = true).assertCountEquals(3)
+    }
+
+    @Test
+    fun variable_popup_does_not_open_when_clicking_empty_space_in_textbox() {
+        val state = AppState().apply {
+            environments.clear()
+            environments.add(EnvState("Dev").also { env ->
+                env.variables.add(MutableKeyValue("number", "42"))
+            })
+            selectedEnvIndex = 0
+        }
+        var textValue by mutableStateOf("{{number}}")
+
+        composeRule.setContent {
+            VariableAwareTextField(
+                value = textValue,
+                onValueChange = { textValue = it },
+                modifier = Modifier.width(300.dp).testTag("var-input"),
+                state = state,
+            )
+        }
+        composeRule.waitForIdle()
+
+        // Click far to the right in the empty space of the 300dp-wide textbox
+        composeRule.onNodeWithTag("var-input").performTouchInput {
+            click(Offset(250f, 10f))
+        }
+        composeRule.waitForIdle()
+
+        // Popup should NOT be open
+        composeRule.onAllNodesWithTag("variable-editor-popup").assertCountEquals(0)
+    }
+
+    @Test
+    fun variable_popup_opens_when_clicking_on_variable_text_in_textbox() {
+        val state = AppState().apply {
+            environments.clear()
+            environments.add(EnvState("Dev").also { env ->
+                env.variables.add(MutableKeyValue("number", "42"))
+            })
+            selectedEnvIndex = 0
+        }
+        var textValue by mutableStateOf("{{number}}")
+
+        composeRule.setContent {
+            VariableAwareTextField(
+                value = textValue,
+                onValueChange = { textValue = it },
+                modifier = Modifier.width(300.dp).testTag("var-input"),
+                state = state,
+            )
+        }
+        composeRule.waitForIdle()
+
+        // Click directly on the variable text (near the beginning: x = 20px)
+        composeRule.onNodeWithTag("var-input").performTouchInput {
+            click(Offset(20f, 10f))
+        }
+        composeRule.waitForIdle()
+
+        // Popup MUST open
+        composeRule.onNodeWithTag("variable-editor-popup").assertIsDisplayed()
+        composeRule.onNodeWithText("Variable: number", useUnmergedTree = true).assertIsDisplayed()
     }
 }

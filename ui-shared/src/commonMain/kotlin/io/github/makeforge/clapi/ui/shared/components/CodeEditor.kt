@@ -175,6 +175,7 @@ fun CodeEditor(
     lineVariableSpans: ((lineText: String, lineStartOffset: Int) -> List<Pair<IntRange, androidx.compose.ui.graphics.Color>>)? = null,
     allowJson5: Boolean = false,
     availableVariables: List<Pair<String, String>> = emptyList(),
+    variableTypes: Map<String, io.github.makeforge.clapi.core.model.opencollection.VariableType> = emptyMap(),
     /**
      * An already-created [EditorViewModel] to use instead of creating a new one.
      * When provided, [CodeEditor] does NOT dispose it on removal — the caller
@@ -206,6 +207,7 @@ fun CodeEditor(
     // Only dispose the VM we created; external VMs are owned by RequestTabState.
     DisposableEffect(internalViewModel) { onDispose { internalViewModel?.dispose() } }
     val viewModel: EditorViewModel = externalViewModel ?: internalViewModel!!
+    viewModel.updateVariableTypes(variableTypes)
     val editorState by viewModel.state.collectAsState()
 
     // ── Format / display state ───────────────────────────────
@@ -258,6 +260,30 @@ fun CodeEditor(
     var goToLineText by remember { mutableStateOf("") }
     var showVariableDropdown by remember { mutableStateOf(false) }
     var selectedVariableIndex by remember { mutableIntStateOf(0) }
+
+    val fullText = viewModel.getFullText()
+    val cursorOffset = editorState.cursorOffset
+    val prefixContext = remember(fullText, cursorOffset, editorState.version, showVariableDropdown) {
+        if (showVariableDropdown) {
+            extractVariablePrefixContext(fullText, cursorOffset)
+        } else {
+            null
+        }
+    }
+    val filteredVariables = remember(availableVariables, prefixContext) {
+        if (prefixContext != null) {
+            filterVariables(availableVariables, prefixContext.prefix)
+        } else {
+            availableVariables
+        }
+    }
+
+    LaunchedEffect(filteredVariables) {
+        if (selectedVariableIndex !in filteredVariables.indices) {
+            selectedVariableIndex = 0
+        }
+    }
+
     val editorFocus = remember { FocusRequester() }
     // Bump a tick from click handlers; requestFocus in LaunchedEffect so it is
     // not nested inside IconButton/performClick (deadlocks desktop tests).
@@ -267,6 +293,15 @@ fun CodeEditor(
         try { editorFocus.requestFocus() } catch (_: Exception) { }
     }
     val restoreEditorFocus: () -> Unit = { restoreFocusTick++ }
+
+    val insertVariable: (String) -> Unit = { varName ->
+        val text = viewModel.getFullText()
+        val offset = editorState.cursorOffset
+        val ctx = prefixContext ?: extractVariablePrefixContext(text, offset)
+        viewModel.replaceRange(ctx.replaceStart, ctx.replaceEnd, "{{$varName}}")
+        showVariableDropdown = false
+        restoreEditorFocus()
+    }
 
     // ── Fold regions & search matches (offloaded for large payloads) ───────
     val editorScope = rememberCoroutineScope()
@@ -366,27 +401,19 @@ fun CodeEditor(
                     return@onPreviewKeyEvent true
                 }
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-                if (showVariableDropdown) {
+                if (showVariableDropdown && filteredVariables.isNotEmpty()) {
                     when (event.key) {
                         Key.DirectionDown -> {
-                            if (availableVariables.isNotEmpty()) {
-                                selectedVariableIndex = (selectedVariableIndex + 1).coerceAtMost(availableVariables.size - 1)
-                            }
+                            selectedVariableIndex = (selectedVariableIndex + 1).coerceAtMost(filteredVariables.size - 1)
                             return@onPreviewKeyEvent true
                         }
                         Key.DirectionUp -> {
-                            if (availableVariables.isNotEmpty()) {
-                                selectedVariableIndex = (selectedVariableIndex - 1).coerceAtLeast(0)
-                            }
+                            selectedVariableIndex = (selectedVariableIndex - 1).coerceAtLeast(0)
                             return@onPreviewKeyEvent true
                         }
-                        Key.Enter, Key.NumPadEnter -> {
-                            if (availableVariables.isNotEmpty() && selectedVariableIndex in availableVariables.indices) {
-                                val selectedVar = availableVariables[selectedVariableIndex].first
-                                viewModel.insertAtCursor("{{$selectedVar}}")
-                                showVariableDropdown = false
-                                restoreEditorFocus()
-                            }
+                        Key.Enter, Key.NumPadEnter, Key.Tab -> {
+                            val idx = selectedVariableIndex.coerceIn(0, filteredVariables.size - 1)
+                            insertVariable(filteredVariables[idx].first)
                             return@onPreviewKeyEvent true
                         }
                         Key.Escape -> {
@@ -583,7 +610,7 @@ fun CodeEditor(
                 focusRequester = editorFocus,
             )
 
-            if (showVariableDropdown && availableVariables.isNotEmpty()) {
+            if (showVariableDropdown && filteredVariables.isNotEmpty()) {
                 Popup(
                     alignment = Alignment.TopStart,
                     offset = IntOffset(60, 40),
@@ -591,12 +618,10 @@ fun CodeEditor(
                     onDismissRequest = { showVariableDropdown = false },
                 ) {
                     VariableDropdownList(
-                        variables = availableVariables,
-                        selectedIndex = selectedVariableIndex,
+                        variables = filteredVariables,
+                        selectedIndex = selectedVariableIndex.coerceIn(0, filteredVariables.size - 1),
                         onSelect = { varName ->
-                            viewModel.insertAtCursor("{{$varName}}")
-                            showVariableDropdown = false
-                            restoreEditorFocus()
+                            insertVariable(varName)
                         },
                         modifier = Modifier.testTag("code-editor-variable-dropdown"),
                     )

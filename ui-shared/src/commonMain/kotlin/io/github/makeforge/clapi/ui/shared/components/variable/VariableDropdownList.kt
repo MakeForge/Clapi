@@ -24,6 +24,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -98,6 +100,7 @@ fun VariableDropdownList(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(if (isSelected) ClapiColors.SelectedItem else Color.Transparent)
+                            .pointerHoverIcon(PointerIcon.Hand)
                             .clickable { onSelect(name) }
                             .padding(horizontal = 10.dp, vertical = 6.dp)
                             .testTag("variable-dropdown-item-$name"),

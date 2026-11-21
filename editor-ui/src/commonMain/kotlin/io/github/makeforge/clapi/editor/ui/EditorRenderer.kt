@@ -894,7 +894,7 @@ fun EditorRenderer(
                                 selStart         = state.selectionStart,
                                 selEnd           = state.selectionEnd,
                                 diagnostics      = lineDiags,
-                                onTap            = { abs, extend, trailingWhitespace ->
+                                onTap            = { abs, extend, trailingWhitespace, isOverVariable ->
                                     focus.requestFocus()
                                     viewModel.moveCursorTo(abs, extendSelection = extend)
                                     suppressBracketAtCursor = if (trailingWhitespace) abs else null

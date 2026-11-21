@@ -1,6 +1,7 @@
 package io.github.makeforge.clapi.core.network
 
 import io.github.makeforge.clapi.core.model.opencollection.DynamicVariable as UserDynamicVariable
+import io.github.makeforge.clapi.core.model.opencollection.VariableType
 import io.github.makeforge.clapi.core.network.dynamicvar.DynamicVariableResolutionException
 import io.github.makeforge.clapi.core.scripting.ClapiDynamicVariableEngine
 import io.github.makeforge.clapi.core.scripting.DynamicScriptContext
@@ -70,11 +71,43 @@ object VariableResolver {
                             "Dynamic variable '${userDyn.name}' execution failed: ${execResult.errorMessage ?: "Unknown error"}"
                         )
                     }
-                    return@replace execResult.returnValue ?: ""
+                    val retVal = execResult.returnValue ?: ""
+                    validateDynamicReturnType(userDyn, retVal)
+                    return@replace retVal
                 }
             }
 
             resolveDynamicToken(token) ?: if (removeUnresolved) "" else matchResult.value
+        }
+    }
+
+    fun validateDynamicReturnType(dynamicVar: UserDynamicVariable, returnValue: String) {
+        val trimmed = returnValue.trim()
+        when (dynamicVar.type) {
+            VariableType.NUMBER -> {
+                if (trimmed.toDoubleOrNull() == null) {
+                    throw DynamicVariableResolutionException(
+                        "Dynamic variable '${dynamicVar.name}' declared type Number but returned non-numeric value: '$returnValue'"
+                    )
+                }
+            }
+            VariableType.BOOLEAN -> {
+                if (trimmed != "true" && trimmed != "false") {
+                    throw DynamicVariableResolutionException(
+                        "Dynamic variable '${dynamicVar.name}' declared type Boolean but returned non-boolean value: '$returnValue'"
+                    )
+                }
+            }
+            VariableType.OBJECT -> {
+                val isJsonObjOrArr = (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+                    (trimmed.startsWith("[") && trimmed.endsWith("]"))
+                if (!isJsonObjOrArr) {
+                    throw DynamicVariableResolutionException(
+                        "Dynamic variable '${dynamicVar.name}' declared type Object/Array but returned non-object value: '$returnValue'"
+                    )
+                }
+            }
+            VariableType.STRING, VariableType.NULL -> Unit
         }
     }
 

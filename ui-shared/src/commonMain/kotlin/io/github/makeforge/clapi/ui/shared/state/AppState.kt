@@ -3,6 +3,7 @@ package io.github.makeforge.clapi.ui.shared.state
 import io.github.makeforge.clapi.core.model.opencollection.Description
 import io.github.makeforge.clapi.core.model.opencollection.DynamicVariable
 import io.github.makeforge.clapi.core.model.opencollection.GraphQLRequestSettings
+import io.github.makeforge.clapi.core.model.opencollection.VariableType
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateListOf
@@ -18,6 +19,7 @@ import io.github.makeforge.clapi.core.model.storage.GitCredentialsConfig
 import io.github.makeforge.clapi.core.model.storage.GitStorageConfig
 import io.github.makeforge.clapi.core.model.storage.StorageExtension
 import io.github.makeforge.clapi.core.model.storage.StorageType
+import io.github.makeforge.clapi.core.network.VariableResolver
 import io.github.makeforge.clapi.core.network.dynamicvar.DynamicVariableRegistry
 import io.github.makeforge.clapi.core.network.keepassxc.DefaultKeePassXcClientManager
 import io.github.makeforge.clapi.core.network.keeper.DefaultKeeperClientManager
@@ -565,6 +567,7 @@ class AppState(openDefaultTab: Boolean = true) {
                     if (v.isDynamic) {
                         effective[k] = DynamicVariable(
                             name = k,
+                            type = v.variableType,
                             script = v.dynamicScript,
                             parameters = v.dynamicParameters,
                             description = v.description.takeIf { it.isNotBlank() }?.let { Description(it) },
@@ -647,6 +650,117 @@ class AppState(openDefaultTab: Boolean = true) {
         }
 
         return effective.values.toList()
+    }
+
+    /**
+     * Resolves the effective [VariableType] map across Global, Collection/Folder, and Environment scopes.
+     */
+    fun activeVariableTypes(tab: RequestTabState? = activeTab): Map<String, VariableType> {
+        val types = LinkedHashMap<String, VariableType>()
+
+        fun applyKeyValues(entries: List<KeyValueEntry>?) {
+            entries?.forEach { v ->
+                val k = v.key.trim()
+                if (v.enabled && k.isNotEmpty()) {
+                    types[k] = v.variableType
+                }
+            }
+        }
+
+        fun applyMutableKeyValues(entries: List<MutableKeyValue>?) {
+            entries?.forEach { v ->
+                val k = v.key.trim()
+                if (v.enabled && k.isNotEmpty()) {
+                    types[k] = v.variableType
+                }
+            }
+        }
+
+        applyMutableKeyValues(globalVariables)
+
+        var includedRootCollection = false
+        if (tab != null) {
+            val ancestors = getAncestorFolders(tab)
+            for (folder in ancestors) {
+                val openFolderTab = openTabs.firstOrNull { it.id == folder.id && it.isFolderTab }
+                if (openFolderTab != null) {
+                    applyMutableKeyValues(openFolderTab.variables)
+                } else {
+                    applyKeyValues(folder.variableEntries)
+                }
+                if (folder.isCollection) {
+                    includedRootCollection = true
+                }
+            }
+            if (tab.isFolderTab) {
+                applyMutableKeyValues(tab.variables)
+                if (tab.isCollectionTab) {
+                    includedRootCollection = true
+                }
+            }
+        }
+        if (!includedRootCollection) {
+            val root = resolveRootCollectionNode(tab)
+            if (root != null) {
+                val openRootTab = openTabs.firstOrNull { it.id == root.id && it.isFolderTab }
+                if (openRootTab != null) {
+                    applyMutableKeyValues(openRootTab.variables)
+                } else {
+                    applyKeyValues(root.variableEntries)
+                }
+            }
+        }
+
+        val env = selectedEnvironment
+        if (env != null) {
+            val visited = mutableSetOf<String>()
+            fun walkEnv(current: EnvState) {
+                if (!visited.add(current.name)) return
+                val parentName = current.extends?.trim()
+                if (!parentName.isNullOrEmpty()) {
+                    val parent = environments.firstOrNull { it.name == parentName }
+                    if (parent != null) walkEnv(parent)
+                }
+                applyMutableKeyValues(current.variables)
+            }
+            walkEnv(env)
+        }
+
+        return types
+    }
+
+    /**
+     * Gathers all defined variable names across all scopes (static variables from active layers,
+     * active dynamic variables, external secrets, OAuth2 auth tokens, and built-in system variables).
+     */
+    fun allDefinedVariableNames(tab: RequestTabState? = activeTab): Set<String> {
+        val names = LinkedHashSet<String>()
+        activeVariableLayers(tab).forEach { layer ->
+            names.addAll(layer.keys)
+        }
+        activeDynamicVariables(tab).forEach { dv ->
+            names.add(dv.name)
+        }
+        selectedEnvironment?.externalSecrets?.filter { it.enabled && it.name.isNotBlank() }?.forEach {
+            names.add("_secret.${it.name.trim()}")
+        }
+        val effectiveAuthType = if (tab != null) {
+            if (tab.authType == AuthType.INHERIT) {
+                resolveInheritedAuth(tab)?.authType ?: AuthType.NONE
+            } else {
+                tab.authType
+            }
+        } else {
+            AuthType.NONE
+        }
+        if (effectiveAuthType == AuthType.OAUTH2) {
+            names.add("_auth.oauth2.accessToken")
+        }
+        VariableResolver.dynamicVariables.forEach { dv ->
+            names.add(dv.name)
+            names.add(dv.name.removePrefix("$"))
+        }
+        return names
     }
 
     /**

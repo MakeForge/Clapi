@@ -1,9 +1,13 @@
 package io.github.makeforge.clapi.ui.shared.components
 
 import io.github.makeforge.clapi.core.model.BodyType
+import io.github.makeforge.clapi.core.model.opencollection.VariableType
 import io.github.makeforge.clapi.editor.core.EditorEngine
 import io.github.makeforge.clapi.editor.core.InlineErrorSeverity
 import io.github.makeforge.clapi.editor.core.LanguageMode
+import io.github.makeforge.clapi.ui.shared.state.AppState
+import io.github.makeforge.clapi.ui.shared.state.EnvState
+import io.github.makeforge.clapi.ui.shared.state.MutableKeyValue
 import io.github.makeforge.clapi.ui.shared.state.RequestTabState
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -156,5 +160,53 @@ class EditorEngineIntegrationTest {
         // Engine validates XML and should surface malformed structure errors.
         val errors = engine.validate(tab.bodyContent, LanguageMode.XML)
         assertTrue(errors.isNotEmpty(), "Malformed XML must produce at least one engine-level error")
+    }
+
+    @Test
+    fun body_type_json_with_typed_dynamic_variables_resolves_diagnostics_from_app_state() {
+        val state = AppState().apply {
+            environments.add(
+                EnvState(
+                    name = "Dev",
+                    variables = listOf(
+                        MutableKeyValue(
+                            key = "numberVar",
+                            isDynamic = true,
+                            variableType = VariableType.NUMBER,
+                            dynamicScript = "return 42;",
+                        ),
+                        MutableKeyValue(
+                            key = "nowDate",
+                            isDynamic = true,
+                            variableType = VariableType.STRING,
+                            dynamicScript = "return new Date().toISOString();",
+                        ),
+                    ),
+                )
+            )
+            selectedEnvIndex = 0
+        }
+
+        val tab = RequestTabState()
+        tab.bodyType = BodyType.JSON
+        tab.bodyContent = """{"x": {{numberVar}}, "date": "{{nowDate}}"}"""
+
+        val validErrors = engine.validate(
+            text = tab.bodyContent,
+            languageMode = LanguageMode.JSON,
+            allowJson5 = true,
+            variableTypes = state.activeVariableTypes(tab),
+        )
+        assertEquals(0, validErrors.size, "Unquoted numberVar and quoted nowDate must report 0 errors, got: $validErrors")
+
+        tab.bodyContent = """{"x": {{nowDate}}}"""
+        val unquotedStringErrors = engine.validate(
+            text = tab.bodyContent,
+            languageMode = LanguageMode.JSON,
+            allowJson5 = true,
+            variableTypes = state.activeVariableTypes(tab),
+        )
+        assertEquals(1, unquotedStringErrors.size)
+        assertTrue(unquotedStringErrors[0].message.contains("Wrap in quotes: \"{{nowDate}}\""))
     }
 }

@@ -1,6 +1,6 @@
 package io.github.makeforge.clapi.ui.shared.components.dialogs.env
 
-import io.github.makeforge.clapi.ui.shared.components.externalSecretIconByProvider
+import io.github.makeforge.clapi.core.model.opencollection.ExternalSecretType
 import io.github.makeforge.clapi.ui.shared.components.externalSecretHelpUrl
 import io.github.makeforge.clapi.ui.shared.platform.openUrlInBrowser
 import io.github.makeforge.clapi.ui.shared.components.VariableAwareTextField
@@ -51,6 +51,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.OutlinedButton
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_arrow_drop_down
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_code
+import io.github.makeforge.clapi.core.model.opencollection.VariableKind
+import io.github.makeforge.clapi.core.model.opencollection.VariableType
 import io.github.makeforge.clapi.ui.shared.components.dialogs.dynamicvar.DynamicVariableEditorDialog
 import io.github.makeforge.clapi.ui.shared.state.getEligibleParentEnvironments
 import io.github.makeforge.clapi.ui.shared.state.resolveEffectiveDynamicVariables
@@ -166,11 +168,14 @@ fun EnvironmentEditDialog(
     var quickAddVarValue by remember(envIndex) { mutableStateOf("") }
     var quickAddVarSecret by remember(envIndex) { mutableStateOf(false) }
     var quickAddVarDynamic by remember(envIndex) { mutableStateOf(false) }
+    var quickAddVarType by remember(envIndex) { mutableStateOf(VariableType.STRING) }
     var quickAddEditingKv by remember(envIndex) { mutableStateOf<MutableKeyValue?>(null) }
 
     var quickAddSecName by remember(envIndex) { mutableStateOf("") }
     var quickAddSecPath by remember(envIndex) { mutableStateOf("") }
+    var quickAddSecVault by remember(envIndex) { mutableStateOf("") }
     var quickAddSecTargetField by remember(envIndex) { mutableStateOf("") }
+    var quickAddSecDesc by remember(envIndex) { mutableStateOf("") }
     val workingVars = remember(envIndex) {
         mutableStateListOf<MutableKeyValue>().also { list ->
             env.variables.forEach { v ->
@@ -181,6 +186,7 @@ fun EnvironmentEditDialog(
                         enabled = v.enabled,
                         secret = v.secret,
                         isDynamic = v.isDynamic,
+                        variableType = v.variableType,
                         dynamicScript = v.dynamicScript,
                         dynamicParameters = v.dynamicParameters,
                         description = v.description,
@@ -198,7 +204,6 @@ fun EnvironmentEditDialog(
 
     var activeTab by remember(envIndex) { mutableStateOf(EnvironmentEditTab.VARIABLES) }
     var workingProvider by remember(envIndex) { mutableStateOf(env.externalSecretsProvider) }
-    var providerMenuExpanded by remember(envIndex) { mutableStateOf(false) }
     val workingSecrets = remember(envIndex) {
         mutableStateListOf<MutableExternalSecret>().also { list ->
             env.externalSecrets.forEach { s ->
@@ -258,6 +263,7 @@ fun EnvironmentEditDialog(
                         it.enabled,
                         it.secret,
                         it.isDynamic,
+                        it.variableType,
                         it.dynamicScript,
                         it.dynamicParameters,
                         it.description,
@@ -287,6 +293,7 @@ fun EnvironmentEditDialog(
                         enabled = v.enabled,
                         secret = v.secret,
                         isDynamic = v.isDynamic,
+                        variableType = v.variableType,
                         dynamicScript = v.dynamicScript,
                         dynamicParameters = v.dynamicParameters,
                         description = v.description,
@@ -298,90 +305,79 @@ fun EnvironmentEditDialog(
 
         env.externalSecretsProvider = workingProvider
         env.externalSecrets.clear()
-        val isKeePassXc = workingProvider.equals("keepassxc", ignoreCase = true)
-        val isAws = workingProvider.equals("aws-secrets-manager", ignoreCase = true)
-        val isAzure = workingProvider.equals("azure-key-vault", ignoreCase = true)
-        val isGcp = workingProvider.equals("gcp-secrets-manager", ignoreCase = true)
-        val isKeeper = workingProvider.equals("keeper-security-cloud", ignoreCase = true)
+        val providerType = ExternalSecretType.fromValue(workingProvider)
         workingSecrets.forEach { s ->
-            if (isKeePassXc) {
-                if (s.name.isNotBlank() || s.url.isNotBlank()) {
-                    env.externalSecrets.add(
-                        MutableExternalSecret(
-                            name = s.name,
-                            path = s.path,
-                            description = s.description,
-                            enabled = s.enabled,
-                            url = s.url,
-                            targetField = s.targetField,
-                            customFilters = s.customFilters.toMap(),
+            when (providerType) {
+                ExternalSecretType.KEEPASSXC -> {
+                    if (s.name.isNotBlank() || s.url.isNotBlank()) {
+                        env.externalSecrets.add(
+                            MutableExternalSecret(
+                                name = s.name,
+                                path = s.path,
+                                description = s.description,
+                                enabled = s.enabled,
+                                url = s.url,
+                                targetField = s.targetField,
+                                customFilters = s.customFilters.toMap(),
+                            )
                         )
-                    )
+                    }
                 }
-            } else if (isAws) {
-                if (s.name.isNotBlank() || s.path.isNotBlank() || s.url.isNotBlank()) {
-                    env.externalSecrets.add(
-                        MutableExternalSecret(
-                            name = s.name,
-                            path = s.path.ifBlank { s.url },
-                            description = s.description,
-                            enabled = s.enabled,
-                            targetField = s.targetField,
-                            customFilters = s.customFilters.toMap(),
+                ExternalSecretType.AWS_SECRETS_MANAGER -> {
+                    if (s.name.isNotBlank() || s.path.isNotBlank() || s.url.isNotBlank()) {
+                        env.externalSecrets.add(
+                            MutableExternalSecret(
+                                name = s.name,
+                                path = s.path.ifBlank { s.url },
+                                description = s.description,
+                                enabled = s.enabled,
+                                targetField = s.targetField,
+                                customFilters = s.customFilters.toMap(),
+                            )
                         )
-                    )
+                    }
                 }
-            } else if (isAzure) {
-                if (s.name.isNotBlank() || s.path.isNotBlank() || s.url.isNotBlank()) {
-                    env.externalSecrets.add(
-                        MutableExternalSecret(
-                            name = s.name,
-                            path = s.path,
-                            url = s.url,
-                            description = s.description,
-                            enabled = s.enabled,
-                            targetField = s.targetField,
-                            customFilters = s.customFilters.toMap(),
+                ExternalSecretType.AZURE_KEY_VAULT,
+                ExternalSecretType.GCP_SECRETS_MANAGER -> {
+                    if (s.name.isNotBlank() || s.path.isNotBlank() || s.url.isNotBlank()) {
+                        env.externalSecrets.add(
+                            MutableExternalSecret(
+                                name = s.name,
+                                path = s.path,
+                                url = s.url,
+                                description = s.description,
+                                enabled = s.enabled,
+                                targetField = s.targetField,
+                                customFilters = s.customFilters.toMap(),
+                            )
                         )
-                    )
+                    }
                 }
-            } else if (isGcp) {
-                if (s.name.isNotBlank() || s.path.isNotBlank() || s.url.isNotBlank()) {
-                    env.externalSecrets.add(
-                        MutableExternalSecret(
-                            name = s.name,
-                            path = s.path,
-                            url = s.url,
-                            description = s.description,
-                            enabled = s.enabled,
-                            targetField = s.targetField,
-                            customFilters = s.customFilters.toMap(),
+                ExternalSecretType.KEEPER_SECURITY_CLOUD -> {
+                    if (s.name.isNotBlank() || s.path.isNotBlank()) {
+                        env.externalSecrets.add(
+                            MutableExternalSecret(
+                                name = s.name,
+                                path = s.path,
+                                description = s.description,
+                                enabled = s.enabled,
+                                targetField = s.targetField,
+                                customFilters = s.customFilters.toMap(),
+                            )
                         )
-                    )
+                    }
                 }
-            } else if (isKeeper) {
-                if (s.name.isNotBlank() || s.path.isNotBlank()) {
-                    env.externalSecrets.add(
-                        MutableExternalSecret(
-                            name = s.name,
-                            path = s.path,
-                            description = s.description,
-                            enabled = s.enabled,
-                            targetField = s.targetField,
-                            customFilters = s.customFilters.toMap(),
+                else -> {
+                    if (s.name.isNotBlank() || s.path.isNotBlank()) {
+                        env.externalSecrets.add(
+                            MutableExternalSecret(
+                                name = s.name,
+                                path = s.path,
+                                description = s.description,
+                                enabled = s.enabled,
+                            )
                         )
-                    )
-                }
-            } else {
-                if (s.name.isNotBlank() || s.path.isNotBlank()) {
-                    env.externalSecrets.add(
-                        MutableExternalSecret(
-                            name = s.name,
-                            path = s.path,
-                            description = s.description,
-                            enabled = s.enabled,
-                        )
-                    )
+                    }
                 }
             }
         }
@@ -706,47 +702,18 @@ fun EnvironmentEditDialog(
                         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(if (activeTab == EnvironmentEditTab.VARIABLES) ClapiColors.SelectedItem else ClapiColors.SurfaceContainer)
-                                .border(
-                                    1.dp,
-                                    if (activeTab == EnvironmentEditTab.VARIABLES) ClapiColors.Primary else ClapiColors.Border,
-                                    RoundedCornerShape(6.dp),
-                                )
-                                .clickable { activeTab = EnvironmentEditTab.VARIABLES }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                                .testTag("env-tab-variables"),
-                        ) {
-                            Text(
-                                Strings.variables,
-                                color = if (activeTab == EnvironmentEditTab.VARIABLES) ClapiColors.OnSurface else ClapiColors.OnSurfaceVariant,
-                                fontSize = 12.sp,
-                                fontWeight = if (activeTab == EnvironmentEditTab.VARIABLES) FontWeight.SemiBold else FontWeight.Normal,
-                            )
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(if (activeTab == EnvironmentEditTab.EXTERNAL_SECRETS) ClapiColors.SelectedItem else ClapiColors.SurfaceContainer)
-                                .border(
-                                    1.dp,
-                                    if (activeTab == EnvironmentEditTab.EXTERNAL_SECRETS) ClapiColors.Primary else ClapiColors.Border,
-                                    RoundedCornerShape(6.dp),
-                                )
-                                .clickable { activeTab = EnvironmentEditTab.EXTERNAL_SECRETS }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                                .testTag("env-tab-secrets"),
-                        ) {
-                            Text(
-                                Strings.t("external_secrets"),
-                                color = if (activeTab == EnvironmentEditTab.EXTERNAL_SECRETS) ClapiColors.OnSurface else ClapiColors.OnSurfaceVariant,
-                                fontSize = 12.sp,
-                                fontWeight = if (activeTab == EnvironmentEditTab.EXTERNAL_SECRETS) FontWeight.SemiBold else FontWeight.Normal,
-                            )
-                        }
+                        EnvironmentTabButton(
+                            title = Strings.variables,
+                            isSelected = activeTab == EnvironmentEditTab.VARIABLES,
+                            onClick = { activeTab = EnvironmentEditTab.VARIABLES },
+                            tag = "env-tab-variables",
+                        )
+                        EnvironmentTabButton(
+                            title = Strings.t("external_secrets"),
+                            isSelected = activeTab == EnvironmentEditTab.EXTERNAL_SECRETS,
+                            onClick = { activeTab = EnvironmentEditTab.EXTERNAL_SECRETS },
+                            tag = "env-tab-secrets",
+                        )
                     }
 
                     if (activeTab == EnvironmentEditTab.VARIABLES) {
@@ -765,14 +732,17 @@ fun EnvironmentEditDialog(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
                                 .background(ClapiColors.SurfaceHigh)
-                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                                .padding(start = 8.dp, end = 18.dp, top = 6.dp, bottom = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            Spacer(Modifier.width(32.dp))
+                            Spacer(Modifier.size(24.dp))
                             TableHeader(Strings.t("key_upper"), Modifier.weight(1f))
                             TableHeader(Strings.t("value_upper"), Modifier.weight(1f))
-                            TableHeader(Strings.t("type_upper"), Modifier.width(90.dp))
-                            Spacer(Modifier.width(36.dp))
-                            Spacer(Modifier.width(10.dp))
+                            TableHeader(Strings.t("kind_upper"), Modifier.width(88.dp))
+                            TableHeader(Strings.t("type_upper"), Modifier.width(88.dp))
+                            Spacer(Modifier.size(24.dp))
+                            Spacer(Modifier.size(24.dp))
                         }
 
                         val inheritedKeys = remember(workingExtends.value, state.environments.toList()) {
@@ -796,6 +766,7 @@ fun EnvironmentEditDialog(
                                 enabled = true,
                                 secret = quickAddVarSecret,
                                 isDynamic = quickAddVarDynamic,
+                                variableType = quickAddVarType,
                                 dynamicScript = if (quickAddVarDynamic) "return new Date().toISOString();" else "",
                             )
                             workingVars.add(0, added)
@@ -803,6 +774,7 @@ fun EnvironmentEditDialog(
                             quickAddVarValue = ""
                             quickAddVarSecret = false
                             quickAddVarDynamic = false
+                            quickAddVarType = VariableType.STRING
                             return added
                         }
 
@@ -812,45 +784,19 @@ fun EnvironmentEditDialog(
                                 .fillMaxWidth()
                                 .background(ClapiColors.SurfaceContainer)
                                 .border(1.dp, ClapiColors.Border)
-                                .padding(horizontal = 8.dp, vertical = 5.dp)
+                                .padding(start = 8.dp, end = 18.dp, top = 5.dp, bottom = 5.dp)
                                 .testTag("env-var-quick-add-row"),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
-                                Icon(
-                                    painter = painterResource(Res.drawable.ic_add),
-                                    contentDescription = null,
-                                    tint = ClapiColors.Primary,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                            }
-                            BasicTextField(
+                            Spacer(Modifier.size(24.dp))
+                            EnvQuickAddTextField(
                                 value = quickAddVarKey,
                                 onValueChange = { quickAddVarKey = it },
-                                textStyle = TextStyle(color = ClapiColors.OnSurface, fontSize = 12.sp),
-                                singleLine = true,
-                                cursorBrush = SolidColor(ClapiColors.Primary),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(28.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(ClapiColors.Surface)
-                                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
-                                    .padding(horizontal = 8.dp, vertical = 5.dp)
-                                    .onPreviewKeyEvent {
-                                        if (it.type == KeyEventType.KeyDown && it.key == Key.Enter) {
-                                            addQuickVariable()
-                                            true
-                                        } else false
-                                    }
-                                    .testTag("env-quick-add-key"),
-                                decorationBox = { innerTextField ->
-                                    if (quickAddVarKey.isEmpty()) {
-                                        Text(Strings.variableName, color = ClapiColors.OnSurfaceDim, fontSize = 12.sp)
-                                    }
-                                    innerTextField()
-                                },
+                                placeholder = Strings.variableName,
+                                modifier = Modifier.weight(1f),
+                                tag = "env-quick-add-key",
+                                onEnter = { addQuickVariable() },
                             )
                             if (quickAddVarDynamic) {
                                 Row(
@@ -886,95 +832,53 @@ fun EnvironmentEditDialog(
                                     )
                                 }
                             } else {
-                                BasicTextField(
+                                EnvQuickAddTextField(
                                     value = quickAddVarValue,
                                     onValueChange = { quickAddVarValue = it },
-                                    textStyle = TextStyle(color = ClapiColors.OnSurface, fontSize = 12.sp),
-                                    singleLine = true,
-                                    cursorBrush = SolidColor(ClapiColors.Primary),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(28.dp)
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .background(ClapiColors.Surface)
-                                        .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
-                                        .padding(horizontal = 8.dp, vertical = 5.dp)
-                                        .onPreviewKeyEvent {
-                                            if (it.type == KeyEventType.KeyDown && it.key == Key.Enter) {
-                                                addQuickVariable()
-                                                true
-                                            } else false
-                                        }
-                                        .testTag("env-quick-add-value"),
-                                    decorationBox = { innerTextField ->
-                                        if (quickAddVarValue.isEmpty()) {
-                                            Text(Strings.value, color = ClapiColors.OnSurfaceDim, fontSize = 12.sp)
-                                        }
-                                        innerTextField()
-                                    },
+                                    placeholder = Strings.value,
+                                    modifier = Modifier.weight(1f),
+                                    tag = "env-quick-add-value",
+                                    onEnter = { addQuickVariable() },
                                 )
                             }
-                            Row(
-                                modifier = Modifier.width(90.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                val quickTypeLabel = when {
-                                    quickAddVarDynamic -> Strings.dynamic
-                                    quickAddVarSecret -> Strings.t("secret")
-                                    else -> Strings.t("normal")
-                                }
-                                val quickTypeColor = when {
-                                    quickAddVarDynamic -> ClapiColors.Primary
-                                    quickAddVarSecret -> ClapiColors.Tertiary
-                                    else -> ClapiColors.OnSurfaceDim
-                                }
-                                val quickTypeBg = when {
-                                    quickAddVarDynamic -> ClapiColors.Primary.copy(alpha = 0.12f)
-                                    quickAddVarSecret -> ClapiColors.Tertiary.copy(alpha = 0.1f)
-                                    else -> Color.Transparent
-                                }
-                                Text(
-                                    quickTypeLabel,
-                                    fontSize = 11.sp,
-                                    color = quickTypeColor,
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .background(quickTypeBg)
-                                        .clickable {
-                                            when {
-                                                !quickAddVarSecret && !quickAddVarDynamic -> {
-                                                    quickAddVarSecret = true
-                                                    quickAddVarDynamic = false
-                                                }
-                                                quickAddVarSecret -> {
-                                                    quickAddVarSecret = false
-                                                    quickAddVarDynamic = true
-                                                }
-                                                else -> {
-                                                    quickAddVarDynamic = false
-                                                    quickAddVarSecret = false
-                                                }
-                                            }
-                                        }
-                                        .pointerHoverIcon(PointerIcon.Hand)
-                                        .padding(horizontal = 6.dp, vertical = 3.dp)
-                                        .testTag("env-quick-add-secret-toggle"),
-                                )
+                            val currentQuickKind = when {
+                                quickAddVarDynamic -> VariableKind.DYNAMIC
+                                quickAddVarSecret -> VariableKind.SECRET
+                                else -> VariableKind.REGULAR
                             }
-                            IconButtonWithTooltip(
+                            VariableKindSelector(
+                                selectedKind = currentQuickKind,
+                                onKindSelected = { newKind ->
+                                    when (newKind) {
+                                        VariableKind.REGULAR -> {
+                                            quickAddVarSecret = false
+                                            quickAddVarDynamic = false
+                                        }
+                                        VariableKind.SECRET -> {
+                                            quickAddVarSecret = true
+                                            quickAddVarDynamic = false
+                                        }
+                                        VariableKind.DYNAMIC -> {
+                                            quickAddVarSecret = false
+                                            quickAddVarDynamic = true
+                                        }
+                                    }
+                                },
+                                tag = "env-quick-add-secret-toggle",
+                                modifier = Modifier.width(88.dp),
+                            )
+                            VariableTypeSelector(
+                                selectedType = quickAddVarType,
+                                onTypeSelected = { quickAddVarType = it },
+                                tag = "env-quick-add-datatype-select",
+                                modifier = Modifier.width(88.dp),
+                            )
+                            Spacer(Modifier.size(24.dp))
+                            EnvQuickAddButton(
                                 onClick = { addQuickVariable() },
                                 tooltip = Strings.addVariable,
-                                modifier = Modifier.size(28.dp).testTag("env-quick-add-variable-button"),
-                            ) {
-                                Icon(
-                                    painter = painterResource(Res.drawable.ic_add),
-                                    contentDescription = Strings.addVariable,
-                                    tint = ClapiColors.Primary,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                            }
-                            Spacer(Modifier.width(10.dp))
+                                tag = "env-quick-add-variable-button",
+                            )
                         }
 
                         quickAddEditingKv?.let { editingKv ->
@@ -1080,6 +984,7 @@ fun EnvironmentEditDialog(
                         }
                     } else {
                         // External Secrets Tab
+                        val secretType = ExternalSecretType.fromValue(workingProvider)
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -1091,148 +996,10 @@ fun EnvironmentEditDialog(
                                 color = ClapiColors.OnSurfaceVariant,
                                 fontWeight = FontWeight.Medium,
                             )
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(ClapiColors.SurfaceContainer)
-                                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(6.dp))
-                                    .clickable { providerMenuExpanded = true }
-                                    .padding(horizontal = 10.dp, vertical = 6.dp)
-                                    .testTag("env-secrets-provider-selector"),
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                ) {
-                                    val currentIcon = externalSecretIconByProvider(workingProvider)
-                                    Icon(
-                                        painter = painterResource(currentIcon),
-                                        contentDescription = null,
-                                        tint = Color.Unspecified,
-                                        modifier = Modifier.size(16.dp),
-                                    )
-                                    Text(
-                                        when (workingProvider) {
-                                            "keepassxc" -> "KeePassXC"
-                                            "keeper-security-cloud" -> "Keeper Security Cloud"
-                                            "hashicorp-vault-server" -> "HashiCorp Vault (Server)"
-                                            "aws-secrets-manager" -> "AWS Secrets Manager"
-                                            "azure-key-vault" -> "Azure Key Vault"
-                                            "gcp-secrets-manager" -> "GCP Secret Manager"
-                                            else -> workingProvider
-                                        },
-                                        color = ClapiColors.OnSurface,
-                                        fontSize = 12.sp,
-                                    )
-                                    Icon(
-                                        painter = painterResource(Res.drawable.ic_keyboard_arrow_down),
-                                        contentDescription = null,
-                                        tint = ClapiColors.OnSurfaceDim,
-                                        modifier = Modifier.size(14.dp),
-                                    )
-                                }
-                                DropdownMenu(
-                                    expanded = providerMenuExpanded,
-                                    onDismissRequest = { providerMenuExpanded = false },
-                                ) {
-                                    DropdownMenuItem(
-                                        leadingIcon = {
-                                            Icon(
-                                                painter = painterResource(Res.drawable.hashicorp),
-                                                contentDescription = null,
-                                                tint = Color.Unspecified,
-                                                modifier = Modifier.size(16.dp),
-                                            )
-                                        },
-                                        text = { Text("HashiCorp Vault (Server)", fontSize = 12.sp) },
-                                        onClick = {
-                                            workingProvider = "hashicorp-vault-server"
-                                            providerMenuExpanded = false
-                                        },
-                                        modifier = Modifier.testTag("env-provider-option-hashicorp-vault-server"),
-                                    )
-                                    DropdownMenuItem(
-                                        leadingIcon = {
-                                            Icon(
-                                                painter = painterResource(Res.drawable.keepassxc),
-                                                contentDescription = null,
-                                                tint = Color.Unspecified,
-                                                modifier = Modifier.size(16.dp),
-                                            )
-                                        },
-                                        text = { Text("KeePassXC", fontSize = 12.sp) },
-                                        onClick = {
-                                            workingProvider = "keepassxc"
-                                            providerMenuExpanded = false
-                                        },
-                                        modifier = Modifier.testTag("env-provider-option-keepassxc"),
-                                    )
-                                    DropdownMenuItem(
-                                        leadingIcon = {
-                                            Icon(
-                                                painter = painterResource(Res.drawable.keepersecurity),
-                                                contentDescription = null,
-                                                tint = Color.Unspecified,
-                                                modifier = Modifier.size(16.dp),
-                                            )
-                                        },
-                                        text = { Text("Keeper Security Cloud", fontSize = 12.sp) },
-                                        onClick = {
-                                            workingProvider = "keeper-security-cloud"
-                                            providerMenuExpanded = false
-                                        },
-                                        modifier = Modifier.testTag("env-provider-option-keeper-security-cloud"),
-                                    )
-                                    DropdownMenuItem(
-                                        leadingIcon = {
-                                            Icon(
-                                                painter = painterResource(Res.drawable.awssecrets),
-                                                contentDescription = null,
-                                                tint = Color.Unspecified,
-                                                modifier = Modifier.size(16.dp),
-                                            )
-                                        },
-                                        text = { Text("AWS Secrets Manager", fontSize = 12.sp) },
-                                        onClick = {
-                                            workingProvider = "aws-secrets-manager"
-                                            providerMenuExpanded = false
-                                        },
-                                        modifier = Modifier.testTag("env-provider-option-aws-secrets-manager"),
-                                    )
-                                    DropdownMenuItem(
-                                        leadingIcon = {
-                                            Icon(
-                                                painter = painterResource(Res.drawable.azurevault),
-                                                contentDescription = null,
-                                                tint = Color.Unspecified,
-                                                modifier = Modifier.size(16.dp),
-                                            )
-                                        },
-                                        text = { Text("Azure Key Vault", fontSize = 12.sp) },
-                                        onClick = {
-                                            workingProvider = "azure-key-vault"
-                                            providerMenuExpanded = false
-                                        },
-                                        modifier = Modifier.testTag("env-provider-option-azure-key-vault"),
-                                    )
-                                    DropdownMenuItem(
-                                        leadingIcon = {
-                                            Icon(
-                                                painter = painterResource(Res.drawable.gcpsecretmanager),
-                                                contentDescription = null,
-                                                tint = Color.Unspecified,
-                                                modifier = Modifier.size(16.dp),
-                                            )
-                                        },
-                                        text = { Text("GCP Secret Manager", fontSize = 12.sp) },
-                                        onClick = {
-                                            workingProvider = "gcp-secrets-manager"
-                                            providerMenuExpanded = false
-                                        },
-                                        modifier = Modifier.testTag("env-provider-option-gcp-secrets-manager"),
-                                    )
-                                }
-                            }
+                            ExternalSecretProviderDropdown(
+                                selectedProvider = workingProvider,
+                                onProviderSelected = { workingProvider = it },
+                            )
 
                             val helpUrl = externalSecretHelpUrl(workingProvider)
                             if (helpUrl != null) {
@@ -1247,54 +1014,104 @@ fun EnvironmentEditDialog(
                             }
                         }
 
+                        fun addQuickSecret() {
+                            val trimmedName = quickAddSecName.trim()
+                            val trimmedPath = quickAddSecPath.trim()
+                            val trimmedVault = quickAddSecVault.trim()
+                            val trimmedDesc = quickAddSecDesc.trim()
+                            if (trimmedName.isNotEmpty()) {
+                                val defaultTarget = when (secretType) {
+                                    ExternalSecretType.KEEPASSXC, ExternalSecretType.KEEPER_SECURITY_CLOUD -> "password"
+                                    else -> ""
+                                }
+                                val sec = when (secretType) {
+                                    ExternalSecretType.KEEPASSXC -> MutableExternalSecret(
+                                        name = trimmedName,
+                                        url = trimmedPath,
+                                        path = trimmedPath,
+                                        targetField = quickAddSecTargetField.trim().ifBlank { defaultTarget },
+                                        description = trimmedDesc,
+                                    )
+                                    ExternalSecretType.AZURE_KEY_VAULT, ExternalSecretType.GCP_SECRETS_MANAGER -> MutableExternalSecret(
+                                        name = trimmedName,
+                                        path = trimmedPath,
+                                        url = trimmedVault,
+                                        targetField = quickAddSecTargetField.trim().ifBlank { defaultTarget },
+                                        description = trimmedDesc,
+                                    )
+                                    else -> MutableExternalSecret(
+                                        name = trimmedName,
+                                        path = trimmedPath,
+                                        targetField = quickAddSecTargetField.trim().ifBlank { defaultTarget },
+                                        description = trimmedDesc,
+                                    )
+                                }
+                                workingSecrets.add(0, sec)
+                                quickAddSecName = ""
+                                quickAddSecPath = ""
+                                quickAddSecVault = ""
+                                quickAddSecTargetField = ""
+                                quickAddSecDesc = ""
+                            }
+                        }
+
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
                                 .background(ClapiColors.SurfaceHigh)
-                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                                .padding(start = 8.dp, end = 18.dp, top = 6.dp, bottom = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            Spacer(Modifier.width(32.dp))
-                            if (workingProvider == "keepassxc") {
-                                TableHeader(Strings.t("name"), Modifier.weight(1.0f))
-                                TableHeader("ENTRY URL", Modifier.weight(1.3f))
-                                TableHeader("TARGET FIELD", Modifier.weight(0.9f))
-                                TableHeader("STATUS", Modifier.weight(1.0f))
-                                TableHeader("FILTERS", Modifier.weight(0.9f))
-                                TableHeader("DESCRIPTION", Modifier.weight(1.0f))
-                            } else if (workingProvider == "keeper-security-cloud") {
-                                TableHeader(Strings.t("name"), Modifier.weight(1.0f))
-                                TableHeader("RECORD / TITLE", Modifier.weight(1.3f))
-                                TableHeader("TARGET FIELD", Modifier.weight(0.9f))
-                                TableHeader("STATUS", Modifier.weight(1.0f))
-                                TableHeader("FILTERS", Modifier.weight(0.9f))
-                                TableHeader("DESCRIPTION", Modifier.weight(1.0f))
-                            } else if (workingProvider == "aws-secrets-manager") {
-                                TableHeader(Strings.t("name"), Modifier.weight(1.1f))
-                                TableHeader("SECRET ID / NAME", Modifier.weight(1.4f))
-                                TableHeader("TARGET FIELD", Modifier.weight(1.0f))
-                                TableHeader("FILTERS", Modifier.weight(0.9f))
-                                TableHeader("DESCRIPTION", Modifier.weight(1.1f))
-                            } else if (workingProvider == "azure-key-vault") {
-                                TableHeader(Strings.t("name"), Modifier.weight(1.0f))
-                                TableHeader("SECRET NAME", Modifier.weight(1.2f))
-                                TableHeader("VAULT OVERRIDE", Modifier.weight(1.1f))
-                                TableHeader("TARGET FIELD", Modifier.weight(0.9f))
-                                TableHeader("FILTERS", Modifier.weight(0.8f))
-                                TableHeader("DESCRIPTION", Modifier.weight(1.0f))
-                            } else if (workingProvider == "gcp-secrets-manager") {
-                                TableHeader(Strings.t("name"), Modifier.weight(1.0f))
-                                TableHeader("SECRET ID", Modifier.weight(1.2f))
-                                TableHeader("PROJECT OVERRIDE", Modifier.weight(1.1f))
-                                TableHeader("TARGET FIELD", Modifier.weight(0.9f))
-                                TableHeader("FILTERS", Modifier.weight(0.8f))
-                                TableHeader("DESCRIPTION", Modifier.weight(1.0f))
-                            } else {
-                                TableHeader(Strings.t("name"), Modifier.weight(1.2f))
-                                TableHeader("PATH", Modifier.weight(1.5f))
-                                TableHeader("DESCRIPTION", Modifier.weight(1.5f))
+                            Spacer(Modifier.size(24.dp))
+                            when (secretType) {
+                                ExternalSecretType.KEEPASSXC -> {
+                                    TableHeader(Strings.t("name"), Modifier.weight(1.0f))
+                                    TableHeader("ENTRY URL", Modifier.weight(1.3f))
+                                    TableHeader("TARGET FIELD", Modifier.weight(0.9f))
+                                    TableHeader("STATUS", Modifier.weight(1.0f))
+                                    TableHeader("FILTERS", Modifier.weight(0.9f))
+                                    TableHeader("DESCRIPTION", Modifier.weight(1.0f))
+                                }
+                                ExternalSecretType.KEEPER_SECURITY_CLOUD -> {
+                                    TableHeader(Strings.t("name"), Modifier.weight(1.0f))
+                                    TableHeader("RECORD / TITLE", Modifier.weight(1.3f))
+                                    TableHeader("TARGET FIELD", Modifier.weight(0.9f))
+                                    TableHeader("STATUS", Modifier.weight(1.0f))
+                                    TableHeader("FILTERS", Modifier.weight(0.9f))
+                                    TableHeader("DESCRIPTION", Modifier.weight(1.0f))
+                                }
+                                ExternalSecretType.AWS_SECRETS_MANAGER -> {
+                                    TableHeader(Strings.t("name"), Modifier.weight(1.1f))
+                                    TableHeader("SECRET ID / NAME", Modifier.weight(1.4f))
+                                    TableHeader("TARGET FIELD", Modifier.weight(1.0f))
+                                    TableHeader("FILTERS", Modifier.weight(0.9f))
+                                    TableHeader("DESCRIPTION", Modifier.weight(1.1f))
+                                }
+                                ExternalSecretType.AZURE_KEY_VAULT -> {
+                                    TableHeader(Strings.t("name"), Modifier.weight(1.0f))
+                                    TableHeader("SECRET NAME", Modifier.weight(1.2f))
+                                    TableHeader("VAULT OVERRIDE", Modifier.weight(1.1f))
+                                    TableHeader("TARGET FIELD", Modifier.weight(0.9f))
+                                    TableHeader("FILTERS", Modifier.weight(0.8f))
+                                    TableHeader("DESCRIPTION", Modifier.weight(1.0f))
+                                }
+                                ExternalSecretType.GCP_SECRETS_MANAGER -> {
+                                    TableHeader(Strings.t("name"), Modifier.weight(1.0f))
+                                    TableHeader("SECRET ID", Modifier.weight(1.2f))
+                                    TableHeader("PROJECT OVERRIDE", Modifier.weight(1.1f))
+                                    TableHeader("TARGET FIELD", Modifier.weight(0.9f))
+                                    TableHeader("FILTERS", Modifier.weight(0.8f))
+                                    TableHeader("DESCRIPTION", Modifier.weight(1.0f))
+                                }
+                                else -> {
+                                    TableHeader(Strings.t("name"), Modifier.weight(1.2f))
+                                    TableHeader("PATH", Modifier.weight(1.5f))
+                                    TableHeader("DESCRIPTION", Modifier.weight(1.5f))
+                                }
                             }
-                            Spacer(Modifier.width(36.dp))
+                            Spacer(Modifier.size(24.dp))
                         }
 
                         // Quick-add row on top for external secrets
@@ -1303,175 +1120,238 @@ fun EnvironmentEditDialog(
                                 .fillMaxWidth()
                                 .background(ClapiColors.SurfaceContainer)
                                 .border(1.dp, ClapiColors.Border)
-                                .padding(horizontal = 8.dp, vertical = 5.dp)
+                                .padding(start = 8.dp, end = 18.dp, top = 5.dp, bottom = 5.dp)
                                 .testTag("env-secret-quick-add-row"),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
-                                Icon(
-                                    painter = painterResource(Res.drawable.ic_add),
-                                    contentDescription = null,
-                                    tint = ClapiColors.Primary,
-                                    modifier = Modifier.size(16.dp),
-                                )
+                            Spacer(Modifier.size(24.dp))
+                            when (secretType) {
+                                ExternalSecretType.KEEPASSXC -> {
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecName,
+                                        onValueChange = { quickAddSecName = it },
+                                        placeholder = Strings.t("name"),
+                                        modifier = Modifier.weight(1.0f),
+                                        tag = "env-quick-add-secret-name",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecPath,
+                                        onValueChange = { quickAddSecPath = it },
+                                        placeholder = "https://entry.url",
+                                        modifier = Modifier.weight(1.3f),
+                                        tag = "env-quick-add-secret-path",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecTargetField,
+                                        onValueChange = { quickAddSecTargetField = it },
+                                        placeholder = "password",
+                                        modifier = Modifier.weight(0.9f),
+                                        tag = "env-quick-add-secret-target",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                    Spacer(Modifier.weight(1.0f))
+                                    Spacer(Modifier.weight(0.9f))
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecDesc,
+                                        onValueChange = { quickAddSecDesc = it },
+                                        placeholder = "Description (optional)",
+                                        modifier = Modifier.weight(1.0f),
+                                        tag = "env-quick-add-secret-desc",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                }
+                                ExternalSecretType.KEEPER_SECURITY_CLOUD -> {
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecName,
+                                        onValueChange = { quickAddSecName = it },
+                                        placeholder = Strings.t("name"),
+                                        modifier = Modifier.weight(1.0f),
+                                        tag = "env-quick-add-secret-name",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecPath,
+                                        onValueChange = { quickAddSecPath = it },
+                                        placeholder = "Record Title or UID",
+                                        modifier = Modifier.weight(1.3f),
+                                        tag = "env-quick-add-secret-path",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecTargetField,
+                                        onValueChange = { quickAddSecTargetField = it },
+                                        placeholder = "password",
+                                        modifier = Modifier.weight(0.9f),
+                                        tag = "env-quick-add-secret-target",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                    Spacer(Modifier.weight(1.0f))
+                                    Spacer(Modifier.weight(0.9f))
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecDesc,
+                                        onValueChange = { quickAddSecDesc = it },
+                                        placeholder = "Description (optional)",
+                                        modifier = Modifier.weight(1.0f),
+                                        tag = "env-quick-add-secret-desc",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                }
+                                ExternalSecretType.AWS_SECRETS_MANAGER -> {
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecName,
+                                        onValueChange = { quickAddSecName = it },
+                                        placeholder = Strings.t("name"),
+                                        modifier = Modifier.weight(1.1f),
+                                        tag = "env-quick-add-secret-name",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecPath,
+                                        onValueChange = { quickAddSecPath = it },
+                                        placeholder = "Secret ID / Name",
+                                        modifier = Modifier.weight(1.4f),
+                                        tag = "env-quick-add-secret-path",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecTargetField,
+                                        onValueChange = { quickAddSecTargetField = it },
+                                        placeholder = "Target Field",
+                                        modifier = Modifier.weight(1.0f),
+                                        tag = "env-quick-add-secret-target",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                    Spacer(Modifier.weight(0.9f))
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecDesc,
+                                        onValueChange = { quickAddSecDesc = it },
+                                        placeholder = "Description (optional)",
+                                        modifier = Modifier.weight(1.1f),
+                                        tag = "env-quick-add-secret-desc",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                }
+                                ExternalSecretType.AZURE_KEY_VAULT -> {
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecName,
+                                        onValueChange = { quickAddSecName = it },
+                                        placeholder = Strings.t("name"),
+                                        modifier = Modifier.weight(1.0f),
+                                        tag = "env-quick-add-secret-name",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecPath,
+                                        onValueChange = { quickAddSecPath = it },
+                                        placeholder = "Secret Name",
+                                        modifier = Modifier.weight(1.2f),
+                                        tag = "env-quick-add-secret-path",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecVault,
+                                        onValueChange = { quickAddSecVault = it },
+                                        placeholder = "Vault Override (optional)",
+                                        modifier = Modifier.weight(1.1f),
+                                        tag = "env-quick-add-secret-vault",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecTargetField,
+                                        onValueChange = { quickAddSecTargetField = it },
+                                        placeholder = "Target Field",
+                                        modifier = Modifier.weight(0.9f),
+                                        tag = "env-quick-add-secret-target",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                    Spacer(Modifier.weight(0.8f))
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecDesc,
+                                        onValueChange = { quickAddSecDesc = it },
+                                        placeholder = "Description (optional)",
+                                        modifier = Modifier.weight(1.0f),
+                                        tag = "env-quick-add-secret-desc",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                }
+                                ExternalSecretType.GCP_SECRETS_MANAGER -> {
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecName,
+                                        onValueChange = { quickAddSecName = it },
+                                        placeholder = Strings.t("name"),
+                                        modifier = Modifier.weight(1.0f),
+                                        tag = "env-quick-add-secret-name",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecPath,
+                                        onValueChange = { quickAddSecPath = it },
+                                        placeholder = "Secret ID",
+                                        modifier = Modifier.weight(1.2f),
+                                        tag = "env-quick-add-secret-path",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecVault,
+                                        onValueChange = { quickAddSecVault = it },
+                                        placeholder = "Project Override (optional)",
+                                        modifier = Modifier.weight(1.1f),
+                                        tag = "env-quick-add-secret-vault",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecTargetField,
+                                        onValueChange = { quickAddSecTargetField = it },
+                                        placeholder = "Target Field",
+                                        modifier = Modifier.weight(0.9f),
+                                        tag = "env-quick-add-secret-target",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                    Spacer(Modifier.weight(0.8f))
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecDesc,
+                                        onValueChange = { quickAddSecDesc = it },
+                                        placeholder = "Description (optional)",
+                                        modifier = Modifier.weight(1.0f),
+                                        tag = "env-quick-add-secret-desc",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                }
+                                else -> {
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecName,
+                                        onValueChange = { quickAddSecName = it },
+                                        placeholder = Strings.t("name"),
+                                        modifier = Modifier.weight(1.2f),
+                                        tag = "env-quick-add-secret-name",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecPath,
+                                        onValueChange = { quickAddSecPath = it },
+                                        placeholder = "Path",
+                                        modifier = Modifier.weight(1.5f),
+                                        tag = "env-quick-add-secret-path",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                    EnvQuickAddTextField(
+                                        value = quickAddSecDesc,
+                                        onValueChange = { quickAddSecDesc = it },
+                                        placeholder = "Description (optional)",
+                                        modifier = Modifier.weight(1.5f),
+                                        tag = "env-quick-add-secret-desc",
+                                        onEnter = { addQuickSecret() },
+                                    )
+                                }
                             }
-                            BasicTextField(
-                                value = quickAddSecName,
-                                onValueChange = { quickAddSecName = it },
-                                textStyle = TextStyle(color = ClapiColors.OnSurface, fontSize = 12.sp),
-                                singleLine = true,
-                                cursorBrush = SolidColor(ClapiColors.Primary),
-                                modifier = Modifier
-                                    .weight(1.2f)
-                                    .height(28.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(ClapiColors.Surface)
-                                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
-                                    .padding(horizontal = 8.dp, vertical = 5.dp)
-                                    .onPreviewKeyEvent {
-                                        if (it.type == KeyEventType.KeyDown && it.key == Key.Enter) {
-                                            val trimmedName = quickAddSecName.trim()
-                                            val trimmedPath = quickAddSecPath.trim()
-                                            if (trimmedName.isNotEmpty()) {
-                                                val defaultTarget = if (workingProvider == "keepassxc" || workingProvider == "keeper-security-cloud") "password" else ""
-                                                val sec = MutableExternalSecret(
-                                                    name = trimmedName,
-                                                    path = trimmedPath,
-                                                    targetField = quickAddSecTargetField.trim().ifBlank { defaultTarget },
-                                                )
-                                                workingSecrets.add(0, sec)
-                                                quickAddSecName = ""
-                                                quickAddSecPath = ""
-                                                quickAddSecTargetField = ""
-                                            }
-                                            true
-                                        } else false
-                                    }
-                                    .testTag("env-quick-add-secret-name"),
-                                decorationBox = { innerTextField ->
-                                    if (quickAddSecName.isEmpty()) {
-                                        Text(Strings.t("name"), color = ClapiColors.OnSurfaceDim, fontSize = 12.sp)
-                                    }
-                                    innerTextField()
-                                },
-                            )
-                            val pathPlaceholder = when (workingProvider) {
-                                "keepassxc" -> "Entry URL"
-                                "aws-secrets-manager" -> "Secret ID / Name"
-                                "azure-key-vault" -> "Secret Name"
-                                "gcp-secrets-manager" -> "Secret ID"
-                                "keeper-security-cloud" -> "Record Title"
-                                else -> "Path"
-                            }
-                            BasicTextField(
-                                value = quickAddSecPath,
-                                onValueChange = { quickAddSecPath = it },
-                                textStyle = TextStyle(color = ClapiColors.OnSurface, fontSize = 12.sp),
-                                singleLine = true,
-                                cursorBrush = SolidColor(ClapiColors.Primary),
-                                modifier = Modifier
-                                    .weight(1.5f)
-                                    .height(28.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(ClapiColors.Surface)
-                                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
-                                    .padding(horizontal = 8.dp, vertical = 5.dp)
-                                    .onPreviewKeyEvent {
-                                        if (it.type == KeyEventType.KeyDown && it.key == Key.Enter) {
-                                            val trimmedName = quickAddSecName.trim()
-                                            val trimmedPath = quickAddSecPath.trim()
-                                            if (trimmedName.isNotEmpty()) {
-                                                val defaultTarget = if (workingProvider == "keepassxc" || workingProvider == "keeper-security-cloud") "password" else ""
-                                                val sec = MutableExternalSecret(
-                                                    name = trimmedName,
-                                                    path = trimmedPath,
-                                                    targetField = quickAddSecTargetField.trim().ifBlank { defaultTarget },
-                                                )
-                                                workingSecrets.add(0, sec)
-                                                quickAddSecName = ""
-                                                quickAddSecPath = ""
-                                                quickAddSecTargetField = ""
-                                            }
-                                            true
-                                        } else false
-                                    }
-                                    .testTag("env-quick-add-secret-path"),
-                                decorationBox = { innerTextField ->
-                                    if (quickAddSecPath.isEmpty()) {
-                                        Text(pathPlaceholder, color = ClapiColors.OnSurfaceDim, fontSize = 12.sp)
-                                    }
-                                    innerTextField()
-                                },
-                            )
-                            BasicTextField(
-                                value = quickAddSecTargetField,
-                                onValueChange = { quickAddSecTargetField = it },
-                                textStyle = TextStyle(color = ClapiColors.OnSurface, fontSize = 12.sp),
-                                singleLine = true,
-                                cursorBrush = SolidColor(ClapiColors.Primary),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(28.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(ClapiColors.Surface)
-                                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
-                                    .padding(horizontal = 8.dp, vertical = 5.dp)
-                                    .onPreviewKeyEvent {
-                                        if (it.type == KeyEventType.KeyDown && it.key == Key.Enter) {
-                                            val trimmedName = quickAddSecName.trim()
-                                            val trimmedPath = quickAddSecPath.trim()
-                                            if (trimmedName.isNotEmpty()) {
-                                                val defaultTarget = if (workingProvider == "keepassxc" || workingProvider == "keeper-security-cloud") "password" else ""
-                                                val sec = MutableExternalSecret(
-                                                    name = trimmedName,
-                                                    path = trimmedPath,
-                                                    targetField = quickAddSecTargetField.trim().ifBlank { defaultTarget },
-                                                )
-                                                workingSecrets.add(0, sec)
-                                                quickAddSecName = ""
-                                                quickAddSecPath = ""
-                                                quickAddSecTargetField = ""
-                                            }
-                                            true
-                                        } else false
-                                    }
-                                    .testTag("env-quick-add-secret-target"),
-                                decorationBox = { innerTextField ->
-                                    if (quickAddSecTargetField.isEmpty()) {
-                                        Text("Target Field", color = ClapiColors.OnSurfaceDim, fontSize = 12.sp)
-                                    }
-                                    innerTextField()
-                                },
-                            )
-                            IconButtonWithTooltip(
-                                onClick = {
-                                    val trimmedName = quickAddSecName.trim()
-                                    val trimmedPath = quickAddSecPath.trim()
-                                    if (trimmedName.isNotEmpty()) {
-                                        val defaultTarget = if (workingProvider == "keepassxc" || workingProvider == "keeper-security-cloud") "password" else ""
-                                        val sec = MutableExternalSecret(
-                                            name = trimmedName,
-                                            path = trimmedPath,
-                                            targetField = quickAddSecTargetField.trim().ifBlank { defaultTarget },
-                                        )
-                                        workingSecrets.add(0, sec)
-                                        quickAddSecName = ""
-                                        quickAddSecPath = ""
-                                        quickAddSecTargetField = ""
-                                    }
-                                },
+                            EnvQuickAddButton(
+                                onClick = { addQuickSecret() },
                                 tooltip = "Add Secret",
-                                modifier = Modifier.size(28.dp).testTag("env-quick-add-secret-button"),
-                            ) {
-                                Icon(
-                                    painter = painterResource(Res.drawable.ic_add),
-                                    contentDescription = "Add Secret",
-                                    tint = ClapiColors.Primary,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                            }
-                            Spacer(Modifier.width(10.dp))
+                                tag = "env-quick-add-secret-button",
+                            )
                         }
 
                         Box(
@@ -1491,36 +1371,36 @@ fun EnvironmentEditDialog(
                                     .testTag("env-secrets-list"),
                             ) {
                                 itemsIndexed(workingSecrets, key = { _, secret -> secret.uid }) { sIdx, secret ->
-                                    when (workingProvider) {
-                                        "keepassxc" -> EnvKeePassXcSecretRow(
+                                    when (secretType) {
+                                        ExternalSecretType.KEEPASSXC -> EnvKeePassXcSecretRow(
                                             secret = secret,
                                             index = sIdx,
                                             workingVars = workingVars,
                                             state = state,
                                             onDelete = { workingSecrets.removeAt(sIdx) },
                                         )
-                                        "keeper-security-cloud" -> EnvKeeperSecretRow(
+                                        ExternalSecretType.KEEPER_SECURITY_CLOUD -> EnvKeeperSecretRow(
                                             secret = secret,
                                             index = sIdx,
                                             workingVars = workingVars,
                                             state = state,
                                             onDelete = { workingSecrets.removeAt(sIdx) },
                                         )
-                                        "aws-secrets-manager" -> EnvAwsSecretRow(
+                                        ExternalSecretType.AWS_SECRETS_MANAGER -> EnvAwsSecretRow(
                                             secret = secret,
                                             index = sIdx,
                                             workingVars = workingVars,
                                             state = state,
                                             onDelete = { workingSecrets.removeAt(sIdx) },
                                         )
-                                        "azure-key-vault" -> EnvAzureSecretRow(
+                                        ExternalSecretType.AZURE_KEY_VAULT -> EnvAzureSecretRow(
                                             secret = secret,
                                             index = sIdx,
                                             workingVars = workingVars,
                                             state = state,
                                             onDelete = { workingSecrets.removeAt(sIdx) },
                                         )
-                                        "gcp-secrets-manager" -> EnvGcpSecretRow(
+                                        ExternalSecretType.GCP_SECRETS_MANAGER -> EnvGcpSecretRow(
                                             secret = secret,
                                             index = sIdx,
                                             workingVars = workingVars,

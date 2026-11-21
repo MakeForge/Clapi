@@ -22,7 +22,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
-@Serializable
+@Serializable(with = VariableTypeSerializer::class)
 enum class VariableType(val value: String) {
     @SerialName("string")
     STRING("string"),
@@ -33,14 +33,43 @@ enum class VariableType(val value: String) {
     @SerialName("null")
     NULL("null"),
     @SerialName("object")
-    OBJECT("object"),
+    OBJECT("object");
+
+    override fun toString(): String = value
+
+    companion object {
+        fun fromValue(value: String?): VariableType? =
+            entries.firstOrNull { it.value.equals(value, ignoreCase = true) }
+    }
+}
+
+object VariableTypeSerializer : KSerializer<VariableType> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("VariableType", PrimitiveKind.STRING)
+
+    override fun deserialize(decoder: Decoder): VariableType {
+        val raw = decoder.decodeString()
+        return VariableType.fromValue(raw) ?: VariableType.STRING
+    }
+
+    override fun serialize(encoder: Encoder, value: VariableType) {
+        encoder.encodeString(value.value)
+    }
+}
+
+@Serializable
+enum class VariableKind(val value: String) {
+    @SerialName("regular")
+    REGULAR("regular"),
+    @SerialName("secret")
+    SECRET("secret"),
     @SerialName("dynamic")
     DYNAMIC("dynamic");
 
     override fun toString(): String = value
 
     companion object {
-        fun fromValue(value: String?): VariableType? =
+        fun fromValue(value: String?): VariableKind? =
             entries.firstOrNull { it.value.equals(value, ignoreCase = true) }
     }
 }
@@ -129,7 +158,10 @@ data class RegularVariable(
     val value: VariableValue? = null,
     override val description: Description? = null,
     override val disabled: Boolean? = null,
-) : VariableEntry
+) : VariableEntry {
+    val type: VariableType
+        get() = (value as? TypedVariableValue)?.type ?: VariableType.STRING
+}
 
 @Serializable
 data class SecretVariable(
@@ -166,7 +198,7 @@ data class DynamicVariableParameter(
 data class DynamicVariable(
     override val name: String,
     @EncodeDefault
-    val type: VariableType = VariableType.DYNAMIC,
+    val type: VariableType = VariableType.STRING,
     @EncodeDefault
     val script: String = "",
     val parameters: List<DynamicVariableParameter> = emptyList(),
@@ -181,7 +213,7 @@ object VariableEntrySerializer : JsonContentPolymorphicSerializer<VariableEntry>
             return SecretVariable.serializer()
         }
         val typeStr = (obj["type"] as? JsonPrimitive)?.contentOrNull
-        if (typeStr.equals(VariableType.DYNAMIC.value, ignoreCase = true) || obj.containsKey("script")) {
+        if (obj.containsKey("script") || typeStr.equals(VariableKind.DYNAMIC.value, ignoreCase = true)) {
             return DynamicVariable.serializer()
         }
         return RegularVariable.serializer()

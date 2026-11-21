@@ -1,5 +1,7 @@
 package io.github.makeforge.clapi.editor.core
 
+import io.github.makeforge.clapi.core.model.opencollection.VariableType
+
 enum class LanguageMode {
     PLAIN_TEXT, JSON, XML, HTML, JAVASCRIPT, GRAPHQL;
 
@@ -42,6 +44,7 @@ interface LanguageModeProvider : TextFormatter {
     fun tokenizeLine(line: String, lineNumber: Int, state: Any? = null): Pair<List<Token>, Any?>
     fun foldingRegions(document: EditorDocument): List<FoldRegion>
     fun validate(text: String): List<InlineEditorError>
+    fun validate(text: String, variableTypes: Map<String, VariableType>): List<InlineEditorError> = validate(text)
 
     /**
      * Default no-op formatter — returns [text] unchanged.

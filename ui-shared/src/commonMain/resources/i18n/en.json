@@ -500,5 +500,13 @@
   "no_output_yet": "Click Run Test to execute the script and preview its output.",
   "script_error": "Script Error",
   "dynamic_script_context_hint": "Scripts can access read-only request info via context.request (url, method, headers, name) and declared parameters via args.",
-  "dynamic_variables_docs": "Dynamic Variables Docs"
+  "dynamic_variables_docs": "Dynamic Variables Docs",
+  "regular": "Regular",
+  "kind_upper": "KIND",
+  "return_type": "Return Type",
+  "type_string": "String",
+  "type_number": "Number",
+  "type_boolean": "Boolean",
+  "type_object": "Object",
+  "read_only": "Read-only"
 }

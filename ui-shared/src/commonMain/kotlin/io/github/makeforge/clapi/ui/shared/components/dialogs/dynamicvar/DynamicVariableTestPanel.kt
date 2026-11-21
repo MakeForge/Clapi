@@ -50,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.makeforge.clapi.core.model.opencollection.DynamicVariableParameter
+import io.github.makeforge.clapi.core.model.opencollection.VariableType
 import io.github.makeforge.clapi.core.network.VariableResolver
 import io.github.makeforge.clapi.core.scripting.DynamicScriptContext
 import io.github.makeforge.clapi.core.scripting.DynamicScriptExecutionResult
@@ -78,6 +79,7 @@ fun DynamicVariableTestPanel(
     variableName: String,
     script: String,
     parameters: List<DynamicVariableParameter>,
+    expectedType: VariableType = VariableType.STRING,
     initialRequestContext: RequestContext? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -516,6 +518,37 @@ fun DynamicVariableTestPanel(
                                         fontSize = 13.sp,
                                         fontFamily = CodeFontFamily,
                                         color = ClapiColors.OnSurface,
+                                    )
+                                }
+                            }
+                            val rawVal = result.returnValue.orEmpty().trim()
+                            val typeMismatchWarning = when (expectedType) {
+                                VariableType.NUMBER -> if (rawVal.toDoubleOrNull() == null) {
+                                    "Warning: Script returned '$rawVal', which is not a valid Number."
+                                } else null
+                                VariableType.BOOLEAN -> if (rawVal != "true" && rawVal != "false") {
+                                    "Warning: Script returned '$rawVal', which is not a valid Boolean (expected 'true' or 'false')."
+                                } else null
+                                VariableType.OBJECT -> if (!((rawVal.startsWith("{") && rawVal.endsWith("}")) || (rawVal.startsWith("[") && rawVal.endsWith("]")))) {
+                                    "Warning: Script returned '$rawVal', which is not a valid JSON Object or Array."
+                                } else null
+                                else -> null
+                            }
+                            if (typeMismatchWarning != null) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(ClapiColors.StatusWarning.copy(alpha = 0.12f))
+                                        .border(1.dp, ClapiColors.StatusWarning.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                                        .padding(8.dp)
+                                        .semantics(mergeDescendants = true) {}
+                                        .testTag("dynamic-var-test-type-warning"),
+                                ) {
+                                    Text(
+                                        text = typeMismatchWarning,
+                                        fontSize = 11.sp,
+                                        color = ClapiColors.StatusWarning,
                                     )
                                 }
                             }

@@ -13,6 +13,7 @@ import io.github.makeforge.clapi.core.model.opencollection.DynamicVariableParame
 import io.github.makeforge.clapi.core.model.opencollection.Environment
 import io.github.makeforge.clapi.core.model.opencollection.OpenCollectionDocument
 import io.github.makeforge.clapi.core.model.opencollection.RegularVariable
+import io.github.makeforge.clapi.core.model.opencollection.VariableType
 import io.github.makeforge.clapi.core.model.opencollection.VariableValue
 import io.github.makeforge.clapi.core.network.KtorApiClient
 import io.github.makeforge.clapi.core.network.NetworkEvent
@@ -24,6 +25,9 @@ import io.github.makeforge.clapi.core.storage.opencollection.ExportFormat
 import io.github.makeforge.clapi.testsupport.DummyApiServer
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 import kotlin.test.AfterTest
@@ -213,8 +217,8 @@ class DynamicVariablesE2ETest {
         )
 
         val exportedJson = repo.exportCollection(doc, ExportFormat.JSON)
-        assertTrue(exportedJson.contains("\"type\": \"dynamic\""))
         assertTrue(exportedJson.contains("\"secondsFromNow\""))
+        assertTrue(exportedJson.contains("\"script\""))
 
         val reimportedFromJson = repo.importCollection(exportedJson)
         val jsonVars = reimportedFromJson.config?.environments?.first()?.variables.orEmpty()
@@ -236,5 +240,68 @@ class DynamicVariablesE2ETest {
         assertEquals(1, dynFromYaml.parameters.size)
         assertEquals("seconds", dynFromYaml.parameters.first().name)
         assertEquals("10", dynFromYaml.parameters.first().defaultValue)
+    }
+
+    @Test
+    fun executesHttpRequestWithTypedDynamicVariablesInJsonBodySendsNativeJsonTypes() = runTest {
+        val client = KtorApiClient(retryPolicy = RetryPolicy(maxAttempts = 1))
+        val service = RequestExecutionService(client)
+
+        val userDynamicVariables = listOf(
+            DynamicVariable(
+                name = "totalCount",
+                script = "return 42;",
+                type = VariableType.NUMBER,
+            ),
+            DynamicVariable(
+                name = "isPublished",
+                script = "return true;",
+                type = VariableType.BOOLEAN,
+            ),
+            DynamicVariable(
+                name = "metaInfo",
+                script = """return JSON.stringify({ author: "Alice", active: true });""",
+                type = VariableType.OBJECT,
+            ),
+        )
+
+        val variableLayers = listOf(mapOf("baseUrl" to baseUrl))
+
+        val request = RequestDefinition(
+            id = "req-typed-body",
+            name = "Typed Dynamic Variables in JSON Body",
+            method = HttpMethodType.POST,
+            url = "{{baseUrl}}/echo-json",
+            headers = listOf(
+                KeyValueEntry("Content-Type", "application/json"),
+            ),
+            body = RequestBody(
+                type = BodyType.JSON,
+                content = """{"count": {{totalCount}}, "published": {{isPublished}}, "meta": {{metaInfo}}}""",
+            ),
+            createdAtEpochMillis = 0L,
+            updatedAtEpochMillis = 0L,
+        )
+
+        val events = service.execute(
+            request = request,
+            variableLayers = variableLayers,
+            userDynamicVariables = userDynamicVariables,
+        ).toList()
+
+        val successEvent = events.filterIsInstance<NetworkEvent.Success>().first()
+        val responseBody = successEvent.response.bodyText
+        val responseJson = Json.parseToJsonElement(responseBody).jsonObject
+
+        // Verify the raw wire body arrived as valid unquoted JSON primitives
+        val rawWireBody = responseJson["rawBody"]?.jsonPrimitive?.content
+        assertEquals("""{"count": 42, "published": true, "meta": {"author":"Alice","active":true}}""", rawWireBody)
+
+        // Verify the server successfully parsed the JSON primitives into native types
+        val parsedJson = responseJson["parsed"]?.jsonObject
+        assertTrue(parsedJson != null, "Server must have successfully parsed the JSON payload")
+        assertEquals("42", parsedJson["count"]?.jsonPrimitive?.content)
+        assertEquals("true", parsedJson["published"]?.jsonPrimitive?.content)
+        assertEquals("Alice", parsedJson["meta"]?.jsonObject?.get("author")?.jsonPrimitive?.content)
     }
 }

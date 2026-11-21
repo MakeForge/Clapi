@@ -154,4 +154,72 @@ class VariableHighlightTest {
         val text = "{\"name\":\"plain\"}"
         assertEquals(null, variableNameAtOffset(text, 3))
     }
+
+    @Test
+    fun `variableNameAtOffset – returns null at endExclusive right after token`() {
+        val text = "{{number}} extra"
+        val start = text.indexOf("{{number}}")
+        val endExclusive = start + "{{number}}".length
+
+        // Inside token
+        assertEquals("number", variableNameAtOffset(text, start))
+        assertEquals("number", variableNameAtOffset(text, endExclusive - 1))
+
+        // Right after token (endExclusive)
+        assertEquals(null, variableNameAtOffset(text, endExclusive))
+    }
+
+    @Test
+    fun `extractVariablePrefixContext – extracts word prefix before cursor`() {
+        val text = "http://example.com/api?id=num"
+        val ctx = extractVariablePrefixContext(text, text.length)
+        assertEquals("num", ctx.prefix)
+        assertEquals(text.indexOf("num"), ctx.replaceStart)
+        assertEquals(text.length, ctx.replaceEnd)
+    }
+
+    @Test
+    fun `extractVariablePrefixContext – extracts prefix inside variable brackets`() {
+        val text = "http://example.com/{{num"
+        val ctx = extractVariablePrefixContext(text, text.length)
+        assertEquals("num", ctx.prefix)
+        assertEquals(text.indexOf("{{"), ctx.replaceStart)
+        assertEquals(text.length, ctx.replaceEnd)
+    }
+
+    @Test
+    fun `extractVariablePrefixContext – replaces full brackets when closed`() {
+        val text = "http://example.com/{{num}}"
+        val cursor = text.indexOf("}}")
+        val ctx = extractVariablePrefixContext(text, cursor)
+        assertEquals("num", ctx.prefix)
+        assertEquals(text.indexOf("{{"), ctx.replaceStart)
+        assertEquals(text.length, ctx.replaceEnd)
+    }
+
+    @Test
+    fun `filterVariables – filters by prefix and containment`() {
+        val vars = listOf(
+            "baseUrl" to "http://api.com",
+            "token" to "abc",
+            "api_token" to "def",
+            "_secret.my_secret" to "s1",
+            "\$timestamp" to "123",
+        )
+
+        // Empty prefix returns all
+        assertEquals(vars, filterVariables(vars, ""))
+
+        // Prefix "tok" matches "token" (starts with) and "api_token" (contains)
+        val tokMatches = filterVariables(vars, "tok").map { it.first }
+        assertEquals(listOf("token", "api_token"), tokMatches)
+
+        // Matching without secret prefix
+        val secMatches = filterVariables(vars, "my_sec").map { it.first }
+        assertEquals(listOf("_secret.my_secret"), secMatches)
+
+        // Case insensitivity
+        val baseMatches = filterVariables(vars, "BASE").map { it.first }
+        assertEquals(listOf("baseUrl"), baseMatches)
+    }
 }

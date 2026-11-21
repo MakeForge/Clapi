@@ -424,5 +424,13 @@
   "no_output_yet": "Klicken Sie auf Test ausführen, um das Skript zu starten und die Ausgabe anzuzeigen.",
   "script_error": "Skriptfehler",
   "dynamic_script_context_hint": "Skripte können über context.request (url, method, headers, name) schreibgeschützt auf Anfrage-Infos und über args auf Parameter zugreifen.",
-  "dynamic_variables_docs": "Dokumentation zu dynamischen Variablen"
+  "dynamic_variables_docs": "Dokumentation zu dynamischen Variablen",
+  "regular": "Regulär",
+  "kind_upper": "ART",
+  "return_type": "Rückgabetyp",
+  "type_string": "String",
+  "type_number": "Number",
+  "type_boolean": "Boolean",
+  "type_object": "Objekt",
+  "read_only": "Schreibgeschützt"
 }

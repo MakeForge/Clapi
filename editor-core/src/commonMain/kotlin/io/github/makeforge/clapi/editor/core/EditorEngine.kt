@@ -1,5 +1,7 @@
 package io.github.makeforge.clapi.editor.core
 
+import io.github.makeforge.clapi.core.model.opencollection.VariableType
+
 class EditorEngine {
     companion object {
         const val LARGE_FILE_CHAR_THRESHOLD = 1_000_000
@@ -101,10 +103,15 @@ class EditorEngine {
     fun moveCursorRight(state: EditorState): EditorState =
         state.copy(cursor = state.cursor.moveRight(state.document), selection = SelectionModel.EMPTY)
 
-    fun validate(text: String, languageMode: LanguageMode, allowJson5: Boolean = false): List<InlineEditorError> {
+    fun validate(
+        text: String,
+        languageMode: LanguageMode,
+        allowJson5: Boolean = false,
+        variableTypes: Map<String, VariableType> = emptyMap(),
+    ): List<InlineEditorError> {
         if (text.isBlank()) return emptyList()
         val provider = jsonProvider(languageMode, allowJson5)
-        return provider.validate(text)
+        return provider.validate(text, variableTypes)
     }
 
     fun visibleLines(state: EditorState): List<Pair<Int, String>> {

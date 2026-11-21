@@ -1,6 +1,7 @@
 package io.github.makeforge.clapi.editor.core
 
 import io.github.makeforge.clapi.core.model.json.Json5
+import io.github.makeforge.clapi.core.model.opencollection.VariableType
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -123,5 +124,60 @@ b: 'x', }"""
         assertEquals(1, regions.size)
         assertEquals(1, regions[0].startLine)
         assertEquals(4, regions[0].endLine)
+    }
+
+    @Test
+    fun validate_accepts_unquoted_numeric_boolean_object_and_builtin_variables() {
+        val text = """
+            {
+              "x": {{number}},
+              "ts": {{'$'}timestamp}},
+              "active": {{isActive}},
+              "meta": {{metaObj}},
+              "quotedStr": "{{nowDate}}"
+            }
+        """.trimIndent().replace("{{'$'}timestamp}}", "{{\$timestamp}}")
+
+        val varTypes = mapOf(
+            "number" to VariableType.NUMBER,
+            "isActive" to VariableType.BOOLEAN,
+            "metaObj" to VariableType.OBJECT,
+            "nowDate" to VariableType.STRING,
+        )
+
+        val json5Errors = Json5EditorSupport.validate(text, varTypes)
+        assertEquals(0, json5Errors.size, "Expected 0 errors in Json5EditorSupport, got: $json5Errors")
+
+        val jsonErrors = JsonMode.validate(text, varTypes)
+        assertEquals(0, jsonErrors.size, "Expected 0 errors in JsonMode, got: $jsonErrors")
+    }
+
+    @Test
+    fun validate_warns_when_unquoted_variable_is_string_typed() {
+        val text = """{"x": {{nowDate}}}"""
+        val varTypes = mapOf("nowDate" to VariableType.STRING)
+
+        val errors = Json5EditorSupport.validate(text, varTypes)
+        assertEquals(1, errors.size, "Expected 1 diagnostic for unquoted string variable, got: $errors")
+        assertTrue(errors[0].message.contains("Wrap in quotes: \"{{nowDate}}\""), errors[0].message)
+        assertEquals(1, errors[0].line)
+        assertEquals(7, errors[0].col)
+
+        val builtInIsoErrors = JsonMode.validate("""{"ts": {{${'$'}isoTimestamp}}}""")
+        assertEquals(1, builtInIsoErrors.size)
+        assertTrue(builtInIsoErrors[0].message.contains("Wrap in quotes: \"{{\$isoTimestamp}}\""))
+    }
+
+    @Test
+    fun validate_preserves_exact_line_and_column_for_real_syntax_errors_after_templates() {
+        val text = """
+            {
+              "x": {{number}},
+              "broken":
+            }
+        """.trimIndent()
+        val errors = Json5EditorSupport.validate(text, mapOf("number" to VariableType.NUMBER))
+        assertEquals(1, errors.size)
+        assertEquals(4, errors[0].line)
     }
 }

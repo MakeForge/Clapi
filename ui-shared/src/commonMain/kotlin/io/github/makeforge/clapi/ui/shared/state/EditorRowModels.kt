@@ -11,6 +11,8 @@ import io.github.makeforge.clapi.core.model.KeyValueEntry
 import io.github.makeforge.clapi.core.model.opencollection.Description
 import io.github.makeforge.clapi.core.model.opencollection.DynamicVariable
 import io.github.makeforge.clapi.core.model.opencollection.DynamicVariableParameter
+import io.github.makeforge.clapi.core.model.opencollection.VariableKind
+import io.github.makeforge.clapi.core.model.opencollection.VariableType
 import io.github.makeforge.clapi.ui.shared.platform.generateUuid
 
 /**
@@ -43,6 +45,7 @@ class MutableKeyValue(
     kind: HeaderKind = HeaderKind.USER,
     keyLocked: Boolean = false,
     isDynamic: Boolean = false,
+    variableType: VariableType = VariableType.STRING,
     dynamicScript: String = "",
     dynamicParameters: List<DynamicVariableParameter> = emptyList(),
     description: String = "",
@@ -56,10 +59,34 @@ class MutableKeyValue(
     var kind          by mutableStateOf(kind)
     var keyLocked     by mutableStateOf(keyLocked)
     var isDynamic     by mutableStateOf(isDynamic)
+    var variableType  by mutableStateOf(variableType)
     var dynamicScript by mutableStateOf(dynamicScript)
     val dynamicParameters: SnapshotStateList<DynamicVariableParameter> =
         mutableStateListOf<DynamicVariableParameter>().apply { addAll(dynamicParameters) }
     var description   by mutableStateOf(description)
+
+    var variableKind: VariableKind
+        get() = when {
+            isDynamic -> VariableKind.DYNAMIC
+            secret -> VariableKind.SECRET
+            else -> VariableKind.REGULAR
+        }
+        set(newKind) {
+            when (newKind) {
+                VariableKind.REGULAR -> {
+                    secret = false
+                    isDynamic = false
+                }
+                VariableKind.SECRET -> {
+                    secret = true
+                    isDynamic = false
+                }
+                VariableKind.DYNAMIC -> {
+                    secret = false
+                    isDynamic = true
+                }
+            }
+        }
 
     fun signatureLabel(): String {
         val trimmedKey = key.trim().ifEmpty { "fn" }
@@ -72,6 +99,7 @@ class MutableKeyValue(
 
     fun toDynamicVariable(): DynamicVariable = DynamicVariable(
         name = key.trim(),
+        type = variableType,
         script = dynamicScript,
         parameters = dynamicParameters.toList(),
         description = description.takeIf { it.isNotBlank() }?.let { Description(it) },
@@ -84,6 +112,7 @@ class MutableKeyValue(
         enabled = enabled,
         secret = secret,
         isDynamic = isDynamic,
+        variableType = variableType,
         dynamicScript = dynamicScript,
         dynamicParameters = dynamicParameters.toList(),
         description = description,
@@ -96,6 +125,7 @@ fun KeyValueEntry.toMutableKeyValue(): MutableKeyValue = MutableKeyValue(
     enabled = enabled,
     secret = secret,
     isDynamic = isDynamic,
+    variableType = variableType,
     dynamicScript = dynamicScript,
     dynamicParameters = dynamicParameters,
     description = description,

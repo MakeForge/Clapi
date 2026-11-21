@@ -1,5 +1,6 @@
 package io.github.makeforge.clapi.editor.core
 
+import io.github.makeforge.clapi.core.model.opencollection.VariableType
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -71,6 +72,15 @@ object JsonMode : LanguageModeProvider {
                     i = end
                     inString = end >= line.length && line.lastOrNull() != '"'
                 }
+                c == '{' && i + 1 < line.length && line[i + 1] == '{' -> {
+                    val closeIdx = JsonTemplateMasker.findTemplateTokenEnd(line, i + 2)
+                    if (closeIdx > i + 2) {
+                        tokens.add(Token(i, closeIdx + 2, TokenType.VALUE))
+                        i = closeIdx + 2
+                    } else {
+                        tokens.add(Token(i, i + 1, TokenType.PUNCTUATION)); i++
+                    }
+                }
                 c == ':' || c == ',' -> { tokens.add(Token(i, i + 1, TokenType.PUNCTUATION)); i++ }
                 c == '{' || c == '}' || c == '[' || c == ']' -> { tokens.add(Token(i, i + 1, TokenType.PUNCTUATION)); i++ }
                 c == 't' || c == 'f' -> {
@@ -112,32 +122,50 @@ object JsonMode : LanguageModeProvider {
         val stack = ArrayDeque<Int>()
         val text = document.text
         var line = 1; var inStr = false; var escaped = false
-        for (ch in text) {
-            if (escaped) { escaped = false; continue }
-            if (ch == '\\' && inStr) { escaped = true; continue }
-            if (ch == '"') { inStr = !inStr; continue }
-            if (inStr) { if (ch == '\n') line++; continue }
-            when (ch) {
-                '{', '[' -> stack.addLast(line)
-                '}', ']' -> { if (stack.isNotEmpty()) { val s = stack.removeLast(); if (line > s) regions.add(FoldRegion(s, line)) } }
-                '\n' -> line++
+        var i = 0
+        while (i < text.length) {
+            val ch = text[i]
+            if (escaped) { escaped = false; i++; continue }
+            if (ch == '\\' && inStr) { escaped = true; i++; continue }
+            if (ch == '"') { inStr = !inStr; i++; continue }
+            if (inStr) { if (ch == '\n') line++; i++; continue }
+            when {
+                ch == '{' && i + 1 < text.length && text[i + 1] == '{' -> {
+                    val closeIdx = JsonTemplateMasker.findTemplateTokenEnd(text, i + 2)
+                    if (closeIdx > i + 2) {
+                        i = closeIdx + 2
+                    } else {
+                        stack.addLast(line); i++
+                    }
+                }
+                ch == '{' || ch == '[' -> { stack.addLast(line); i++ }
+                ch == '}' || ch == ']' -> { if (stack.isNotEmpty()) { val s = stack.removeLast(); if (line > s) regions.add(FoldRegion(s, line)) }; i++ }
+                ch == '\n' -> { line++; i++ }
+                else -> i++
             }
         }
         return regions.sortedBy { it.startLine }
     }
 
-    override fun validate(text: String): List<InlineEditorError> {
+    override fun validate(text: String): List<InlineEditorError> =
+        validate(text, emptyMap())
+
+    override fun validate(text: String, variableTypes: Map<String, VariableType>): List<InlineEditorError> {
         if (text.isBlank()) return emptyList()
-        return validateFull(text)
+        return validateFull(text, variableTypes)
     }
 
-    private fun validateFull(text: String): List<InlineEditorError> {
-        return try { Json.parseToJsonElement(text); emptyList() }
-        catch (e: Throwable) {
+    private fun validateFull(text: String, variableTypes: Map<String, VariableType>): List<InlineEditorError> {
+        val masked = JsonTemplateMasker.maskAndCheckVariables(text, allowJson5 = false, variableTypes = variableTypes)
+        val parseErrors = try {
+            Json.parseToJsonElement(masked.maskedText)
+            emptyList()
+        } catch (e: Throwable) {
             val offset = extractOffset(e.message.orEmpty())?.coerceIn(0, text.length) ?: 0
             val pos = offsetToLineCol(text, offset)
             listOf(InlineEditorError(pos.first, pos.second, e.message ?: "Invalid JSON"))
         }
+        return parseErrors + masked.templateDiagnostics
     }
 
     private fun extractOffset(message: String): Int? {

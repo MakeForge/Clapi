@@ -2706,8 +2706,8 @@
         },
         "type": {
           "type": "string",
-          "const": "dynamic",
-          "description": "Indicates this is a dynamic variable"
+          "enum": ["string", "number", "boolean", "null", "object", "dynamic"],
+          "description": "The data type (return type) of the dynamic variable"
         },
         "script": {
           "type": "string",
@@ -2728,7 +2728,11 @@
           "description": "Whether the variable is disabled"
         }
       },
-      "required": ["name", "type"],
+      "required": ["name"],
+      "anyOf": [
+        { "required": ["script"] },
+        { "properties": { "type": { "const": "dynamic" } }, "required": ["type"] }
+      ],
       "additionalProperties": false
     },
     "ExternalSecrets": {

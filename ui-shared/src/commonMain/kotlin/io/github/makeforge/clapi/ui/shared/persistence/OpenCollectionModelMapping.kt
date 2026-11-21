@@ -67,6 +67,7 @@ import io.github.makeforge.clapi.core.model.opencollection.Script
 import io.github.makeforge.clapi.core.model.opencollection.ScriptType
 import io.github.makeforge.clapi.core.model.opencollection.SecretVariable
 import io.github.makeforge.clapi.core.model.opencollection.VariableEntry
+import io.github.makeforge.clapi.core.model.opencollection.VariableType
 import io.github.makeforge.clapi.core.model.opencollection.VariableValue
 import io.github.makeforge.clapi.ui.shared.platform.generateUuid
 import io.github.makeforge.clapi.ui.shared.state.AppState
@@ -413,13 +414,9 @@ fun Environment.toEnvState(): EnvState {
 }
 
 fun EnvState.toOpenCollectionEnvironment(): Environment {
-    val isKeePassXc = externalSecretsProvider.equals("keepassxc", ignoreCase = true)
-    val isAws = externalSecretsProvider.equals("aws-secrets-manager", ignoreCase = true)
-    val isAzure = externalSecretsProvider.equals("azure-key-vault", ignoreCase = true)
-    val isGcp = externalSecretsProvider.equals("gcp-secrets-manager", ignoreCase = true)
-    val isKeeper = externalSecretsProvider.equals("keeper-security-cloud", ignoreCase = true)
-    val extSecretList: List<ExternalSecretVariable> = when {
-        isKeePassXc -> {
+    val providerType = ExternalSecretType.fromValue(externalSecretsProvider)
+    val extSecretList: List<ExternalSecretVariable> = when (providerType) {
+        ExternalSecretType.KEEPASSXC -> {
             externalSecrets
                 .filter { it.name.trim().isNotEmpty() && it.url.trim().isNotEmpty() }
                 .map {
@@ -433,7 +430,7 @@ fun EnvState.toOpenCollectionEnvironment(): Environment {
                     )
                 }
         }
-        isAws -> {
+        ExternalSecretType.AWS_SECRETS_MANAGER -> {
             externalSecrets
                 .filter { it.name.trim().isNotEmpty() && (it.path.trim().isNotEmpty() || it.url.trim().isNotEmpty()) }
                 .map {
@@ -447,7 +444,7 @@ fun EnvState.toOpenCollectionEnvironment(): Environment {
                     )
                 }
         }
-        isAzure -> {
+        ExternalSecretType.AZURE_KEY_VAULT -> {
             externalSecrets
                 .filter { it.name.trim().isNotEmpty() && (it.path.trim().isNotEmpty() || it.url.trim().isNotEmpty()) }
                 .map {
@@ -462,7 +459,7 @@ fun EnvState.toOpenCollectionEnvironment(): Environment {
                     )
                 }
         }
-        isGcp -> {
+        ExternalSecretType.GCP_SECRETS_MANAGER -> {
             externalSecrets
                 .filter { it.name.trim().isNotEmpty() && it.path.trim().isNotEmpty() }
                 .map {
@@ -478,7 +475,7 @@ fun EnvState.toOpenCollectionEnvironment(): Environment {
                     )
                 }
         }
-        isKeeper -> {
+        ExternalSecretType.KEEPER_SECURITY_CLOUD -> {
             externalSecrets
                 .filter { it.name.trim().isNotEmpty() && it.path.trim().isNotEmpty() }
                 .map {
@@ -535,6 +532,7 @@ fun VariableEntry.toMutableKeyValue(): MutableKeyValue =
             enabled = disabled != true,
             secret = false,
             isDynamic = false,
+            variableType = type,
             description = description?.content.orEmpty(),
         )
         is SecretVariable -> MutableKeyValue(
@@ -543,6 +541,7 @@ fun VariableEntry.toMutableKeyValue(): MutableKeyValue =
             enabled = disabled != true,
             secret = true,
             isDynamic = false,
+            variableType = type,
             description = description?.content.orEmpty(),
         )
         is DynamicVariable -> MutableKeyValue(
@@ -551,6 +550,7 @@ fun VariableEntry.toMutableKeyValue(): MutableKeyValue =
             enabled = disabled != true,
             secret = false,
             isDynamic = true,
+            variableType = type,
             dynamicScript = script,
             dynamicParameters = parameters,
             description = description?.content.orEmpty(),
@@ -564,6 +564,7 @@ fun MutableKeyValue.toVariableEntry(): VariableEntry {
     return when {
         isDynamic -> DynamicVariable(
             name = trimmedKey,
+            type = variableType,
             script = dynamicScript,
             parameters = dynamicParameters.toList(),
             description = desc,
@@ -571,13 +572,14 @@ fun MutableKeyValue.toVariableEntry(): VariableEntry {
         )
         secret -> SecretVariable(
             name = trimmedKey,
+            type = variableType,
             description = desc,
             disabled = disabledFlag,
             secret = true,
         )
         else -> RegularVariable(
             name = trimmedKey,
-            value = VariableValue.of(value),
+            value = if (variableType == VariableType.STRING) VariableValue.of(value) else VariableValue.of(variableType, value),
             description = desc,
             disabled = disabledFlag,
         )
@@ -771,6 +773,7 @@ internal fun CollectionNode.toRequestDefaults(): RequestDefaults? {
         when {
             it.isDynamic -> DynamicVariable(
                 name = it.key.trim(),
+                type = it.variableType,
                 script = it.dynamicScript,
                 parameters = it.dynamicParameters,
                 description = desc,
@@ -778,13 +781,14 @@ internal fun CollectionNode.toRequestDefaults(): RequestDefaults? {
             )
             it.secret -> SecretVariable(
                 name = it.key.trim(),
+                type = it.variableType,
                 description = desc,
                 disabled = disabledFlag,
                 secret = true,
             )
             else -> RegularVariable(
                 name = it.key.trim(),
-                value = VariableValue.of(it.value),
+                value = if (it.variableType == VariableType.STRING) VariableValue.of(it.value) else VariableValue.of(it.variableType, it.value),
                 description = desc,
                 disabled = disabledFlag,
             )
@@ -1211,6 +1215,7 @@ fun OpenCollectionItem.toCollectionNode(
                         enabled = v.disabled != true,
                         secret = false,
                         isDynamic = false,
+                        variableType = v.type,
                         description = v.description?.content.orEmpty(),
                     )
                     is SecretVariable -> KeyValueEntry(
@@ -1219,6 +1224,7 @@ fun OpenCollectionItem.toCollectionNode(
                         enabled = v.disabled != true,
                         secret = true,
                         isDynamic = false,
+                        variableType = v.type,
                         description = v.description?.content.orEmpty(),
                     )
                     is DynamicVariable -> KeyValueEntry(
@@ -1227,6 +1233,7 @@ fun OpenCollectionItem.toCollectionNode(
                         enabled = v.disabled != true,
                         secret = false,
                         isDynamic = true,
+                        variableType = v.type,
                         dynamicScript = v.script,
                         dynamicParameters = v.parameters,
                         description = v.description?.content.orEmpty(),

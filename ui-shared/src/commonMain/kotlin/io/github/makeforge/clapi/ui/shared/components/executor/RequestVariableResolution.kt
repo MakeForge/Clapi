@@ -1,6 +1,7 @@
 package io.github.makeforge.clapi.ui.shared.components.executor
 
 import io.github.makeforge.clapi.core.model.AuthType
+import io.github.makeforge.clapi.core.model.opencollection.ExternalSecretType
 import io.github.makeforge.clapi.core.network.VariableResolver
 import io.github.makeforge.clapi.core.network.aws.AwsSecretsManagerClient
 import io.github.makeforge.clapi.core.network.azure.AzureKeyVaultClient
@@ -52,7 +53,12 @@ internal suspend fun resolveExternalSecretsForTab(
     val provider = state.selectedEnvironment?.externalSecretsProvider?.ifBlank { "hashicorp-vault-server" } ?: "hashicorp-vault-server"
 
     val declarations = state.selectedEnvironment?.externalSecrets?.map {
-        val defaultTarget = if (provider.equals("aws-secrets-manager", ignoreCase = true) || provider.equals("azure-key-vault", ignoreCase = true) || provider.equals("gcp-secrets-manager", ignoreCase = true)) "" else "password"
+        val defaultTarget = when (ExternalSecretType.fromValue(provider)) {
+            ExternalSecretType.AWS_SECRETS_MANAGER,
+            ExternalSecretType.AZURE_KEY_VAULT,
+            ExternalSecretType.GCP_SECRETS_MANAGER -> ""
+            else -> "password"
+        }
         SecretDeclaration(
             name = it.name.trim(),
             path = it.path.trim(),

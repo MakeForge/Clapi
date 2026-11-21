@@ -61,7 +61,15 @@ class UserScriptDynamicVariableProvider(
                 throw DynamicVariableResolutionException(msg)
             }
 
-            resolved[rawToken.trim()] = execResult.returnValue ?: ""
+            val retVal = execResult.returnValue ?: ""
+            try {
+                VariableResolver.validateDynamicReturnType(dynamicVar, retVal)
+            } catch (e: DynamicVariableResolutionException) {
+                context.log?.invoke(e.message ?: "Dynamic variable type mismatch", true)
+                throw e
+            }
+
+            resolved[rawToken.trim()] = retVal
         }
 
         return resolved

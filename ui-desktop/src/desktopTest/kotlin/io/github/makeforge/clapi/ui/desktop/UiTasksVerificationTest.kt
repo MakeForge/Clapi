@@ -103,8 +103,10 @@ class UiTasksVerificationTest {
         }
         composeRule.waitForIdle()
 
-        // Click type toggle to switch to "Secret"
+        // Open Kind dropdown and select "Secret"
         composeRule.onNodeWithTag("env-var-type-toggle-0").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("env-var-type-toggle-0-option-secret").performClick()
         composeRule.waitForIdle()
 
         // Save dialog

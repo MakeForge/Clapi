@@ -1,6 +1,9 @@
 package io.github.makeforge.clapi.editor.ui
 
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -19,6 +22,10 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.onPointerEvent
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.isShiftPressed
 import androidx.compose.ui.platform.LocalDensity
@@ -47,6 +54,7 @@ import io.github.makeforge.clapi.editor.core.TokenType
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 
 
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
 internal fun LineView(
     docLine: Int,
@@ -58,7 +66,7 @@ internal fun LineView(
     selStart: Int,
     selEnd: Int,
     diagnostics: List<InlineEditorError>,
-    onTap: (absoluteOffset: Int, extendSelection: Boolean, trailingWhitespace: Boolean) -> Unit,
+    onTap: (absoluteOffset: Int, extendSelection: Boolean, trailingWhitespace: Boolean, isOverVariable: Boolean) -> Unit,
     onDragTo: ((absoluteOffset: Int) -> Unit)? = null,
     // onWordSelect = { abs ->
     //     viewModel.selectWordAt(abs)
@@ -208,10 +216,51 @@ internal fun LineView(
     val padStartPx = with(density) { LINE_PAD_START.toPx() }
     val padTopPx = with(density) { LINE_PAD_VERT.toPx() }
 
+    fun toLayout(p: Offset) = Offset(
+        (p.x - padStartPx - horizontalWindow.drawOffsetPx).coerceAtLeast(0f),
+        (p.y - padTopPx).coerceAtLeast(0f),
+    )
+
+    var isHoveringVariable by remember { mutableStateOf(false) }
+
     Box(
         modifier = modifier
             .then(if (wrapping) Modifier.fillMaxWidth() else Modifier)
             .semantics { contentDescription = lineText }
+            .pointerHoverIcon(if (isHoveringVariable) PointerIcon.Hand else PointerIcon.Text)
+            .onPointerEvent(PointerEventType.Move) { event ->
+                if (variableSpans.isNotEmpty()) {
+                    val change = event.changes.firstOrNull()
+                    if (change != null) {
+                        val layout = measuredLatest.value
+                        val layoutPos = toLayout(change.position)
+                        val visualLine = layout.getLineForVerticalPosition(layoutPos.y)
+                        val lineEnd = layout.getLineEnd(visualLine, visibleEnd = true)
+                        val isTrailing = if (wordWrap) {
+                            layoutPos.x > layout.getCursorRect(lineEnd).left
+                        } else {
+                            change.position.x - padStartPx + horizontalScrollPx >= lineText.length * monospaceCharWidthPx
+                        }
+                        val hovering = isOffsetInVariableSpans(
+                            layoutPos = layoutPos,
+                            layout = layout,
+                            variableSpans = variableSpans,
+                            horizontalWindow = horizontalWindow,
+                            isTrailingWhitespace = isTrailing,
+                        )
+                        if (isHoveringVariable != hovering) {
+                            isHoveringVariable = hovering
+                        }
+                    }
+                } else if (isHoveringVariable) {
+                    isHoveringVariable = false
+                }
+            }
+            .onPointerEvent(PointerEventType.Exit) {
+                if (isHoveringVariable) {
+                    isHoveringVariable = false
+                }
+            }
             .pointerInput(
                 lineStartOffset,
                 version,
@@ -221,10 +270,6 @@ internal fun LineView(
                 horizontalWindow,
                 horizontalScrollPx,
             ) {
-                fun toLayout(p: Offset) = Offset(
-                    (p.x - padStartPx - horizontalWindow.drawOffsetPx).coerceAtLeast(0f),
-                    (p.y - padTopPx).coerceAtLeast(0f),
-                )
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     val layout = measuredLatest.value
@@ -241,10 +286,18 @@ internal fun LineView(
                             lineText.length * monospaceCharWidthPx
                     }
 
+                    val isOverVariable = isOffsetInVariableSpans(
+                        layoutPos = layoutPosition,
+                        layout = layout,
+                        variableSpans = variableSpans,
+                        horizontalWindow = horizontalWindow,
+                        isTrailingWhitespace = isTrailingWhitespace,
+                    )
+
                     // Immediately place cursor on first press — no delay.
                     // If a double-click follows, onWordSelect will override this placement.
                     val shiftHeld = currentEvent.keyboardModifiers.isShiftPressed
-                    onTap(absOff0, shiftHeld, isTrailingWhitespace)
+                    onTap(absOff0, shiftHeld, isTrailingWhitespace, isOverVariable)
                     down.consume()
 
                     val lineHeightPx = with(density) { lineHeightDp.toPx() } + padTopPx * 2f
@@ -542,4 +595,44 @@ private fun buildLineAnnotatedString(
             }
         }
     }
+}
+
+internal fun isOffsetInVariableSpans(
+    layoutPos: Offset,
+    layout: TextLayoutResult,
+    variableSpans: List<Pair<IntRange, Color>>,
+    horizontalWindow: HorizontalLineWindow,
+    isTrailingWhitespace: Boolean,
+): Boolean {
+    if (isTrailingWhitespace || variableSpans.isEmpty()) return false
+    val line = try {
+        layout.getLineForVerticalPosition(layoutPos.y)
+    } catch (_: Exception) {
+        return false
+    }
+    val lineLeft = layout.getLineLeft(line)
+    val lineRight = layout.getLineRight(line)
+    if (layoutPos.x < lineLeft || layoutPos.x > lineRight) return false
+
+    val textLen = layout.layoutInput.text.length
+    if (textLen == 0) return false
+
+    for ((range, _) in variableSpans) {
+        val startCol = range.first - horizontalWindow.startColumn
+        val endCol = range.last - horizontalWindow.startColumn
+        if (endCol < 0 || startCol >= textLen) continue
+        val clampedStart = startCol.coerceIn(0, textLen - 1)
+        val clampedEnd = endCol.coerceIn(0, textLen - 1)
+
+        val startLine = layout.getLineForOffset(clampedStart)
+        val endLine = layout.getLineForOffset(clampedEnd)
+        if (line in startLine..endLine) {
+            val spanLeft = if (line == startLine) layout.getBoundingBox(clampedStart).left else lineLeft
+            val spanRight = if (line == endLine) layout.getBoundingBox(clampedEnd).right else lineRight
+            if (layoutPos.x in spanLeft..spanRight) {
+                return true
+            }
+        }
+    }
+    return false
 }

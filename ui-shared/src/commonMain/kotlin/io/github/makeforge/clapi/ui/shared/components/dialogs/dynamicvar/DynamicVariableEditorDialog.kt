@@ -55,12 +55,14 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.github.makeforge.clapi.core.model.opencollection.DynamicVariableParameter
+import io.github.makeforge.clapi.core.model.opencollection.VariableType
 import io.github.makeforge.clapi.core.scripting.RequestContext
 import io.github.makeforge.clapi.ui.shared.components.CodeEditor
 import io.github.makeforge.clapi.ui.shared.components.IconButtonWithTooltip
 import io.github.makeforge.clapi.ui.shared.components.SyntaxLanguage
 import io.github.makeforge.clapi.ui.shared.components.VariableHighlightColor
 import io.github.makeforge.clapi.ui.shared.components.dialogEscape
+import io.github.makeforge.clapi.ui.shared.components.dialogs.env.VariableTypeSelector
 import io.github.makeforge.clapi.ui.shared.generated.resources.Res
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_add
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_close
@@ -89,11 +91,13 @@ fun DynamicVariableEditorDialog(
 ) {
     DynamicVariableEditorDialog(
         initialKey = kv.key,
+        initialType = kv.variableType,
         initialScript = kv.dynamicScript,
         initialParameters = kv.dynamicParameters,
         initialDescription = kv.description,
-        onSave = { newKey, newScript, newParams, newDesc ->
+        onSaveWithType = { newKey, newType, newScript, newParams, newDesc ->
             kv.key = newKey
+            kv.variableType = newType
             kv.isDynamic = true
             kv.secret = false
             kv.dynamicScript = newScript
@@ -115,12 +119,15 @@ fun DynamicVariableEditorDialog(
     initialScript: String,
     initialParameters: List<DynamicVariableParameter>,
     initialDescription: String = "",
-    onSave: (key: String, script: String, parameters: List<DynamicVariableParameter>, description: String) -> Unit,
+    onSave: (key: String, script: String, parameters: List<DynamicVariableParameter>, description: String) -> Unit = { _, _, _, _ -> },
     onDismiss: () -> Unit,
     initialRequestContext: RequestContext? = null,
     modifier: Modifier = Modifier,
+    initialType: VariableType = VariableType.STRING,
+    onSaveWithType: ((key: String, type: VariableType, script: String, parameters: List<DynamicVariableParameter>, description: String) -> Unit)? = null,
 ) {
     var workingKey by remember { mutableStateOf(initialKey) }
+    var workingType by remember { mutableStateOf(initialType) }
     var workingDescription by remember { mutableStateOf(initialDescription) }
     var workingScript by remember {
         mutableStateOf(
@@ -142,6 +149,11 @@ fun DynamicVariableEditorDialog(
     } else {
         "{{${workingKey.ifBlank { "variableName" }}(${validParams.joinToString(", ") { it.name.trim() }})}}"
     }
+    val jsonUsagePreview = if (workingType == VariableType.STRING) {
+        """{ "key": "$signaturePreview" }"""
+    } else {
+        """{ "key": $signaturePreview }"""
+    }
 
     fun commitSave() {
         val cleanedParams = workingParameters
@@ -154,7 +166,11 @@ fun DynamicVariableEditorDialog(
                     description = p.description?.takeIf { it.isNotBlank() },
                 )
             }
-        onSave(workingKey.trim(), workingScript, cleanedParams, workingDescription.trim())
+        if (onSaveWithType != null) {
+            onSaveWithType(workingKey.trim(), workingType, workingScript, cleanedParams, workingDescription.trim())
+        } else {
+            onSave(workingKey.trim(), workingScript, cleanedParams, workingDescription.trim())
+        }
     }
 
     Dialog(
@@ -212,6 +228,22 @@ fun DynamicVariableEditorDialog(
                         color = VariableHighlightColor,
                     )
                 }
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(ClapiColors.SurfaceContainer)
+                        .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                        .semantics(mergeDescendants = true) {}
+                        .testTag("dynamic-var-json-preview"),
+                ) {
+                    Text(
+                        text = "JSON: $jsonUsagePreview",
+                        fontSize = 11.sp,
+                        fontFamily = CodeFontFamily,
+                        color = ClapiColors.OnSurfaceDim,
+                    )
+                }
                 Spacer(Modifier.weight(1f))
                 DocsHelpButton(
                     url = DocsLinks.dynamicVariables,
@@ -235,7 +267,7 @@ fun DynamicVariableEditorDialog(
 
             HorizontalDivider(color = ClapiColors.Border)
 
-            // Variable Name & Description bar
+            // Variable Name, Return Type & Description bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -245,7 +277,7 @@ fun DynamicVariableEditorDialog(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Row(
-                    modifier = Modifier.weight(0.4f),
+                    modifier = Modifier.weight(0.35f),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
@@ -282,7 +314,25 @@ fun DynamicVariableEditorDialog(
                 }
 
                 Row(
-                    modifier = Modifier.weight(0.6f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        text = Strings.returnType,
+                        fontSize = 12.sp,
+                        color = ClapiColors.OnSurfaceDim,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    VariableTypeSelector(
+                        selectedType = workingType,
+                        onTypeSelected = { workingType = it },
+                        tag = "dynamic-var-return-type-select",
+                        modifier = Modifier.width(104.dp),
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.weight(0.45f),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
@@ -600,6 +650,7 @@ fun DynamicVariableEditorDialog(
                     variableName = workingKey,
                     script = workingScript,
                     parameters = workingParameters,
+                    expectedType = workingType,
                     initialRequestContext = initialRequestContext,
                     modifier = Modifier
                         .weight(0.42f)
