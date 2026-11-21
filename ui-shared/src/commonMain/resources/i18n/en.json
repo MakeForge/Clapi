@@ -212,6 +212,7 @@
   "value_upper": "VALUE",
   "toggle_bottom_panel": "Toggle bottom panel",
   "workspace_exported": "Workspace exported → workspace-backup.json",
+  "app_logs": "App logs",
   "clear": "Clear",
   "clear_console_logs": "Clear console logs",
   "clear_console_logs_desc": "Remove all console log entries",

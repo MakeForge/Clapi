@@ -306,4 +306,44 @@ class SettingsDialogUiTest {
         composeRule.onNodeWithTag("keeper-status-badge", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithTag("keeper-test-connection-btn", useUnmergedTree = true).assertIsDisplayed()
     }
+
+    @Test
+    fun data_settings_displays_app_logs_path_and_open_button() {
+        val state = AppStateExamples.demo()
+        composeRule.setContent { MainScreen(state = state) }
+
+        composeRule.onNodeWithTag("settings-button", useUnmergedTree = true).performClick()
+        composeRule.onNodeWithText("Data", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        val expectedLogDir = System.getProperty("clapi.log.dir")
+            ?: (System.getProperty("user.home") + "/.clapi/logs")
+        val expectedLogPath = java.io.File(expectedLogDir, "clapi.log").absolutePath
+
+        composeRule.onNodeWithText("App logs", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("app-logs-path", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithText(expectedLogPath, useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("open-log-file-button", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun data_settings_open_log_file_button_invokes_opener() {
+        val state = AppState()
+        var openedPath: String? = null
+        val expectedLogDir = System.getProperty("clapi.log.dir")
+            ?: (System.getProperty("user.home") + "/.clapi/logs")
+        val expectedLogPath = java.io.File(expectedLogDir, "clapi.log").absolutePath
+
+        composeRule.setContent {
+            io.github.makeforge.clapi.ui.shared.components.dialogs.settings.DataSettings(
+                state = state,
+                onOpenFile = { openedPath = it },
+            )
+        }
+
+        composeRule.onNodeWithTag("open-log-file-button", useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+
+        kotlin.test.assertEquals(expectedLogPath, openedPath)
+    }
 }
