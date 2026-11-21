@@ -41,9 +41,13 @@ import io.github.makeforge.clapi.core.model.opencollection.WebSocketMessageVaria
 import io.github.makeforge.clapi.core.network.ConnectionState
 import io.github.makeforge.clapi.ui.shared.components.CodeEditor
 import io.github.makeforge.clapi.ui.shared.components.DialogBasicTextField
+import io.github.makeforge.clapi.ui.shared.components.DialogTitleBar
 import io.github.makeforge.clapi.ui.shared.components.SyntaxLanguage
 import io.github.makeforge.clapi.ui.shared.components.dialogEscape
+import io.github.makeforge.clapi.ui.shared.components.draggableDialogBackdrop
+import io.github.makeforge.clapi.ui.shared.components.draggableDialogCard
 import io.github.makeforge.clapi.ui.shared.components.handPointerHover
+import io.github.makeforge.clapi.ui.shared.components.rememberDraggableDialogState
 import io.github.makeforge.clapi.ui.shared.generated.resources.Res
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_add
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_arrow_drop_down
@@ -355,65 +359,72 @@ fun RenameVariantDialog(
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val dragState = rememberDraggableDialogState()
+
     Dialog(onDismissRequest = onDismiss) {
-        Column(
-            modifier = modifier
-                .dialogEscape(onDismiss = onDismiss)
-                .widthIn(min = 320.dp, max = 480.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(ClapiColors.Surface)
-                .border(1.dp, ClapiColors.Border, RoundedCornerShape(12.dp))
-                .hotkeys {
-                    on(AppHotkeys.Save) { onConfirm() }
-                    on(AppHotkeys.Escape) { onDismiss() }
-                }
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+        Box(
+            modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = onDismiss),
+            contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = title,
-                color = ClapiColors.OnSurface,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
-            DialogBasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                singleLine = true,
-                textStyle = TextStyle(color = ClapiColors.OnSurface, fontSize = 13.sp, fontFamily = CodeFontFamily),
-                cursorBrush = SolidColor(ClapiColors.Primary),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(ClapiColors.SurfaceContainer)
-                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
-                    .padding(horizontal = 8.dp, vertical = 6.dp)
-                    .testTag("rename-variant-dialog-input"),
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+            Column(
+                modifier = modifier
+                    .draggableDialogCard(dragState, cornerRadius = 12.dp)
+                    .widthIn(min = 320.dp, max = 480.dp)
+                    .hotkeys {
+                        on(AppHotkeys.Save) { onConfirm() }
+                        on(AppHotkeys.Escape) { onDismiss() }
+                    },
             ) {
-                Text(
-                    text = Strings.cancel,
-                    color = ClapiColors.OnSurfaceVariant,
-                    fontSize = 13.sp,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .clickable { onDismiss() }
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                DialogTitleBar(
+                    title = title,
+                    onClose = onDismiss,
+                    onDrag = dragState::onDrag,
                 )
-                Text(
-                    text = Strings.save,
-                    color = ClapiColors.OnPrimary,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(ClapiColors.Primary)
-                        .clickable { onConfirm() }
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                )
+
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    DialogBasicTextField(
+                        value = value,
+                        onValueChange = onValueChange,
+                        singleLine = true,
+                        textStyle = TextStyle(color = ClapiColors.OnSurface, fontSize = 13.sp, fontFamily = CodeFontFamily),
+                        cursorBrush = SolidColor(ClapiColors.Primary),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(ClapiColors.SurfaceContainer)
+                            .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                            .testTag("rename-variant-dialog-input"),
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                    ) {
+                        Text(
+                            text = Strings.cancel,
+                            color = ClapiColors.OnSurfaceVariant,
+                            fontSize = 13.sp,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable { onDismiss() }
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                        )
+                        Text(
+                            text = Strings.save,
+                            color = ClapiColors.OnPrimary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(ClapiColors.Primary)
+                                .clickable { onConfirm() }
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                        )
+                    }
+                }
             }
         }
     }

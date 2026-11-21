@@ -198,70 +198,42 @@ fun GitSyncDialog(
         }
     }
 
+    val dragState = rememberDraggableDialogState()
+
     Dialog(onDismissRequest = onDismiss) {
-        Column(
-            modifier = modifier
-                .dialogEscape(onDismiss = onDismiss)
-                .widthIn(min = 500.dp, max = 620.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(ClapiColors.Surface)
-                .border(1.dp, ClapiColors.Border, RoundedCornerShape(8.dp))
-                .padding(20.dp)
-                .testTag("git-sync-dialog"),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+        Box(
+            modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = onDismiss),
+            contentAlignment = Alignment.Center,
         ) {
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            Column(
+                modifier = modifier
+                    .draggableDialogCard(dragState, cornerRadius = 8.dp)
+                    .widthIn(min = 500.dp, max = 620.dp)
+                    .testTag("git-sync-dialog"),
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                DialogTitleBar(
+                    title = "Git Sync - $repoShortName",
+                    titleTag = "git-sync-dialog-title",
+                    subtitle = "Synchronize collections with remote repository",
+                    icon = painterResource(Res.drawable.ic_fork_right),
+                    actions = {
+                        DocsHelpButton(
+                            url = DocsLinks.gitSync,
+                            tooltip = "Git sync documentation",
+                            tag = "git-sync-docs-btn",
+                            size = 24.dp,
+                        )
+                    },
+                    onClose = onDismiss,
+                    closeButtonTag = "git-sync-close-icon",
+                    onDrag = dragState::onDrag,
+                    cornerRadius = 8.dp,
+                )
+
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    Icon(painter = painterResource(Res.drawable.ic_fork_right),
-                        contentDescription = null,
-                        tint = ClapiColors.Primary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Column {
-                        Text(
-                            text = "Git Sync - $repoShortName",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = ClapiColors.OnSurface,
-                            modifier = Modifier.testTag("git-sync-dialog-title"),
-                        )
-                        Text(
-                            text = "Synchronize collections with remote repository",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = ClapiColors.OnSurfaceDim,
-                        )
-                    }
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    DocsHelpButton(
-                        url = DocsLinks.gitSync,
-                        tooltip = "Git sync documentation",
-                        tag = "git-sync-docs-btn",
-                        size = 24.dp,
-                    )
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.size(24.dp).testTag("git-sync-close-icon"),
-                    ) {
-                        Icon(painter = painterResource(Res.drawable.ic_close),
-                            contentDescription = Strings.close,
-                            tint = ClapiColors.OnSurfaceDim,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
-                }
-            }
 
             HorizontalDivider(color = ClapiColors.Border)
 
@@ -536,4 +508,6 @@ fun GitSyncDialog(
             }
         }
     }
+}
+}
 }

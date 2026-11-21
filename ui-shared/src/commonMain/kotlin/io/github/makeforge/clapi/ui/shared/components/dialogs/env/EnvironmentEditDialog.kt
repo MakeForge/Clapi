@@ -127,6 +127,7 @@ import io.github.makeforge.clapi.ui.shared.generated.resources.ic_refresh
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_search
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_visibility
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_visibility_off
+import io.github.makeforge.clapi.ui.shared.components.DialogTitleBar
 import io.github.makeforge.clapi.ui.shared.components.DocsHelpButton
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
 import io.github.makeforge.clapi.ui.shared.platform.DocsLinks
@@ -478,7 +479,6 @@ fun EnvironmentEditDialog(
                         .clip(RoundedCornerShape(12.dp))
                         .background(ClapiColors.Surface)
                         .border(1.dp, ClapiColors.Border, RoundedCornerShape(12.dp))
-                        .padding(16.dp)
                         .hotkeys {
                             on(AppHotkeys.Save) {
                                 saveEnvironment(closeDialog = false)
@@ -498,64 +498,62 @@ fun EnvironmentEditDialog(
                         }
                         .testTag("env-edit-dialog"),
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .draggableNoSlop { dx, dy ->
-                                applyGeometry(
-                                    geometry.copy(
-                                        offsetXDp = geometry.offsetXDp + dx / density,
-                                        offsetYDp = geometry.offsetYDp + dy / density,
-                                    ),
+                    DialogTitleBar(
+                        title = Strings.t("edit_environment"),
+                        actions = {
+                            val maxTooltip = if (isMaximized) Strings.restoreDialog else Strings.maximizeDialog
+                            DocsHelpButton(
+                                url = DocsLinks.environments,
+                                tooltip = "Environments documentation",
+                                tag = "env-docs-btn",
+                                size = 28.dp,
+                            )
+                            IconButtonWithTooltip(
+                                onClick = {
+                                    if (isMaximized) {
+                                        isMaximized = false
+                                        geometry = clampEnvironmentDialog(
+                                            restoreGeometry ?: EnvironmentDialogGeometry(preferredWidthDp, preferredHeightDp),
+                                            viewportWidthDp,
+                                            viewportHeightDp,
+                                        )
+                                        restoreGeometry = null
+                                    } else {
+                                        restoreGeometry = geometry
+                                        isMaximized = true
+                                        geometry = EnvironmentDialogGeometry(maxDialogWidthDp, maxDialogHeightDp)
+                                    }
+                                },
+                                tooltip = maxTooltip,
+                                modifier = Modifier.size(28.dp).testTag("env-dialog-maximize"),
+                            ) {
+                                Icon(
+                                    if (isMaximized) painterResource(Res.drawable.ic_close_fullscreen) else painterResource(Res.drawable.ic_open_in_full),
+                                    contentDescription = maxTooltip,
+                                    tint = ClapiColors.OnSurfaceDim,
+                                    modifier = Modifier.size(16.dp),
                                 )
                             }
-                            .padding(bottom = 12.dp)
-                            .testTag("env-dialog-title-bar"),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            Strings.t("edit_environment"),
-                            style = MaterialTheme.typography.titleLarge,
-                            color = ClapiColors.OnSurface,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.weight(1f),
-                        )
-                        val maxTooltip = if (isMaximized) Strings.restoreDialog else Strings.maximizeDialog
-                        DocsHelpButton(
-                            url = DocsLinks.environments,
-                            tooltip = "Environments documentation",
-                            tag = "env-docs-btn",
-                            size = 28.dp,
-                        )
-                        IconButtonWithTooltip(
-                            onClick = {
-                                if (isMaximized) {
-                                    isMaximized = false
-                                    geometry = clampEnvironmentDialog(
-                                        restoreGeometry ?: EnvironmentDialogGeometry(preferredWidthDp, preferredHeightDp),
-                                        viewportWidthDp,
-                                        viewportHeightDp,
-                                    )
-                                    restoreGeometry = null
-                                } else {
-                                    restoreGeometry = geometry
-                                    isMaximized = true
-                                    geometry = EnvironmentDialogGeometry(maxDialogWidthDp, maxDialogHeightDp)
-                                }
-                            },
-                            tooltip = maxTooltip,
-                            modifier = Modifier.size(28.dp).testTag("env-dialog-maximize"),
-                        ) {
-                            Icon(
-                                if (isMaximized) painterResource(Res.drawable.ic_close_fullscreen) else painterResource(Res.drawable.ic_open_in_full),
-                                contentDescription = maxTooltip,
-                                tint = ClapiColors.OnSurfaceDim,
-                                modifier = Modifier.size(16.dp),
+                        },
+                        onClose = ::requestClose,
+                        closeButtonTag = "env-dialog-close",
+                        onDrag = { dx, dy ->
+                            applyGeometry(
+                                geometry.copy(
+                                    offsetXDp = geometry.offsetXDp + dx / density,
+                                    offsetYDp = geometry.offsetYDp + dy / density,
+                                ),
                             )
-                        }
-                    }
+                        },
+                        testTag = "env-dialog-title-bar",
+                    )
 
-                    Text(Strings.t("name"), style = MaterialTheme.typography.labelMedium, color = ClapiColors.OnSurfaceVariant)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                    ) {
+                        Text(Strings.t("name"), style = MaterialTheme.typography.labelMedium, color = ClapiColors.OnSurfaceVariant)
                     Spacer(Modifier.height(4.dp))
                     EnvTextField(
                         value = workingName.value,
@@ -1770,6 +1768,7 @@ fun EnvironmentEditDialog(
                         ) { Text(Strings.save, color = ClapiColors.OnPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
                     }
                 }
+            }
 
                 if (!isMaximized) {
                     EnvironmentResizeHandles(

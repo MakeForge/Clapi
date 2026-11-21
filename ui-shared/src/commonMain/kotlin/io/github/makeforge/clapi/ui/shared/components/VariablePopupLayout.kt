@@ -138,43 +138,63 @@ fun clampPopupOffsetToViewportF(
     return Pair(x.coerceIn(minX, maxX), y.coerceIn(minY, maxY))
 }
 
+private const val DRAG_SLOP_PX = 6f
+
 /**
- * A [Modifier] that starts tracking drag immediately on pointer-down with
- * **no touch-slop threshold**.
+ * A [Modifier] that allows dragging dialogs/popups smoothly.
  *
- * The standard `detectDragGestures` requires the pointer to move past a
- * platform-defined slop distance before the drag callback fires. On desktop
- * this causes the first few pixels of cursor movement to be silently
- * swallowed, making dialogs feel "sticky" at the start of a drag.
+ * To avoid interfering with child click listeners (such as buttons, inputs, tabs),
+ * movements below [DRAG_SLOP_PX] are treated as micro-jitter and are not consumed,
+ * allowing child click/tap gestures to complete cleanly.
  *
- * This modifier tracks raw pointer events directly, bypassing the slop gate
- * so every pixel of movement is reported from the very first frame.
+ * Once pointer movement exceeds [DRAG_SLOP_PX], drag mode engages and reports
+ * the full accumulated delta immediately, ensuring zero sticky lag or lost movement.
  */
 fun Modifier.draggableNoSlop(
     key: Any? = Unit,
     onDrag: (dx: Float, dy: Float) -> Unit,
 ): Modifier = this.pointerInput(key) {
     awaitPointerEventScope {
+        var isDragging = false
+        var accumulatedDx = 0f
+        var accumulatedDy = 0f
+
         while (true) {
             val event = awaitPointerEvent()
             when (event.type) {
                 PointerEventType.Press -> {
-                    // Do not aggressively consume Press, otherwise children
-                    // (like text fields or buttons) won't get clicks.
-                    // event.changes.forEach { it.consume() }
+                    isDragging = false
+                    accumulatedDx = 0f
+                    accumulatedDy = 0f
                 }
                 PointerEventType.Move -> {
                     event.changes.forEach { change ->
-                        // Only drag if no child has consumed the event (e.g. scrolling or clicking)
                         if (change.pressed && !change.isConsumed) {
                             val dx = change.position.x - change.previousPosition.x
                             val dy = change.position.y - change.previousPosition.y
-                            if (dx != 0f || dy != 0f) {
-                                change.consume()
-                                onDrag(dx, dy)
+                            accumulatedDx += dx
+                            accumulatedDy += dy
+
+                            if (!isDragging) {
+                                val distanceSq = accumulatedDx * accumulatedDx + accumulatedDy * accumulatedDy
+                                if (distanceSq >= DRAG_SLOP_PX * DRAG_SLOP_PX) {
+                                    isDragging = true
+                                    change.consume()
+                                    onDrag(accumulatedDx, accumulatedDy)
+                                }
+                            } else {
+                                if (dx != 0f || dy != 0f) {
+                                    change.consume()
+                                    onDrag(dx, dy)
+                                }
                             }
                         }
                     }
+                }
+                PointerEventType.Release -> {
+                    isDragging = false
+                    accumulatedDx = 0f
+                    accumulatedDy = 0f
                 }
             }
         }

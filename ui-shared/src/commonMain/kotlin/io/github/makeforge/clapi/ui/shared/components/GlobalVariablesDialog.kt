@@ -126,26 +126,18 @@ fun GlobalVariablesDialog(
         }
     }
 
-    Dialog(onDismissRequest = { requestClose() }) {
-        var dialogSize by remember { mutableStateOf(IntSize.Zero) }
+    val dragState = rememberDraggableDialogState()
 
+    Dialog(onDismissRequest = { requestClose() }) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .dialogEscape(onDismiss = { requestClose() })
-                .pointerInput(Unit) {
-                    detectTapGestures { requestClose() }
-                },
+            modifier = Modifier.draggableDialogBackdrop(dragState, onDismiss = { requestClose() }),
             contentAlignment = Alignment.Center,
         ) {
             Column(
                 modifier = modifier
+                    .draggableDialogCard(dragState, cornerRadius = 12.dp)
                     .widthIn(min = 500.dp, max = 700.dp)
                     .fillMaxHeight(0.7f)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(ClapiColors.Surface)
-                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(12.dp))
-                    .pointerInput(Unit) { detectTapGestures { /* consume tap */ } }
                     .hotkeys {
                         on(AppHotkeys.Save) {
                             saveDialog(closeDialog = false)
@@ -154,39 +146,14 @@ fun GlobalVariablesDialog(
                             requestClose()
                         }
                     }
-                    .onSizeChanged { dialogSize = it }
                     .testTag("global-variables-dialog"),
             ) {
-                // ── Header ──
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(ClapiColors.SurfaceContainer)
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(painter = painterResource(Res.drawable.ic_public),
-                        contentDescription = null,
-                        tint = ClapiColors.Primary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        Strings.globalVariables,
-                        color = ClapiColors.OnSurface,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Spacer(Modifier.weight(1f))
-                    IconButton(
-                        onClick = { requestClose() },
-                        modifier = Modifier.size(28.dp),
-                    ) {
-                        Icon(painter = painterResource(Res.drawable.ic_close), Strings.close, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(16.dp))
-                    }
-                }
-
-                HorizontalDivider(color = ClapiColors.Border)
+                DialogTitleBar(
+                    title = Strings.globalVariables,
+                    icon = painterResource(Res.drawable.ic_public),
+                    onClose = { requestClose() },
+                    onDrag = dragState::onDrag,
+                )
 
                 // ── Description ──
                 Text(
