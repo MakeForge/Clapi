@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -121,18 +122,20 @@ fun McpSamplingRequestForm(
             }
         },
     ) {
-        Text(
-            requestJson,
-            color = ClapiColors.OnSurface,
-            fontSize = 12.sp,
-            fontFamily = CodeFontFamily,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .background(ClapiColors.SurfaceContainer)
-                .padding(10.dp)
-                .testTag("mcp-sampling-request-json"),
-        )
+        SelectionContainer {
+            Text(
+                requestJson,
+                color = ClapiColors.OnSurface,
+                fontSize = 12.sp,
+                fontFamily = CodeFontFamily,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(ClapiColors.SurfaceContainer)
+                    .padding(10.dp)
+                    .testTag("mcp-sampling-request-json"),
+            )
+        }
     }
 }
 
@@ -177,12 +180,14 @@ fun McpSamplingResultForm(
             Text(Strings.t("mcp_sampling_generating"), color = ClapiColors.OnSurfaceDim, fontSize = 12.sp)
         }
         if (!generateError.isNullOrBlank()) {
-            Text(
-                "${Strings.t("mcp_sampling_generate_error")}: $generateError",
-                color = ClapiColors.Error,
-                fontSize = 12.sp,
-                modifier = Modifier.testTag("mcp-sampling-generate-error"),
-            )
+            SelectionContainer {
+                Text(
+                    "${Strings.t("mcp_sampling_generate_error")}: $generateError",
+                    color = ClapiColors.Error,
+                    fontSize = 12.sp,
+                    modifier = Modifier.testTag("mcp-sampling-generate-error"),
+                )
+            }
         }
         CallbackField(Strings.t("mcp_sampling_content"), required = true) {
             CallbackTextArea(content, { content = it }, "mcp-sampling-content")
@@ -231,12 +236,14 @@ fun McpElicitationForm(
             }
         },
     ) {
-        Text(
-            request.message,
-            color = ClapiColors.OnSurface,
-            fontSize = 13.sp,
-            modifier = Modifier.testTag("mcp-elicit-message"),
-        )
+        SelectionContainer {
+            Text(
+                request.message,
+                color = ClapiColors.OnSurface,
+                fontSize = 13.sp,
+                modifier = Modifier.testTag("mcp-elicit-message"),
+            )
+        }
         SchemaArgsEditor(
             modifier = Modifier.weight(1f).fillMaxWidth(),
             state = state,

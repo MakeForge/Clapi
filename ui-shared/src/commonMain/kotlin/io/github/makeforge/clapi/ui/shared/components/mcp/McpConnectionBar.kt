@@ -219,14 +219,16 @@ internal fun SessionIdChip(sessionId: String) {
             fontSize = 11.sp,
             lineHeight = 16.sp,
         )
-        Text(
-            visibleId,
-            color = ClapiColors.OnSurface,
-            fontSize = 11.sp,
-            lineHeight = 16.sp,
-            fontFamily = CodeFontFamily,
-            maxLines = 1,
-        )
+        SelectionContainer {
+            Text(
+                visibleId,
+                color = ClapiColors.OnSurface,
+                fontSize = 11.sp,
+                lineHeight = 16.sp,
+                fontFamily = CodeFontFamily,
+                maxLines = 1,
+            )
+        }
         IconButton(
             onClick = { copyToClipboard(sessionId) },
             modifier = Modifier.size(28.dp).testTag("mcp-session-id-copy"),
@@ -260,15 +262,17 @@ internal fun ConnectionMetaChip(
             .padding(horizontal = 8.dp, vertical = 5.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
-        Text(
-            text,
-            color = ClapiColors.OnSurfaceDim,
-            fontSize = 11.sp,
-            lineHeight = 16.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = if (fillText) Modifier.fillMaxWidth() else Modifier,
-        )
+        SelectionContainer {
+            Text(
+                text,
+                color = ClapiColors.OnSurfaceDim,
+                fontSize = 11.sp,
+                lineHeight = 16.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = if (fillText) Modifier.fillMaxWidth() else Modifier,
+            )
+        }
     }
 }
 

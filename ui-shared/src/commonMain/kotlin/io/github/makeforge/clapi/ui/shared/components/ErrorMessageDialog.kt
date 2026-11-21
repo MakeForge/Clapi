@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -40,8 +41,12 @@ fun ErrorMessageDialog(
                 .testTag("error-dialog"),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text(title, color = ClapiColors.Error, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-            Text(message, color = ClapiColors.OnSurface, fontSize = 13.sp)
+            SelectionContainer {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(title, color = ClapiColors.Error, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                    Text(message, color = ClapiColors.OnSurface, fontSize = 13.sp)
+                }
+            }
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 Text(

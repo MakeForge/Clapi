@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import io.github.makeforge.clapi.ui.shared.platform.DocsLinks
 import io.github.makeforge.clapi.ui.shared.platform.PlatformLazyVerticalScrollbar
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -292,11 +293,13 @@ fun GitSyncDialog(
                         .padding(12.dp)
                         .testTag("git-sync-error-banner"),
                 ) {
-                    Text(
-                        text = errorMessage!!,
-                        color = ClapiColors.Error,
-                        fontSize = 12.sp,
-                    )
+                    SelectionContainer {
+                        Text(
+                            text = errorMessage!!,
+                            color = ClapiColors.Error,
+                            fontSize = 12.sp,
+                        )
+                    }
                 }
             }
 
@@ -309,11 +312,13 @@ fun GitSyncDialog(
                         .padding(12.dp)
                         .testTag("git-sync-success-banner"),
                 ) {
-                    Text(
-                        text = statusSuccessMessage!!,
-                        color = ClapiColors.Primary,
-                        fontSize = 12.sp,
-                    )
+                    SelectionContainer {
+                        Text(
+                            text = statusSuccessMessage!!,
+                            color = ClapiColors.Primary,
+                            fontSize = 12.sp,
+                        )
+                    }
                 }
             }
 

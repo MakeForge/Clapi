@@ -26,6 +26,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ScrollableTabRow
@@ -463,70 +464,72 @@ private fun MessageRow(message: RealtimeMessage) {
     val directionColor = if (isSent) ClapiColors.StatusSuccess else ClapiColors.Primary
     val directionLabel = if (isSent) "↑ SENT" else "↓ RECEIVED"
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(6.dp))
-            .background(ClapiColors.SurfaceContainer)
-            .padding(10.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Direction badge
-                Text(
-                    directionLabel,
-                    color = directionColor,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(directionColor.copy(alpha = 0.12f))
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                )
-
-                // Event type (if present)
-                message.eventType?.let { eventType ->
-                    Text(
-                        eventType,
-                        color = ClapiColors.Tertiary,
-                        fontSize = 10.sp,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(ClapiColors.Tertiary.copy(alpha = 0.10f))
-                            .padding(horizontal = 6.dp, vertical = 2.dp),
-                    )
-                }
-            }
-
-            // Timestamp
-            Text(
-                formatTimestampShort(message.timestamp),
-                color = ClapiColors.OnSurfaceDim,
-                fontSize = 10.sp,
-                fontFamily = CodeFontFamily,
-            )
-        }
-
-        Spacer(Modifier.height(4.dp))
-
-        // Message content
-        Text(
-            text = message.content,
-            color = ClapiColors.OnSurface,
-            fontSize = 12.sp,
-            fontFamily = CodeFontFamily,
+    SelectionContainer {
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-        )
+                .padding(horizontal = 12.dp, vertical = 4.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(ClapiColors.SurfaceContainer)
+                .padding(10.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // Direction badge
+                    Text(
+                        directionLabel,
+                        color = directionColor,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(directionColor.copy(alpha = 0.12f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                    )
+
+                    // Event type (if present)
+                    message.eventType?.let { eventType ->
+                        Text(
+                            eventType,
+                            color = ClapiColors.Tertiary,
+                            fontSize = 10.sp,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(ClapiColors.Tertiary.copy(alpha = 0.10f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                        )
+                    }
+                }
+
+                // Timestamp
+                Text(
+                    formatTimestampShort(message.timestamp),
+                    color = ClapiColors.OnSurfaceDim,
+                    fontSize = 10.sp,
+                    fontFamily = CodeFontFamily,
+                )
+            }
+
+            Spacer(Modifier.height(4.dp))
+
+            // Message content
+            Text(
+                text = message.content,
+                color = ClapiColors.OnSurface,
+                fontSize = 12.sp,
+                fontFamily = CodeFontFamily,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+            )
+        }
     }
 }
 
@@ -534,55 +537,57 @@ private fun MessageRow(message: RealtimeMessage) {
 
 @Composable
 private fun ProtocolsInfoView(protocol: RealtimeProtocol) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            "${protocol.label} Protocol",
-            color = ClapiColors.OnSurface,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.SemiBold,
-        )
+    SelectionContainer {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                "${protocol.label} Protocol",
+                color = ClapiColors.OnSurface,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
 
-        val description = when (protocol) {
-            RealtimeProtocol.WEBSOCKET -> "WebSocket provides full-duplex communication channels over a single TCP connection. " +
-                    "It enables real-time data flow between client and server.\n\n" +
-                    "• Bidirectional communication\n" +
-                    "• Low latency\n" +
-                    "• Uses ws:// or wss:// protocol\n" +
-                    "• Persistent connection"
+            val description = when (protocol) {
+                RealtimeProtocol.WEBSOCKET -> "WebSocket provides full-duplex communication channels over a single TCP connection. " +
+                        "It enables real-time data flow between client and server.\n\n" +
+                        "• Bidirectional communication\n" +
+                        "• Low latency\n" +
+                        "• Uses ws:// or wss:// protocol\n" +
+                        "• Persistent connection"
 
-            RealtimeProtocol.SSE -> "Server-Sent Events (SSE) enables servers to push data to clients over HTTP. " +
-                    "It's a one-way communication channel from server to client.\n\n" +
-                    "• Server-to-client only\n" +
-                    "• Uses standard HTTP\n" +
-                    "• Auto-reconnection built-in\n" +
-                    "• Event types and IDs"
+                RealtimeProtocol.SSE -> "Server-Sent Events (SSE) enables servers to push data to clients over HTTP. " +
+                        "It's a one-way communication channel from server to client.\n\n" +
+                        "• Server-to-client only\n" +
+                        "• Uses standard HTTP\n" +
+                        "• Auto-reconnection built-in\n" +
+                        "• Event types and IDs"
 
-            RealtimeProtocol.SOCKETIO -> "Socket.IO enables real-time, bidirectional communication between web clients and servers. " +
-                    "It uses WebSocket when possible and falls back to HTTP long-polling.\n\n" +
-                    "• Event-driven communication\n" +
-                    "• Automatic reconnection\n" +
-                    "• Room/namespace support\n" +
-                    "• Binary data support"
+                RealtimeProtocol.SOCKETIO -> "Socket.IO enables real-time, bidirectional communication between web clients and servers. " +
+                        "It uses WebSocket when possible and falls back to HTTP long-polling.\n\n" +
+                        "• Event-driven communication\n" +
+                        "• Automatic reconnection\n" +
+                        "• Room/namespace support\n" +
+                        "• Binary data support"
 
-            RealtimeProtocol.MQTT -> "MQTT (Message Queuing Telemetry Transport) is a lightweight messaging protocol. " +
-                    "It's designed for constrained devices and low-bandwidth, high-latency networks.\n\n" +
-                    "• Publish/Subscribe model\n" +
-                    "• Quality of Service levels (0, 1, 2)\n" +
-                    "• Topic-based routing\n" +
-                    "• Retained messages"
+                RealtimeProtocol.MQTT -> "MQTT (Message Queuing Telemetry Transport) is a lightweight messaging protocol. " +
+                        "It's designed for constrained devices and low-bandwidth, high-latency networks.\n\n" +
+                        "• Publish/Subscribe model\n" +
+                        "• Quality of Service levels (0, 1, 2)\n" +
+                        "• Topic-based routing\n" +
+                        "• Retained messages"
+            }
+
+            Text(
+                description,
+                color = ClapiColors.OnSurfaceVariant,
+                fontSize = 13.sp,
+                lineHeight = 20.sp,
+            )
         }
-
-        Text(
-            description,
-            color = ClapiColors.OnSurfaceVariant,
-            fontSize = 13.sp,
-            lineHeight = 20.sp,
-        )
     }
 }
 

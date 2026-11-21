@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import io.github.makeforge.clapi.ui.shared.platform.PlatformColumnVerticalScrollbar
 import androidx.compose.material3.Button
@@ -482,11 +483,13 @@ private fun OAuth2TokenInspectionSection(
                     .padding(8.dp)
                     .testTag("auth-oauth2-error-banner"),
             ) {
-                Text(
-                    text = tab.authOAuth2FetchError ?: "",
-                    color = ClapiColors.Error,
-                    fontSize = 12.sp,
-                )
+                SelectionContainer {
+                    Text(
+                        text = tab.authOAuth2FetchError ?: "",
+                        color = ClapiColors.Error,
+                        fontSize = 12.sp,
+                    )
+                }
             }
         }
 

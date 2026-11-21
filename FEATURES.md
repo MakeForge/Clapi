@@ -1,284 +1,205 @@
 # Clapi Features
 
-Clapi is a desktop-first API testing tool built with Kotlin and Compose Multiplatform. It is designed for fast request iteration, scriptable validations, and reproducible API test workflows.
+Clapi is a desktop-first API testing and development tool built with Kotlin and Compose Multiplatform. It is designed for fast request iteration, multi-protocol execution, scriptable validations, and reproducible API workflows across macOS, Linux, and Windows.
+
+---
 
 ## Overview
 
-Clapi supports end-to-end API testing with:
+Clapi provides an end-to-end API workspace supporting:
 
-- HTTP request authoring and execution
-- GraphQL request authoring, payload variants, and execution
-- WebSocket request authoring, message variants, and live bi-directional streaming
-- Pre-request scripting
-- Post-request scripting
-- Multi-scope variables (environment, global, collection, request-local)
-- Assertion-based response validation
-- Reusable collections and environments
-- Deterministic local sample server for testing
+- **Multi-Protocol Execution**: HTTP/1.1, HTTP/2, Server-Sent Events (SSE), NDJSON, GraphQL, WebSocket streaming, and gRPC unary calls.
+- **Model Context Protocol (MCP)**: Native MCP client for Streamable HTTP, legacy HTTP+SSE, and desktop stdio with tool execution, resource reading/subscriptions, prompts, and JSON-RPC traffic inspection.
+- **Git-Backed Collection Synchronization**: Direct repository synchronization (commit, push, pull, branch tracking) using system Git credentials.
+- **Multi-Cloud Secret Managers**: External secret resolution with AWS Secrets Manager, Azure Key Vault, Google Cloud Secret Manager (GCP), Keeper Security Cloud, KeePassXC, and HashiCorp Vault.
+- **Environment Inheritance & Styling**: Base/sub-environment hierarchy with variable overrides, quick-add inline rows, and custom visual color-coding.
+- **Typed & Dynamic Variables**: Built-in dynamic variables, user-defined scriptable dynamic variables with arguments, and template-aware JSON validation for unquoted expressions.
+- **Comprehensive Import / Export**: First-class support for OpenCollection (JSON/YAML), OpenAPI (2.0 / 3.0 / 3.1), Postman Collections (v2 / v2.1) & Environments, and Insomnia (v5) workspaces.
+- **Modern Script Runtime**: Fast JavaScript engine powered by Javet V8 for pre-request mutations, post-response assertions, gRPC lifecycle hooks, and dynamic variable computation.
+- **High-Performance Code Editor**: Virtualized Compose editor with syntax highlighting (JSON, GraphQL, XML, HTML, JavaScript), brace/tag folding, find/replace, formatting, and diagnostics.
+- **Embedded Sample Server**: Local deterministic Ktor server for offline testing across all protocols, auth flows, streaming, and LLM completions.
+
+---
 
 ## Supported Features
 
-### HTTP Request Execution
+### 1. HTTP Request Execution
 
-- HTTP methods: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`, `HEAD`
-- URL editing with query parameter table synchronization
-- Header editing and request body editing
-- Request body support for JSON, GraphQL, form-style payloads, and raw text
-- JSON bodies accept JSON5 by default (comments, trailing commas, unquoted keys). Send converts to strict JSON; turn off in Settings to restore strict JSON.
-- Authentication modes: None, Basic, Bearer, API Key, JWT, and OAuth 2.0 (Client Credentials, Resource Owner Password Credentials, Authorization Code, Implicit)
-- **OAuth 2.0 Support**:
-  - OpenCollection specification compliant OAuth2 configuration for requests, folders, and collections.
-  - Interactive "Fetch Tokens" action in the Auth Editor with one-click clipboard copying for Access Token, Refresh Token, and Identity Token.
-  - Full support for dynamic variables (`{{var}}`) and external secrets (`@secret{...}`) across all credential and URL fields.
-  - Client credentials placement options: Basic Auth header (`Authorization: Basic ...`) or request body (`client_id` / `client_secret`).
-  - Automatic pre-flight token expiration check (including clock-skew safety buffer and JWT `exp` parsing) and seamless in-flight auto-refresh prior to request execution.
-- Retry controls and timeout behavior
-- HTTP streaming for SSE (`text/event-stream`) and NDJSON (OpenAI-style `"stream": true`). Items with `Accept: text/event-stream` show an **SSE** badge in the HTTP method color; folder ⋮ → **New SSE Request**.
-- **MCP client** for Streamable HTTP (2025-06-18), legacy HTTP+SSE, and desktop stdio. Tools (Form/JSON arguments), resources (read + subscribe), prompts, Activity JSON-RPC inspector, sampling/roots/elicitation, and auth (None, Basic, Bearer, API Key, JWT) match the REST workspace. See [docs/mcp.md](docs/old/mcp.md).
-- Copy request as `curl`
+- **HTTP Methods**: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`, `HEAD`.
+- **URL & Query Parameter Editor**: Two-way synchronization between URL query strings and the structured key-value parameter table.
+- **Header & Body Editor**: Header management with variable interpolation; payload support for JSON, GraphQL, URL-encoded forms, multipart form-data, and raw text.
+- **JSON5 Support**: JSON bodies accept JSON5 by default (comments, trailing commas, unquoted keys, single quotes). Transmitted as strict JSON on Send; toggleable in Settings.
+- **Authentication Modes**:
+  - None, Basic Auth, Bearer Token, API Key, JWT.
+  - **OAuth 2.0**: Full OpenCollection specification compliance (Client Credentials, Resource Owner Password Credentials, Authorization Code, Implicit). Interactive "Fetch Tokens" action with one-click clipboard copying, dynamic variable (`{{var}}`) and external secret (`@secret{...}`) support, Basic header or request body placement, automatic token expiration checks with clock-skew buffer, and seamless in-flight auto-refresh.
+  - Collection and Folder authentication inheritance.
+- **Streaming & LLM Inspection**:
+  - Server-Sent Events (SSE via `text/event-stream`) and NDJSON (OpenAI-style `"stream": true`).
+  - Items with `Accept: text/event-stream` show an **SSE** badge.
+  - Live assembled text preview with time-to-first-token, time-to-last-token, and individual event log inspection.
+- **Retry Controls & Timeouts**: Configurable request timeout, redirect policy, and connection settings.
+- **cURL Integration**: One-click "Copy as cURL" generating ready-to-run shell commands.
 
-### GraphQL Request Authoring and Execution
+### 2. Model Context Protocol (MCP) Client
 
-- First-class GraphQL request type (`RequestKind.GRAPHQL`) with dedicated `GQL` magenta badge (`#e10098`) across sidebar tree nodes, tab headers, and creation dialogs.
-- Full OpenCollection v1.0.0 compliance with bidirectional import/export round-trip (`GraphQLRequestItem`, `GraphQLRequestDetails`, `GraphQLBodyPayload`, `GraphQLBody`, `GraphQLBodyVariant`, `GraphQLRequestSettings`).
-- Legacy HTTP requests with GraphQL bodies automatically upgraded to first-class GraphQL requests.
-- Protocol options: POST (JSON envelope with `query`, `variables`, and `operationName`) or GET (URL query parameters).
-- Dedicated multi-tab authoring workspace:
-  - **Params & Headers**: URL query parameter table and custom header key-value editors with interpolation.
+- **Transports**: Streamable HTTP (2025-06-18 spec), legacy HTTP+SSE, and desktop stdio command execution.
+- **Tool Execution**: Interactive form and raw JSON argument authoring, invocation, and response formatting.
+- **Resources**: Browse available server resources, read contents, and subscribe to real-time resource updates.
+- **Prompts**: Inspect prompt templates and test prompt generation with parameter inputs.
+- **Activity Log**: Full bi-directional JSON-RPC frame inspector with request/response payloads, timing, and error details.
+- **Capabilities & Auth**: Support for sampling, roots, elicitation, and authentication (None, Basic, Bearer, API Key, JWT).
+- **Product Guide**: See [docs/request-types/mcp/index.md](docs/request-types/mcp/index.md).
+
+### 3. gRPC Request Authoring and Execution
+
+- **First-Class Request Type**: Dedicated `RequestKind.GRPC` with distinct `gRPC` badge (`#00897B`) across the sidebar, tab bar, and creation dialogs.
+- **Dynamic Client (No Code-Gen Required)**: Powered by Netty and ProtocJarParser, compiling Protocol Buffer (`.proto`) definitions on the fly without generating static stubs.
+- **Proto Schema Management**:
+  - Request-level `.proto` file selection.
+  - Collection-level and folder-level `.proto` inheritance.
+  - Custom protobuf import path resolution (`importPaths`).
+  - Automatic method discovery parsing available services and unary RPC methods.
+- **Message Authoring**: High-performance JSON message payload editor with syntax highlighting, schema validation, line numbers, and formatting.
+- **Metadata & Headers**: Key-value metadata table with dynamic variable interpolation (`{{var}}`).
+- **Authentication**: Bearer Token, Basic Auth, API Key, and inherited collection/folder credentials automatically converted to gRPC call metadata.
+- **Lifecycle Scripts**: Pre- and post-call hooks including `grpc:before-call-start`, `grpc:after-call-end`, `grpc:before-message-send`, and `grpc:after-message-receive`.
+- **Response Inspection**: Structured status code (e.g. `OK`, `NOT_FOUND`), status message, response headers, trailing metadata, JSON response payload, and round-trip latency.
+
+### 4. GraphQL Request Authoring and Execution
+
+- **First-Class Request Type**: `RequestKind.GRAPHQL` with dedicated magenta `GQL` badge (`#E10098`).
+- **Protocols**: POST with JSON envelope (`query`, `variables`, `operationName`) or GET via URL query parameters.
+- **Multi-Tab Workspace**:
+  - **Params & Headers**: Query parameter table and custom header editors with variable interpolation.
   - **Auth**: None, Basic, Bearer, API Key, OAuth 2.0, and Inherit modes.
   - **Body**: Dual syntax-highlighted editor with line numbers for GraphQL query (`highlightGraphql`) and JSON variables (`highlightJson`), brace folding, and query formatting ("Prettify").
   - **Body Variants**: Reusable named query/variables variants with variant creation, deletion, renaming, selection, and persistent active state.
-  - **Scripts**: Pre-request and post-response test scripts and assertions execution.
-  - **Settings & Docs**: Timeout, URL encoding, redirects controls, and Markdown documentation.
-- Integrated execution and response inspection via `ResponseViewer` displaying status code, latency timing, response headers, and formatted JSON data.
+  - **Scripts & Settings**: Pre-request and post-response assertion execution, timeout controls, and Markdown documentation.
+- **Response Inspection**: Integrated `ResponseViewer` displaying status code, latency, headers, and formatted JSON output.
 
-### WebSocket Request Authoring and Execution
+### 5. WebSocket Request Authoring and Execution
 
-- First-class WebSocket request type (`RequestKind.WEBSOCKET`) with dedicated `WS` blue badge (`#0288D1`) across tree nodes and editor tabs.
-- Full OpenCollection v1.0.0 compliance with bidirectional import/export round-trip (`WebSocketRequestItem`, `WebSocketRequestDetails`, `WebSocketMessageVariant`, `WebSocketRequestSettings`).
-- Legacy HTTP requests with `ws://` or `wss://` URLs automatically upgraded on import.
-- Interactive connection lifecycle: Connect, Disconnect, Clear timeline, and live connection status indicator (Disconnected, Connecting, Connected, Closing, Error).
-- Message authoring with multiple format support: Plain text, JSON, XML, Binary (hex/Base64).
-- Reusable named Message Variants with selector, variant creation, deletion, and persistent state.
-- Real-time bi-directional message timeline displaying timestamp, direction (incoming/outgoing), format, payload, and byte length, capped at 1,000 frames FIFO with auto-scroll.
-- Configuration of custom connection headers, query parameters, auth (Bearer, Basic, API Key), timeout, and keep-alive ping intervals.
+- **First-Class Request Type**: `RequestKind.WEBSOCKET` with dedicated blue `WS` badge (`#0288D1`).
+- **Connection Lifecycle**: Interactive Connect, Disconnect, Clear timeline, and live status indicator (Disconnected, Connecting, Connected, Closing, Error).
+- **Message Formats**: Plain text, JSON, XML, and Binary (hex / Base64).
+- **Message Variants**: Named reusable message variants with selector, quick switching, and persistent state.
+- **Live Timeline**: Real-time bi-directional message timeline displaying timestamp, direction (incoming/outgoing), format, payload, and byte length, capped at 1,000 frames FIFO with auto-scroll.
+- **Configuration**: Custom connection headers, query parameters, auth (Bearer, Basic, API Key), connection timeout, and keep-alive ping intervals.
 
-### External Secret Managers (KeePassXC, HashiCorp Vault & Keeper Security Cloud)
+### 6. Git-Backed Collection Synchronization
 
-- Support for referencing external secrets dynamically across request URLs, headers, bodies, and auth configurations using `{{_secret.<name>}}` and `secret: true` environment variables.
-- **KeePassXC Integration**:
-  - Connects to locally running KeePassXC via native messaging proxy (`org.purejava:keepassxc-proxy-access:1.3.2`).
-  - Configure Entry URL, Target Field (`password`, `login`, `totp`, or custom attribute), and optional Custom Field Filters supporting variable interpolation.
-  - Live, non-leaking match count indicator in the Environment Editor displaying match counts or lock status without exposing secret values.
-  - Clean lifecycle management: zero idle proxy socket or background thread footprint when KeePassXC is not used by the active environment.
-- **HashiCorp Vault Integration**:
+- **Direct Git Sync**: Synchronize collections directly with remote Git repositories (GitHub, GitLab, Bitbucket, self-hosted via HTTPS or SSH) using the system's local Git credentials.
+- **Native YAML Storage**: OpenCollection documents are stored as human-readable YAML files inside dedicated collection folders in the repository.
+- **Sidebar Status Indicator**: Status widget in the bottom-left corner of the sidebar displaying the current active branch name and an uncommitted changes indicator dot.
+- **Git Sync Dialog**:
+  - Lists modified collections and changed files.
+  - Commit message composer.
+  - One-click Commit, Push, and Pull actions.
+- **Selective Protobuf Sync**: Toggle between syncing `.proto` schema files into the repository (`./protobuf/...`) or referencing local workstation paths.
+
+### 7. External Secret Managers (Multi-Cloud & Vaults)
+
+Reference external secrets dynamically across request URLs, headers, bodies, and auth configurations using `{{_secret.<name>}}` and `secret: true` environment variables:
+
+- **AWS Secrets Manager**:
+  - Authenticates via AWS SigV4 signer using Access Key ID, Secret Access Key, optional Session Token, Region, and endpoint override.
+  - Fetches secret strings and key-value JSON entries without persisting raw credentials.
+- **Azure Key Vault**:
+  - Authenticates via Azure Active Directory (Client ID, Client Secret, Tenant ID) or Bearer token.
+  - Fetches secrets by Vault URL, secret name, and optional version tag.
+- **Google Cloud Secret Manager (GCP)**:
+  - Authenticates using Service Account JSON credentials or OAuth tokens.
+  - Accesses secret payloads across GCP projects and version tags.
+- **Keeper Security Cloud (`keeper-security-cloud`)**:
+  - One-Time Token initialization in Settings -> Secrets Manager, storing bound KSM client configuration encrypted on-disk via KSafe.
+  - Supports standard record types (`login`, `serverCredentials` with dotted properties), custom record types, and Keeper Notation (`field/...`, `custom_field/...`).
+- **KeePassXC**:
+  - Connects to locally running KeePassXC via native messaging proxy (`org.purejava:keepassxc-proxy-access`).
+  - Supports Entry URL, Target Field (`password`, `login`, `totp`, custom attribute), custom field filters, and non-leaking live match count indicator.
+- **HashiCorp Vault**:
   - Vault Server (KV v2) integration with path grouping and encrypted token custody.
-- **Keeper Security Cloud Integration (`keeper-security-cloud`)**:
-  - One-Time Token initialization in Settings -> Secrets Manager, storing the bound KSM client configuration encrypted via KSafe while never persisting the one-time token.
-  - Supports standard record types (`login`, `serverCredentials` including dotted `host.hostName` and `host.port` properties), custom record types (e.g., `OAuth Client Credentials`), and Keeper Notation (`field/...`, `custom_field/...`).
-  - Environment Editor integration with Record Title/UID, Target Field (default hint `"password"`), expandable Custom Field Filters (default key hint `'url'`) with variable interpolation, and live match count status indicator.
-  - Lazy SDK/crypto loading and automatic client release when switching away from a Keeper-enabled environment.
 
-### Response Validation and Inspection
+### 8. Environment Management & Inheritance
 
-- Response status code and status text
-- Response headers
-- Response body (`text` and JSON parsing in scripts)
-- Live assembled stream text; RAW view of individual SSE/NDJSON events
-- Response timing (`responseTime`, TTFB, time to first token, time to last token)
-- Response size (`size`)
-- Structured pass/fail test result reporting
+- **Multi-Tier Environment Inheritance**: Environments can extend a parent environment (`extends`), inheriting variables and external secrets while allowing explicit local overrides with clear visual indicators.
+- **Visual Customization**: Assign distinct colors (predefined palette or custom hex code) to environments, rendered as colored dots/badges in the sidebar and environment picker.
+- **Inline Quick-Add Row**: Persistent top row in variable and secret tables for instant entry without scrolling to the bottom.
+- **Instant Creation Workflow**: Adding a new environment automatically expands the Environments sidebar section and opens the editor dialog.
 
-### Code Editor
+### 9. Variable System & Typed Dynamic Variables
 
-Clapi features a full-featured code editor used across request body editing, script editing, and response viewing. All capabilities are built with pure Compose Multiplatform and work cross-platform (macOS, Linux, Windows, Web).
+- **Scopes**: Environment, Global, Collection, Folder, and Request-local (`{{name}}` interpolation).
+- **Variable Kinds**: Regular, Secret (masked values), and Dynamic.
+- **Explicit Variable Data Types**: String, Number, Boolean, and Object.
+- **Built-in Dynamic Variables**: Auto-generated values including `{{$guid}}`, `{{$timestamp}}`, `{{$randomInt}}`, and more.
+- **User-Defined Scriptable Dynamic Variables**: Define custom JavaScript scripts that execute per request to return freshly computed values (e.g., dynamic timestamps, hashes, signatures).
+- **Parameterized Dynamic Variables**: Pass arguments inside template expressions (e.g. `{{secondsFromNow(10)}}`).
+- **Dynamic Variable Editor Dialog**: Side-by-side script editor, parameter configuration table, and interactive test runner sandbox with sample input values and console output.
+- **Request-Aware Dynamic Scripts**: Read-only access to `context.request` (method, URL, headers) to derive signatures and idempotency keys.
+- **Template-Aware JSON Validation**: Code editor recognizes unquoted numeric, boolean, and object variable tokens (e.g., `{"count": {{numberVar}}, "active": {{boolVar}}}`) as valid templates without false syntax errors.
 
-**Syntax Highlighting** — Token-level colorization for:
-- JSON (keys, strings, numbers, booleans, null, braces)
-- XML / HTML (tags, attributes, values, comments, doctypes)
-- GraphQL (keywords, types, fields, directives, comments)
-- JavaScript (keywords, builtins, strings, comments, numbers, operators)
-- Plain text (default)
+### 10. Specification & Collection Import / Export
 
-**Code Folding** — Collapse and expand regions in body, script, and response editors:
-- Brace-based folding for JSON, JavaScript, and GraphQL (`{ }`, `[ ]`)
-- Tag-based folding for XML and HTML (`<tag>...</tag>`)
-- Multi-line comment folding (`/* ... */`, `<!-- ... -->`)
-- Fold All / Unfold All toolbar controls
-- Fold marker badges showing hidden line count
+- **OpenCollection v1.0.0**: Native bidirectional JSON and YAML import and export.
+- **OpenAPI 2.0 / 3.0 / 3.1 Import**: Parses OpenAPI specs (JSON/YAML) into collections, preserving operations, paths, query/path parameters, auth schemes, request bodies, and examples.
+- **Postman Collection v2 / v2.1 Import**:
+  - Converts folders, requests, headers, auth (Bearer, Basic, API Key), bodies (raw JSON, form-data, urlencoded, GraphQL, binary), and scripts.
+  - Automatically translates `pm.*` script namespaces to `clapi.*`, including `pm.sendRequest` and `pm.execution.*`.
+- **Postman Environment Import**: Imports active variable key-value pairs.
+- **Insomnia v5 Export Import (YAML & JSON)**:
+  - Supports Insomnia v5 workspaces (`collection.insomnia.rest/5.0`, `spec.insomnia.rest/5.0`, `environment.insomnia.rest/5.0`).
+  - Converts nested folder trees, HTTP requests, gRPC requests, WebSocket requests, authentication schemes (Basic, Bearer, API Key, AWS SigV4, OAuth2), base environments, and sub-environments.
+  - Automatically converts Insomnia script namespaces (`insomnia.*` to `clapi.*`).
+- **Import Dialog UI**: Prominent format discovery badges (OpenAPI, OpenCollection, Postman, Insomnia) and drag-and-drop YAML/JSON file support.
 
-**Find / Replace** — In-editor search:
-- Case-insensitive find with match count and active-match highlighting
-- Previous / Next (`F3` / `Shift+F3`); `Esc` closes the bar
-- Replace and Replace All in editable editors (one undo step)
+### 11. Code Editor
 
-**Formatting** — Auto-format source code:
-- JSON pretty-print (indented with 2-space indent). With JSON5 on, Format pretty-prints JSON5 and keeps comments, unquoted keys, single quotes, and trailing commas; Send still converts to strict JSON. With JSON5 off, Format is a no-op on invalid JSON.
-- XML / HTML indentation
-- JavaScript formatting (including script editor)
-- Toggle on/off from toolbar
+Clapi includes a built-in code editor built with Compose Multiplatform:
 
-**Editor Features**:
-- Line numbers gutter (all editor modes)
-- Indent guides every 2 spaces; matching `()[]{}` highlight at the caret
-- Go to line (`Cmd/Ctrl+G`); status strip `Ln X, Col Y`
-- Duplicate / move / comment / select current line (see [docs/shortcuts.md](docs/old/shortcuts.md))
-- Diagnostic tick in the gutter with hover tooltip and status-bar message
-- Truncation banner when a line exceeds 50,000 characters
-- Word wrap toggle
-- Copy to clipboard (toolbar button)
-- Download to file (response viewer)
-- Monospace font family
-- Virtualized rendering (LazyColumn) for large responses (>200 lines)
-- Full text selection support in read-only mode
+- **Syntax Highlighting**: Token-level colorization for JSON, XML, HTML, GraphQL, JavaScript, and Plain Text.
+- **Code Folding**: Brace-based folding (`{ }`, `[ ]`), tag-based folding (`<tag>...</tag>`), multi-line comment folding, and Fold All / Unfold All controls.
+- **Find / Replace**: Case-insensitive search, match counter, active match highlighting, next/previous navigation (`F3` / `Shift+F3`), and Replace / Replace All.
+- **Formatting**: Auto-format source code (JSON / JSON5 pretty-print, XML/HTML indentation, JavaScript formatting).
+- **Editor Ergonomics**: Line numbers gutter, indent guides (2 spaces), matching bracket highlights, Go to Line (`Cmd/Ctrl+G`), line manipulation shortcuts, diagnostic tick tooltips, truncation protection for lines >50,000 characters, word wrap toggle, and clipboard copy.
+- **Performance**: Virtualized rendering (`LazyColumn`) handling large responses and payloads smoothly.
 
-### Script Runtime
+### 12. Script Engine & Test Assertions
 
-Clapi provides a JavaScript runtime for request automation.
+- **Modern JavaScript Engine**: Powered by **Javet V8**, providing fast and secure execution for request automation.
+- **Execution Lifecycle**:
+  1. *Pre-request*: Resolve variables, execute pre-request script, mutate outgoing headers/body/params.
+  2. *Execution*: Dispatch request over selected protocol.
+  3. *Post-request*: Populate response context, execute test scripts, evaluate assertion assertions.
+- **Script API Namespaces**:
+  - `clapi.request`: Read request details and mutate outgoing request (`setHeader`, `setQueryParam`, `setMethod`, `setUrl`, `setBody`).
+  - `clapi.response`: Access response code, status, time, size, headers, body (`clapi.response.json()`), and stream events.
+  - `clapi.response.llm`: Access assembled text, finish reason, and usage metrics for streamed LLM calls.
+  - `clapi.environment`, `clapi.globals`, `clapi.collectionVariables`, `clapi.variables`: Get, set, and unset variables.
+  - `clapi.test(name, fn)`: Define named test assertions.
+  - `clapi.expect(...)`: Chai-style BDD assertion chaining (`equal`, `above`, `include`, `have.property`, etc.).
+  - `clapi.console`: Debug logging via `clapi.console.log(...)`.
+  - `clapi.sendRequest`: Programmatically dispatch secondary requests from within scripts.
+  - `clapi.execution`: Control collection execution flow (`setNextRequest`, `skipRequest`).
 
-- **Pre-request scripts**: run before dispatch to mutate outgoing request
-- **Post-request scripts**: run after response to assert behavior
-- Runtime namespace default: `clapi` (global aliases also supported)
-- Console logging via `clapi.console.log(...)`
+### 13. Deterministic Local Sample Server
 
-### Variable System
+The `sample-server` module provides local endpoints for automated testing and manual exploration without external network dependencies:
 
-Clapi supports four variable scopes:
+- **HTTP Verification**: CRUD endpoints, header echoing, payload echoing (JSON, XML, raw, form-data, upload), query parameter validation.
+- **Auth Simulation**: Basic Auth, Bearer Token, API Key, and protected endpoints.
+- **Error & Latency Simulation**: Deterministic HTTP error codes (`/api/error/{code}`), artificial delays (`?mode=slow`, `?ms=`), and large payloads.
+- **LLM Completion Mocks**: OpenAI-compatible `/v1/models`, `/v1/chat/completions` (JSON or SSE stream), `/v1/chat/ndjson`, and `/v1/embeddings` (`?demo=true` enables visible typewriter token arrival).
+- **Streaming & Realtime**: Finite SSE (`/sse`) and WebSocket echo (`/ws`).
+- **MCP Mock Transports**: Streamable HTTP (`/mcp`), legacy SSE (`/mcp/sse`), and MCP stdio launcher with mock tools (`echo`, `add`, `fail`, `slow`, `trigger_sampling`, `trigger_roots`, `trigger_elicitation`, `trigger_ping`).
+- **OAuth 2.1 Server**: Auto-approving authorization endpoint, token endpoint, dynamic client registration, and metadata.
 
-1. **Environment variables**
-   - `clapi.environment.get/set/unset`
-   - Persisted with selected environment/workspace
-2. **Global variables**
-   - `clapi.globals.get/set/unset`
-   - Persisted workspace-wide
-3. **Collection variables**
-   - `clapi.collectionVariables.get/set/unset`
-   - Session-scoped runtime map across requests
-4. **Request-local variables**
-   - `clapi.variables.get/set/unset`
-   - Request-scoped lifecycle (pre-request to post-request for the same request)
+---
 
-Variable interpolation uses `{{name}}` in URL, headers, body, and auth fields.
+## Documentation & References
 
-### Assertions and Test APIs
-
-- Named tests: `clapi.test(name, fn)`
-- Core assertions:
-  - equality: `equal`, `eql`
-  - type/value checks: `true`, `false`, `null`, `undefined`, `ok`, `exist`
-  - numeric checks: `above`, `below`, `at.least`, `at.most`
-  - collections/strings: `include`, `match`, `oneOf`, `lengthOf`, `property`
-  - negation: `not.*`
-
-### Request Mutation APIs
-
-Pre-request scripts can mutate outgoing request values:
-
-- `clapi.request.setHeader(name, value)`
-- `clapi.request.setQueryParam(name, value)`
-- `clapi.request.setMethod(method)`
-- `clapi.request.setUrl(url)`
-- `clapi.request.setBody(content)`
-
-### Collections and Test Automation
-
-- Global OpenCollection document persistence (`workspace.json`) storing Clapi Collections as top-level OpenCollection Folders and environments in `config.environments`
-- Single-collection OpenCollection import/export (JSON/YAML) using `qa-tests/fixtures/clapi-test-collection.json` (includes a **JSON5** folder under Body Types; workspace bundle export/import removed)
-- **Postman Collection v2 / v2.1 import** — auto-detected and converted to OpenCollection format
-  - Folders, requests, headers, auth (bearer / basic / API key), body (raw JSON, form-data, urlencoded, GraphQL, binary), and scripts
-  - Postman `pm.*` script namespace automatically rewritten to `clapi.*`
-   - `pm.sendRequest` rewritten to `clapi.sendRequest` (supported)
-   - `pm.execution.setNextRequest`, `pm.execution.skipRequest`, and `postman.setNextRequest` rewritten to `clapi.execution.*`
-- **Postman Environment import** — name and enabled variables imported; disabled variables skipped
-- Request-level pre-request and post-request scripts in collection items
-- Automated collection validation via `qa-tests/collection-validator.mjs` (JSON5 requests are skipped, not counted as passed; Kotlin `SampleCollectionE2ETest` is the JSON5 send coverage)
-- Deterministic sample-server endpoints for reproducible test runs
-
-### Sample Server
-
-The `sample-server` module provides local endpoints for deterministic API testing, including:
-
-- status endpoints (`/status/200`, `/status/201`)
-- JSON payload endpoints (`/json/user`, `/json/array`, `/json/object`)
-- header and cookie test endpoints (`/headers`, `/cookies`)
-- timing/body endpoints (`/response-time`, `/string-body`, `/echo-body`)
-- additional API routes for QA and integration scenarios
-- OpenAI-compatible LLM mocks (`/v1/models`, `/v1/chat/completions`, `/v1/chat/ndjson`, `/v1/embeddings`)
-- `?demo=true` on chat completions for a visible multi-token SSE stream (`?chunkMs=` overrides delay)
-
-## Scripting Capabilities
-
-### Lifecycle
-
-1. **Pre-request phase**
-   - Resolve variables
-   - Execute pre-request script
-   - Apply request mutations and variable writes
-2. **HTTP execution phase**
-   - Send request with resolved/mutated values
-3. **Post-request phase**
-   - Build response context
-   - Execute post-request script
-   - Produce assertion results and pass/fail status
-
-### Script API Areas
-
-- `clapi.response` (code/status/time/size/body/headers/streamEvents)
-- `clapi.response.llm` (assembledText, finishReason, usage, jsonContent)
-- `clapi.request` (read context + mutation helpers)
-- `clapi.environment`
-- `clapi.globals`
-- `clapi.collectionVariables`
-- `clapi.variables`
-- `clapi.expect`
-- `clapi.test`
-- `clapi.console`
-
-### Script Example
-
-```javascript
-clapi.request.setHeader("X-Request-Id", "req-123")
-clapi.variables.set("localToken", "abc")
-
-clapi.test("status and schema basics", function () {
-  const body = clapi.response.json()
-  clapi.expect(clapi.response.code).to.equal(200)
-  clapi.expect(body).to.have.property("id")
-  clapi.expect(body.name).to.be.ok
-})
-
-clapi.test("streamed chat text", function () {
-  clapi.expect(clapi.response.llm.assembledText).to.include("Hello")
-  clapi.expect(clapi.response.llm.finishReason).to.equal("stop")
-  clapi.expect(clapi.response.streamEvents.length).to.be.above(0)
-})
-```
-
-## Test Automation
-
-Clapi test automation includes:
-
-- module-level automated tests for scripting, network, storage, model, and UI
-- QA E2E tests in `qa-tests`
-- collection-level validator for request scripts and assertions
-- sample-server-assisted deterministic integration coverage
-
-## Example Validation Workflow
-
-```bash
-# 1) Start deterministic sample API
-./gradlew :sample-server:run
-
-# 2) Run core automated suites
-./gradlew :core-scripting:desktopTest :core-network:allTests :core-storage:allTests :core-model:allTests
-
-# 3) Validate request collection against local server
-node qa-tests/collection-validator.mjs
-```
-
-## Notes
-
-- Script runtime is synchronous; asynchronous callbacks are not awaited before request dispatch.
-- Scripts currently apply to HTTP requests only; WebSocket requests do not run pre-request/post-request scripts.
-- Collection variables are session-scoped (not persisted as environment/global workspace values).
-- For full script API details, see `docs/old/scripts`.
+- **VitePress Documentation**: Full documentation site located in `docs/` (run with `npm run docs:dev`).
+- **Installation Guide**: [docs/guide/installation.md](docs/guide/installation.md)
+- **Architecture Reference**: [docs/reference/architecture.md](docs/reference/architecture.md)
+- **MCP Client Guide**: [docs/request-types/mcp/index.md](docs/request-types/mcp/index.md)
+- **Scripting Reference**: [docs/scripting/index.md](docs/scripting/index.md)
+- **Keyboard Shortcuts**: [docs/reference/shortcuts.md](docs/reference/shortcuts.md)

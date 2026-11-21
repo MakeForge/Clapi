@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -674,17 +675,19 @@ fun CodeEditor(
                     }
                     Spacer(Modifier.weight(1f))
                     if (!statusDiag.isNullOrEmpty()) {
-                        Text(
-                            text = statusDiag,
-                            color = ClapiColors.Error,
-                            fontSize = 11.sp,
-                            maxLines = 1,
-                            modifier = Modifier
-                                .widthIn(max = 280.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(ClapiColors.Error.copy(alpha = 0.10f))
-                                .padding(horizontal = 8.dp, vertical = 3.dp),
-                        )
+                        SelectionContainer {
+                            Text(
+                                text = statusDiag,
+                                color = ClapiColors.Error,
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                modifier = Modifier
+                                    .widthIn(max = 280.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(ClapiColors.Error.copy(alpha = 0.10f))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                            )
+                        }
                     }
                 }
             }
