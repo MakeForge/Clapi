@@ -29,8 +29,8 @@ import kotlinx.serialization.json.jsonPrimitive
  *   3. This class parses the JSON result into a [ScriptResult].
  */
 class ClapiScriptEngine(
-    private val evaluator: (String) -> String = ::evaluateJs,
-    private val bootstrapBuilder: (String, ScriptContext, String) -> String = ScriptBootstrap::build,
+    private val evaluator: (String) -> String = DEFAULT_EVALUATOR,
+    private val bootstrapBuilder: (String, ScriptContext, String) -> String = DEFAULT_BOOTSTRAP_BUILDER,
     /**
      * Optional executor for `clapi.sendRequest()` calls from scripts.
      * When null, queued sub-requests are silently ignored (callback never runs).
@@ -40,7 +40,33 @@ class ClapiScriptEngine(
     private val sendRequestExecutor: (suspend (SendRequestSpec) -> SendRequestResult)? = null,
 ) : ScriptEngine {
 
+    private companion object {
+        val DEFAULT_EVALUATOR: (String) -> String = ::evaluateJs
+        val DEFAULT_BOOTSTRAP_BUILDER: (String, ScriptContext, String) -> String = ScriptBootstrap::build
+    }
+
+    private val useDirectGlobals: Boolean =
+        evaluator === DEFAULT_EVALUATOR && bootstrapBuilder === DEFAULT_BOOTSTRAP_BUILDER
+
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
+
+    private suspend fun evaluateProgram(
+        script: String,
+        context: ScriptContext,
+        prefix: String,
+    ): String {
+        return if (useDirectGlobals) {
+            val built = ScriptBootstrap.buildWithExternalBindings(script, context, prefix)
+            withContext(Dispatchers.Default) {
+                evaluateJsWithGlobals(built.source, built.externalGlobals)
+            }
+        } else {
+            val jsProgram = bootstrapBuilder(script, context, prefix)
+            withContext(Dispatchers.Default) {
+                evaluator(jsProgram)
+            }
+        }
+    }
 
     override suspend fun executePreRequestScript(
         script: String,
@@ -63,10 +89,7 @@ class ClapiScriptEngine(
             return ScriptResult(success = true)
         }
         return try {
-            val jsProgram = bootstrapBuilder(script, context, prefix)
-            val resultJson = withContext(Dispatchers.Default) {
-                evaluator(jsProgram)
-            }
+            val resultJson = evaluateProgram(script, context, prefix)
             val baseResult = parseResult(resultJson)
             val pendingSendRequests = parseSendRequests(resultJson)
             if (pendingSendRequests.isNotEmpty() && sendRequestExecutor != null) {
@@ -97,10 +120,7 @@ class ClapiScriptEngine(
                 val callbackSrc = spec.callbackSource ?: continue
                 val callbackScript = buildCallbackUserScript(callbackSrc, subResponse)
                 val callbackCtx = buildCallbackContext(context, merged, subResponse)
-                val callbackProgram = bootstrapBuilder(callbackScript, callbackCtx, prefix)
-                val callbackResultJson = withContext(Dispatchers.Default) {
-                    evaluator(callbackProgram)
-                }
+                val callbackResultJson = evaluateProgram(callbackScript, callbackCtx, prefix)
                 val callbackResult = parseResult(callbackResultJson)
                 merged = mergeResults(merged, callbackResult)
             } catch (e: CancellationException) {

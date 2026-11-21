@@ -38,9 +38,21 @@ data class NmtSummary(
     fun committedFor(categoryName: String): Double =
         categories.firstOrNull { it.name.equals(categoryName, ignoreCase = true) }?.committedMb ?: 0.0
 
-    /** Full Metaspace = Class space + Metadata sub-block. */
+    /** Full Metaspace = top-level Metaspace (JDK 25+) + Class space (or Metadata sub-block on older JDKs). */
     val totalMetaspaceCommittedMb: Double
-        get() = committedFor("Class") + metadataCommittedMb
+        get() {
+            val topLevelMetaspace = committedFor("Metaspace")
+            val classSpace = committedFor("Class")
+            return if (topLevelMetaspace > 0.0) {
+                topLevelMetaspace + classSpace
+            } else {
+                classSpace + metadataCommittedMb
+            }
+        }
+
+    /** Non-heap JVM NMT committed memory (everything tracked by NMT except Java Heap). */
+    val nonHeapCommittedMb: Double
+        get() = (totalCommittedMb - committedFor("Java Heap")).coerceAtLeast(0.0)
 
     /** Memory consumed by JFR Tracing + NMT itself (not present in production). */
     val profilerOverheadCommittedMb: Double
@@ -148,9 +160,17 @@ class ProcessMemorySampler(
         }
         val threads = parseThreadDump(threadDump)
 
-        // Compare against PSS when available (avoids ZGC multi-mapping / shared-lib double counting in VmRSS).
+        // Use resident ZGC heap PSS (from /proc/<pid>/smaps) when available so non-resident committed
+        // ZGC pages don't skew the native off-heap delta or create artificial peak-vs-cooldown jumps.
         val effectiveOsMb = osMetrics.pssMb ?: osMetrics.rssMb
-        val unaccountedNative = nmtSummary?.let { effectiveOsMb - it.totalCommittedMb }
+        val physicalJavaHeapMb = smapsBuckets.firstOrNull { it.name.startsWith("ZGC Java Heap") }?.pssMb
+        val unaccountedNative = nmtSummary?.let { nmt ->
+            if (physicalJavaHeapMb != null) {
+                effectiveOsMb - physicalJavaHeapMb - nmt.nonHeapCommittedMb
+            } else {
+                effectiveOsMb - nmt.totalCommittedMb
+            }
+        }
 
         return MemorySnapshot(
             label = label,

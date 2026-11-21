@@ -42,7 +42,7 @@ class ClapiSutProcess(
             "-Xmx2g",
             "-XX:SoftMaxHeapSize=192m",
             "-XX:+UseZGC",
-            "-XX:ZUncommitDelay=10",
+            "-XX:ZUncommitDelay=5",
             "-XX:+UseStringDeduplication",
             "-Xss256k",
             "-XX:MaxMetaspaceSize=128m",
@@ -59,9 +59,13 @@ class ClapiSutProcess(
             workspaceDir.absolutePath,
         )
 
-        val proc = ProcessBuilder(cmd)
+        val procBuilder = ProcessBuilder(cmd)
             .redirectErrorStream(true)
-            .start()
+        // Limit glibc per-thread malloc arenas on Linux so native memory doesn't fragment across dozens of arenas.
+        if (System.getProperty("os.name").lowercase().contains("linux")) {
+            procBuilder.environment().putIfAbsent("MALLOC_ARENA_MAX", "2")
+        }
+        val proc = procBuilder.start()
         process = proc
         pid = proc.pid()
 

@@ -54,6 +54,11 @@ object LoadTestReportWriter {
                 "- **JFR Sampled Allocations**: ${fmt(jfr.totalSampledAllocationMb)} " +
                     "(${jfr.sampleCount} samples) | **ZGC Uncommits**: ${jfr.zgcUncommitEvents} events (${fmt(jfr.zgcTotalUncommittedMb)})"
             )
+            appendLine(
+                "- **JFR GC Activity**: ${jfr.gcCount} GCs (${jfr.allocationRateGcCount} Allocation Rate) | " +
+                    "${jfr.gcPauseCount} pauses, total ${String.format(Locale.US, "%.2f", jfr.totalGcPauseMs)} ms, " +
+                    "max ${String.format(Locale.US, "%.3f", jfr.maxGcPauseMs)} ms"
+            )
         }
         appendLine()
 
@@ -87,14 +92,21 @@ object LoadTestReportWriter {
             val totalOs = peak.os.pssMb ?: peak.os.rssMb
             val osLabel = if (peak.os.pssMb != null) "OS PSS (Physical RAM)" else "OS RSS"
             val javaHeapCommitted = nmt.committedFor("Java Heap")
+            val physicalJavaHeap = peak.smaps.firstOrNull { it.name.startsWith("ZGC Java Heap") }?.pssMb
+            val effectiveJavaHeap = physicalJavaHeap ?: javaHeapCommitted
             val liveHeap = peak.heapLiveMb
-            val zgcHeadroom = (javaHeapCommitted - liveHeap).coerceAtLeast(0.0)
+            val zgcHeadroom = (effectiveJavaHeap - liveHeap).coerceAtLeast(0.0)
             val metaspace = nmt.totalMetaspaceCommittedMb
             val code = nmt.committedFor("Code")
             val threads = nmt.committedFor("Thread")
             val profiler = nmt.profilerOverheadCommittedMb
-            val otherJvm = (nmt.totalCommittedMb - javaHeapCommitted - metaspace - code - threads - profiler).coerceAtLeast(0.0)
-            val nativeOffHeap = (totalOs - nmt.totalCommittedMb)
+            val otherJvm = (nmt.nonHeapCommittedMb - metaspace - code - threads - profiler).coerceAtLeast(0.0)
+            val nativeOffHeap = peak.unaccountedNativeMb ?: (totalOs - effectiveJavaHeap - nmt.nonHeapCommittedMb)
+            val heapHeadroomNote = if (physicalJavaHeap != null) {
+                "Physical resident ZGC headroom (`memfd:java_heap` ${fmt(physicalJavaHeap)} vs NMT committed ${fmt(javaHeapCommitted)})"
+            } else {
+                "Committed above live set to absorb allocation bursts (see JFR hotspots below)"
+            }
 
             appendLine("## 2. Peak Memory Composition (What Makes Up Peak RAM)")
             appendLine()
@@ -103,13 +115,13 @@ object LoadTestReportWriter {
             appendLine("| Component | Peak MB | Share of $osLabel | Notes |")
             appendLine("|---|---:|---:|---|")
             appendLine("| **Live Java Heap (reachable objects)** | ${fmt(liveHeap)} | ${pct(liveHeap, totalOs)} | Actual retained objects from `GC.class_histogram` |")
-            appendLine("| **ZGC Committed Heap Headroom** | ${fmt(zgcHeadroom)} | ${pct(zgcHeadroom, totalOs)} | Committed above live set to absorb allocation bursts (see JFR hotspots below) |")
-            appendLine("| **JVM Metaspace (Metadata + Class Space)** | ${fmt(metaspace)} | ${pct(metaspace, totalOs)} | Loaded class metadata (`Class` + `Metadata` NMT blocks) |")
+            appendLine("| **ZGC Heap Headroom (Physical)** | ${fmt(zgcHeadroom)} | ${pct(zgcHeadroom, totalOs)} | $heapHeadroomNote |")
+            appendLine("| **JVM Metaspace (Metaspace + Class Space)** | ${fmt(metaspace)} | ${pct(metaspace, totalOs)} | Loaded class metadata (`Metaspace` + `Class` NMT blocks) |")
             appendLine("| **JIT Code Cache** | ${fmt(code)} | ${pct(code, totalOs)} | Compiled native machine code |")
             appendLine("| **JVM Thread Stacks & Metadata** | ${fmt(threads)} | ${pct(threads, totalOs)} | ${peak.threads.totalThreads} threads |")
             appendLine("| **Other JVM NMT (Symbols, CDS, GC, Arenas, Direct)** | ${fmt(otherJvm)} | ${pct(otherJvm, totalOs)} | Shared class space, symbol table, GC structures, internal buffers |")
             appendLine("| **Profiler Overhead (JFR Tracing + NMT)** | ${fmt(profiler)} | ${pct(profiler, totalOs)} | Instrumentation only — **not present in production** |")
-            appendLine("| **Off-Heap Native (V8 / glibc / .so / mmap delta)** | ${fmt(nativeOffHeap)} | ${pct(nativeOffHeap, totalOs)} | `$osLabel - NMT Committed` (see `/proc/<pid>/smaps` below) |")
+            appendLine("| **Off-Heap Native (V8 / glibc / .so / mmap delta)** | ${fmt(nativeOffHeap)} | ${pct(nativeOffHeap, totalOs)} | `$osLabel - Resident ZGC Heap - Non-Heap NMT` (see `/proc/<pid>/smaps` below) |")
             appendLine()
         }
 

@@ -11,6 +11,11 @@ package io.github.makeforge.clapi.core.scripting
  *
  * The returned string is fed into [evaluateJs] on each platform.
  */
+internal data class BuiltScript(
+    val source: String,
+    val externalGlobals: Map<String, String?> = emptyMap(),
+)
+
 internal object ScriptBootstrap {
 
     /**
@@ -21,16 +26,42 @@ internal object ScriptBootstrap {
         userScript: String,
         context: ScriptContext,
         prefix: String,
-    ): String {
+    ): String = buildInternal(userScript, context, prefix, useExternalLargeBindings = false).source
+
+    /**
+     * Builds a JavaScript IIFE where potentially large string fields (`responseBody`,
+     * `requestBody`, `assembledText`) are passed as direct engine global bindings rather than
+     * escaped into JS source literals, avoiding multi-MB string escaping and JS lexer overhead.
+     */
+    fun buildWithExternalBindings(
+        userScript: String,
+        context: ScriptContext,
+        prefix: String,
+    ): BuiltScript = buildInternal(userScript, context, prefix, useExternalLargeBindings = true)
+
+    private fun buildInternal(
+        userScript: String,
+        context: ScriptContext,
+        prefix: String,
+        useExternalLargeBindings: Boolean,
+    ): BuiltScript {
+        val externalGlobals = if (useExternalLargeBindings) {
+            mapOf(
+                "__clapi_rb" to context.responseBody,
+                "__clapi_rqb" to context.requestBody,
+                "__clapi_at" to context.assembledText,
+            )
+        } else {
+            emptyMap()
+        }
+
         val estimatedCapacity = RUNTIME_JS.length +
             GLOBAL_ALIASES.length +
             userScript.length +
-            (context.responseBody?.length ?: 0) +
-            (context.requestBody?.length ?: 0) +
-            (context.assembledText?.length ?: 0) +
+            (if (useExternalLargeBindings) 0 else (context.responseBody?.length ?: 0) + (context.requestBody?.length ?: 0) + (context.assembledText?.length ?: 0)) +
             1024
 
-        return buildString(estimatedCapacity) {
+        val source = buildString(estimatedCapacity) {
             // ── Opening IIFE ──────────────────────────────────────────────────
             append("(function(){")
             append("'use strict';")
@@ -38,20 +69,32 @@ internal object ScriptBootstrap {
             // ── Inject context data as JS vars (single-pass direct append) ────
             append("var __sc=").append(context.statusCode ?: "null").append(";")
             append("var __st="); appendJsString(statusText(context.statusCode)); append(";")
-            append("var __rb="); appendJsString(context.responseBody); append(";")
+            if (useExternalLargeBindings) {
+                append("var __rb=globalThis.__clapi_rb;")
+            } else {
+                append("var __rb="); appendJsString(context.responseBody); append(";")
+            }
             append("var __rt=").append(context.responseTimeMs ?: "null").append(";")
             append("var __rs=").append(context.responseSizeBytes ?: "null").append(";")
             append("var __rh="); appendJsObject(context.responseHeaders); append(";")
             append("var __ru="); appendJsString(context.url); append(";")
             append("var __rm="); appendJsString(context.method); append(";")
-            append("var __rqb="); appendJsString(context.requestBody); append(";")
+            if (useExternalLargeBindings) {
+                append("var __rqb=globalThis.__clapi_rqb;")
+            } else {
+                append("var __rqb="); appendJsString(context.requestBody); append(";")
+            }
             append("var __rqh="); appendJsObject(context.requestHeaders); append(";")
             append("var __rqp="); appendJsObject(context.requestQueryParams); append(";")
             append("var __ev="); appendJsObject(context.variables); append(";")
             append("var __gv="); appendJsObject(context.globalVariables); append(";")
             append("var __cv="); appendJsObject(context.collectionVariables); append(";")
             append("var __se="); appendJsStringArray(context.streamEvents); append(";")
-            append("var __at="); appendJsString(context.assembledText); append(";")
+            if (useExternalLargeBindings) {
+                append("var __at=globalThis.__clapi_at;")
+            } else {
+                append("var __at="); appendJsString(context.assembledText); append(";")
+            }
 
             // ── Runtime (constant) ────────────────────────────────────────────
             append(RUNTIME_JS)
@@ -69,6 +112,8 @@ internal object ScriptBootstrap {
             append("return JSON.stringify(__r);")
             append("})()")
         }
+
+        return BuiltScript(source = source, externalGlobals = externalGlobals)
     }
 
     // ── JS helpers (zero-copy single-pass writers) ────────────────────────

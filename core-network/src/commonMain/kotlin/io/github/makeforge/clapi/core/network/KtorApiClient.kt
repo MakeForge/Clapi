@@ -36,6 +36,7 @@ import io.ktor.http.contentType
 import io.ktor.http.encodeURLPath
 import io.ktor.http.formUrlEncode
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.utils.io.discard
 import io.ktor.utils.io.readUTF8Line
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -498,17 +499,28 @@ private suspend fun HttpResponse.toResponseDefinition(
     serverMs: Long = -1,
     requestStartTime: Long = -1,
 ): ResponseDefinition {
+    val contentTypeStr = contentType()?.toString()
+    val sizeFromHeader = headers[HttpHeaders.ContentLength]?.toLongOrNull() ?: -1L
     val bodyReadStart = currentTimeMillis()
-    val bodyText = runCatching { bodyAsText() }.getOrElse { "" }
+    val bodyText: String
+    val measuredBytes: Long
+    if (isBinaryContentType(contentTypeStr)) {
+        // Drain binary stream in chunks without decoding into a multi-MB UTF-16 String.
+        val drainedBytes = runCatching { bodyAsChannel().discard() }.getOrElse { 0L }
+        measuredBytes = if (sizeFromHeader > 0) sizeFromHeader else drainedBytes
+        bodyText = "[Binary payload: ${contentTypeStr ?: "application/octet-stream"}, $measuredBytes bytes]"
+    } else {
+        bodyText = runCatching { bodyAsText() }.getOrElse { "" }
+        measuredBytes = if (sizeFromHeader > 0) sizeFromHeader else bodyText.utf8ByteLength()
+    }
     val bodyReadEnd = currentTimeMillis()
     val downloadMs = bodyReadEnd - bodyReadStart
     val responseHeaders = headers.entries().flatMap { (name, values) ->
         values.map { value -> KeyValueEntry(name, value) }
     }
     val cookies = responseHeaders.filter { it.key.equals(HttpHeaders.SetCookie, ignoreCase = true) }
-    val sizeFromHeader = headers[HttpHeaders.ContentLength]?.toLongOrNull() ?: -1L
-    val responseSize = if (sizeFromHeader > 0) sizeFromHeader else bodyText.utf8ByteLength()
-    val assembled = if (bodyText.length <= MAX_LLM_ASSEMBLE_BODY_CHARS && LlmTextAssembler.mayContainLlmEnvelope(bodyText)) {
+    val responseSize = measuredBytes
+    val assembled = if (!isBinaryContentType(contentTypeStr) && bodyText.length <= MAX_LLM_ASSEMBLE_BODY_CHARS && LlmTextAssembler.mayContainLlmEnvelope(bodyText)) {
         LlmTextAssembler.assembleFromBody(bodyText)
     } else {
         ""
@@ -521,7 +533,7 @@ private suspend fun HttpResponse.toResponseDefinition(
         headers = responseHeaders,
         cookies = cookies,
         bodyText = bodyText,
-        contentType = contentType()?.toString(),
+        contentType = contentTypeStr,
         executedAtEpochMillis = currentTimeMillis(),
         metrics = ResponseMetrics(
             statusCode = status.value,
@@ -533,6 +545,25 @@ private suspend fun HttpResponse.toResponseDefinition(
         ),
         assembledText = assembled.ifBlank { null },
     )
+}
+
+private val BINARY_MIME_PREFIXES = listOf(
+    "image/",
+    "audio/",
+    "video/",
+    "application/octet-stream",
+    "application/pdf",
+    "application/zip",
+    "application/gzip",
+    "application/x-tar",
+    "application/protobuf",
+    "application/x-protobuf",
+)
+
+private fun isBinaryContentType(contentType: String?): Boolean {
+    if (contentType.isNullOrBlank()) return false
+    val lower = contentType.trim().lowercase()
+    return BINARY_MIME_PREFIXES.any { lower.startsWith(it) }
 }
 
 private fun HttpResponse.headerEntries(): List<KeyValueEntry> =

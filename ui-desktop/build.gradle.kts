@@ -189,9 +189,9 @@ nucleus.application {
     jvmArgs += listOf(
         "-Xms64m",
         "-Xmx2g",                        // High ceiling so large JSON/binary responses never crash the app
-        "-XX:SoftMaxHeapSize=192m",      // ZGC aggressively keeps idle heap at or below 192 MB
+        "-XX:SoftMaxHeapSize=192m",      // ZGC keeps idle heap at/below 192 MB without excessive GC CPU churn
         "-XX:+UseZGC",
-        "-XX:ZUncommitDelay=10",         // Returns spike RAM back to OS 10 seconds after closing a big tab
+        "-XX:ZUncommitDelay=5",          // Returns spike RAM back to OS 5 seconds after closing a big tab
         "-XX:+UseStringDeduplication",   // Huge win for JSON payloads with repeated keys ("id", "type", "created_at")
         "-Xss256k",
         "-XX:MaxMetaspaceSize=128m",

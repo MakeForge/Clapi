@@ -7,21 +7,34 @@ import io.github.makeforge.clapi.mcp.server.backend.MAX_BODY_LENGTH
 import io.github.makeforge.clapi.mcp.server.backend.MIN_BODY_LENGTH
 
 /**
- * Thread-safe in-memory LRU cache (`max 50 requests`) storing sanitized [ExecutionSnapshot] instances
- * keyed by request UUID.
+ * Thread-safe in-memory LRU cache (`max 50 requests`, `max 32 MB` total body text) storing sanitized
+ * [ExecutionSnapshot] instances keyed by request UUID.
  */
 class ResponseSnapshotCache(
     private val maxEntries: Int = 50,
+    private val maxTotalBytes: Long = 32L * 1024L * 1024L,
 ) {
     private val lock = Any()
-    private val map = object : LinkedHashMap<String, ExecutionSnapshot>(16, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, ExecutionSnapshot>?): Boolean =
-            size > maxEntries
-    }
+    private var currentBytes: Long = 0L
+    private val map = LinkedHashMap<String, ExecutionSnapshot>(16, 0.75f, true)
+
+    private fun estimateBytes(snapshot: ExecutionSnapshot): Long =
+        snapshot.sanitizedBodyText.length.toLong() * 2L
 
     fun put(snapshot: ExecutionSnapshot) {
         synchronized(lock) {
+            map.remove(snapshot.requestId)?.let { prev ->
+                currentBytes = (currentBytes - estimateBytes(prev)).coerceAtLeast(0L)
+            }
             map[snapshot.requestId] = snapshot
+            currentBytes += estimateBytes(snapshot)
+
+            val iter = map.entries.iterator()
+            while (iter.hasNext() && (map.size > maxEntries || (currentBytes > maxTotalBytes && map.size > 1))) {
+                val eldest = iter.next()
+                currentBytes = (currentBytes - estimateBytes(eldest.value)).coerceAtLeast(0L)
+                iter.remove()
+            }
         }
     }
 
@@ -32,19 +45,27 @@ class ResponseSnapshotCache(
 
     fun remove(requestId: String) {
         synchronized(lock) {
-            map.remove(requestId)
+            map.remove(requestId)?.let { prev ->
+                currentBytes = (currentBytes - estimateBytes(prev)).coerceAtLeast(0L)
+            }
         }
     }
 
     fun clear() {
         synchronized(lock) {
             map.clear()
+            currentBytes = 0L
         }
     }
 
     fun size(): Int =
         synchronized(lock) {
             map.size
+        }
+
+    fun estimatedTotalBytes(): Long =
+        synchronized(lock) {
+            currentBytes
         }
 
     companion object {
@@ -129,7 +150,7 @@ class ResponseSnapshotCache(
             )
         }
 
-        private fun utf8ByteLength(s: String): Long {
+        fun utf8ByteLength(s: String): Long {
             var bytes = 0L
             var i = 0
             val len = s.length
