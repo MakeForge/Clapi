@@ -40,6 +40,7 @@ import io.github.makeforge.clapi.core.model.opencollection.WebSocketMessageType
 import io.github.makeforge.clapi.core.model.opencollection.WebSocketMessageVariant
 import io.github.makeforge.clapi.core.network.ConnectionState
 import io.github.makeforge.clapi.ui.shared.components.CodeEditor
+import io.github.makeforge.clapi.ui.shared.components.DialogBasicTextField
 import io.github.makeforge.clapi.ui.shared.components.SyntaxLanguage
 import io.github.makeforge.clapi.ui.shared.components.dialogEscape
 import io.github.makeforge.clapi.ui.shared.components.handPointerHover
@@ -346,7 +347,7 @@ internal fun FormatDropdown(
 }
 
 @Composable
-internal fun RenameVariantDialog(
+fun RenameVariantDialog(
     title: String,
     value: String,
     onValueChange: (String) -> Unit,
@@ -375,7 +376,7 @@ internal fun RenameVariantDialog(
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
             )
-            BasicTextField(
+            DialogBasicTextField(
                 value = value,
                 onValueChange = onValueChange,
                 singleLine = true,

@@ -25,6 +25,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import io.github.makeforge.clapi.ui.shared.components.DialogBasicTextField
+import io.github.makeforge.clapi.ui.shared.components.dialogEscape
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
 import io.github.makeforge.clapi.ui.shared.shortcuts.AppHotkeys
 import io.github.makeforge.clapi.ui.shared.shortcuts.hotkeys
@@ -32,7 +34,7 @@ import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
 import io.github.makeforge.clapi.ui.shared.theme.CodeFontFamily
 
 @Composable
-internal fun RenameItemDialog(
+fun RenameItemDialog(
     title: String,
     value: String,
     onValueChange: (String) -> Unit,
@@ -44,6 +46,7 @@ internal fun RenameItemDialog(
     Dialog(onDismissRequest = onDismiss) {
         Column(
             modifier = modifier
+                .dialogEscape(onDismiss = onDismiss)
                 .widthIn(min = 360.dp, max = 560.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(ClapiColors.Surface)
@@ -56,7 +59,7 @@ internal fun RenameItemDialog(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(title, color = ClapiColors.OnSurface, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-            BasicTextField(
+            DialogBasicTextField(
                 value = value,
                 onValueChange = onValueChange,
                 singleLine = true,

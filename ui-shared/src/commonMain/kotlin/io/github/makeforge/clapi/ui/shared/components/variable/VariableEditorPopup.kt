@@ -45,6 +45,7 @@ import androidx.compose.ui.window.Dialog
 import io.github.makeforge.clapi.ui.shared.components.DirtyCloseDialog
 import io.github.makeforge.clapi.ui.shared.components.VariableAwareTextField
 import io.github.makeforge.clapi.ui.shared.components.VariableHighlightColor
+import io.github.makeforge.clapi.ui.shared.components.autoFocus
 import io.github.makeforge.clapi.ui.shared.components.clampPopupOffsetToViewportF
 import io.github.makeforge.clapi.ui.shared.components.draggableNoSlop
 import io.github.makeforge.clapi.ui.shared.components.normalizeVariableDisplayName
@@ -446,8 +447,10 @@ fun VariableEditorPopup(
                             state = state,
                             tab = tab,
                             excludeVariables = setOf(cleanName),
+                            selectAllOnStart = true,
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .autoFocus()
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(ClapiColors.SurfaceContainer)
                                 .border(1.dp, ClapiColors.BorderLight, RoundedCornerShape(8.dp))

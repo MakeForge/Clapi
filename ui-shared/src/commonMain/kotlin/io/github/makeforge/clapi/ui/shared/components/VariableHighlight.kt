@@ -267,6 +267,7 @@ fun VariableAwareTextField(
     readOnly: Boolean = false,
     extraVariables: List<Pair<String, String>> = emptyList(),
     excludeVariables: Set<String> = emptySet(),
+    selectAllOnStart: Boolean = false,
 ) {
     val normalizedExcludes = remember(excludeVariables) {
         if (excludeVariables.isEmpty()) emptySet()
@@ -321,11 +322,14 @@ fun VariableAwareTextField(
     }
 
     // Internal TextFieldValue that carries the highlighted AnnotatedString.
+    var hasSelectedInitial by remember { mutableStateOf(selectAllOnStart && value.isNotEmpty()) }
     var fieldValue by remember {
+        val annotated = if (state != null || extraVariables.isNotEmpty()) highlightVariablesWithStatus(value, definedNames)
+                        else AnnotatedString(value)
         mutableStateOf(
             TextFieldValue(
-                if (state != null || extraVariables.isNotEmpty()) highlightVariablesWithStatus(value, definedNames)
-                else AnnotatedString(value),
+                annotatedString = annotated,
+                selection = if (selectAllOnStart && value.isNotEmpty()) TextRange(0, value.length) else TextRange.Zero,
             ),
         )
     }
@@ -390,7 +394,12 @@ fun VariableAwareTextField(
     // Use cursor-at-end rather than copy(annotatedString) to avoid a stale selection
     // that is out-of-range for the new value (e.g. switching request tabs).
     LaunchedEffect(value) {
-        if (fieldValue.text != value) {
+        if (!hasSelectedInitial && selectAllOnStart && value.isNotEmpty()) {
+            hasSelectedInitial = true
+            val annotated = if (state != null || extraVariables.isNotEmpty()) highlightVariablesWithStatus(value, definedNames)
+                            else AnnotatedString(value)
+            fieldValue = TextFieldValue(annotatedString = annotated, selection = TextRange(0, value.length))
+        } else if (fieldValue.text != value) {
             val annotated = if (state != null || extraVariables.isNotEmpty()) highlightVariablesWithStatus(value, definedNames)
                             else AnnotatedString(value)
             fieldValue = TextFieldValue(annotatedString = annotated, selection = TextRange(annotated.length))
@@ -440,6 +449,7 @@ fun VariableAwareTextField(
                     undoStack.addLast(fieldValue.text)
                     if (undoStack.size > 100) undoStack.removeFirst()
                 }
+                hasSelectedInitial = true
                 fieldValue = newFieldValue
                 onValueChange(new.text)
 

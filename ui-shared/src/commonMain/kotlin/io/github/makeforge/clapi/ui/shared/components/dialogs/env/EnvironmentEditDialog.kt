@@ -1,6 +1,7 @@
 package io.github.makeforge.clapi.ui.shared.components.dialogs.env
 
 import io.github.makeforge.clapi.ui.shared.components.VariableAwareTextField
+import io.github.makeforge.clapi.ui.shared.components.autoFocus
 import io.github.makeforge.clapi.ui.shared.components.handPointerHover
 import io.github.makeforge.clapi.ui.shared.components.dialogEscape
 import io.github.makeforge.clapi.ui.shared.components.DirtyCloseDialog
@@ -485,6 +486,8 @@ fun EnvironmentEditDialog(
                         onValueChange = { workingName.value = it },
                         placeholder = Strings.t("environment_name"),
                         tag = "env-name-field",
+                        selectAllOnStart = true,
+                        modifier = Modifier.autoFocus(),
                     )
                     Spacer(Modifier.height(12.dp))
 
