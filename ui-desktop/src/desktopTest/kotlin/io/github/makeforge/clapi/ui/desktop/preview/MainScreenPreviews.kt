@@ -8,8 +8,8 @@ import io.github.makeforge.clapi.ui.shared.state.AppTheme
 import io.github.makeforge.clapi.ui.shared.theme.ClapiTheme
 
 // ── HTTP Request Previews ──────────────────────────────────────────────────
-private const val width = 1920
-private const val height = 1080
+private const val width = 1600
+private const val height = 800
 
 @Preview(widthDp = width, heightDp = height)
 @Composable

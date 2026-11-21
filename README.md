@@ -18,12 +18,7 @@
 ---
 
 <p align="center">
-  <img src="docs/screenshots/clapi-screenshot.png" alt="Clapi — dark theme" width="100%" />
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/clapi-screenshot-light.png" alt="Clapi — light theme" width="49%" />
-  <img src="docs/screenshots/clapi-screenshot-light-2.png" alt="Clapi — light theme GraphQL" width="49%" />
+  <img src="docs/public/generated/screenshots/MainScreenPreviewsKt.MainScreenHttpPreviewDark.W1920dp_H1080dp.png" alt="Clapi — dark theme" width="100%" />
 </p>
 
 ---
@@ -66,7 +61,7 @@ You can import these sample fixtures from the repo:
 - Collection sample (OpenCollection v1.0.0): [qa-tests/fixtures/clapi-test-collection.json](qa-tests/fixtures/clapi-test-collection.json)
 - Environment sample: [qa-tests/fixtures/clapi-test-environment.json](qa-tests/fixtures/clapi-test-environment.json)
 
-The collection includes an **LLM (OpenAI-compatible)** folder, an **SSE** folder, and an **MCP (Model Context Protocol)** folder. Start the sample server, then send **LLM Chat Completions Stream (visible)** or an SSE item to watch events arrive, or open an MCP item and Connect. See [docs/mcp.md](docs/mcp.md).
+The collection includes an **LLM (OpenAI-compatible)** folder, an **SSE** folder, and an **MCP (Model Context Protocol)** folder. Start the sample server, then send **LLM Chat Completions Stream (visible)** or an SSE item to watch events arrive, or open an MCP item and Connect. See [docs/mcp.md](docs/old/mcp.md).
 
 ## Features
 
@@ -85,7 +80,7 @@ The collection includes an **LLM (OpenAI-compatible)** folder, an **SSE** folder
 
 Clapi brings [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server testing into the same local-first workspace as your HTTP APIs. Configure a server once, keep it with its collection, and reuse the environments, variable resolution, authentication, and response tooling you already use for REST.
 
-![Clapi MCP client showing a connected server, its tools, typed arguments, and a JSON-RPC result](docs/images/mcp-tools.png)
+![Clapi MCP client showing a connected server, its tools, typed arguments, and a JSON-RPC result](docs/old/images/mcp-tools.png)
 
 **Connect with confidence**
 
@@ -104,7 +99,7 @@ Clapi brings [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) se
 - Configure roots, sampling responses, and elicitation behavior in the Client tab.
 - Save MCP connections in Clapi collections and carry them through Clapi collection import and export.
 
-[Read the MCP guide →](docs/mcp.md) · [Run the included MCP fixtures →](docs/tests.md#mcp-fixtures)
+[Read the MCP guide →](docs/old/mcp.md) · [Run the included MCP fixtures →](docs/old/tests.md#mcp-fixtures)
 
 ### 🔐 External Secret Managers (KeePassXC & HashiCorp Vault)
 
@@ -132,7 +127,7 @@ A full-featured Compose-native code editor — no WebView, no Electron.
 - **Auto-format**: JSON pretty-print, XML/HTML indentation, JavaScript formatting (script editor + body editor)
 - Line numbers gutter, 2-space indent guides, matching-bracket highlight, word wrap, monospace font
 - Status strip (`Ln X, Col Y`), diagnostic gutter ticks, and full-content rendering for very long lines
-- Duplicate / move / comment / select line (see [docs/shortcuts.md](docs/shortcuts.md))
+- Duplicate / move / comment / select line (see [docs/shortcuts.md](docs/old/shortcuts.md))
 - Virtualized rendering (no jank on responses over 10 MB)
 - Full clipboard support (copy, cut, paste, select all) in both edit and read-only modes
 
@@ -157,7 +152,7 @@ clapi.sendRequest({
 })
 ```
 
-See the full guide: [docs/scripts.md](docs/scripts.md)
+See the full guide: [docs/scripts.md](docs/old/scripts.md)
 
 ### 🌱 Variables
 
@@ -201,7 +196,7 @@ Import **Postman Collection v2 / v2.1** and **Postman Environment** files direct
 - Disabled headers and variables are skipped on import
 - `pm.sendRequest` is **fully supported** — translated to `clapi.sendRequest()` automatically
 - `pm.execution.setNextRequest`, `pm.execution.skipRequest`, and `postman.setNextRequest` are translated to `clapi.execution.*`
-- See [docs/scripts.md](docs/scripts.md#8-postman-migration-guide) for the full conversion reference
+- See [docs/scripts.md](docs/old/scripts.md#8-postman-migration-guide) for the full conversion reference
 
 ### ⌨️ Keyboard Shortcuts
 
@@ -215,7 +210,7 @@ Import **Postman Collection v2 / v2.1** and **Postman Environment** files direct
 | `⌘ + N` / `Ctrl + N` | New request tab |
 | `⌘ + ,` / `Ctrl + ,` | Open Settings |
 
-Full shortcut reference (including editor shortcuts): [docs/shortcuts.md](docs/shortcuts.md)
+Full shortcut reference (including editor shortcuts): [docs/shortcuts.md](docs/old/shortcuts.md)
 
 ### ❓ In-App Help
 
@@ -234,13 +229,13 @@ Open from the toolbar `Help` icon or via **Settings → Open Help & About**:
 |---|---|
 | [CHANGELOG.md](CHANGELOG.md) | Release notes |
 | [DEVELOPMENT.md](DEVELOPMENT.md) | Build, run, and contribute locally |
-| [docs/architecture.md](docs/architecture.md) | Module structure and data flow |
-| [docs/editor-architecture.md](docs/editor-architecture.md) | Code editor internals |
-| [docs/mcp.md](docs/mcp.md) | MCP client: tools, resources, prompts, Activity, sampling |
-| [docs/scripts.md](docs/scripts.md) | Scripting API and variable scopes |
-| [docs/shortcuts.md](docs/shortcuts.md) | Keyboard shortcut reference |
-| [docs/testing.md](docs/testing.md) | Test strategy and coverage matrix |
-| [docs/tests.md](docs/tests.md) | Test run commands |
+| [docs/architecture.md](docs/old/architecture.md) | Module structure and data flow |
+| [docs/editor-architecture.md](docs/old/editor-architecture.md) | Code editor internals |
+| [docs/mcp.md](docs/old/mcp.md) | MCP client: tools, resources, prompts, Activity, sampling |
+| [docs/scripts.md](docs/old/scripts.md) | Scripting API and variable scopes |
+| [docs/shortcuts.md](docs/old/shortcuts.md) | Keyboard shortcut reference |
+| [docs/testing.md](docs/old/testing.md) | Test strategy and coverage matrix |
+| [docs/tests.md](docs/old/tests.md) | Test run commands |
 
 ---
 

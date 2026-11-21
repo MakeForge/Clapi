@@ -34,7 +34,7 @@ Clapi supports end-to-end API testing with:
   - Automatic pre-flight token expiration check (including clock-skew safety buffer and JWT `exp` parsing) and seamless in-flight auto-refresh prior to request execution.
 - Retry controls and timeout behavior
 - HTTP streaming for SSE (`text/event-stream`) and NDJSON (OpenAI-style `"stream": true`). Items with `Accept: text/event-stream` show an **SSE** badge in the HTTP method color; folder ⋮ → **New SSE Request**.
-- **MCP client** for Streamable HTTP (2025-06-18), legacy HTTP+SSE, and desktop stdio. Tools (Form/JSON arguments), resources (read + subscribe), prompts, Activity JSON-RPC inspector, sampling/roots/elicitation, and auth (None, Basic, Bearer, API Key, JWT) match the REST workspace. See [docs/mcp.md](docs/mcp.md).
+- **MCP client** for Streamable HTTP (2025-06-18), legacy HTTP+SSE, and desktop stdio. Tools (Form/JSON arguments), resources (read + subscribe), prompts, Activity JSON-RPC inspector, sampling/roots/elicitation, and auth (None, Basic, Bearer, API Key, JWT) match the REST workspace. See [docs/mcp.md](docs/old/mcp.md).
 - Copy request as `curl`
 
 ### GraphQL Request Authoring and Execution
@@ -122,7 +122,7 @@ Clapi features a full-featured code editor used across request body editing, scr
 - Line numbers gutter (all editor modes)
 - Indent guides every 2 spaces; matching `()[]{}` highlight at the caret
 - Go to line (`Cmd/Ctrl+G`); status strip `Ln X, Col Y`
-- Duplicate / move / comment / select current line (see [docs/shortcuts.md](docs/shortcuts.md))
+- Duplicate / move / comment / select current line (see [docs/shortcuts.md](docs/old/shortcuts.md))
 - Diagnostic tick in the gutter with hover tooltip and status-bar message
 - Truncation banner when a line exceeds 50,000 characters
 - Word wrap toggle
@@ -281,4 +281,4 @@ node qa-tests/collection-validator.mjs
 - Script runtime is synchronous; asynchronous callbacks are not awaited before request dispatch.
 - Scripts currently apply to HTTP requests only; WebSocket requests do not run pre-request/post-request scripts.
 - Collection variables are session-scoped (not persisted as environment/global workspace values).
-- For full script API details, see `docs/scripts/api-reference.md`.
+- For full script API details, see `docs/old/scripts`.

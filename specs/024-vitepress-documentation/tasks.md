@@ -23,11 +23,11 @@ description: "Task list for Production VitePress Documentation Site implementati
 
 **Purpose**: Project initialization and basic VitePress structure under `docs/`
 
-- [ ] T001 Initialize npm package and VitePress dependencies in `docs/package.json`
-- [ ] T002 [P] Create initial VitePress configuration file with local search and base URL in `docs/.vitepress/config.mts`
-- [ ] T003 [P] Create Material 3 visual theme and token stylesheet in `docs/.vitepress/theme/custom.css`
-- [ ] T004 [P] Configure custom theme entry point and layout hooks in `docs/.vitepress/theme/index.ts`
-- [ ] T005 [P] Centralize public static branding assets and app icons in `docs/public/logo.svg` and `docs/public/favicon.ico`
+- [X] T001 Initialize npm package and VitePress dependencies in `docs/package.json`
+- [X] T002 [P] Create initial VitePress configuration file with local search and base URL in `docs/.vitepress/config.mts`
+- [X] T003 [P] Create Material 3 visual theme and token stylesheet in `docs/.vitepress/theme/custom.css`
+- [X] T004 [P] Configure custom theme entry point and layout hooks in `docs/.vitepress/theme/index.ts`
+- [X] T005 [P] Centralize public static branding assets and app icons in `docs/public/logo.svg` and `docs/public/favicon.ico`
 
 ---
 
@@ -37,11 +37,11 @@ description: "Task list for Production VitePress Documentation Site implementati
 
 ⚠️ **CRITICAL**: No user story content writing can begin until this phase is complete
 
-- [ ] T006 [P] Create centralized screenshots directory structure in `docs/public/screenshots/` and copy existing screenshots (`clapi-screenshot.png`, `clapi-screenshot-light.png`, `mcp-tools.png`)
-- [ ] T007 [P] Configure Shiki syntax highlighting grammars (Kotlin, Proto, GraphQL, HTTP, JSON5) in `docs/.vitepress/config.mts`
-- [ ] T008 [P] Configure Top Navigation bar hierarchy in `docs/.vitepress/config.mts`
-- [ ] T009 [P] Configure Collapsible Sidebar multi-group hierarchy in `docs/.vitepress/config.mts`
-- [ ] T010 Implement Documentation Landing / Hero Page with quick-links and feature highlights in `docs/index.md`
+- [X] T006 [P] Create centralized screenshots directory structure in `docs/public/screenshots/` and copy existing screenshots (`clapi-screenshot.png`, `clapi-screenshot-light.png`, `mcp-tools.png`)
+- [X] T007 [P] Configure Shiki syntax highlighting grammars (Kotlin, Proto, GraphQL, HTTP, JSON5) in `docs/.vitepress/config.mts`
+- [X] T008 [P] Configure Top Navigation bar hierarchy in `docs/.vitepress/config.mts`
+- [X] T009 [P] Configure Collapsible Sidebar multi-group hierarchy in `docs/.vitepress/config.mts`
+- [X] T010 Implement Documentation Landing / Hero Page with quick-links and feature highlights in `docs/index.md`
 
 **Checkpoint**: Foundation ready — user story implementation can now begin in parallel
 
@@ -55,41 +55,41 @@ description: "Task list for Production VitePress Documentation Site implementati
 
 ### Implementation for User Story 1
 
-- [ ] T011 [P] [US1] Author Getting Started and Installation guide in `docs/guide/installation.md`
-- [ ] T012 [P] [US1] Author 60-Second Quickstart guide in `docs/guide/quickstart.md`
-- [ ] T013 [P] [US1] Author Core Concepts and UI Anatomy guide in `docs/guide/core-concepts.md`
-- [ ] T014 [US1] Author HTTP / REST parent overview page with hero UI screenshot in `docs/request-types/http/index.md`
-- [ ] T015 [P] [US1] Author HTTP URL Parameters and Matrix Params guide in `docs/request-types/http/parameters.md`
-- [ ] T016 [P] [US1] Author HTTP Headers and Cascaded Inheritance guide in `docs/request-types/http/headers.md`
-- [ ] T017 [P] [US1] Author HTTP Request Body Formats (JSON5, Multipart, Form-urlencoded, Raw, Binary) guide in `docs/request-types/http/body.md`
-- [ ] T018 [P] [US1] Author HTTP Authentication Methods (Basic, Bearer, API Key, OAuth 2.0 PKCE, AWS SigV4) in `docs/request-types/http/authentication.md`
-- [ ] T019 [P] [US1] Author HTTP Response Viewer & Performance Metrics Breakdown guide in `docs/request-types/http/response-viewer.md`
-- [ ] T020 [P] [US1] Author cURL Import & Export integration guide in `docs/request-types/http/curl.md`
-- [ ] T021 [US1] Author GraphQL parent overview page with UI screenshot in `docs/request-types/graphql/index.md`
-- [ ] T022 [P] [US1] Author GraphQL Query & Mutation Editor guide in `docs/request-types/graphql/queries.md`
-- [ ] T023 [P] [US1] Author GraphQL Query Variables guide in `docs/request-types/graphql/variables.md`
-- [ ] T024 [P] [US1] Author GraphQL Schema Introspection & Docs Explorer guide in `docs/request-types/graphql/introspection.md`
-- [ ] T025 [P] [US1] Author GraphQL Authentication & Custom Headers guide in `docs/request-types/graphql/auth.md`
-- [ ] T026 [US1] Author WebSocket parent overview page with UI screenshot in `docs/request-types/websocket/index.md`
-- [ ] T027 [P] [US1] Author WebSocket Handshake and Connection Management guide in `docs/request-types/websocket/connection.md`
-- [ ] T028 [P] [US1] Author WebSocket Real-time Message Composer guide in `docs/request-types/websocket/composer.md`
-- [ ] T029 [P] [US1] Author WebSocket Live Message Log & Stream Filtering guide in `docs/request-types/websocket/message-log.md`
-- [ ] T030 [P] [US1] Author WebSocket Connection Lifecycle & Heartbeats guide in `docs/request-types/websocket/lifecycle.md`
-- [ ] T031 [US1] Author gRPC parent overview page with UI screenshot in `docs/request-types/grpc/index.md`
-- [ ] T032 [P] [US1] Author gRPC Protobuf Schema Management & Directory Roots guide in `docs/request-types/grpc/proto-management.md`
-- [ ] T033 [P] [US1] Author gRPC Server Reflection guide in `docs/request-types/grpc/reflection.md`
-- [ ] T034 [P] [US1] Author gRPC Method Selection & RPC Invocation guide in `docs/request-types/grpc/method-invocation.md`
-- [ ] T035 [P] [US1] Author gRPC JSON-to-Protobuf Message Composer guide in `docs/request-types/grpc/message-composer.md`
-- [ ] T036 [P] [US1] Author gRPC Metadata & Custom Headers guide in `docs/request-types/grpc/metadata.md`
-- [ ] T037 [P] [US1] Author gRPC TLS & Client Certificate (mTLS) configuration guide in `docs/request-types/grpc/tls.md`
-- [ ] T038 [US1] Author Model Context Protocol (MCP) parent overview page with screenshot in `docs/request-types/mcp/index.md`
-- [ ] T039 [P] [US1] Author MCP Transports (Streamable HTTP, Legacy SSE, Stdio with Shell PATH) guide in `docs/request-types/mcp/transports.md`
-- [ ] T040 [P] [US1] Author MCP Tools Discovery, Schema Validation & Execution guide in `docs/request-types/mcp/tools.md`
-- [ ] T041 [P] [US1] Author MCP Resources & Real-time Subscriptions guide in `docs/request-types/mcp/resources.md`
-- [ ] T042 [P] [US1] Author MCP Prompts & LLM Sampling guide in `docs/request-types/mcp/prompts.md`
-- [ ] T043 [P] [US1] Author MCP OAuth 2.1 & Dynamic Client Registration guide in `docs/request-types/mcp/auth.md`
-- [ ] T044 [P] [US1] Author MCP Activity Log & JSON-RPC Protocol Inspector guide in `docs/request-types/mcp/activity-log.md`
-- [ ] T045 [US1] Author Realtime Streams guide (SSE, Socket.IO, MQTT) in `docs/request-types/realtime/index.md`
+- [X] T011 [P] [US1] Author Getting Started and Installation guide in `docs/guide/installation.md`
+- [X] T012 [P] [US1] Author 60-Second Quickstart guide in `docs/guide/quickstart.md`
+- [X] T013 [P] [US1] Author Core Concepts and UI Anatomy guide in `docs/guide/core-concepts.md`
+- [X] T014 [US1] Author HTTP / REST parent overview page with hero UI screenshot in `docs/request-types/http/index.md`
+- [X] T015 [P] [US1] Author HTTP URL Parameters and Matrix Params guide in `docs/request-types/http/parameters.md`
+- [X] T016 [P] [US1] Author HTTP Headers and Cascaded Inheritance guide in `docs/request-types/http/headers.md`
+- [X] T017 [P] [US1] Author HTTP Request Body Formats (JSON5, Multipart, Form-urlencoded, Raw, Binary) guide in `docs/request-types/http/body.md`
+- [X] T018 [P] [US1] Author HTTP Authentication Methods (Basic, Bearer, API Key, OAuth 2.0 PKCE, AWS SigV4) in `docs/request-types/http/authentication.md`
+- [X] T019 [P] [US1] Author HTTP Response Viewer & Performance Metrics Breakdown guide in `docs/request-types/http/response-viewer.md`
+- [X] T020 [P] [US1] Author cURL Import & Export integration guide in `docs/request-types/http/curl.md`
+- [X] T021 [US1] Author GraphQL parent overview page with UI screenshot in `docs/request-types/graphql/index.md`
+- [X] T022 [P] [US1] Author GraphQL Query & Mutation Editor guide in `docs/request-types/graphql/queries.md`
+- [X] T023 [P] [US1] Author GraphQL Query Variables guide in `docs/request-types/graphql/variables.md`
+- [X] T024 [P] [US1] Author GraphQL Schema Introspection & Docs Explorer guide in `docs/request-types/graphql/introspection.md`
+- [X] T025 [P] [US1] Author GraphQL Authentication & Custom Headers guide in `docs/request-types/graphql/auth.md`
+- [X] T026 [US1] Author WebSocket parent overview page with UI screenshot in `docs/request-types/websocket/index.md`
+- [X] T027 [P] [US1] Author WebSocket Handshake and Connection Management guide in `docs/request-types/websocket/connection.md`
+- [X] T028 [P] [US1] Author WebSocket Real-time Message Composer guide in `docs/request-types/websocket/composer.md`
+- [X] T029 [P] [US1] Author WebSocket Live Message Log & Stream Filtering guide in `docs/request-types/websocket/message-log.md`
+- [X] T030 [P] [US1] Author WebSocket Connection Lifecycle & Heartbeats guide in `docs/request-types/websocket/lifecycle.md`
+- [X] T031 [US1] Author gRPC parent overview page with UI screenshot in `docs/request-types/grpc/index.md`
+- [X] T032 [P] [US1] Author gRPC Protobuf Schema Management & Directory Roots guide in `docs/request-types/grpc/proto-management.md`
+- [X] T033 [P] [US1] Author gRPC Server Reflection guide in `docs/request-types/grpc/reflection.md`
+- [X] T034 [P] [US1] Author gRPC Method Selection & RPC Invocation guide in `docs/request-types/grpc/method-invocation.md`
+- [X] T035 [P] [US1] Author gRPC JSON-to-Protobuf Message Composer guide in `docs/request-types/grpc/message-composer.md`
+- [X] T036 [P] [US1] Author gRPC Metadata & Custom Headers guide in `docs/request-types/grpc/metadata.md`
+- [X] T037 [P] [US1] Author gRPC TLS & Client Certificate (mTLS) configuration guide in `docs/request-types/grpc/tls.md`
+- [X] T038 [US1] Author Model Context Protocol (MCP) parent overview page with screenshot in `docs/request-types/mcp/index.md`
+- [X] T039 [P] [US1] Author MCP Transports (Streamable HTTP, Legacy SSE, Stdio with Shell PATH) guide in `docs/request-types/mcp/transports.md`
+- [X] T040 [P] [US1] Author MCP Tools Discovery, Schema Validation & Execution guide in `docs/request-types/mcp/tools.md`
+- [X] T041 [P] [US1] Author MCP Resources & Real-time Subscriptions guide in `docs/request-types/mcp/resources.md`
+- [X] T042 [P] [US1] Author MCP Prompts & LLM Sampling guide in `docs/request-types/mcp/prompts.md`
+- [X] T043 [P] [US1] Author MCP OAuth 2.1 & Dynamic Client Registration guide in `docs/request-types/mcp/auth.md`
+- [X] T044 [P] [US1] Author MCP Activity Log & JSON-RPC Protocol Inspector guide in `docs/request-types/mcp/activity-log.md`
+- [X] T045 [US1] Author Realtime Streams guide (SSE, Socket.IO, MQTT) in `docs/request-types/realtime/index.md`
 
 **Checkpoint**: At this point, User Story 1 is fully functional and delivers complete multi-protocol guidance (MVP)
 
@@ -103,10 +103,10 @@ description: "Task list for Production VitePress Documentation Site implementati
 
 ### Implementation for User Story 2
 
-- [ ] T046 [US2] Author Zero-Telemetry & Air-Gap Privacy Policy with packet inspection verification guide in `docs/security/zero-telemetry.md`
-- [ ] T047 [US2] Author Local Credential Encryption architecture guide detailing KSafe AES-256-GCM and PBKDF2 in `docs/security/ksafe-encryption.md`
-- [ ] T048 [US2] Author CycloneDX SBOM generation, OSV-Scanner checks, and GitHub Security SARIF reporting guide in `docs/security/sbom-vulnerabilities.md`
-- [ ] T049 [US2] Author Comprehensive External Libraries Directory listing all runtime dependencies with active GitHub links and licenses in `docs/security/external-libraries.md`
+- [X] T046 [US2] Author Zero-Telemetry & Air-Gap Privacy Policy with packet inspection verification guide in `docs/security/zero-telemetry.md`
+- [X] T047 [US2] Author Local Credential Encryption architecture guide detailing KSafe AES-256-GCM and PBKDF2 in `docs/security/ksafe-encryption.md`
+- [X] T048 [US2] Author CycloneDX SBOM generation, OSV-Scanner checks, and GitHub Security SARIF reporting guide in `docs/security/sbom-vulnerabilities.md`
+- [X] T049 [US2] Author Comprehensive External Libraries Directory listing all runtime dependencies with active GitHub links and licenses in `docs/security/external-libraries.md`
 
 **Checkpoint**: User Stories 1 and 2 are complete, establishing both functional protocol mastery and enterprise trust
 
@@ -120,12 +120,12 @@ description: "Task list for Production VitePress Documentation Site implementati
 
 ### Implementation for User Story 3
 
-- [ ] T050 [US3] Author Multiple Collections & OpenCollection Architecture guide in `docs/workspaces/collections.md`
-- [ ] T051 [US3] Author Folder Settings & Cascaded Request Defaults Inheritance guide in `docs/workspaces/folders-and-inheritance.md`
-- [ ] T052 [P] [US3] Author Collection-Level Protobuf Settings guide in `docs/workspaces/protobuf-settings.md`
-- [ ] T053 [US3] Author Git Sync Architecture and OpenCollection Git-native diffing guide in `docs/collaboration/git-sync-overview.md`
-- [ ] T054 [US3] Author In-App Git Operations (GitSyncDialog, status indicator, branch, commit, push, pull) guide in `docs/collaboration/git-operations.md`
-- [ ] T055 [P] [US3] Author Team Workflows, Pull Requests, and Conflict Resolution guide in `docs/collaboration/team-workflows.md`
+- [X] T050 [US3] Author Multiple Collections & OpenCollection Architecture guide in `docs/workspaces/collections.md`
+- [X] T051 [US3] Author Folder Settings & Cascaded Request Defaults Inheritance guide in `docs/workspaces/folders-and-inheritance.md`
+- [X] T052 [P] [US3] Author Collection-Level Protobuf Settings guide in `docs/workspaces/protobuf-settings.md`
+- [X] T053 [US3] Author Git Sync Architecture and OpenCollection Git-native diffing guide in `docs/collaboration/git-sync-overview.md`
+- [X] T054 [US3] Author In-App Git Operations (GitSyncDialog, status indicator, branch, commit, push, pull) guide in `docs/collaboration/git-operations.md`
+- [X] T055 [P] [US3] Author Team Workflows, Pull Requests, and Conflict Resolution guide in `docs/collaboration/team-workflows.md`
 
 **Checkpoint**: Team collaboration workflows and OpenCollection architecture are fully documented
 
@@ -139,13 +139,13 @@ description: "Task list for Production VitePress Documentation Site implementati
 
 ### Implementation for User Story 4
 
-- [ ] T056 [US4] Author Variable Scopes, Interpolation Syntax & Dynamic Variables guide in `docs/environments/variables.md`
-- [ ] T057 [P] [US4] Author Environments & Fast Switching guide in `docs/environments/environments.md`
-- [ ] T058 [US4] Author External Secret Managers guide (KeePassXC, AWS Secrets Manager, Azure Key Vault, GCP, Keeper) with KSafe encryption guarantees in `docs/environments/secret-managers.md`
-- [ ] T059 [US4] Author Javet V8 Embedded JavaScript Engine Architecture & Sandbox Security guide in `docs/scripting/engine-architecture.md`
-- [ ] T060 [P] [US4] Author Pre-Request Scripting Guide in `docs/scripting/pre-request.md`
-- [ ] T061 [P] [US4] Author Post-Response Testing & Assertions Guide in `docs/scripting/post-response-tests.md`
-- [ ] T062 [US4] Author Complete `clapi.*` Scripting API & Assertion Reference with Chai chaining examples in `docs/scripting/api-reference.md`
+- [X] T056 [US4] Author Variable Scopes, Interpolation Syntax & Dynamic Variables guide in `docs/environments/variables.md`
+- [X] T057 [P] [US4] Author Environments & Fast Switching guide in `docs/environments/environments.md`
+- [X] T058 [US4] Author External Secret Managers guide (KeePassXC, AWS Secrets Manager, Azure Key Vault, GCP, Keeper) with KSafe encryption guarantees in `docs/environments/secret-managers.md`
+- [X] T059 [US4] Author Javet V8 Embedded JavaScript Engine Architecture & Sandbox Security guide in `docs/scripting/engine-architecture.md`
+- [X] T060 [P] [US4] Author Pre-Request Scripting Guide in `docs/scripting/pre-request.md`
+- [X] T061 [P] [US4] Author Post-Response Testing & Assertions Guide in `docs/scripting/post-response-tests.md`
+- [X] T062 [US4] Author Complete `clapi.*` Scripting API & Assertion Reference with Chai chaining examples in `docs/scripting/api-reference.md`
 
 **Checkpoint**: Advanced scripting, environment hierarchies, and external secret vault integrations are fully documented
 
@@ -159,14 +159,14 @@ description: "Task list for Production VitePress Documentation Site implementati
 
 ### Implementation for User Story 5
 
-- [ ] T063 [US5] Author Specification Import (OpenAPI v3+, OpenCollection, Postman, Insomnia) guide in `docs/import-export/import.md`
-- [ ] T064 [P] [US5] Author Workspace and Sanitized Collection Export guide in `docs/import-export/export.md`
-- [ ] T065 [P] [US5] Author Application Settings, Themes & Proxy/TLS Configuration guide in `docs/reference/settings.md`
-- [ ] T066 [P] [US5] Author Complete Keyboard Shortcuts Cheat Sheet (macOS, Windows, Linux) in `docs/reference/shortcuts.md`
-- [ ] T067 [P] [US5] Port Clapi Architectural Deep Dive and Module Map from legacy docs to `docs/reference/architecture.md`
-- [ ] T068 [P] [US5] Port Testing Strategy & Integration Test Reference from legacy docs to `docs/reference/testing.md`
-- [ ] T069 [US5] Implement Automated GitHub Pages Deployment CI/CD workflow in `.github/workflows/deploy-docs.yml`
-- [ ] T070 [US5] Remove legacy disconnected markdown documents in root `docs/` (`docs/mcp.md`, `docs/collections.md`, etc.) to establish new docs as single source of truth
+- [X] T063 [US5] Author Specification Import (OpenAPI v3+, OpenCollection, Postman, Insomnia) guide in `docs/import-export/import.md`
+- [X] T064 [P] [US5] Author Workspace and Sanitized Collection Export guide in `docs/import-export/export.md`
+- [X] T065 [P] [US5] Author Application Settings, Themes & Proxy/TLS Configuration guide in `docs/reference/settings.md`
+- [X] T066 [P] [US5] Author Complete Keyboard Shortcuts Cheat Sheet (macOS, Windows, Linux) in `docs/reference/shortcuts.md`
+- [X] T067 [P] [US5] Port Clapi Architectural Deep Dive and Module Map from legacy docs to `docs/reference/architecture.md`
+- [X] T068 [P] [US5] Port Testing Strategy & Integration Test Reference from legacy docs to `docs/reference/testing.md`
+- [X] T069 [US5] Implement Automated GitHub Pages Deployment CI/CD workflow in `.github/workflows/deploy-docs.yml`
+- [X] T070 [US5] Remove legacy disconnected markdown documents in root `docs/` (`../../docs/old/mcp.md`, `../../docs/old/collections.md`, etc.) to establish new docs as single source of truth
 
 **Checkpoint**: All historical knowledge is preserved in the new structure, legacy files are decommissioned, and automated deployment is active
 
@@ -176,10 +176,10 @@ description: "Task list for Production VitePress Documentation Site implementati
 
 **Purpose**: Quality verification, link auditing, search performance, and styling consistency
 
-- [ ] T071 Validate static site generation and zero broken internal links via `npm run docs:build` in `docs/`
-- [ ] T072 [P] Validate offline client-side search query responsiveness in `docs/`
-- [ ] T073 Validate responsive theme toggle (Dark / Light) styling across all components in `docs/`
-- [ ] T074 Execute end-to-end quickstart validation scenarios defined in `specs/024-vitepress-documentation/quickstart.md`
+- [X] T071 Validate static site generation and zero broken internal links via `npm run docs:build` in `docs/`
+- [X] T072 [P] Validate offline client-side search query responsiveness in `docs/`
+- [X] T073 Validate responsive theme toggle (Dark / Light) styling across all components in `docs/`
+- [X] T074 Execute end-to-end quickstart validation scenarios defined in `specs/024-vitepress-documentation/quickstart.md`
 
 ---
 

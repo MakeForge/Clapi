@@ -214,7 +214,7 @@ How Clapi resolves a stdio command:
 | `trigger_elicitation` | Server requests `elicitation/create`; tool result is accept/decline |
 | `trigger_ping` | Server requests `ping`; tool result is the client’s empty ping result |
 
-Resources, prompts, and logging are also advertised so you can exercise those tabs. Product guide: [docs/mcp.md](docs/mcp.md).
+Resources, prompts, and logging are also advertised so you can exercise those tabs. Product guide: [docs/mcp.md](docs/old/mcp.md).
 
 ### MCP sample-server troubleshooting
 
@@ -296,7 +296,7 @@ git push origin v1.19.0
 
 ## Project Architecture
 
-See [`docs/architecture.md`](docs/architecture.md) for a full write-up. Key rules:
+See [`docs/old/architecture.md`](docs/old/architecture.md) for a full write-up. Key rules:
 
 - The **UI launcher** (`ui-desktop`) depends on **ui-shared** only.
 - **ui-shared** depends on **feature modules** and **core modules**.

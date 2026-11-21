@@ -65,7 +65,7 @@ val copyScreenshots = tasks.register<Copy>("copyScreenshots") {
     from(layout.buildDirectory.dir("outputs/roborazzi")) {
         include("*MainScreenPreviews*")
     }
-    into(rootProject.file("docs/screenshots"))
+    into(rootProject.file("docs/public/generated/screenshots"))
 }
 
 tasks.register("copyMainScreenPreviews") {
@@ -441,12 +441,5 @@ tasks.register("analyzeReleaseSize") {
             }
         }
         println("\n=====================================================================\n")
-    }
-}
-tasks.named("desktopTest") {
-    onlyIf {
-        !gradle.startParameter.taskNames.any {
-            it.contains("recordRoborazziDesktop")
-        }
     }
 }

@@ -42,6 +42,8 @@ replay_pid*
 
 # ── Node (ui-web / KMP JS) ───────────────────────────────────
 node_modules/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
