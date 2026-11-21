@@ -133,7 +133,6 @@ kotlin {
                 implementation(libs.slf4j.api)
                 implementation(libs.filekit.dialogs)
                 implementation(libs.nucleus.application)
-                implementation(libs.nucleus.decorated.window.tao)
                 implementation(libs.nucleus.decorated.window.material3)
 
                 implementation(compose.desktop.currentOs)
