@@ -36,7 +36,9 @@ kotlin {
                 implementation(libs.protobuf.java.util)
                 implementation(libs.protoc.jar)
                 implementation(libs.coroutines.guava)
+                implementation(libs.guava)
                 implementation(libs.keepassxc.proxy.access)
+                implementation(libs.org.json)
                 implementation(libs.keeper.secrets.manager.core)
             }
         }
