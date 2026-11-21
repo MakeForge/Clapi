@@ -18,6 +18,7 @@ ksafe = "3.3.0"
 keepassxc-proxy-access = "1.2.9" # higher versions require java >=21
 cyclonedxBom = "3.5.1"
 jackson = "2.22.4"
+keeper-secrets-manager = "17.2.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -64,6 +65,7 @@ protoc-jar = { module = "com.github.os72:protoc-jar", version.ref = "protoc-jar"
 ksafe = { module = "eu.anifantakis:ksafe", version.ref = "ksafe" }
 keepassxc-proxy-access = { module = "org.purejava:keepassxc-proxy-access", version.ref = "keepassxc-proxy-access" }
 jackson-bom = { module = "com.fasterxml.jackson:jackson-bom", version.ref = "jackson" }
+keeper-secrets-manager-core = { module = "com.keepersecurity.secrets-manager:core", version.ref = "keeper-secrets-manager" }
 
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

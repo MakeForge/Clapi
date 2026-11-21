@@ -63,7 +63,7 @@ Clapi supports end-to-end API testing with:
 - Real-time bi-directional message timeline displaying timestamp, direction (incoming/outgoing), format, payload, and byte length, capped at 1,000 frames FIFO with auto-scroll.
 - Configuration of custom connection headers, query parameters, auth (Bearer, Basic, API Key), timeout, and keep-alive ping intervals.
 
-### External Secret Managers (KeePassXC & HashiCorp Vault)
+### External Secret Managers (KeePassXC, HashiCorp Vault & Keeper Security Cloud)
 
 - Support for referencing external secrets dynamically across request URLs, headers, bodies, and auth configurations using `{{_secret.<name>}}` and `secret: true` environment variables.
 - **KeePassXC Integration**:
@@ -73,6 +73,11 @@ Clapi supports end-to-end API testing with:
   - Clean lifecycle management: zero idle proxy socket or background thread footprint when KeePassXC is not used by the active environment.
 - **HashiCorp Vault Integration**:
   - Vault Server (KV v2) integration with path grouping and encrypted token custody.
+- **Keeper Security Cloud Integration (`keeper-security-cloud`)**:
+  - One-Time Token initialization in Settings -> Secrets Manager, storing the bound KSM client configuration encrypted via KSafe while never persisting the one-time token.
+  - Supports standard record types (`login`, `serverCredentials` including dotted `host.hostName` and `host.port` properties), custom record types (e.g., `OAuth Client Credentials`), and Keeper Notation (`field/...`, `custom_field/...`).
+  - Environment Editor integration with Record Title/UID, Target Field (default hint `"password"`), expandable Custom Field Filters (default key hint `'url'`) with variable interpolation, and live match count status indicator.
+  - Lazy SDK/crypto loading and automatic client release when switching away from a Keeper-enabled environment.
 
 ### Response Validation and Inspection
 

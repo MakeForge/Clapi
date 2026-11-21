@@ -165,6 +165,21 @@ actual fun openFileInDefaultApp(filePath: String) {
     }
 }
 
+actual fun openUrlInBrowser(url: String) {
+    runCatching {
+        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+            Desktop.getDesktop().browse(java.net.URI.create(url))
+        } else {
+            val os = System.getProperty("os.name", "").lowercase()
+            when {
+                os.contains("win") -> ProcessBuilder("cmd", "/c", "start", "\"\"", url).start()
+                os.contains("mac") -> ProcessBuilder("open", url).start()
+                else -> ProcessBuilder("xdg-open", url).start()
+            }
+        }
+    }
+}
+
 actual fun saveFileForExport(content: String, defaultFilename: String) {
     val dialog = FileDialog(null as Frame?, "Export", FileDialog.SAVE).apply {
         applyRememberedDirectory()

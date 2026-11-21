@@ -216,6 +216,7 @@ object ImportExportRepository {
         val isAws = environment.externalSecretsProvider.equals("aws-secrets-manager", ignoreCase = true)
         val isAzure = environment.externalSecretsProvider.equals("azure-key-vault", ignoreCase = true)
         val isGcp = environment.externalSecretsProvider.equals("gcp-secrets-manager", ignoreCase = true)
+        val isKeeper = environment.externalSecretsProvider.equals("keeper-security-cloud", ignoreCase = true)
         val extSecretsJson = if (environment.externalSecrets.isNotEmpty()) {
             buildJsonObject {
                 put("type", environment.externalSecretsProvider.ifBlank { "hashicorp-vault-server" })
@@ -309,6 +310,25 @@ object ImportExportRepository {
                                     }
                                 })
                             }
+                        } else if (isKeeper) {
+                            if (sec.name.isNotBlank() && sec.path.isNotBlank()) {
+                                add(buildJsonObject {
+                                    put("name", sec.name.trim())
+                                    put("recordTitle", sec.path.trim())
+                                    put("targetField", sec.targetField.ifBlank { "password" }.trim())
+                                    if (sec.customFilters.isNotEmpty()) {
+                                        put("customFilters", buildJsonObject {
+                                            sec.customFilters.forEach { (k, v) -> put(k, v) }
+                                        })
+                                    }
+                                    if (sec.description.isNotBlank()) {
+                                        put("description", sec.description.trim())
+                                    }
+                                    if (!sec.enabled) {
+                                        put("disabled", true)
+                                    }
+                                })
+                            }
                         } else {
                             if (sec.name.isNotBlank() && sec.path.isNotBlank()) {
                                 add(buildJsonObject {
@@ -351,6 +371,7 @@ object ImportExportRepository {
             val obj = el.jsonObject
             val secName = obj["name"]?.jsonPrimitive?.contentOrNull.orEmpty()
             val path = obj["path"]?.jsonPrimitive?.contentOrNull
+                ?: obj["recordTitle"]?.jsonPrimitive?.contentOrNull
                 ?: obj["secretName"]?.jsonPrimitive?.contentOrNull
                 ?: obj["secretId"]?.jsonPrimitive?.contentOrNull
                 ?: ""

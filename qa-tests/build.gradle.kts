@@ -54,7 +54,22 @@ kotlin {
                 implementation(libs.coroutines.guava)
                 implementation(libs.junit4)
                 implementation(libs.keepassxc.proxy.access)
+                implementation(libs.keeper.secrets.manager.core)
             }
+        }
+    }
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.BaseKotlinCompile>().configureEach {
+    if (name.startsWith("compileTestKotlin")) {
+        val testClasspath = configurations.findByName("jvmTestCompileClasspath")
+            ?: configurations.findByName("testCompileClasspath")
+        if (testClasspath != null) {
+            friendPaths.from(
+                testClasspath.incoming.files.filter { file ->
+                    file.name.startsWith("core-17.") && file.path.contains("keepersecurity")
+                }
+            )
         }
     }
 }

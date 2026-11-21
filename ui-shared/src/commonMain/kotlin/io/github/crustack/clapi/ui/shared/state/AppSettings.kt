@@ -83,4 +83,16 @@ class AppSettings {
     var gcpProjectId       by mutableStateOf("")
     var gcpAccessToken     by mutableStateOf("")
     var gcpEndpointUrl     by mutableStateOf("https://secretmanager.googleapis.com")
+
+    // Secrets Manager (Keeper Security Cloud)
+    var keeperConfigJson       by mutableStateOf("")
+    var keeperConnectionStatus by mutableStateOf(KeeperConnectionStatus.UNKNOWN)
+}
+
+enum class KeeperConnectionStatus {
+    UNKNOWN,
+    CHECKING,
+    CONNECTED,
+    DISCONNECTED,
+    ERROR,
 }

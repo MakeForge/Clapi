@@ -9,6 +9,9 @@ import io.github.crustack.clapi.core.network.gcp.GcpSecretManagerClient
 import io.github.crustack.clapi.core.network.gcp.GcpSecretManagerConfig
 import io.github.crustack.clapi.core.network.gcp.KtorGcpSecretManagerClient
 import io.github.crustack.clapi.core.network.getEnvironmentVariable
+import io.github.crustack.clapi.core.network.keeper.KeeperClient
+import io.github.crustack.clapi.core.network.keeper.KeeperRecordFilter
+import io.github.crustack.clapi.core.network.keeper.createKeeperClient
 import io.github.crustack.clapi.core.network.keepassxc.DefaultKeePassXcClientManager
 import io.github.crustack.clapi.core.network.keepassxc.KeePassXcClient
 import io.github.crustack.clapi.core.network.keepassxc.KeePassXcClientManager
@@ -25,6 +28,7 @@ data class SecretDeclaration(
     val customFilters: Map<String, String> = emptyMap(),
     val secretId: String = path,
     val version: String = "latest",
+    val recordTitle: String = path,
 )
 
 class SecretResolutionService(
@@ -575,6 +579,79 @@ class SecretResolutionService(
     }
 
     /**
+     * Resolves external secret tokens against Keeper Security Cloud.
+     */
+    suspend fun resolveKeeperSecrets(
+        requiredSecretNames: Set<String>,
+        declarations: List<SecretDeclaration>,
+        configJson: String,
+        variableValues: Map<String, String> = emptyMap(),
+        client: KeeperClient? = null,
+    ): Map<String, String> {
+        if (requiredSecretNames.isEmpty()) {
+            return emptyMap()
+        }
+
+        if (configJson.isBlank() && client == null) {
+            throw IllegalStateException("Keeper Secrets Manager configuration is missing. Please connect to Keeper Security Cloud in Settings -> Secrets Manager.")
+        }
+
+        val declarationMap = declarations.associateBy { it.name.trim() }
+
+        // Validate all required secrets exist and are enabled
+        for (name in requiredSecretNames) {
+            val decl = declarationMap[name]
+                ?: throw IllegalStateException("External secret '_secret.$name' is not defined in the active environment.")
+            if (!decl.enabled) {
+                throw IllegalStateException("External secret '_secret.$name' is disabled in the active environment.")
+            }
+            val recordTitle = decl.recordTitle.ifBlank { decl.path }.trim()
+            if (recordTitle.isBlank()) {
+                throw IllegalStateException("External secret '_secret.$name' does not have a Record Title or UID configured.")
+            }
+        }
+
+        val keeper = client ?: createKeeperClient(configJson)
+
+        val titlesToFetch = requiredSecretNames.map { name ->
+            val decl = declarationMap.getValue(name)
+            decl.recordTitle.ifBlank { decl.path }.trim()
+        }.distinct()
+
+        val allRecords = keeper.getRecords(titlesToFetch)
+        val resolved = mutableMapOf<String, String>()
+
+        for (name in requiredSecretNames) {
+            val decl = declarationMap.getValue(name)
+            val recordTitle = decl.recordTitle.ifBlank { decl.path }.trim()
+
+            // Interpolate variables in customFilters
+            val resolvedFilters = decl.customFilters.mapValues { (_, v) ->
+                var text = v
+                variableValues.forEach { (vk, vv) ->
+                    text = text.replace("{{$vk}}", vv)
+                }
+                text
+            }
+
+            val matchingRecords = KeeperRecordFilter.filterRecords(allRecords, recordTitle, resolvedFilters)
+            if (matchingRecords.isEmpty()) {
+                val filterMsg = if (resolvedFilters.isNotEmpty()) " with filters $resolvedFilters" else ""
+                throw IllegalStateException("No Keeper record found matching title/UID '$recordTitle'$filterMsg for external secret '_secret.$name'.")
+            }
+
+            val matchedRecord = matchingRecords.first()
+            val targetField = decl.targetField.ifBlank { "password" }.trim()
+            val value = KeeperRecordFilter.extractTargetFieldValue(matchedRecord, targetField)
+                ?: throw IllegalStateException("Field '$targetField' not found in Keeper record '$recordTitle' (${matchedRecord.recordUid}) for external secret '_secret.$name'.")
+
+            resolved["_secret.$name"] = value
+        }
+
+        return resolved
+    }
+
+    /**
      * Resolves secret tokens from both direct `{{_secret.<name>}}` references and OpenCollection
      * `secret: true` environment variables referenced as `{{<name>}}`.
      *
@@ -613,6 +690,8 @@ class SecretResolutionService(
         gcpAccessToken: String = "",
         gcpEndpointUrl: String = "https://secretmanager.googleapis.com",
         gcpClient: GcpSecretManagerClient? = null,
+        keeperConfigJson: String = "",
+        keeperClient: KeeperClient? = null,
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
     ): Map<String, String> {
         val allTokens = extractAllVariableTokens(texts)
@@ -678,6 +757,7 @@ class SecretResolutionService(
         val awsSecretsToFetch = mutableSetOf<String>()
         val azureSecretsToFetch = mutableSetOf<String>()
         val gcpSecretsToFetch = mutableSetOf<String>()
+        val keeperSecretsToFetch = mutableSetOf<String>()
 
         for (name in allSecretsToFetch) {
             val decl = declarationMap.getValue(name)
@@ -686,6 +766,7 @@ class SecretResolutionService(
                 decl.providerType.equals("aws-secrets-manager", ignoreCase = true) -> awsSecretsToFetch.add(name)
                 decl.providerType.equals("azure-key-vault", ignoreCase = true) -> azureSecretsToFetch.add(name)
                 decl.providerType.equals("gcp-secrets-manager", ignoreCase = true) -> gcpSecretsToFetch.add(name)
+                decl.providerType.equals("keeper-security-cloud", ignoreCase = true) -> keeperSecretsToFetch.add(name)
                 else -> vaultSecretsToFetch.add(name)
             }
         }
@@ -775,6 +856,27 @@ class SecretResolutionService(
             )
             for (name in gcpSecretsToFetch) {
                 val value = gcpResolved["_secret.$name"] ?: continue
+                if (name in directSecretNames) {
+                    resolved["_secret.$name"] = value
+                }
+                if (name in secretVarToExternalSecret) {
+                    val varName = secretVarToExternalSecret.getValue(name)
+                    resolved[varName] = value
+                }
+            }
+        }
+
+        // Resolve Keeper secrets
+        if (keeperSecretsToFetch.isNotEmpty()) {
+            val keeperResolved = resolveKeeperSecrets(
+                requiredSecretNames = keeperSecretsToFetch,
+                declarations = declarations,
+                configJson = keeperConfigJson,
+                variableValues = variableValues,
+                client = keeperClient,
+            )
+            for (name in keeperSecretsToFetch) {
+                val value = keeperResolved["_secret.$name"] ?: continue
                 if (name in directSecretNames) {
                     resolved["_secret.$name"] = value
                 }

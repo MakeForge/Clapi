@@ -263,7 +263,9 @@ enum class ExternalSecretType(val value: String) {
     @SerialName("one-password")
     ONE_PASSWORD("one-password"),
     @SerialName("keepassxc")
-    KEEPASSXC("keepassxc");
+    KEEPASSXC("keepassxc"),
+    @SerialName("keeper-security-cloud")
+    KEEPER_SECURITY_CLOUD("keeper-security-cloud");
 
     override fun toString(): String = value
 
@@ -342,11 +344,24 @@ data class GcpSecretsManagerExternalSecret(
     override val disabled: Boolean? = null,
 ) : ExternalSecretVariable
 
+@Serializable
+data class KeeperSecurityExternalSecret(
+    override val name: String,
+    val recordTitle: String = "",
+    val targetField: String = "password",
+    val customFilters: Map<String, String> = emptyMap(),
+    override val description: Description? = null,
+    override val disabled: Boolean? = null,
+) : ExternalSecretVariable
+
 object ExternalSecretVariableSerializer :
     JsonContentPolymorphicSerializer<ExternalSecretVariable>(ExternalSecretVariable::class) {
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<ExternalSecretVariable> {
         val obj = element.jsonObject
         return when {
+            obj["type"]?.jsonPrimitive?.contentOrNull == "keeper-security-cloud" ||
+                obj.containsKey("recordTitle") ->
+                KeeperSecurityExternalSecret.serializer()
             obj["type"]?.jsonPrimitive?.contentOrNull == "gcp-secrets-manager" ||
                 obj.containsKey("projectId") ||
                 (obj.containsKey("secretId") && !obj.containsKey("secretName") && !obj.containsKey("vaultName")) ->

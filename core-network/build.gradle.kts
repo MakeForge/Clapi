@@ -36,6 +36,7 @@ kotlin {
                 implementation(libs.protoc.jar)
                 implementation(libs.coroutines.guava)
                 implementation(libs.keepassxc.proxy.access)
+                implementation(libs.keeper.secrets.manager.core)
             }
         }
     }

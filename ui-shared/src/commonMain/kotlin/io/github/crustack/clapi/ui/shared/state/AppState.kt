@@ -18,6 +18,7 @@ import io.github.crustack.clapi.core.model.storage.StorageExtension
 import io.github.crustack.clapi.core.model.storage.StorageType
 import io.github.crustack.clapi.core.network.dynamicvar.DynamicVariableRegistry
 import io.github.crustack.clapi.core.network.keepassxc.DefaultKeePassXcClientManager
+import io.github.crustack.clapi.core.network.keeper.DefaultKeeperClientManager
 import io.github.crustack.clapi.core.network.websocket.WebSocketClientManager
 import io.github.crustack.clapi.core.storage.git.CollectionGitStatus
 import io.github.crustack.clapi.core.storage.git.GitRepositoryManager
@@ -384,6 +385,13 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
             if (!hasKeePassXc) {
                 appScope.launch {
                     DefaultKeePassXcClientManager.Shared.onEnvironmentSwitched(false)
+                }
+            }
+            val hasKeeper = current?.externalSecretsProvider.equals("keeper-security-cloud", ignoreCase = true) &&
+                    current?.externalSecrets?.any { it.enabled } == true
+            if (!hasKeeper) {
+                appScope.launch {
+                    DefaultKeeperClientManager.Shared.onEnvironmentSwitched(false)
                 }
             }
         }

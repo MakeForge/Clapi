@@ -98,6 +98,11 @@ expect fun pickProtoFiles(onResult: (filePaths: List<String>) -> Unit)
 expect fun openFileInDefaultApp(filePath: String)
 
 /**
+ * Open a URL in the system default web browser.
+ */
+expect fun openUrlInBrowser(url: String)
+
+/**
  * Save [content] as a file with the given [defaultFilename].
  * On desktop this opens a save dialog; on web it triggers a browser download.
  */

@@ -3,6 +3,7 @@ package io.github.crustack.clapi.core.storage.opencollection
 import io.github.crustack.clapi.core.model.opencollection.AwsSecretsManagerExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.AzureKeyVaultExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.GcpSecretsManagerExternalSecret
+import io.github.crustack.clapi.core.model.opencollection.KeeperSecurityExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.CollectionConfig
 import io.github.crustack.clapi.core.model.opencollection.CollectionInfo
 import io.github.crustack.clapi.core.model.opencollection.Description
@@ -609,6 +610,124 @@ class OpenCollectionExternalSecretsTest {
         for (kw in forbiddenGcpKeywords) {
             assertFalse(jsonOutput.contains(kw), "JSON export leaked GCP credential keyword: $kw")
             assertFalse(yamlOutput.contains(kw), "YAML export leaked GCP credential keyword: $kw")
+        }
+    }
+
+    @Test
+    fun roundtrip_keeper_external_secrets_preserves_structure_in_json_and_yaml() {
+        val doc = OpenCollectionDocument(
+            opencollection = "1.0.0",
+            info = CollectionInfo(name = "Keeper API"),
+            config = CollectionConfig(
+                environments = listOf(
+                    Environment(
+                        name = "Keeper Env",
+                        externalSecrets = ExternalSecrets(
+                            type = ExternalSecretType.KEEPER_SECURITY_CLOUD,
+                            variables = listOf(
+                                KeeperSecurityExternalSecret(
+                                    name = "user_pass",
+                                    recordTitle = "clapi-test-user",
+                                    targetField = "password",
+                                    customFilters = mapOf("url" to "https://clapi.api.com"),
+                                    description = Description("User Password"),
+                                    disabled = false,
+                                ),
+                                KeeperSecurityExternalSecret(
+                                    name = "oauth_secret",
+                                    recordTitle = "clapi-test-custom-client-credentials",
+                                    targetField = "clientSecret",
+                                    customFilters = mapOf("clientId" to "clapi-client-id"),
+                                    disabled = true,
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        // JSON Roundtrip
+        val jsonOutput = OpenCollectionSerializer.serializeJson(doc)
+        assertTrue(jsonOutput.contains("keeper-security-cloud"))
+        assertTrue(jsonOutput.contains("clapi-test-user"))
+        assertTrue(jsonOutput.contains("clientSecret"))
+
+        val deserializedJson = OpenCollectionSerializer.deserializeJson(jsonOutput)
+        val envJson = deserializedJson.config?.environments?.firstOrNull()
+        assertNotNull(envJson)
+        val extJson = envJson.externalSecrets
+        assertNotNull(extJson)
+        assertEquals(ExternalSecretType.KEEPER_SECURITY_CLOUD, extJson.type)
+        assertEquals(2, extJson.variables.size)
+
+        val j1 = extJson.variables[0] as KeeperSecurityExternalSecret
+        assertEquals("user_pass", j1.name)
+        assertEquals("clapi-test-user", j1.recordTitle)
+        assertEquals("password", j1.targetField)
+        assertEquals("https://clapi.api.com", j1.customFilters["url"])
+        assertEquals("User Password", j1.description?.content)
+        assertEquals(false, j1.disabled)
+
+        val j2 = extJson.variables[1] as KeeperSecurityExternalSecret
+        assertEquals("oauth_secret", j2.name)
+        assertEquals("clapi-test-custom-client-credentials", j2.recordTitle)
+        assertEquals("clientSecret", j2.targetField)
+        assertEquals("clapi-client-id", j2.customFilters["clientId"])
+        assertEquals(true, j2.disabled)
+
+        // YAML Roundtrip
+        val yamlOutput = OpenCollectionSerializer.serializeYaml(doc)
+        assertTrue(yamlOutput.contains("keeper-security-cloud"))
+        assertTrue(yamlOutput.contains("clapi-test-user"))
+
+        val deserializedYaml = OpenCollectionSerializer.deserializeYaml(yamlOutput)
+        val envYaml = deserializedYaml.config?.environments?.firstOrNull()
+        assertNotNull(envYaml)
+        val extYaml = envYaml.externalSecrets
+        assertNotNull(extYaml)
+        assertEquals(ExternalSecretType.KEEPER_SECURITY_CLOUD, extYaml.type)
+        assertEquals(2, extYaml.variables.size)
+
+        val y1 = extYaml.variables[0] as KeeperSecurityExternalSecret
+        assertEquals("user_pass", y1.name)
+        assertEquals("clapi-test-user", y1.recordTitle)
+        assertEquals("password", y1.targetField)
+    }
+
+    @Test
+    fun zero_credential_leakage_guarantees_keeper_credentials_never_serialized() {
+        val doc = OpenCollectionDocument(
+            opencollection = "1.0.0",
+            info = CollectionInfo(name = "Keeper Credentials Leak Check"),
+            config = CollectionConfig(
+                environments = listOf(
+                    Environment(
+                        name = "Keeper Env",
+                        externalSecrets = ExternalSecrets(
+                            type = ExternalSecretType.KEEPER_SECURITY_CLOUD,
+                            variables = listOf(
+                                KeeperSecurityExternalSecret(
+                                    name = "my_secret",
+                                    recordTitle = "clapi-test-user",
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val jsonOutput = OpenCollectionSerializer.serializeJson(doc)
+        val yamlOutput = OpenCollectionSerializer.serializeYaml(doc)
+
+        val forbiddenKeeperKeywords = listOf(
+            "oneTimeToken", "one_time_token", "appKey", "privateKey", "clientKey",
+        )
+
+        for (kw in forbiddenKeeperKeywords) {
+            assertFalse(jsonOutput.contains(kw), "JSON export leaked Keeper credential keyword: $kw")
+            assertFalse(yamlOutput.contains(kw), "YAML export leaked Keeper credential keyword: $kw")
         }
     }
 }
