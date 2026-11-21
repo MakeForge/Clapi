@@ -6,8 +6,7 @@ description: Clapi's strict privacy policy, zero telemetry architecture, and air
 # Zero Telemetry & Privacy Guarantee
 
 <p class="badges">
-  <span class="badge badge-protocol">Privacy First</span>
-  <span class="badge badge-version">Core Guarantee</span>
+  <span class="badge badge-protocol">Security</span>
 </p>
 
 ## The Clapi Privacy Covenant

@@ -7,7 +7,6 @@ description: Complete catalog of open source libraries powering Clapi with direc
 
 <p class="badges">
   <span class="badge badge-protocol">Open Source</span>
-  <span class="badge badge-version">Transparency</span>
 </p>
 
 ## Overview
