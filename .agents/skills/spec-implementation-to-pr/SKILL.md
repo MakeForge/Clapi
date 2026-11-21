@@ -105,7 +105,8 @@ Check:
 4. Error handling and validation are implemented.
 5. Relevant tests exist.
 6. Documentation is updated where required.
-7. No unrelated changes have been included.
+7. `CHANGELOG.md` is updated with a concise entry (including a link to the corresponding GitHub issue) under the active unreleased `## [X.Y.Z] - TBD` section, and `appVersion` in `gradle.properties` matches (creating a new SemVer-bumped `TBD` section and updating `appVersion` if the previous version is already released/tagged `v*`, per `AGENTS.md`).
+8. No unrelated changes have been included.
 
 Inspect task completion claims against actual code.
 
@@ -134,6 +135,7 @@ Do not create the PR if:
 - Relevant tests fail.
 - There are unresolved build errors.
 - The changes contain unrelated or unexplained modifications.
+- `CHANGELOG.md` is missing an entry for the feature/fix or `gradle.properties` `appVersion` is out of sync with the active unreleased section.
 - The target issue cannot be identified confidently.
 
 Explain the blockers and what needs to be fixed.

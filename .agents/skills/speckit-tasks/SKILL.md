@@ -79,7 +79,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Phase 2: Foundational tasks (blocking prerequisites for all user stories)
    - Phase 3+: One phase per user story (in priority order from spec.md)
    - Each phase includes: story goal, independent test criteria, tests (if requested), implementation tasks
-   - Final Phase: Polish & cross-cutting concerns
+   - Final Phase: Polish & cross-cutting concerns (MUST include a final task to update `CHANGELOG.md` — and `gradle.properties` `appVersion` if starting a new unreleased SemVer version — per the **Changelog & Versioning Policy** in `AGENTS.md`)
    - All tasks must follow the strict checklist format (see Task Generation Rules below)
    - Clear file paths for each task
    - Dependencies section showing story completion order
@@ -207,9 +207,11 @@ Every task MUST strictly follow this format:
   - Within each story: Tests (if requested) → Models → Services → Endpoints → Integration
   - Each phase should be a complete, independently testable increment
 - **Final Phase**: Polish & Cross-Cutting Concerns
+  - MUST end with an explicit task to update `CHANGELOG.md` (adding a concise entry under `### New Features` or `### Fixes` with the related GitHub issue link if one exists, creating a new SemVer-bumped `## [X.Y.Z] - TBD` section if the latest version is already released/tagged `v*`, and keeping `gradle.properties` `appVersion` in sync per `AGENTS.md`)
 
 ## Done When
 
 - [ ] tasks.md generated with all phases, task IDs, and file paths
+- [ ] Final Polish phase includes the mandatory `CHANGELOG.md` / `gradle.properties` update task
 - [ ] Extension hooks dispatched or skipped according to the rules in Mandatory Post-Execution Hooks above
 - [ ] Completion reported to user with task count, story breakdown, and MVP scope
