@@ -45,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.makeforge.clapi.core.model.RequestKind
+import io.github.makeforge.clapi.ui.shared.components.ActionSnackbarHost
 import io.github.makeforge.clapi.ui.shared.components.BottomPanel
 import io.github.makeforge.clapi.ui.shared.components.CollapsedResponseStrip
 import io.github.makeforge.clapi.ui.shared.components.CollectionEditor
@@ -147,7 +148,7 @@ fun MainScreen(
     LaunchedEffect(state) {
         snapshotFlow {
             with(state.settings) {
-                "$autoSaveRequests|$confirmBeforeDelete|$defaultTimeoutSec|${theme.name}" +
+                "$autoSaveRequests|$confirmBeforeDelete|$defaultTimeoutSec|$snackbarAutoDismissSec|${theme.name}" +
                     "|${responseLayout.name}|${language.name}|$requestTimeoutSec|$followRedirects|$collectionsExpanded|$environmentsExpanded|$proxyEnabled|$httpProxy|$httpsProxy|$allowJson5InJsonBodies|$showEditorPositionIndicator" +
                     "|$environmentDialogWidthDp|$environmentDialogHeightDp" +
                     "|$vaultProviderType|$vaultServerUrl|$vaultMountPath|$vaultNamespace|$vaultToken" +
@@ -218,8 +219,9 @@ fun MainScreen(
         lastActiveTabId = currentId
     }
 
+    Box(modifier = modifier.fillMaxSize()) {
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .background(ClapiColors.Background)
             .testTag("main-screen")
@@ -388,6 +390,15 @@ fun MainScreen(
             }
         }
     }
+
+    ActionSnackbarHost(
+        controller = state.snackbar,
+        autoDismissSec = state.settings.snackbarAutoDismissSec,
+        modifier = Modifier
+            .align(Alignment.BottomEnd)
+            .padding(16.dp),
+    )
+    }
 }
 
 @Composable
@@ -406,31 +417,76 @@ private fun ColumnScope.HttpWorkspaceContent(
                         val trimmed = newName.trim()
                         if (trimmed.isNotEmpty()) {
                             val targetTab = state.openTabs.firstOrNull { it.id == tabId }
-                            when (targetTab?.kind) {
-                                RequestKind.COLLECTION -> {
-                                    state.renameCollection(tabId, trimmed)
-                                }
-                                RequestKind.FOLDER -> {
-                                    val oldName = targetTab.name
-                                    val isRootCollection = state.collections.any { it.id == tabId }
-                                    if (renameFolderInCollections(state.collections, tabId, trimmed)) {
-                                        val actualNewName = state.findFolder(tabId)?.name ?: trimmed
-                                        state.openTabs.filter { it.id == tabId && it.isFolderTab }.forEach { folderTab ->
-                                            folderTab.name = actualNewName
-                                            folderTab.reanchorSavedSnapshotAfterRename(oldName)
+                            val oldName = targetTab?.name ?: ""
+                            if (trimmed != oldName) {
+                                when (targetTab?.kind) {
+                                    RequestKind.COLLECTION -> {
+                                        val actualNewName = state.renameCollection(tabId, trimmed)
+                                        io.github.makeforge.clapi.ui.shared.state.UndoableWorkspaceActions.showRenamedItemSnackbar(
+                                            state = state,
+                                            oldName = oldName,
+                                            newName = actualNewName,
+                                            onUndo = {
+                                                if (state.collections.none { it.id == tabId }) return@showRenamedItemSnackbar false
+                                                state.renameCollection(tabId, oldName)
+                                                scope.launch(ioDispatcher) { WorkspaceRepository.save(state) }
+                                                true
+                                            },
+                                        )
+                                    }
+                                    RequestKind.FOLDER -> {
+                                        val isRootCollection = state.collections.any { it.id == tabId }
+                                        if (renameFolderInCollections(state.collections, tabId, trimmed)) {
+                                            val actualNewName = state.findFolder(tabId)?.name ?: trimmed
+                                            state.openTabs.filter { it.id == tabId && it.isFolderTab }.forEach { folderTab ->
+                                                folderTab.name = actualNewName
+                                                folderTab.reanchorSavedSnapshotAfterRename(oldName)
+                                            }
+                                            if (isRootCollection) {
+                                                state.updateTabsCollectionName(oldName, actualNewName)
+                                            }
+                                            state.notifyCollectionsChanged()
+                                            io.github.makeforge.clapi.ui.shared.state.UndoableWorkspaceActions.showRenamedItemSnackbar(
+                                                state = state,
+                                                oldName = oldName,
+                                                newName = actualNewName,
+                                                onUndo = {
+                                                    val restored = renameFolderInCollections(state.collections, tabId, oldName)
+                                                    if (!restored) return@showRenamedItemSnackbar false
+                                                    val revertedName = state.findFolder(tabId)?.name ?: oldName
+                                                    state.openTabs.filter { it.id == tabId && it.isFolderTab }.forEach { folderTab ->
+                                                        folderTab.name = revertedName
+                                                        folderTab.reanchorSavedSnapshotAfterRename(actualNewName)
+                                                    }
+                                                    if (isRootCollection) {
+                                                        state.updateTabsCollectionName(actualNewName, revertedName)
+                                                    }
+                                                    state.notifyCollectionsChanged()
+                                                    scope.launch(ioDispatcher) { WorkspaceRepository.save(state) }
+                                                    true
+                                                },
+                                            )
                                         }
-                                        if (isRootCollection) {
-                                            state.updateTabsCollectionName(oldName, actualNewName)
+                                    }
+                                    else -> {
+                                        state.renameRequestEverywhere(tabId, trimmed)
+                                        if (oldName.isNotEmpty()) {
+                                            io.github.makeforge.clapi.ui.shared.state.UndoableWorkspaceActions.showRenamedItemSnackbar(
+                                                state = state,
+                                                oldName = oldName,
+                                                newName = trimmed,
+                                                onUndo = {
+                                                    state.renameRequestEverywhere(tabId, oldName)
+                                                    scope.launch(ioDispatcher) { WorkspaceRepository.save(state) }
+                                                    true
+                                                },
+                                            )
                                         }
-                                        state.notifyCollectionsChanged()
                                     }
                                 }
-                                else -> {
-                                    state.renameRequestEverywhere(tabId, trimmed)
+                                scope.launch(ioDispatcher) {
+                                    WorkspaceRepository.save(state)
                                 }
-                            }
-                            scope.launch(ioDispatcher) {
-                                WorkspaceRepository.save(state)
                             }
                         }
                     },

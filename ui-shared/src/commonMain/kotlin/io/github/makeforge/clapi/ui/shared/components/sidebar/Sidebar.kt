@@ -238,12 +238,23 @@ fun Sidebar(
     val onCommitInlineRename: (CollectionNode, String) -> Unit = { target, newName ->
         val trimmed = newName.trim()
         if (trimmed.isNotEmpty() && trimmed != target.name) {
+            val oldName = target.name
             val isTopLevelCollection = target.isCollection || state.collections.any { it.id == target.id && it.isCollection }
             if (isTopLevelCollection) {
-                state.renameCollection(target.id, trimmed)
+                val actualNewName = state.renameCollection(target.id, trimmed)
                 persistWorkspaceAsync()
+                io.github.makeforge.clapi.ui.shared.state.UndoableWorkspaceActions.showRenamedItemSnackbar(
+                    state = state,
+                    oldName = oldName,
+                    newName = actualNewName,
+                    onUndo = {
+                        if (state.collections.none { it.id == target.id }) return@showRenamedItemSnackbar false
+                        state.renameCollection(target.id, oldName)
+                        persistWorkspaceAsync()
+                        true
+                    },
+                )
             } else if (target.isFolder) {
-                val oldName = target.name
                 val isRootCollection = state.collections.any { it.id == target.id }
                 val renamed = renameFolderInCollections(state.collections, target.id, trimmed)
                 if (renamed) {
@@ -257,10 +268,41 @@ fun Sidebar(
                     }
                     state.notifyCollectionsChanged()
                     persistWorkspaceAsync()
+                    io.github.makeforge.clapi.ui.shared.state.UndoableWorkspaceActions.showRenamedItemSnackbar(
+                        state = state,
+                        oldName = oldName,
+                        newName = actualNewName,
+                        onUndo = {
+                            val restored = renameFolderInCollections(state.collections, target.id, oldName)
+                            if (!restored) return@showRenamedItemSnackbar false
+                            val revertedName = state.findFolder(target.id)?.name ?: oldName
+                            state.openTabs.filter { it.id == target.id && it.isFolderTab }.forEach { tab ->
+                                tab.name = revertedName
+                                tab.reanchorSavedSnapshotAfterRename(actualNewName)
+                            }
+                            if (isRootCollection) {
+                                state.updateTabsCollectionName(actualNewName, revertedName)
+                            }
+                            state.notifyCollectionsChanged()
+                            persistWorkspaceAsync()
+                            true
+                        },
+                    )
                 }
             } else {
                 state.renameRequestEverywhere(target.id, trimmed)
                 persistWorkspaceAsync()
+                io.github.makeforge.clapi.ui.shared.state.UndoableWorkspaceActions.showRenamedItemSnackbar(
+                    state = state,
+                    oldName = oldName,
+                    newName = trimmed,
+                    onUndo = {
+                        if (findNodePlacement(state.collections, target.id) == null) return@showRenamedItemSnackbar false
+                        state.renameRequestEverywhere(target.id, oldName)
+                        persistWorkspaceAsync()
+                        true
+                    },
+                )
             }
         }
         inlineRenamingId = null
@@ -549,6 +591,26 @@ fun Sidebar(
                         }
                         state.notifyCollectionsChanged()
                         persistWorkspaceAsync()
+                        io.github.makeforge.clapi.ui.shared.state.UndoableWorkspaceActions.showRenamedItemSnackbar(
+                            state = state,
+                            oldName = oldName,
+                            newName = actualNewName,
+                            onUndo = {
+                                val restored = renameFolderInCollections(state.collections, target.id, oldName)
+                                if (!restored) return@showRenamedItemSnackbar false
+                                val revertedName = state.findFolder(target.id)?.name ?: oldName
+                                state.openTabs.filter { it.id == target.id && it.isFolderTab }.forEach { tab ->
+                                    tab.name = revertedName
+                                    tab.reanchorSavedSnapshotAfterRename(actualNewName)
+                                }
+                                if (isRootCollection) {
+                                    state.updateTabsCollectionName(actualNewName, revertedName)
+                                }
+                                state.notifyCollectionsChanged()
+                                persistWorkspaceAsync()
+                                true
+                            },
+                        )
                     }
                 }
                 renameCollectionTarget = null
@@ -595,10 +657,22 @@ fun Sidebar(
             onConfirm = {
                 val target = renameRequestTarget ?: return@RenameItemDialog
                 val trimmed = renameRequestValue.trim()
-                if (trimmed.isNotEmpty()) {
+                if (trimmed.isNotEmpty() && trimmed != target.name) {
+                    val oldName = target.name
                     // Use renameRequestEverywhere so open tabs are also updated (Bug 2 fix)
                     state.renameRequestEverywhere(target.id, trimmed)
                     persistWorkspaceAsync()
+                    io.github.makeforge.clapi.ui.shared.state.UndoableWorkspaceActions.showRenamedItemSnackbar(
+                        state = state,
+                        oldName = oldName,
+                        newName = trimmed,
+                        onUndo = {
+                            if (findNodePlacement(state.collections, target.id) == null) return@showRenamedItemSnackbar false
+                            state.renameRequestEverywhere(target.id, oldName)
+                            persistWorkspaceAsync()
+                            true
+                        },
+                    )
                 }
                 renameRequestTarget = null
                 renameRequestValue = ""
@@ -619,12 +693,25 @@ fun Sidebar(
                 val idx = renameEnvironmentIndex
                 if (idx in state.environments.indices) {
                     val trimmed = renameEnvironmentValue.trim()
-                    if (trimmed.isNotEmpty()) {
+                    val targetEnv = state.environments[idx]
+                    val oldName = targetEnv.name
+                    if (trimmed.isNotEmpty() && trimmed != oldName) {
                         val existing = state.environments
                             .filterIndexed { envIndex, _ -> envIndex != idx }
                             .map { it.name }
                             .toSet()
-                        state.environments[idx].name = ImportExportNaming.generateUniqueEnvironmentName(trimmed, existing)
+                        val actualNewName = ImportExportNaming.generateUniqueEnvironmentName(trimmed, existing)
+                        targetEnv.name = actualNewName
+                        io.github.makeforge.clapi.ui.shared.state.UndoableWorkspaceActions.showRenamedItemSnackbar(
+                            state = state,
+                            oldName = oldName,
+                            newName = actualNewName,
+                            onUndo = {
+                                if (targetEnv !in state.environments) return@showRenamedItemSnackbar false
+                                targetEnv.name = oldName
+                                true
+                            },
+                        )
                     }
                 }
                 renameEnvironmentIndex = -1

@@ -18,6 +18,7 @@ All notable changes to Clapi are documented here.
 - **Built-in MCP Server & Client**: Embedded Model Context Protocol (MCP) server for AI agent integration alongside MCP client request support ([#45](https://github.com/MakeForge/Clapi/issues/45)).
 - **Scripting & Code Editor**: Javet V8 JavaScript pre/post-request scripting engine and custom Compose code editor with syntax highlighting, find/replace, go-to-line, folding, and diagnostics.
 - **Desktop Workspace UX**: Drag-and-drop request tab reordering, collapsible/detachable response viewer, desktop UI polish ([#37](https://github.com/MakeForge/Clapi/issues/37)), native window titlebar integration, and JDK 25 AOT-cached native installers (macOS `.dmg`, Linux `.deb`, Windows `.exe`, and universal Fat JAR).
+- **Undoable Action Snackbar**: Bottom-right action snackbar with one-click Undo for deleting (requests, folders with nested contents, collections, environments, history items), moving, and renaming items, enforcing single-snackbar replacement with a configurable auto-dismiss duration (1–60 seconds, default 5s) in General Global Settings.
 - **Persistent Logging & Documentation**: Asynchronous persistent file and diagnostics logging ([#46](https://github.com/MakeForge/Clapi/issues/46)) and VitePress documentation site ([#40](https://github.com/MakeForge/Clapi/issues/40)).
 
 ### Fixes

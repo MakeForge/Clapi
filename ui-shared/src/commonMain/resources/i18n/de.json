@@ -550,5 +550,13 @@
   "unknown_error": "Unbekannter Fehler",
   "unsaved_changes": "Ungespeicherte Änderungen",
   "value_upper": "WERT",
-  "workspace_exported": "Arbeitsbereich exportiert → workspace-backup.json"
+  "workspace_exported": "Arbeitsbereich exportiert → workspace-backup.json",
+  "snackbar_auto_dismiss_seconds": "Snackbar automatisch schließen (Sekunden)",
+  "settings_snackbar_auto_dismiss_desc": "Wie lange Aktions-Snackbars sichtbar bleiben, bevor sie automatisch verschwinden (1–60 Sekunden)",
+  "snackbar_deleted_item": "\"{name}\" gelöscht",
+  "snackbar_deleted_items": "{count} Elemente gelöscht",
+  "snackbar_moved_item": "\"{name}\" verschoben",
+  "snackbar_moved_items": "{count} Elemente verschoben",
+  "snackbar_renamed_item": "\"{oldName}\" in \"{newName}\" umbenannt",
+  "snackbar_undo_failed": "Aktion konnte nicht rückgängig gemacht werden"
 }

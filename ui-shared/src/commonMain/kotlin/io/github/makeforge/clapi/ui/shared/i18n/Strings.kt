@@ -257,10 +257,15 @@ object Strings {
     val typeBoolean: String @Composable @ReadOnlyComposable get() = t("type_boolean")
     val typeObject: String @Composable @ReadOnlyComposable get() = t("type_object")
     val readOnly: String @Composable @ReadOnlyComposable get() = t("read_only")
+    val snackbarAutoDismissSeconds: String @Composable @ReadOnlyComposable get() = t("snackbar_auto_dismiss_seconds")
+    val settingsSnackbarAutoDismissDesc: String @Composable @ReadOnlyComposable get() = t("settings_snackbar_auto_dismiss_desc")
 
     @Composable
     @ReadOnlyComposable
     fun t(key: String): String = LocalI18n.current.get(key)
+
+    /** Non-composable lookup for state/action callbacks that format user-facing messages. */
+    fun resolve(language: AppLanguage, key: String): String = I18nProvider(language).get(key)
 }
 
 class I18nProvider(private val language: AppLanguage = AppLanguage.EN) {

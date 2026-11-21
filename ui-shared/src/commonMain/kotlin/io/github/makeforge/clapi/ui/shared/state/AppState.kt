@@ -46,6 +46,7 @@ import kotlinx.serialization.json.JsonPrimitive
 
 class AppState(openDefaultTab: Boolean = true) {
     val dynamicVariableRegistry: DynamicVariableRegistry = DynamicVariableRegistry()
+    val snackbar: ActionSnackbarController = ActionSnackbarController()
 
     // ── workspace mode ──
     var workspaceMode by mutableStateOf(WorkspaceMode.HTTP)

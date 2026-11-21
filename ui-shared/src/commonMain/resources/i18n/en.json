@@ -550,5 +550,13 @@
   "summary": "Summary",
   "version": "Version",
   "filter": "Filter",
-  "add_filter": "Add Filter"
+  "add_filter": "Add Filter",
+  "snackbar_auto_dismiss_seconds": "Snackbar auto-dismiss (seconds)",
+  "settings_snackbar_auto_dismiss_desc": "How long action snackbars remain visible before auto-dismissing (1–60 seconds)",
+  "snackbar_deleted_item": "Deleted \"{name}\"",
+  "snackbar_deleted_items": "Deleted {count} items",
+  "snackbar_moved_item": "Moved \"{name}\"",
+  "snackbar_moved_items": "Moved {count} items",
+  "snackbar_renamed_item": "Renamed \"{oldName}\" to \"{newName}\"",
+  "snackbar_undo_failed": "Could not undo action"
 }

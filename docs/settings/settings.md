@@ -27,6 +27,7 @@ Access the settings modal by clicking the gear icon in the top toolbar or pressi
 - **Theme**: Select between **System Default**, **Material 3 Light**, or **Material 3 Dark**.
 - **Editor Font**: Choose your preferred monospace coding font (e.g. JetBrains Mono, Fira Code, Source Code Pro).
 - **Font Size & Ligatures**: Customize editor font size and toggle font ligatures.
+- **Snackbar Auto-Dismiss Duration**: Configure how long bottom-right action snackbars (with **Undo** for deleting, moving, or renaming items) stay visible before auto-dismissing (default: `5` seconds, valid range: `1–60` seconds).
 
 ### 2. Network & Proxy
 - **System Proxy**: Automatically detect OS proxy settings.

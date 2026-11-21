@@ -18,9 +18,9 @@
 
 **Purpose**: Prepare localized string resources used across the snackbar UI and General Global Settings.
 
-- [ ] T001 [P] Add snackbar and auto-dismiss setting translation keys (`undo`, `snackbar_auto_dismiss_seconds`, `settings_snackbar_auto_dismiss_desc`, `snackbar_deleted_item`, `snackbar_deleted_items`, `snackbar_moved_item`, `snackbar_moved_items`, `snackbar_renamed_item`, `snackbar_undo_failed`) to `ui-shared/src/commonMain/resources/i18n/en.json`
-- [ ] T002 [P] Add matching localized translations for the new snackbar and auto-dismiss keys in `ui-shared/src/commonMain/resources/i18n/de.json`, `ui-shared/src/commonMain/resources/i18n/es.json`, and `ui-shared/src/commonMain/resources/i18n/fr.json`
-- [ ] T003 Add typed `Strings` accessors for the snackbar and auto-dismiss setting keys in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/i18n/Strings.kt`
+- [X] T001 [P] Add snackbar and auto-dismiss setting translation keys (`undo`, `snackbar_auto_dismiss_seconds`, `settings_snackbar_auto_dismiss_desc`, `snackbar_deleted_item`, `snackbar_deleted_items`, `snackbar_moved_item`, `snackbar_moved_items`, `snackbar_renamed_item`, `snackbar_undo_failed`) to `ui-shared/src/commonMain/resources/i18n/en.json`
+- [X] T002 [P] Add matching localized translations for the new snackbar and auto-dismiss keys in `ui-shared/src/commonMain/resources/i18n/de.json`, `ui-shared/src/commonMain/resources/i18n/es.json`, and `ui-shared/src/commonMain/resources/i18n/fr.json`
+- [X] T003 Add typed `Strings` accessors for the snackbar and auto-dismiss setting keys in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/i18n/Strings.kt`
 
 ---
 
@@ -30,13 +30,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T004 Create `ActionSnackbar`, `ActionSnackbarController`, and constants (`DEFAULT_SNACKBAR_AUTO_DISMISS_SEC = 5`, `MIN_SNACKBAR_AUTO_DISMISS_SEC = 1`, `MAX_SNACKBAR_AUTO_DISMISS_SEC = 60`; non-blank `message` validation; monotonic `id: Long`; single active `current: ActionSnackbar?` slot; at-most-once `triggerAction(id)` with `runCatching` failure fallback; stale-id-safe `dismiss(id)`) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/ActionSnackbarState.kt`
-- [ ] T005 [P] Add `snackbarAutoDismissSec` (`Int`, default `5`, range `1..60`) to `AppSettings` and copy it in `withNetworkOverrides()` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppSettings.kt`
-- [ ] T006 Expose `val snackbar = ActionSnackbarController()` on `AppState` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt`
-- [ ] T007 [P] Create `ActionSnackbarHost` composable anchored at `Alignment.BottomEnd` with `LaunchedEffect(active?.id, effectiveDurationMs)` auto-dismiss timer, single-slot rendering (no overlapping crossfade), `TextOverflow.Ellipsis` (`maxLines = 2`) truncation, Undo button (`testTag("action-snackbar-undo")`), dismiss button (`testTag("action-snackbar-dismiss")`), and container/message test tags (`action-snackbar`, `action-snackbar-message`) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/ActionSnackbarHost.kt`
-- [ ] T008 Wrap `MainScreen` root in a `Box` mounting `ActionSnackbarHost(controller = state.snackbar, autoDismissSec = state.settings.snackbarAutoDismissSec)` at `Alignment.BottomEnd` and include `snackbarAutoDismissSec` in the settings `snapshotFlow` fingerprint in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/MainScreen.kt`
-- [ ] T009 [P] Add tree placement lookup (`findNodePlacement`, `captureNodePlacements`) and re-insertion (`reinsertNodeAt`, `restoreNodePlacements`) helpers in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/sidebar/SidebarCollectionHelpers.kt`
-- [ ] T010 Create `UndoableWorkspaceActions.kt` with `NodePlacement`, `DeletedNodeSnapshot`, `DeletedEnvironmentSnapshot`, `DeletedHistorySnapshot`, and centralized undo helpers for delete, move (with pre/post placement no-op detection), and rename (with identical-name no-op detection) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/UndoableWorkspaceActions.kt`
+- [X] T004 Create `ActionSnackbar`, `ActionSnackbarController`, and constants (`DEFAULT_SNACKBAR_AUTO_DISMISS_SEC = 5`, `MIN_SNACKBAR_AUTO_DISMISS_SEC = 1`, `MAX_SNACKBAR_AUTO_DISMISS_SEC = 60`; non-blank `message` validation; monotonic `id: Long`; single active `current: ActionSnackbar?` slot; at-most-once `triggerAction(id)` with `runCatching` failure fallback; stale-id-safe `dismiss(id)`) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/ActionSnackbarState.kt`
+- [X] T005 [P] Add `snackbarAutoDismissSec` (`Int`, default `5`, range `1..60`) to `AppSettings` and copy it in `withNetworkOverrides()` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppSettings.kt`
+- [X] T006 Expose `val snackbar = ActionSnackbarController()` on `AppState` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/AppState.kt`
+- [X] T007 [P] Create `ActionSnackbarHost` composable anchored at `Alignment.BottomEnd` with `LaunchedEffect(active?.id, effectiveDurationMs)` auto-dismiss timer, single-slot rendering (no overlapping crossfade), `TextOverflow.Ellipsis` (`maxLines = 2`) truncation, Undo button (`testTag("action-snackbar-undo")`), dismiss button (`testTag("action-snackbar-dismiss")`), and container/message test tags (`action-snackbar`, `action-snackbar-message`) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/ActionSnackbarHost.kt`
+- [X] T008 Wrap `MainScreen` root in a `Box` mounting `ActionSnackbarHost(controller = state.snackbar, autoDismissSec = state.settings.snackbarAutoDismissSec)` at `Alignment.BottomEnd` and include `snackbarAutoDismissSec` in the settings `snapshotFlow` fingerprint in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/MainScreen.kt`
+- [X] T009 [P] Add tree placement lookup (`findNodePlacement`, `captureNodePlacements`) and re-insertion (`reinsertNodeAt`, `restoreNodePlacements`) helpers in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/sidebar/SidebarCollectionHelpers.kt`
+- [X] T010 Create `UndoableWorkspaceActions.kt` with `NodePlacement`, `DeletedNodeSnapshot`, `DeletedEnvironmentSnapshot`, `DeletedHistorySnapshot`, and centralized undo helpers for delete, move (with pre/post placement no-op detection), and rename (with identical-name no-op detection) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/state/UndoableWorkspaceActions.kt`
 
 **Checkpoint**: Foundation ready — user story implementation can now proceed.
 
@@ -48,9 +48,9 @@
 
 **Independent Test**: Delete a request, a non-empty folder, an environment, and a history entry; verify the bottom-right snackbar appears with an Undo button, click Undo before timeout, and confirm full restoration (including nested folder contents and original position) and immediate snackbar dismissal.
 
-- [ ] T011 [US1] Wire undoable delete snackbars for single request, multi-selected requests, single folder (preserving nested subtree), multi-selected folders, and root collection deletion in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/sidebar/SidebarCollectionsSection.kt`
-- [ ] T012 [P] [US1] Wire undoable environment deletion (restoring `EnvState`, original index, and `selectedEnvIndex`) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/sidebar/SidebarEnvironmentsSection.kt`
-- [ ] T013 [P] [US1] Wire undoable history item removal (restoring `HistoryItem` at its original index) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/sidebar/SidebarHistoryRow.kt`
+- [X] T011 [US1] Wire undoable delete snackbars for single request, multi-selected requests, single folder (preserving nested subtree), multi-selected folders, and root collection deletion in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/sidebar/SidebarCollectionsSection.kt`
+- [X] T012 [P] [US1] Wire undoable environment deletion (restoring `EnvState`, original index, and `selectedEnvIndex`) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/sidebar/SidebarEnvironmentsSection.kt`
+- [X] T013 [P] [US1] Wire undoable history item removal (restoring `HistoryItem` at its original index) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/sidebar/SidebarHistoryRow.kt`
 
 **Checkpoint**: User Story 1 (MVP) is fully functional and independently testable.
 
@@ -62,9 +62,9 @@
 
 **Independent Test**: Move a request or folder (via Move Up/Down or drag-and-drop) and click Undo to confirm original parent and position restoration; rename a request, folder, collection, or environment (inline, dialog, or tab bar) and click Undo to confirm the previous name is restored; verify no-op moves/renames do not show a snackbar.
 
-- [ ] T014 [US2] Wire undoable move snackbars (with pre/post placement no-op check) for Move Up/Down, request drag-and-drop (`onDragEnd`), and folder/collection drag-and-drop (`onCollectionDragEnd`) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/sidebar/SidebarCollectionsSection.kt`
-- [ ] T015 [P] [US2] Wire undoable rename snackbars (skipping no-op renames where `actualNewName == oldName`) for sidebar inline rename and rename dialogs (request, folder, collection, environment) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/sidebar/Sidebar.kt`
-- [ ] T016 [P] [US2] Wire undoable rename snackbar (skipping no-op renames) for tab bar rename (`onRenameTab` for collection, folder, and request tabs) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/MainScreen.kt`
+- [X] T014 [US2] Wire undoable move snackbars (with pre/post placement no-op check) for Move Up/Down, request drag-and-drop (`onDragEnd`), and folder/collection drag-and-drop (`onCollectionDragEnd`) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/sidebar/SidebarCollectionsSection.kt`
+- [X] T015 [P] [US2] Wire undoable rename snackbars (skipping no-op renames where `actualNewName == oldName`) for sidebar inline rename and rename dialogs (request, folder, collection, environment) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/sidebar/Sidebar.kt`
+- [X] T016 [P] [US2] Wire undoable rename snackbar (skipping no-op renames) for tab bar rename (`onRenameTab` for collection, folder, and request tabs) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/MainScreen.kt`
 
 **Checkpoint**: All required actions (delete, move, rename) are undoable via the bottom-right snackbar.
 
@@ -76,9 +76,9 @@
 
 **Independent Test**: Trigger two or more eligible actions within 2 seconds and verify that the old snackbar is immediately dismissed with zero overlap, the timer resets to the full configured duration, and rapid Undo clicks execute at most once.
 
-- [ ] T017 [P] [US3] Add unit tests for `ActionSnackbarController` (single-snackbar immediate replacement, monotonic IDs, once-only undo execution, stale-id dismiss safety, undo failure fallback) in `ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/state/ActionSnackbarControllerTest.kt`
-- [ ] T018 [P] [US3] Add unit tests for `UndoableWorkspaceActions` (single/multi request & folder delete restore with full subtree, move restore, rename restore, and no-op move/rename suppression) in `ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/state/UndoableWorkspaceActionsTest.kt`
-- [ ] T019 [US3] Add Compose Desktop UI tests verifying bottom-right snackbar display, Undo click restoration, manual dismiss, auto-dismiss timeout, and immediate single-snackbar replacement on back-to-back actions in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/ActionSnackbarUiTest.kt`
+- [X] T017 [P] [US3] Add unit tests for `ActionSnackbarController` (single-snackbar immediate replacement, monotonic IDs, once-only undo execution, stale-id dismiss safety, undo failure fallback) in `ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/state/ActionSnackbarControllerTest.kt`
+- [X] T018 [P] [US3] Add unit tests for `UndoableWorkspaceActions` (single/multi request & folder delete restore with full subtree, move restore, rename restore, and no-op move/rename suppression) in `ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/state/UndoableWorkspaceActionsTest.kt`
+- [X] T019 [US3] Add Compose Desktop UI tests verifying bottom-right snackbar display, Undo click restoration, manual dismiss, auto-dismiss timeout, and immediate single-snackbar replacement on back-to-back actions in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/ActionSnackbarUiTest.kt`
 
 **Checkpoint**: Single-snackbar replacement and undo mechanics are verified by automated unit and UI tests.
 
@@ -90,11 +90,11 @@
 
 **Independent Test**: Open Global Settings → General, confirm default value `5`, reject invalid values (`0`, `-1`, `999`), change to `10`, verify subsequent snackbars use `10s`, and confirm persistence via `SettingsRepository` round-trip tests.
 
-- [ ] T020 [P] [US4] Persist and load `settings.snackbarAutoDismissSec` (default `5`, clamped to `1..60`) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/SettingsRepository.kt`
-- [ ] T021 [P] [US4] Enhance `SettingNumberField` with optional `description: String = ""`, `minValue: Int? = null`, `maxValue: Int? = null`, and `tag: String = ""` (showing red error border and blocking commits outside `[minValue, maxValue]`) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/settings/SettingControls.kt`
-- [ ] T022 [US4] Add **Snackbar Auto-Dismiss Duration** (`minValue = 1`, `maxValue = 60`, `tag = "snackbar-auto-dismiss-input"`) to `GeneralSettings` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/settings/GeneralSettingsPane.kt`
-- [ ] T023 [P] [US4] Add unit tests for `SettingsRepository` snackbar auto-dismiss default (`5`), save/load persistence, and clamping (`<1` → `1`, `>60` → `60`) in `ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/persistence/SettingsRepositorySnackbarTest.kt`
-- [ ] T024 [P] [US4] Extend General Global Settings UI tests to verify default `5`, valid duration update, and invalid/out-of-range rejection in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/SettingsDialogUiTest.kt`
+- [X] T020 [P] [US4] Persist and load `settings.snackbarAutoDismissSec` (default `5`, clamped to `1..60`) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/persistence/SettingsRepository.kt`
+- [X] T021 [P] [US4] Enhance `SettingNumberField` with optional `description: String = ""`, `minValue: Int? = null`, `maxValue: Int? = null`, and `tag: String = ""` (showing red error border and blocking commits outside `[minValue, maxValue]`) in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/settings/SettingControls.kt`
+- [X] T022 [US4] Add **Snackbar Auto-Dismiss Duration** (`minValue = 1`, `maxValue = 60`, `tag = "snackbar-auto-dismiss-input"`) to `GeneralSettings` in `ui-shared/src/commonMain/kotlin/io/github/makeforge/clapi/ui/shared/components/dialogs/settings/GeneralSettingsPane.kt`
+- [X] T023 [P] [US4] Add unit tests for `SettingsRepository` snackbar auto-dismiss default (`5`), save/load persistence, and clamping (`<1` → `1`, `>60` → `60`) in `ui-shared/src/commonTest/kotlin/io/github/makeforge/clapi/ui/shared/persistence/SettingsRepositorySnackbarTest.kt`
+- [X] T024 [P] [US4] Extend General Global Settings UI tests to verify default `5`, valid duration update, and invalid/out-of-range rejection in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/SettingsDialogUiTest.kt`
 
 **Checkpoint**: Auto-dismiss duration is configurable in General Global Settings, persisted, validated, and tested.
 
@@ -106,7 +106,7 @@
 
 **Independent Test**: Verify via unit and UI tests that calling `state.snackbar.show(message)` without an action renders a message-only bottom-right snackbar (no Undo button) that still follows auto-dismiss and single-snackbar replacement rules.
 
-- [ ] T025 [US5] Add test coverage verifying informational (non-undoable) snackbars without an Undo button and custom duration overrides through `ActionSnackbarController` and `ActionSnackbarHost` in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/ActionSnackbarUiTest.kt`
+- [X] T025 [US5] Add test coverage verifying informational (non-undoable) snackbars without an Undo button and custom duration overrides through `ActionSnackbarController` and `ActionSnackbarHost` in `ui-desktop/src/desktopTest/kotlin/io/github/makeforge/clapi/ui/desktop/ActionSnackbarUiTest.kt`
 
 ---
 
@@ -114,9 +114,9 @@
 
 **Purpose**: Documentation, full verification, and changelog/versioning compliance.
 
-- [ ] T026 [P] Document the new **Snackbar Auto-Dismiss Duration** setting (default 5 seconds, valid range 1–60 seconds) under General settings in `docs/settings/settings.md`
-- [ ] T027 Run full automated test verification (`rtk gradlew :ui-shared:jvmTest :ui-desktop:desktopTest`) and confirm all quickstart checks pass
-- [ ] T028 Update `CHANGELOG.md` (and `gradle.properties` `appVersion` if starting a new unreleased SemVer version) per the Changelog & Versioning Policy in `AGENTS.md`
+- [X] T026 [P] Document the new **Snackbar Auto-Dismiss Duration** setting (default 5 seconds, valid range 1–60 seconds) under General settings in `docs/settings/settings.md`
+- [X] T027 Run full automated test verification (`rtk gradlew :ui-shared:jvmTest :ui-desktop:desktopTest`) and confirm all quickstart checks pass
+- [X] T028 Update `CHANGELOG.md` (and `gradle.properties` `appVersion` if starting a new unreleased SemVer version) per the Changelog & Versioning Policy in `AGENTS.md`
 
 ---
 

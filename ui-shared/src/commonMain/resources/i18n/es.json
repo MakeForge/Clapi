@@ -550,5 +550,13 @@
   "unknown_error": "Error desconocido",
   "unsaved_changes": "Cambios sin guardar",
   "value_upper": "VALOR",
-  "workspace_exported": "Espacio de trabajo exportado → workspace-backup.json"
+  "workspace_exported": "Espacio de trabajo exportado → workspace-backup.json",
+  "snackbar_auto_dismiss_seconds": "Cierre automático de snackbar (segundos)",
+  "settings_snackbar_auto_dismiss_desc": "Tiempo que los avisos de acción permanecen visibles antes de cerrarse automáticamente (1–60 segundos)",
+  "snackbar_deleted_item": "Eliminado \"{name}\"",
+  "snackbar_deleted_items": "{count} elementos eliminados",
+  "snackbar_moved_item": "Movido \"{name}\"",
+  "snackbar_moved_items": "{count} elementos movidos",
+  "snackbar_renamed_item": "Renombrado \"{oldName}\" a \"{newName}\"",
+  "snackbar_undo_failed": "No se pudo deshacer la acción"
 }

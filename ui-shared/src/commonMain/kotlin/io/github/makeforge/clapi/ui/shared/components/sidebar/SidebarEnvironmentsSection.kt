@@ -24,8 +24,10 @@ import io.github.makeforge.clapi.ui.shared.persistence.ImportExportRepository
 import io.github.makeforge.clapi.ui.shared.persistence.WorkspaceRepository
 import io.github.makeforge.clapi.ui.shared.platform.pickFileForImport
 import io.github.makeforge.clapi.ui.shared.state.AppState
+import io.github.makeforge.clapi.ui.shared.state.DeletedEnvironmentSnapshot
 import io.github.makeforge.clapi.ui.shared.state.EnvState
 import io.github.makeforge.clapi.ui.shared.state.LogLevel
+import io.github.makeforge.clapi.ui.shared.state.UndoableWorkspaceActions
 import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -142,11 +144,15 @@ internal fun LazyListScope.sidebarEnvironmentsSection(
                     onRename = { onRenameEnvironment(index, env.name) },
                     onDelete = {
                         val action = {
-                            if (state.environments.isNotEmpty()) {
-                                val deletedName = state.environments[index].name
-                                state.environments.removeAt(index)
+                            if (index in state.environments.indices) {
+                                val previousSelected = state.selectedEnvIndex
+                                val removedEnv = state.environments.removeAt(index)
                                 state.selectedEnvIndex = if (state.environments.isEmpty()) 0 else state.selectedEnvIndex.coerceIn(0, state.environments.lastIndex)
-                                state.log("Environment deleted: $deletedName", LogLevel.INFO)
+                                UndoableWorkspaceActions.showDeletedEnvironmentSnackbar(
+                                    state,
+                                    DeletedEnvironmentSnapshot(removedEnv, index, previousSelected),
+                                )
+                                state.log("Environment deleted: ${removedEnv.name}", LogLevel.INFO)
                             }
                         }
                         if (state.settings.confirmBeforeDelete) {

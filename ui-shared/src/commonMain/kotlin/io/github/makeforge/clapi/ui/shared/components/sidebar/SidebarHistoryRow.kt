@@ -50,7 +50,9 @@ import io.github.makeforge.clapi.ui.shared.generated.resources.ic_more_vert
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
 import io.github.makeforge.clapi.ui.shared.platform.formatTimestamp
 import io.github.makeforge.clapi.ui.shared.state.AppState
+import io.github.makeforge.clapi.ui.shared.state.DeletedHistorySnapshot
 import io.github.makeforge.clapi.ui.shared.state.HistoryItem
+import io.github.makeforge.clapi.ui.shared.state.UndoableWorkspaceActions
 import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
 import org.jetbrains.compose.resources.painterResource
 
@@ -165,7 +167,11 @@ internal fun HistoryRow(
                     text = { Text(Strings.t("remove_from_history")) },
                     onClick = {
                         showMenu = false
+                        val snapshots = state.historyItems.mapIndexedNotNull { idx, entry ->
+                            if (entry.requestId == item.requestId) DeletedHistorySnapshot(entry, idx) else null
+                        }
                         state.removeHistoryItem(item.requestId)
+                        UndoableWorkspaceActions.showDeletedHistorySnackbar(state, snapshots)
                     },
                 )
             }

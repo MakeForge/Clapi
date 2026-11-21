@@ -15,10 +15,11 @@ const val DEFAULT_ENVIRONMENT_DIALOG_HEIGHT_DP = 560f
 
 class AppSettings {
     // General
-    var autoSaveRequests     by mutableStateOf(false)
-    var confirmBeforeDelete  by mutableStateOf(true)
-    var defaultTimeoutSec    by mutableStateOf(30)
-    var responseLayout       by mutableStateOf(ResponseLayout.RIGHT)
+    var autoSaveRequests       by mutableStateOf(false)
+    var confirmBeforeDelete    by mutableStateOf(true)
+    var defaultTimeoutSec      by mutableStateOf(30)
+    var snackbarAutoDismissSec by mutableStateOf(DEFAULT_SNACKBAR_AUTO_DISMISS_SEC)
+    var responseLayout         by mutableStateOf(ResponseLayout.RIGHT)
 
     // Theme
     var theme by mutableStateOf(AppTheme.DARK)
@@ -45,6 +46,7 @@ class AppSettings {
             copy.autoSaveRequests = base.autoSaveRequests
             copy.confirmBeforeDelete = base.confirmBeforeDelete
             copy.defaultTimeoutSec = base.defaultTimeoutSec
+            copy.snackbarAutoDismissSec = base.snackbarAutoDismissSec
             copy.responseLayout = base.responseLayout
             copy.theme = base.theme
             copy.language = base.language

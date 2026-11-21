@@ -9,6 +9,8 @@ import io.github.makeforge.clapi.ui.shared.state.ResponseLayout
 import io.github.makeforge.clapi.ui.shared.state.AppTheme
 import io.github.makeforge.clapi.ui.shared.state.DEFAULT_ENVIRONMENT_DIALOG_HEIGHT_DP
 import io.github.makeforge.clapi.ui.shared.state.DEFAULT_ENVIRONMENT_DIALOG_WIDTH_DP
+import io.github.makeforge.clapi.ui.shared.state.MAX_SNACKBAR_AUTO_DISMISS_SEC
+import io.github.makeforge.clapi.ui.shared.state.MIN_SNACKBAR_AUTO_DISMISS_SEC
 
 /**
  * Canonical storage keys used for persisting settings and secret manager credentials
@@ -65,6 +67,8 @@ object SettingsRepository {
         settings.autoSaveRequests    = getBool("autoSaveRequests", settings.autoSaveRequests)
         settings.confirmBeforeDelete = getBool("confirmBeforeDelete", settings.confirmBeforeDelete)
         settings.defaultTimeoutSec   = getInt("defaultTimeoutSec", settings.defaultTimeoutSec)
+        settings.snackbarAutoDismissSec = getInt("snackbarAutoDismissSec", settings.snackbarAutoDismissSec)
+            .coerceIn(MIN_SNACKBAR_AUTO_DISMISS_SEC, MAX_SNACKBAR_AUTO_DISMISS_SEC)
         settings.responseLayout      = safeEnumOf(
             PlatformStorage.getString(PREFIX + "responseLayout") ?: settings.responseLayout.name,
             settings.responseLayout,
@@ -148,6 +152,10 @@ object SettingsRepository {
         putBool("autoSaveRequests", settings.autoSaveRequests)
         putBool("confirmBeforeDelete", settings.confirmBeforeDelete)
         putInt("defaultTimeoutSec", settings.defaultTimeoutSec)
+        putInt(
+            "snackbarAutoDismissSec",
+            settings.snackbarAutoDismissSec.coerceIn(MIN_SNACKBAR_AUTO_DISMISS_SEC, MAX_SNACKBAR_AUTO_DISMISS_SEC),
+        )
         PlatformStorage.putString(PREFIX + "responseLayout", settings.responseLayout.name)
         PlatformStorage.putString(PREFIX + "theme", settings.theme.name)
         PlatformStorage.putString(PREFIX + "language", settings.language.name)
