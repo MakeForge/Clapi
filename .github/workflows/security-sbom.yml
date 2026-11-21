@@ -11,6 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read        # Required to upload SBOM assets to GitHub Releases
   contents: write        # Required to upload SBOM assets to GitHub Releases
   security-events: write # Required to upload SARIF results to GitHub Security tab
 
