@@ -240,4 +240,75 @@ class ImportExportRepositoryTest {
         assertEquals(HttpMethodType.CONNECT, importedRequest.method,
             "CONNECT method must survive collection export/import round-trip")
     }
+
+    @Test
+    fun `importCollectionFromString imports Insomnia v5 YAML collection and environments`() {
+        val insomniaYaml = """
+            type: collection.insomnia.rest/5.0
+            schema_version: "5.1"
+            name: Insomnia Billing API
+            meta:
+              id: wrk_billing
+            environments:
+              name: Base Environment
+              meta:
+                id: env_billing_base
+              data:
+                apiHost: https://billing.example.com
+              subEnvironments:
+                - name: Sandbox
+                  meta:
+                    id: env_sandbox
+                  data:
+                    apiKey: sb_test_123
+            collection:
+              - name: Invoices
+                meta:
+                  id: fld_invoices
+                children:
+                  - name: List Invoices
+                    url: "{{apiHost}}/v1/invoices"
+                    method: GET
+                    meta:
+                      id: req_list_invoices
+                    headers:
+                      - name: Authorization
+                        value: "Bearer {{apiKey}}"
+                    scripts:
+                      preRequest: |
+                        insomnia.environment.set("traceId", "tr-999");
+                      afterResponse: |
+                        insomnia.test("200 OK", () => {
+                          insomnia.expect(insomnia.response.status).to.eql(200);
+                        });
+        """.trimIndent()
+
+        val target = AppState(openDefaultTab = false).apply {
+            collections.clear()
+            environments.clear()
+        }
+
+        val importedName = ImportExportRepository.importCollectionFromString(target, insomniaYaml)
+        assertEquals("Insomnia Billing API", importedName)
+        assertEquals(1, target.collections.size)
+
+        val col = target.collections.first()
+        assertEquals(1, col.children.size)
+        val folder = col.children.first()
+        assertEquals("Invoices", folder.name)
+        assertTrue(folder.isFolder)
+
+        val req = folder.children.first()
+        assertEquals("List Invoices", req.name)
+        assertEquals(HttpMethodType.GET, req.method)
+        assertEquals("{{apiHost}}/v1/invoices", req.url)
+        assertTrue(req.preRequestScript?.contains("clapi.environment.set(\"traceId\", \"tr-999\")") == true)
+        assertTrue(req.testScript?.contains("clapi.test(\"200 OK\"") == true)
+
+        assertEquals(2, target.environments.size)
+        assertTrue(target.environments.any { it.name == "Base Environment" })
+        val sandboxEnv = target.environments.first { it.name == "Sandbox" }
+        assertTrue(sandboxEnv.variables.any { it.key == "apiHost" && it.value == "https://billing.example.com" })
+        assertTrue(sandboxEnv.variables.any { it.key == "apiKey" && it.value == "sb_test_123" })
+    }
 }

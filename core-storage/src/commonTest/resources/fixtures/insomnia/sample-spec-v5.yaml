@@ -1,0 +1,46 @@
+type: spec.insomnia.rest/5.0
+schema_version: "5.1"
+name: Petstore Design Spec
+meta:
+  id: wrk_petstore_spec
+environments:
+  name: Base Environment
+  meta:
+    id: env_spec_base
+  data:
+    baseUrl: https://petstore.swagger.io/v2
+spec:
+  contents:
+    openapi: 3.0.0
+    info:
+      title: Swagger Petstore
+      version: 1.0.2
+    servers:
+      - url: https://petstore.swagger.io/v2
+    paths:
+      /pet:
+        post:
+          tags:
+            - pet
+          summary: Add a new pet to the store
+          operationId: addPet
+          responses:
+            "200":
+              description: Created
+      /pet/findByStatus:
+        get:
+          tags:
+            - pet
+          summary: Finds Pets by status
+          operationId: findPetsByStatus
+          parameters:
+            - name: status
+              in: query
+              required: true
+              schema:
+                type: string
+          responses:
+            "200":
+              description: successful operation
+  meta:
+    id: spc_petstore

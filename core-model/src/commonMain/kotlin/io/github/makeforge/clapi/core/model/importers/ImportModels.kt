@@ -35,6 +35,8 @@ data class ImportSourceState(
 enum class SpecFormat {
     OPENAPI_V3,
     OPENCOLLECTION,
+    POSTMAN,
+    INSOMNIA,
 }
 
 /**

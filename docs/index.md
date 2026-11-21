@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Clapi
   text: The Bullshit-Free API Client
-  tagline: Open-Sourvce multi-protocol Desktop API development tool with zero telemetry, extensive Secret Manager support, Git-native sync and Model Context Protocol (MCP) support for Windows, Linux, macOS.
+  tagline: Open-Source multi-protocol Desktop API development tool with zero telemetry or cloud lock-in, extensive Secret Manager support, Git-native sync and Model Context Protocol (MCP) support for Windows, Linux, macOS for free.
   image:
     light: /generated/screenshots/MainScreenPreviewsKt.MainScreenHttpPreviewLight.W1920dp_H1080dp.png
     dark: /generated/screenshots/MainScreenPreviewsKt.MainScreenHttpPreviewDark.W1920dp_H1080dp.png
