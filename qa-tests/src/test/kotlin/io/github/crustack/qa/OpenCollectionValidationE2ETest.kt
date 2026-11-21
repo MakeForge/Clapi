@@ -17,6 +17,7 @@ import io.github.crustack.core.model.opencollection.VariableValue
 import io.github.crustack.core.storage.opencollection.CollectionValidationException
 import io.github.crustack.core.storage.opencollection.DefaultCanonicalCollectionRepository
 import io.github.crustack.core.storage.opencollection.ExportFormat
+import io.github.crustack.core.storage.opencollection.GLOBAL_COLLECTION_FILENAME
 import io.github.crustack.core.storage.opencollection.OpenCollectionSchemaValidator
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -77,8 +78,8 @@ class OpenCollectionValidationE2ETest {
         val repo = DefaultCanonicalCollectionRepository(baseDirectory = tempDir.root.absolutePath)
         repo.saveCollection(sampleDocument())
 
-        val file = File(tempDir.root, "Sample_Collection.json")
-        assertTrue(file.exists(), "Expected saved collection file at ${file.path}")
+        val file = File(tempDir.root, GLOBAL_COLLECTION_FILENAME)
+        assertTrue(file.exists(), "Expected saved global collection file at ${file.path}")
         val issues = validator.validate(file.readText())
         assertTrue(issues.isEmpty(), "Saved file has schema issues: $issues")
     }
@@ -100,12 +101,12 @@ class OpenCollectionValidationE2ETest {
         val repo = DefaultCanonicalCollectionRepository(baseDirectory = tempDir.root.absolutePath)
         repo.saveCollection(sampleDocument())
 
-        val file = File(tempDir.root, "Sample_Collection.json")
+        val file = File(tempDir.root, GLOBAL_COLLECTION_FILENAME)
         val bytesBefore = file.readBytes()
 
         val invalid = sampleDocument().copy(opencollection = "2.0.0")
         val error = assertFailsWith<CollectionValidationException> {
-            repo.saveCollection(invalid)
+            repo.saveGlobalCollection(invalid)
         }
         assertTrue(
             error.issues.any { it.path == "$.opencollection" },

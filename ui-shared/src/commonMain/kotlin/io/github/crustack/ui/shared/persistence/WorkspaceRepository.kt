@@ -1,43 +1,54 @@
 package io.github.crustack.ui.shared.persistence
 
+import io.github.crustack.core.model.opencollection.FolderItem
 import io.github.crustack.core.storage.opencollection.CanonicalCollectionRepository
 import io.github.crustack.core.storage.opencollection.CollectionStorageException
 import io.github.crustack.core.storage.opencollection.CollectionValidationException
 import io.github.crustack.core.storage.opencollection.DefaultCanonicalCollectionRepository
-import io.github.crustack.ui.shared.platform.PlatformStorage
 import io.github.crustack.ui.shared.state.AppState
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 
 /**
- * Saves and restores workspace state (collections + environments) using [CanonicalCollectionRepository]
- * and [PlatformStorage].
- * Keeps open tabs and runtime state out of persisted collection documents (FR-024).
+ * Saves and restores workspace state using [CanonicalCollectionRepository] for the single global
+ * OpenCollection document (collections as top-level folders, environments in `config.environments`)
+ * and [PrivateStateRepository] for global variables, request history, and expanded tree state.
  */
 object WorkspaceRepository {
 
-    private const val STORAGE_KEY = "clapi.workspace"
-
     var canonicalRepository: CanonicalCollectionRepository = DefaultCanonicalCollectionRepository()
+        set(value) {
+            field = value
+            if (value is DefaultCanonicalCollectionRepository) {
+                privateStateRepository = PrivateStateRepository(baseDirectory = value.baseDirectory)
+            }
+        }
+
+    var privateStateRepository: PrivateStateRepository = PrivateStateRepository()
 
     private var lastReportedSaveError: String? = null
 
     /**
-     * Persists collections and workspace metadata. Returns false and reports the failure to the user
-     * if any step fails. Metadata is written only after every collection has been saved, so a rejected
-     * document never leaves a partially updated workspace behind.
+     * Persists collections and environments to the single global OpenCollection document, and
+     * global variables, history, and expanded state to [privateStateRepository].
+     * Returns false and reports the failure to the user if any step fails.
      */
     fun save(state: AppState): Boolean =
         runCatching {
-            // Persist collections canonically as OpenCollection documents
+            val globalDoc = state.toGlobalOpenCollectionDocument()
             runBlocking {
-                for (collection in state.collections) {
-                    val doc = collection.toOpenCollectionDocument()
-                    canonicalRepository.saveCollection(doc)
-                }
+                canonicalRepository.saveGlobalCollection(globalDoc)
             }
-            // Persist workspace metadata (environments, global variables, history, expanded state)
-            val json = ImportExportRepository.exportWorkspaceToString(state)
-            PlatformStorage.putString(STORAGE_KEY, json)
+            privateStateRepository.save(
+                PrivateWorkspaceState(
+                    globalVariables = state.globalVariables
+                        .filter { it.key.trim().isNotEmpty() }
+                        .map { it.toStoredVariable() },
+                    history = state.historyItems.map { it.toStoredHistoryItem() },
+                    expandedState = state.collectionExpandedState.toMap(),
+                )
+            )
             lastReportedSaveError = null
             true
         }.getOrElse { error ->
@@ -61,10 +72,53 @@ object WorkspaceRepository {
 
     fun load(state: AppState) {
         runCatching {
-            val json = PlatformStorage.getString(STORAGE_KEY) ?: return
-            val workspace = ImportExportRepository.decodeWorkspace(json)
-            ImportExportRepository.replaceWorkspaceState(state, workspace)
+            val globalDoc = runBlocking { canonicalRepository.loadGlobalCollection() }
+            val privateState = privateStateRepository.load()
+            if (globalDoc == null && privateState == null) return
+
+            if (globalDoc != null) {
+                val clapiRequests = (globalDoc.extensions["clapi"] as? JsonObject)?.get("requests")?.jsonObject
+                state.collections.clear()
+                var existingIds = emptySet<String>()
+                globalDoc.items.filterIsInstance<FolderItem>().forEachIndexed { index, folder ->
+                    val node = folder.toCollectionNode(
+                        preserveIds = true,
+                        clapiRequests = clapiRequests,
+                        path = index.toString(),
+                        existingIds = existingIds,
+                    )
+                    state.collections.add(node)
+                    existingIds = existingIds + node.id
+                }
+
+                state.environments.clear()
+                state.environments.addAll(
+                    globalDoc.config?.environments.orEmpty().map { it.toEnvState() }
+                )
+                val savedName = state.settings.selectedEnvName
+                state.selectedEnvIndex = when {
+                    state.environments.isEmpty() -> 0
+                    savedName.isNotEmpty() -> {
+                        val idx = state.environments.indexOfFirst { it.name == savedName }
+                        if (idx >= 0) idx else 0
+                    }
+                    else -> state.selectedEnvIndex.coerceIn(0, state.environments.lastIndex)
+                }
+            }
+
+            if (privateState != null) {
+                state.globalVariables.clear()
+                state.globalVariables.addAll(
+                    privateState.globalVariables.map { it.toMutableKeyValue() }
+                )
+
+                state.replaceHistoryItems(
+                    privateState.history.map { it.toHistoryItem() }
+                )
+
+                state.collectionExpandedState.clear()
+                state.collectionExpandedState.putAll(privateState.expandedState)
+            }
         }
     }
 }
-

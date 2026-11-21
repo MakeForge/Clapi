@@ -63,7 +63,7 @@ Note for macOS users: If you see a warning that the app "cannot be opened becaus
 
 You can import these sample fixtures from the repo:
 
-- Collection sample: [qa-tests/fixtures/clapi-test-collection.json](qa-tests/fixtures/clapi-test-collection.json)
+- Collection sample (OpenCollection v1.0.0): [qa-tests/fixtures/clapi-test-collection.json](qa-tests/fixtures/clapi-test-collection.json)
 - Environment sample: [qa-tests/fixtures/clapi-test-environment.json](qa-tests/fixtures/clapi-test-environment.json)
 
 The collection includes an **LLM (OpenAI-compatible)** folder, an **SSE** folder, and an **MCP (Model Context Protocol)** folder. Start the sample server, then send **LLM Chat Completions Stream (visible)** or an SSE item to watch events arrive, or open an MCP item and Connect. See [docs/mcp.md](docs/mcp.md).
@@ -176,10 +176,10 @@ Assertions: `equal`, `eql`, `include`, `match`, `above`, `below`, `at.least`, `a
 
 ### 📁 Collections & History
 
-- Unlimited collections with nested folders
+- Unlimited collections with nested folders (persisted as top-level OpenCollection Folders in the global OpenCollection document, with environments in `config.environments`)
 - Multi-tab request workflow with tab reorder and persistence
 - Request history with badge counts and sidebar sync
-- Export and import as JSON (Clapi-native or Postman format)
+- Single-collection export and import in OpenCollection format (JSON or YAML), plus Postman Collection v2/v2.1 import (no workspace bundle format)
 
 ### 📥 Postman Import
 

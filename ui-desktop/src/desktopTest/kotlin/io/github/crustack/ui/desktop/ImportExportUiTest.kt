@@ -56,7 +56,7 @@ class ImportExportUiTest {
     }
 
     @Test
-    fun settings_data_section_shows_workspace_backup_actions() {
+    fun settings_data_section_omits_workspace_backup_actions() {
         composeRule.setContent { MainScreen() }
 
         composeRule.onNodeWithTag("settings-button", useUnmergedTree = true).performClick()
@@ -65,7 +65,8 @@ class ImportExportUiTest {
         composeRule.onNodeWithText("Data").performClick()
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("Export workspace").assertIsDisplayed()
-        composeRule.onNodeWithText("Import workspace").assertIsDisplayed()
+        composeRule.onNodeWithTag("clear-history-action", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Export workspace").assertDoesNotExist()
+        composeRule.onNodeWithText("Import workspace").assertDoesNotExist()
     }
 }

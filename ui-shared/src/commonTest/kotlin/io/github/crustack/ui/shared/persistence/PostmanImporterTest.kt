@@ -36,8 +36,8 @@ class PostmanImporterTest {
     }
 
     @Test
-    fun `isPostmanCollection returns false for clapi collection`() {
-        val root = parse("""{"type":"clapiCollection","version":"1.0","name":"Test","folders":[],"requests":[]}""")
+    fun `isPostmanCollection returns false for opencollection document`() {
+        val root = parse("""{"opencollection":"1.0.0","info":{"name":"Test"},"items":[]}""")
         assertFalse(PostmanImporter.isPostmanCollection(root))
     }
 

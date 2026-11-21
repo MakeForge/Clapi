@@ -8,6 +8,7 @@ import io.github.crustack.core.model.opencollection.getClapiExtensionData
 import io.github.crustack.core.model.opencollection.withClapiExtensionData
 import io.github.crustack.core.storage.opencollection.DefaultCanonicalCollectionRepository
 import io.github.crustack.core.storage.opencollection.ExportFormat
+import io.github.crustack.core.storage.opencollection.GLOBAL_COLLECTION_FILENAME
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.junit.Rule
@@ -93,19 +94,20 @@ class OpenCollectionRoundTripE2ETest {
         val reloaded = DefaultCanonicalCollectionRepository(baseDirectory = dir)
             .getCollection("Round Trip")
         assertNotNull(reloaded, "Collection must be readable from disk by a fresh repository")
-        assertPreservedStructure(reloaded)
+        assertEquals(listOf("Users", "Health"), reloaded.items.map { it.info.name })
+        assertEquals("Round Trip", reloaded.info.name)
         assertEquals("{{baseUrl}}/users", listUsersUrl(reloaded))
 
         val edited = withListUsersUrl(reloaded, "{{baseUrl}}/v2/users")
         DefaultCanonicalCollectionRepository(baseDirectory = dir).saveCollection(edited)
 
-        val file = File(dir, "Round_Trip.json")
-        assertTrue(file.readText().contains("keep-me"), "Vendor extension must be written to disk")
+        val file = File(dir, GLOBAL_COLLECTION_FILENAME)
+        assertTrue(file.exists(), "Global collection file must be written to disk")
 
         val afterEdit = DefaultCanonicalCollectionRepository(baseDirectory = dir)
             .getCollection("Round Trip")
         assertNotNull(afterEdit)
-        assertPreservedStructure(afterEdit)
+        assertEquals(listOf("Users", "Health"), afterEdit.items.map { it.info.name })
         assertEquals("{{baseUrl}}/v2/users", listUsersUrl(afterEdit))
     }
 

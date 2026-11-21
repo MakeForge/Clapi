@@ -1,6 +1,5 @@
 package io.github.crustack.core.storage
 
-import io.github.crustack.core.model.CollectionDefinition
 import io.github.crustack.core.model.EnvironmentDefinition
 import io.github.crustack.core.model.HistoryEntry
 import io.github.crustack.core.model.RequestDefinition
@@ -10,12 +9,6 @@ interface RequestRepository {
     fun observeAll(): Flow<List<RequestDefinition>>
     suspend fun upsert(request: RequestDefinition)
     suspend fun delete(requestId: String)
-}
-
-interface CollectionRepository {
-    fun observeAll(): Flow<List<CollectionDefinition>>
-    suspend fun upsert(collection: CollectionDefinition)
-    suspend fun delete(collectionId: String)
 }
 
 interface EnvironmentRepository {

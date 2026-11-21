@@ -6,11 +6,14 @@ import io.github.crustack.core.model.BodyType
 import io.github.crustack.core.model.FormEntryType
 import io.github.crustack.core.model.HttpMethodType
 import io.github.crustack.core.model.KeyValueEntry
+import io.github.crustack.core.model.RequestKind
 import io.github.crustack.core.model.opencollection.AuthApiKey
 import io.github.crustack.core.model.opencollection.AuthBasic
 import io.github.crustack.core.model.opencollection.AuthBearer
+import io.github.crustack.core.model.opencollection.CollectionConfig
 import io.github.crustack.core.model.opencollection.CollectionInfo
 import io.github.crustack.core.model.opencollection.Description
+import io.github.crustack.core.model.opencollection.Environment
 import io.github.crustack.core.model.opencollection.FolderInfo
 import io.github.crustack.core.model.opencollection.FolderItem
 import io.github.crustack.core.model.opencollection.FormParamEntry
@@ -27,12 +30,17 @@ import io.github.crustack.core.model.opencollection.MultipartPartEntry
 import io.github.crustack.core.model.opencollection.OpenCollectionDocument
 import io.github.crustack.core.model.opencollection.OpenCollectionItem
 import io.github.crustack.core.model.opencollection.RawBody
+import io.github.crustack.core.model.opencollection.RegularVariable
 import io.github.crustack.core.model.opencollection.Script
+import io.github.crustack.core.model.opencollection.SecretVariable
+import io.github.crustack.core.model.opencollection.VariableEntry
+import io.github.crustack.core.model.opencollection.VariableValue
 import io.github.crustack.ui.shared.platform.generateUuid
+import io.github.crustack.ui.shared.state.AppState
 import io.github.crustack.ui.shared.state.CollectionNode
+import io.github.crustack.ui.shared.state.EnvState
 import io.github.crustack.ui.shared.state.FormDataEntryState
-import io.github.crustack.core.model.RequestKind
-import kotlinx.serialization.json.JsonArray
+import io.github.crustack.ui.shared.state.MutableKeyValue
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -47,9 +55,16 @@ import kotlinx.serialization.json.put
 
 private val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
 
-private fun collectClapiMetadata(node: CollectionNode, out: MutableMap<String, JsonObject>) {
+private fun collectClapiMetadata(
+    node: CollectionNode,
+    out: MutableMap<String, JsonObject>,
+    path: String = "",
+) {
     if (node.isFolder) {
-        node.children.forEach { collectClapiMetadata(it, out) }
+        node.children.forEachIndexed { index, child ->
+            val childPath = if (path.isEmpty()) index.toString() else "$path/$index"
+            collectClapiMetadata(child, out, childPath)
+        }
     } else {
         val meta = buildJsonObject {
             put("id", node.id)
@@ -93,9 +108,16 @@ private fun collectClapiMetadata(node: CollectionNode, out: MutableMap<String, J
         }
         out[node.name] = meta
         out[node.id] = meta
+        if (path.isNotEmpty()) {
+            out[path] = meta
+        }
     }
 }
 
+/**
+ * Produces a standalone OpenCollection document for single-collection export.
+ * Per FR-017, single-collection exports omit `config` and environments.
+ */
 fun CollectionNode.toOpenCollectionDocument(): OpenCollectionDocument {
     val ext = mutableMapOf<String, JsonElement>()
     ext["id"] = JsonPrimitive(id)
@@ -111,10 +133,153 @@ fun CollectionNode.toOpenCollectionDocument(): OpenCollectionDocument {
     return OpenCollectionDocument(
         opencollection = "1.0.0",
         info = CollectionInfo(name = name),
+        config = null,
         bundled = true,
         items = children.map { it.toOpenCollectionItem() },
-        extensions = ext
+        extensions = ext,
     )
+}
+
+/**
+ * Maps a Clapi Collection [CollectionNode] to a top-level [FolderItem] of the global OpenCollection document.
+ */
+fun CollectionNode.toCollectionFolder(): FolderItem =
+    FolderItem(
+        info = FolderInfo(name = name, type = "folder"),
+        items = children.map { it.toOpenCollectionItem() },
+        extensions = mapOf("id" to JsonPrimitive(id)),
+    )
+
+/**
+ * Maps a standalone [OpenCollectionDocument] into a top-level [FolderItem] representing a Clapi Collection.
+ * Preserves the document's `extensions["id"]` (FR-019) or assigns a new UUID when absent.
+ */
+fun OpenCollectionDocument.toCollectionFolder(nameOverride: String? = null): FolderItem {
+    val folderId = (extensions["id"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() } ?: generateUuid()
+    return FolderItem(
+        info = FolderInfo(name = nameOverride ?: info.name, type = "folder"),
+        items = items,
+        extensions = extensions + ("id" to JsonPrimitive(folderId)),
+    )
+}
+
+/**
+ * Builds the single global [OpenCollectionDocument] from [AppState] (FR-014, FR-015).
+ * Every Clapi Collection becomes a top-level [FolderItem], and environments are stored in `config.environments`.
+ */
+fun AppState.toGlobalOpenCollectionDocument(): OpenCollectionDocument {
+    val ext = mutableMapOf<String, JsonElement>()
+    val clapiMetaMap = mutableMapOf<String, JsonObject>()
+    collections.forEachIndexed { index, collection ->
+        collectClapiMetadata(collection, clapiMetaMap, index.toString())
+    }
+    if (clapiMetaMap.isNotEmpty()) {
+        ext["clapi"] = buildJsonObject {
+            put("requests", buildJsonObject {
+                clapiMetaMap.forEach { (k, v) -> put(k, v) }
+            })
+        }
+    }
+    val openCollectionEnvs = environments.map { it.toOpenCollectionEnvironment() }
+    return OpenCollectionDocument(
+        opencollection = "1.0.0",
+        info = CollectionInfo(name = "Workspace"),
+        config = CollectionConfig(environments = openCollectionEnvs),
+        bundled = true,
+        items = collections.map { it.toCollectionFolder() },
+        extensions = ext,
+    )
+}
+
+fun Environment.toEnvState(): EnvState =
+    EnvState(
+        name = name,
+        variables = variables.map { it.toMutableKeyValue() },
+        color = color,
+        description = description,
+        clientCertificates = clientCertificates,
+        extends = extends,
+        dotEnvFilePath = dotEnvFilePath,
+    )
+
+fun EnvState.toOpenCollectionEnvironment(): Environment =
+    Environment(
+        name = name,
+        color = color,
+        description = description,
+        variables = variables
+            .filter { it.key.trim().isNotEmpty() }
+            .map { it.toVariableEntry() },
+        clientCertificates = clientCertificates,
+        extends = extends,
+        dotEnvFilePath = dotEnvFilePath,
+    )
+
+fun VariableEntry.toMutableKeyValue(): MutableKeyValue =
+    when (this) {
+        is RegularVariable -> MutableKeyValue(
+            key = name,
+            value = value?.asString ?: "",
+            enabled = disabled != true,
+            secret = false,
+        )
+        is SecretVariable -> MutableKeyValue(
+            key = name,
+            value = "",
+            enabled = disabled != true,
+            secret = true,
+        )
+    }
+
+fun MutableKeyValue.toVariableEntry(): VariableEntry {
+    val trimmedKey = key.trim()
+    val disabledFlag = if (enabled) null else true
+    return if (secret) {
+        SecretVariable(
+            name = trimmedKey,
+            disabled = disabledFlag,
+            secret = true,
+        )
+    } else {
+        RegularVariable(
+            name = trimmedKey,
+            value = VariableValue.of(value),
+            disabled = disabledFlag,
+        )
+    }
+}
+
+/**
+ * Merges an imported OpenCollection [Environment] into this [EnvState] (FR-016).
+ * Missing variables and fields are added; existing entries are never removed or overwritten.
+ */
+fun EnvState.mergeFrom(incoming: Environment) {
+    if (color == null && incoming.color != null) {
+        color = incoming.color
+    }
+    if (description == null && incoming.description != null) {
+        description = incoming.description
+    }
+    if (extends == null && incoming.extends != null) {
+        extends = incoming.extends
+    }
+    if (dotEnvFilePath == null && incoming.dotEnvFilePath != null) {
+        dotEnvFilePath = incoming.dotEnvFilePath
+    }
+    if (incoming.clientCertificates.isNotEmpty()) {
+        val existingDomains = clientCertificates.map { it.domain }.toSet()
+        val missingCerts = incoming.clientCertificates.filter { it.domain !in existingDomains }
+        if (missingCerts.isNotEmpty()) {
+            clientCertificates = clientCertificates + missingCerts
+        }
+    }
+    val existingKeys = variables.map { it.key }.toMutableSet()
+    for (variable in incoming.variables) {
+        if (variable.name.isNotBlank() && variable.name !in existingKeys) {
+            variables.add(variable.toMutableKeyValue())
+            existingKeys.add(variable.name)
+        }
+    }
 }
 
 fun CollectionNode.toOpenCollectionItem(): OpenCollectionItem {
@@ -128,14 +293,13 @@ fun CollectionNode.toOpenCollectionItem(): OpenCollectionItem {
         )
     } else {
         val ext = mutableMapOf<String, JsonElement>()
-        ext["id"] = JsonPrimitive(id)
         if (requestRef != null) {
             ext["requestRef"] = JsonPrimitive(requestRef)
         }
         if (authType == AuthType.JWT) {
             ext["clapi"] = buildJsonObject { put("authType", "jwt") }
         }
-        if (kind != io.github.crustack.core.model.RequestKind.HTTP) {
+        if (kind != RequestKind.HTTP) {
             ext["kind"] = JsonPrimitive(kind.name)
         }
 
@@ -226,44 +390,53 @@ fun CollectionNode.toOpenCollectionItem(): OpenCollectionItem {
     }
 }
 
-fun OpenCollectionDocument.toCollectionNode(nameOverride: String? = null, preserveIds: Boolean = true): CollectionNode {
-    val collId = if (preserveIds) {
-        (extensions["id"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() } ?: generateUuid()
-    } else {
-        generateUuid()
-    }
-    val collName = nameOverride ?: info.name
+fun OpenCollectionDocument.toCollectionNode(
+    nameOverride: String? = null,
+    preserveIds: Boolean = true,
+    existingIds: Set<String> = emptySet(),
+): CollectionNode {
     val clapiRequests = (extensions["clapi"] as? JsonObject)?.get("requests")?.jsonObject
-    val childrenNodes = items.map { it.toCollectionNode(preserveIds, clapiRequests) }.toMutableStateList()
-    return CollectionNode(
-        id = collId,
-        name = collName,
-        isFolder = true,
-        children = childrenNodes
+    val folder = toCollectionFolder(nameOverride = nameOverride)
+    return folder.toCollectionNode(
+        preserveIds = preserveIds,
+        clapiRequests = clapiRequests,
+        path = "",
+        existingIds = existingIds,
     )
 }
 
-fun OpenCollectionItem.toCollectionNode(preserveIds: Boolean = true, clapiRequests: JsonObject? = null): CollectionNode {
+fun OpenCollectionItem.toCollectionNode(
+    preserveIds: Boolean = true,
+    clapiRequests: JsonObject? = null,
+    path: String = "",
+    existingIds: Set<String> = emptySet(),
+): CollectionNode {
     return when (this) {
         is FolderItem -> {
-            val folderId = if (preserveIds) {
-                (extensions["id"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() } ?: generateUuid()
+            val candidateId = (extensions["id"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
+            val folderId = if (preserveIds && candidateId != null && candidateId !in existingIds) {
+                candidateId
             } else {
                 generateUuid()
             }
+            val updatedExistingIds = existingIds + folderId
             CollectionNode(
                 id = folderId,
                 name = info.name,
                 isFolder = true,
-                children = items.map { it.toCollectionNode(preserveIds, clapiRequests) }.toMutableStateList()
+                children = items.mapIndexed { index, child ->
+                    val childPath = if (path.isEmpty()) index.toString() else "$path/$index"
+                    child.toCollectionNode(
+                        preserveIds = preserveIds,
+                        clapiRequests = clapiRequests,
+                        path = childPath,
+                        existingIds = updatedExistingIds,
+                    )
+                }.toMutableStateList()
             )
         }
         is HttpRequestItem -> {
-            val reqId = if (preserveIds) {
-                (extensions["id"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() } ?: generateUuid()
-            } else {
-                generateUuid()
-            }
+            val reqId = generateUuid()
             var reqRef = (extensions["requestRef"] as? JsonPrimitive)?.content
 
             val headers = http.headers.map {
@@ -352,7 +525,9 @@ fun OpenCollectionItem.toCollectionNode(preserveIds: Boolean = true, clapiReques
                 }
             }
 
-            val meta = clapiRequests?.get(info.name) as? JsonObject ?: clapiRequests?.get(reqId) as? JsonObject
+            val meta = (if (path.isNotEmpty()) clapiRequests?.get(path) as? JsonObject else null)
+                ?: clapiRequests?.get(info.name) as? JsonObject
+                ?: clapiRequests?.get(reqId) as? JsonObject
             if (meta != null) {
                 meta["bodyType"]?.jsonPrimitive?.contentOrNull?.let { typeName ->
                     runCatching { BodyType.valueOf(typeName) }.getOrNull()?.let { bodyType = it }
@@ -427,7 +602,7 @@ fun OpenCollectionItem.toCollectionNode(preserveIds: Boolean = true, clapiReques
                 authApiPlacement = authApiPlacement,
                 preRequestScript = preScript,
                 testScript = postScript,
-                requestRef = reqRef,
+                requestRef = reqRef ?: generateUuid(),
                 kind = requestKind,
                 mcpConfig = mcpConfig,
             )

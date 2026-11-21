@@ -42,11 +42,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,14 +66,9 @@ import io.github.crustack.ui.shared.state.AppSettings
 import io.github.crustack.ui.shared.state.ResponseLayout
 import io.github.crustack.ui.shared.state.AppState
 import io.github.crustack.ui.shared.state.AppTheme
-import io.github.crustack.ui.shared.persistence.ImportExportRepository
-import io.github.crustack.ui.shared.persistence.WorkspaceRepository
 import io.github.crustack.ui.shared.state.LogLevel
 import io.github.crustack.ui.shared.theme.CodeFontFamily
 import io.github.crustack.ui.shared.theme.ClapiColors
-import io.github.crustack.ui.shared.platform.ioDispatcher
-import io.github.crustack.ui.shared.platform.pickFileForImport
-import io.github.crustack.ui.shared.platform.saveFileForExport
 
 private enum class SettingsSection(val icon: ImageVector) {
     GENERAL(Icons.Default.Settings),
@@ -448,20 +438,6 @@ private fun ScriptingSettings(s: AppSettings) {
 
 @Composable
 private fun DataSettings(state: AppState) {
-    val scope = rememberCoroutineScope()
-    val importExportError = Strings.t("import_export_error")
-    val unknownError = Strings.t("unknown_error")
-    val exportWorkspace = Strings.t("export_workspace")
-    val exportWorkspaceDesc = Strings.t("export_workspace_desc")
-    val exportLabel = Strings.t("export")
-    val exportingWorkspace = Strings.t("exporting_workspace")
-    val exportingWorkspaceMessage = Strings.t("exporting_workspace_message")
-    val workspaceExported = Strings.t("workspace_exported")
-    val importWorkspace = Strings.t("import_workspace")
-    val importWorkspaceDesc = Strings.t("import_workspace_desc")
-    val importLabel = Strings.t("import")
-    val importingWorkspace = Strings.t("importing_workspace")
-    val importingWorkspaceMessage = Strings.t("importing_workspace_message")
     val clearHistoryDesc = Strings.t("clear_history_desc")
     val clearLabel = Strings.t("clear")
     val clearHistoryTitle = Strings.t("clear_history_title")
@@ -470,49 +446,6 @@ private fun DataSettings(state: AppState) {
     val clearConsoleLogs = Strings.t("clear_console_logs")
     val clearConsoleLogsDesc = Strings.t("clear_console_logs_desc")
 
-    fun runTracked(title: String, message: String, block: suspend () -> Unit) {
-        val job: Job = scope.launch(ioDispatcher) {
-            runCatching { block() }
-                .onFailure { e ->
-                    withContext(Dispatchers.Main) {
-                        state.showError(importExportError, e.message ?: unknownError)
-                        state.log("$title failed: ${e.message}", LogLevel.ERROR)
-                    }
-                }
-                .also { withContext(Dispatchers.Main) { state.finishOperation() } }
-        }
-        state.startOperation(title, message, job)
-    }
-
-    SettingAction(exportWorkspace, exportWorkspaceDesc, actionLabel = exportLabel) {
-        scope.launch {
-            runTracked(exportingWorkspace, exportingWorkspaceMessage) {
-                val jsonStr = ImportExportRepository.exportWorkspaceToString(state)
-                withContext(Dispatchers.Main) {
-                    saveFileForExport(jsonStr, "workspace-backup.json")
-                    state.log(workspaceExported, LogLevel.SUCCESS)
-                }
-            }
-        }
-    }
-    SettingsDivider()
-    SettingAction(importWorkspace, importWorkspaceDesc, actionLabel = importLabel) {
-        pickFileForImport { content ->
-            scope.launch {
-                runTracked(importingWorkspace, importingWorkspaceMessage) {
-                    val result = ImportExportRepository.importWorkspaceFromString(state, content)
-                    WorkspaceRepository.save(state)
-                    withContext(Dispatchers.Main) {
-                        state.log(
-                            "Workspace imported: ${result.importedCollections} collections, ${result.importedEnvironments} environments",
-                            LogLevel.SUCCESS,
-                        )
-                    }
-                }
-            }
-        }
-    }
-    SettingsDivider()
     SettingAction(
         Strings.clearHistory,
         clearHistoryDesc,

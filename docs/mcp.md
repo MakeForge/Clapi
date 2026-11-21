@@ -168,7 +168,7 @@ Activity is the source of truth for protocol payloads. **Console** intentionally
 
 ## Import / export
 
-MCP tabs persist `kind: MCP`, URL or command, transport, HTTP mode, headers, auth, roots, sampling mode, LLM URL / token / max tokens, and elicitation. Older workspace JSON without those fields still loads (defaults apply).
+MCP tabs persist their connection configuration in the OpenCollection `extensions.clapi` block (`mcp` list and per-request metadata), including URL or command, transport, HTTP mode, headers, auth, roots, sampling mode, LLM URL / token / max tokens, and elicitation. Collections are exported and imported individually as OpenCollection documents (no workspace bundle).
 
 The desktop import/export file dialog remembers the last folder (macOS, Windows, Linux). Browsers cannot set the `<input type=file>` start directory.
 
@@ -186,7 +186,7 @@ Connect / Disconnect is the connection-bar button, not Send.
 
 ## Try the sample collection
 
-Import [qa-tests/fixtures/clapi-test-collection.json](../qa-tests/fixtures/clapi-test-collection.json) and [qa-tests/fixtures/clapi-test-environment.json](../qa-tests/fixtures/clapi-test-environment.json). Folder **MCP (Model Context Protocol)** covers Streamable HTTP, auth variants, query params, legacy SSE, stdio, sampling, roots, and elicitation.
+Import the OpenCollection fixture [qa-tests/fixtures/clapi-test-collection.json](../qa-tests/fixtures/clapi-test-collection.json) and [qa-tests/fixtures/clapi-test-environment.json](../qa-tests/fixtures/clapi-test-environment.json). Folder **MCP (Model Context Protocol)** covers Streamable HTTP, auth variants, query params, legacy SSE, stdio, sampling, roots, and elicitation.
 
 Start the mock with `./gradlew :sample-server:run`. Routes, mock tools (`echo`, `add`, `trigger_*`, …), and stdio install: [DEVELOPMENT.md](../DEVELOPMENT.md). How tests assert this: [docs/tests.md](tests.md).
 

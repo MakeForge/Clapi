@@ -1,5 +1,7 @@
 package io.github.crustack.ui.shared.persistence
 
+import io.github.crustack.core.model.AuthType
+import io.github.crustack.core.model.BodyType
 import io.github.crustack.core.model.HttpMethodType
 import io.github.crustack.ui.shared.state.AppState
 import java.io.File
@@ -181,7 +183,10 @@ class PostmanImportSapBydFixtureTest {
         ImportExportRepository.importCollectionFromString(state, fixture.readText())
         val folder = state.collections[0].children.first { it.isFolder }
         val firstReq = folder.children.first() // GET "Get xsrf-token"
-        assertTrue(firstReq.bodyType == null, "GET request body type should be null")
+        assertTrue(
+            firstReq.bodyType == null || firstReq.bodyType == BodyType.NONE,
+            "GET request body type should be null or NONE"
+        )
         assertTrue(firstReq.bodyContent == null, "GET request body content should be null")
     }
 
@@ -211,7 +216,7 @@ class PostmanImportSapBydFixtureTest {
         val folder = state.collections[0].children.first { it.isFolder }
         val createQuote = folder.children[2]
         assertTrue(
-            createQuote.authType == null,
+            createQuote.authType == null || createQuote.authType == AuthType.NONE,
             "Individual request should not have auth (auth is at collection level)"
         )
     }

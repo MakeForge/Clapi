@@ -24,6 +24,13 @@ import kotlinx.serialization.json.jsonObject
 
 object OpenCollectionSerializer {
 
+    /**
+     * Folder items cannot carry an `extensions` property: the OpenCollection schema
+     * sets `additionalProperties: false` on `Folder`. Ids are stored here instead and
+     * copied back onto [FolderItem.extensions] after deserialize.
+     */
+    const val FOLDER_IDS_KEY = "folderIds"
+
     val json: Json = Json {
         prettyPrint = true
         isLenient = true
@@ -89,9 +96,16 @@ object OpenCollectionSerializer {
     ): JsonElement {
         val rootObj = rootElement.jsonObject.toMutableMap()
 
-        // Document level: extensions must be placed under the "extensions" property
-        if (document.extensions.isNotEmpty()) {
-            rootObj["extensions"] = JsonObject(document.extensions)
+        // Document-level extensions are allowed. Folder ids go here, not on the folder item.
+        val extensions = document.extensions.toMutableMap()
+        val folderIds = collectFolderIds(document.items)
+        if (folderIds.isNotEmpty()) {
+            extensions[FOLDER_IDS_KEY] = JsonObject(folderIds)
+        } else {
+            extensions.remove(FOLDER_IDS_KEY)
+        }
+        if (extensions.isNotEmpty()) {
+            rootObj["extensions"] = JsonObject(extensions)
         } else {
             rootObj.remove("extensions")
         }
@@ -113,6 +127,7 @@ object OpenCollectionSerializer {
             val baseItemObj = itemsJson.getOrNull(index)?.jsonObject?.toMutableMap() ?: mutableMapOf()
             when (item) {
                 is FolderItem -> {
+                    // Do not write item.extensions onto the folder. The schema rejects that key.
                     val subItems = baseItemObj["items"]?.jsonArray
                     if (subItems != null && item.items.isNotEmpty()) {
                         baseItemObj["items"] = JsonArray(enrichItemsForSerialization(subItems, item.items))
@@ -142,17 +157,59 @@ object OpenCollectionSerializer {
             baseDoc.items
         }
 
-        // Merge extra top-level fields into document extensions
+        // Merge extra top-level fields into document extensions.
+        // folderIds is a persistence index, not a user extension: apply it, then drop it.
         val mergedExtensions = if (extraTopLevel.isNotEmpty()) {
             extraTopLevel + baseDoc.extensions
         } else {
             baseDoc.extensions
         }
+        val folderIds = (mergedExtensions[FOLDER_IDS_KEY] as? JsonObject) ?: JsonObject(emptyMap())
+        val itemsWithIds = applyFolderIds(enrichedItems, folderIds)
 
         return baseDoc.copy(
-            items = enrichedItems,
-            extensions = mergedExtensions
+            items = itemsWithIds,
+            extensions = mergedExtensions - FOLDER_IDS_KEY
         )
+    }
+
+    private fun collectFolderIds(
+        items: List<OpenCollectionItem>,
+        prefix: String = "",
+    ): Map<String, JsonElement> {
+        val ids = linkedMapOf<String, JsonElement>()
+        items.forEachIndexed { index, item ->
+            val path = if (prefix.isEmpty()) index.toString() else "$prefix/$index"
+            if (item is FolderItem) {
+                val id = item.extensions["id"]
+                if (id != null && id !is JsonNull && !(id is JsonPrimitive && id.content.isBlank())) {
+                    ids[path] = id
+                }
+                ids.putAll(collectFolderIds(item.items, path))
+            }
+        }
+        return ids
+    }
+
+    private fun applyFolderIds(
+        items: List<OpenCollectionItem>,
+        folderIds: JsonObject,
+        prefix: String = "",
+    ): List<OpenCollectionItem> {
+        return items.mapIndexed { index, item ->
+            val path = if (prefix.isEmpty()) index.toString() else "$prefix/$index"
+            when (item) {
+                is FolderItem -> {
+                    val id = folderIds[path]
+                    val extensions = if (id != null) item.extensions + ("id" to id) else item.extensions
+                    item.copy(
+                        items = applyFolderIds(item.items, folderIds, path),
+                        extensions = extensions,
+                    )
+                }
+                else -> item
+            }
+        }
     }
 
     private fun enrichItems(items: List<OpenCollectionItem>, itemsJson: JsonArray): List<OpenCollectionItem> {

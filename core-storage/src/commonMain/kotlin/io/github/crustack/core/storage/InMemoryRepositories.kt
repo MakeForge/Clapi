@@ -1,7 +1,8 @@
 package io.github.crustack.core.storage
 
-import io.github.crustack.core.model.CollectionDefinition
 import io.github.crustack.core.model.EnvironmentDefinition
+import io.github.crustack.core.model.opencollection.OpenCollectionDocument
+import io.github.crustack.core.storage.opencollection.collectionId
 import io.github.crustack.core.model.HistoryEntry
 import io.github.crustack.core.model.RequestDefinition
 import kotlinx.coroutines.flow.Flow
@@ -53,13 +54,13 @@ class InMemoryRequestRepository : InMemoryMapRepository<RequestDefinition>(
     override suspend fun delete(requestId: String) = deleteEntity(requestId)
 }
 
-class InMemoryCollectionRepository : InMemoryMapRepository<CollectionDefinition>(
-    getKey = { it.id },
-    sortKey = { it.updatedAtEpochMillis },
-), CollectionRepository {
-    override fun observeAll() = observeAllSorted()
-    override suspend fun upsert(collection: CollectionDefinition) = upsertEntity(collection)
-    override suspend fun delete(collectionId: String) = deleteEntity(collectionId)
+class InMemoryCollectionRepository : InMemoryMapRepository<OpenCollectionDocument>(
+    getKey = { it.collectionId },
+    sortKey = { 0L },
+) {
+    fun observeAll() = observeAllSorted()
+    suspend fun upsert(collection: OpenCollectionDocument) = upsertEntity(collection)
+    suspend fun delete(collectionId: String) = deleteEntity(collectionId)
 }
 
 class InMemoryEnvironmentRepository : InMemoryMapRepository<EnvironmentDefinition>(

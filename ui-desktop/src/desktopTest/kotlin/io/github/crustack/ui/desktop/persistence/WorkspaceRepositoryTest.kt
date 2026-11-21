@@ -3,44 +3,52 @@ package io.github.crustack.ui.shared.persistence
 import androidx.compose.runtime.mutableStateListOf
 import io.github.crustack.core.model.BodyType
 import io.github.crustack.core.model.HttpMethodType
+import io.github.crustack.core.storage.opencollection.DefaultCanonicalCollectionRepository
 import io.github.crustack.ui.shared.platform.PlatformStorage
 import io.github.crustack.ui.shared.state.AppState
 import io.github.crustack.ui.shared.state.CollectionNode
 import io.github.crustack.ui.shared.state.EnvState
+import io.github.crustack.ui.shared.state.HistoryItem
 import io.github.crustack.ui.shared.state.MutableKeyValue
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
- * Tests for [WorkspaceRepository] persistence, covering edge cases around
- * large request body payloads that cause the underlying [PlatformStorage]
- * to route data through file-backed storage instead of Java Preferences.
+ * Tests for [WorkspaceRepository] persistence using the single global OpenCollection
+ * document (`config.environments` and top-level folder items) and [PrivateStateRepository].
  */
 class WorkspaceRepositoryTest {
 
-    private val WORKSPACE_KEY = "clapi.workspace"
     private val SETTINGS_ENV_KEY = "settings.selectedEnvName"
 
     @Before
     fun setUp() {
-        PlatformStorage.remove(WORKSPACE_KEY)
         PlatformStorage.remove(SETTINGS_ENV_KEY)
+        WorkspaceRepository.canonicalRepository = DefaultCanonicalCollectionRepository()
+        WorkspaceRepository.privateStateRepository = PrivateStateRepository()
     }
 
     @After
     fun tearDown() {
-        PlatformStorage.remove(WORKSPACE_KEY)
         PlatformStorage.remove(SETTINGS_ENV_KEY)
+        PlatformStorage.remove("clapi.workspace")
+        WorkspaceRepository.canonicalRepository = DefaultCanonicalCollectionRepository()
+        WorkspaceRepository.privateStateRepository = PrivateStateRepository()
     }
 
     // ── Basic save / load ────────────────────────────────────────────────────
 
     @Test
     fun save_and_load_roundtrip_with_large_body_preserves_content_exactly() {
-        // 200 KB of JSON body — forces PlatformStorage to use a backing file
         val largeBody = "{\"data\":\"" + "X".repeat(200_000) + "\"}"
 
         val request = CollectionNode(
@@ -177,12 +185,11 @@ class WorkspaceRepositoryTest {
 
     @Test
     fun selected_environment_is_restored_to_correct_index_after_save_and_load() {
-        // Build a state with three environments; select the middle one.
         val source = AppState(openDefaultTab = false).also { state ->
             state.environments.add(EnvState("Development"))
             state.environments.add(EnvState("Staging"))
             state.environments.add(EnvState("Production"))
-            state.selectedEnvIndex = 1  // Staging
+            state.selectedEnvIndex = 1
             state.settings.selectedEnvName = "Staging"
         }
 
@@ -191,7 +198,7 @@ class WorkspaceRepositoryTest {
 
         val restored = AppState(openDefaultTab = false)
         SettingsRepository.load(restored.settings)
-        WorkspaceRepository.load(restored)  // resolves selectedEnvName → index
+        WorkspaceRepository.load(restored)
 
         assertEquals(1, restored.selectedEnvIndex,
             "selectedEnvIndex must be 1 (Staging) after restore")
@@ -204,7 +211,7 @@ class WorkspaceRepositoryTest {
         val source = AppState(openDefaultTab = false).also { state ->
             state.environments.add(EnvState("Development"))
             state.environments.add(EnvState("Staging"))
-            state.settings.selectedEnvName = "DeletedEnv"  // saved name no longer exists
+            state.settings.selectedEnvName = "DeletedEnv"
         }
 
         SettingsRepository.save(source.settings)
@@ -224,10 +231,9 @@ class WorkspaceRepositoryTest {
         val source = AppState(openDefaultTab = false).also { state ->
             state.environments.add(EnvState("Development"))
             state.environments.add(EnvState("Staging"))
-            // selectedEnvName is empty (fresh install)
         }
 
-        SettingsRepository.save(source.settings)  // selectedEnvName = ""
+        SettingsRepository.save(source.settings)
         WorkspaceRepository.save(source)
 
         val restored = AppState(openDefaultTab = false)
@@ -273,5 +279,192 @@ class WorkspaceRepositoryTest {
 
         assertEquals(1, restored.selectedEnvIndex)
         assertEquals("Prod", restored.selectedEnvironment?.name)
+    }
+
+    // ── Private store + global OpenCollection document (FR-014 to FR-019) ────
+
+    @Test
+    fun save_and_load_persists_global_variables_history_and_expanded_state() {
+        val source = AppState(openDefaultTab = false)
+        val collId = "coll-expand-1"
+        val folderId = "folder-expand-1"
+        source.collections.add(
+            CollectionNode(
+                id = collId,
+                name = "My Collection",
+                isFolder = true,
+                children = mutableStateListOf(
+                    CollectionNode(id = folderId, name = "Folder A", isFolder = true, children = mutableStateListOf()),
+                    CollectionNode(id = "folder-b", name = "Folder B", isFolder = true, children = mutableStateListOf()),
+                ),
+            )
+        )
+        source.collectionExpandedState[collId] = false
+        source.collectionExpandedState[folderId] = false
+        source.globalVariables.add(MutableKeyValue("apiKey", "abc123", enabled = true, secret = false))
+        source.historyItems.add(
+            HistoryItem(
+                requestId = "hist-1",
+                method = HttpMethodType.GET,
+                name = "Ping",
+                url = "https://example.com/ping",
+                timestamp = 1000L,
+            )
+        )
+
+        assertTrue(WorkspaceRepository.save(source))
+
+        val restored = AppState(openDefaultTab = false)
+        WorkspaceRepository.load(restored)
+
+        val restoredColl = restored.collections.single { it.name == "My Collection" }
+        val restoredFolderA = restoredColl.children.first { it.name == "Folder A" }
+        assertEquals(collId, restoredColl.id)
+        assertEquals(folderId, restoredFolderA.id)
+        assertEquals(false, restored.collectionExpandedState[collId])
+        assertEquals(false, restored.collectionExpandedState[folderId])
+        assertNull(restored.collectionExpandedState["folder-b"])
+        assertTrue(restored.globalVariables.any { it.key == "apiKey" && it.value == "abc123" })
+        assertTrue(restored.historyItems.any { it.requestId == "hist-1" && it.name == "Ping" })
+    }
+
+    @Test
+    fun environments_persist_with_zero_collections_in_global_document_config() {
+        // FR-015: Environments live in config.environments of the global document even when no collection exists.
+        val source = AppState(openDefaultTab = false, withDemoData = false)
+        source.collections.clear()
+        source.environments.clear()
+        source.environments.add(
+            EnvState(
+                name = "Staging",
+                variables = listOf(
+                    MutableKeyValue("baseUrl", "https://staging.example.com", enabled = true, secret = false),
+                    MutableKeyValue("disabledVar", "off", enabled = false, secret = false),
+                    MutableKeyValue("secretToken", "ignored", enabled = true, secret = true),
+                ),
+                color = "#FF0000",
+            )
+        )
+
+        assertTrue(WorkspaceRepository.save(source))
+
+        val globalDoc = runBlocking { WorkspaceRepository.canonicalRepository.loadGlobalCollection() }
+        assertNotNull(globalDoc)
+        assertTrue(globalDoc.items.isEmpty())
+        assertEquals(1, globalDoc.config?.environments?.size)
+
+        val restored = AppState(openDefaultTab = false, withDemoData = false)
+        WorkspaceRepository.load(restored)
+
+        assertTrue(restored.collections.isEmpty())
+        assertEquals(1, restored.environments.size)
+        val env = restored.environments.single()
+        assertEquals("Staging", env.name)
+        assertEquals("#FF0000", env.color)
+        assertEquals(3, env.variables.size)
+        assertTrue(env.variables.any { it.key == "baseUrl" && it.value == "https://staging.example.com" && it.enabled && !it.secret })
+        assertTrue(env.variables.any { it.key == "disabledVar" && it.value == "off" && !it.enabled && !it.secret })
+        assertTrue(env.variables.any { it.key == "secretToken" && it.secret && it.enabled })
+    }
+
+    @Test
+    fun importing_collection_merges_environments_by_name_without_overwriting_existing_entries() {
+        // FR-016: Merge by name keeps existing entries and adds missing variables/fields.
+        val state = AppState(openDefaultTab = false, withDemoData = false)
+        state.environments.add(
+            EnvState(
+                name = "Dev",
+                variables = listOf(MutableKeyValue("baseUrl", "http://existing", enabled = true)),
+                color = "#112233",
+            )
+        )
+
+        val importedJson = """
+            {
+              "opencollection": "1.0.0",
+              "info": { "name": "Imported API" },
+              "config": {
+                "environments": [
+                  {
+                    "name": "Dev",
+                    "color": "#999999",
+                    "extends": "Base",
+                    "variables": [
+                      { "name": "baseUrl", "value": "http://overwritten" },
+                      { "name": "newKey", "value": "addedValue" }
+                    ]
+                  },
+                  {
+                    "name": "Prod",
+                    "variables": [
+                      { "name": "baseUrl", "value": "https://prod.example.com" }
+                    ]
+                  }
+                ]
+              },
+              "items": []
+            }
+        """.trimIndent()
+
+        ImportExportRepository.importCollectionFromString(state, importedJson)
+
+        assertEquals(2, state.environments.size)
+        val dev = state.environments.first { it.name == "Dev" }
+        assertEquals("#112233", dev.color, "Existing color must not be overwritten")
+        assertEquals("Base", dev.extends, "Missing field 'extends' must be added")
+        assertEquals("http://existing", dev.variables.first { it.key == "baseUrl" }.value, "Existing variable must not be overwritten")
+        assertEquals("addedValue", dev.variables.first { it.key == "newKey" }.value, "Missing variable must be added")
+
+        val prod = state.environments.first { it.name == "Prod" }
+        assertEquals("https://prod.example.com", prod.variables.single().value)
+    }
+
+    @Test
+    fun single_collection_export_omits_config_and_environments() {
+        // FR-017: Single-collection export produces a standalone document with no config and no environments.
+        val state = AppState(openDefaultTab = false, withDemoData = false)
+        state.environments.add(
+            EnvState("Dev", variables = listOf(MutableKeyValue("k", "v")))
+        )
+        val collection = CollectionNode(
+            id = "col-1",
+            name = "Exported Collection",
+            isFolder = true,
+            children = mutableStateListOf(
+                CollectionNode(id = "req-1", name = "Ping", isFolder = false, method = HttpMethodType.GET, url = "https://example.com")
+            ),
+        )
+        state.collections.add(collection)
+
+        val exportedJson = ImportExportRepository.exportCollectionToString(collection)
+        val root = Json.parseToJsonElement(exportedJson).jsonObject
+        assertFalse(root.containsKey("config"), "Single-collection export must not contain 'config'")
+        assertFalse(exportedJson.contains("\"environments\""), "Single-collection export must not contain environments")
+    }
+
+    @Test
+    fun stored_legacy_clapi_workspace_key_is_ignored_on_load() {
+        // FR-018: A stored clapi.workspace key in PlatformStorage is ignored and never read.
+        PlatformStorage.putString(
+            "clapi.workspace",
+            """
+            {
+              "type": "clapiWorkspace",
+              "version": "1.0",
+              "collections": [
+                { "name": "Ghost Legacy Collection", "folders": [], "requests": [] }
+              ],
+              "environments": [
+                { "name": "Ghost Legacy Env", "variables": { "a": "b" } }
+              ]
+            }
+            """.trimIndent(),
+        )
+
+        val state = AppState(openDefaultTab = false, withDemoData = false)
+        WorkspaceRepository.load(state)
+
+        assertTrue(state.collections.isEmpty(), "Legacy clapi.workspace collections must be ignored")
+        assertTrue(state.environments.isEmpty(), "Legacy clapi.workspace environments must be ignored")
     }
 }
