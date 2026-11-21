@@ -151,12 +151,20 @@ fun RequestTabsBar(
                             // Box captures the chip's natural x-offset in the Row's
                             // layout coordinate space for auto-scroll targeting.
                             Box(
-                                modifier = Modifier.onGloballyPositioned { coords ->
-                                    val x = coords.positionInParent().x
-                                    val w = coords.size.width.toFloat()
-                                    dragState.tabBounds[index] = TabBounds(index, x, w)
-                                    tabPositions[index] = x.toInt()
-                                },
+                                modifier = Modifier
+                                    .zIndex(
+                                        when {
+                                            showIndicatorLeft || showIndicatorRight -> 60f
+                                            isDragged -> 50f
+                                            else -> 0f
+                                        }
+                                    )
+                                    .onGloballyPositioned { coords ->
+                                        val x = coords.positionInParent().x
+                                        val w = coords.size.width.toFloat()
+                                        dragState.tabBounds[index] = TabBounds(index, x, w)
+                                        tabPositions[index] = x.toInt()
+                                    },
                             ) {
                                 // Subtle placeholder slot in the original location of the dragged tab
                                 if (isDragged) {
