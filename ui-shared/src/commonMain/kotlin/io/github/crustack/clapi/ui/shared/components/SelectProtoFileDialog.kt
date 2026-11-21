@@ -22,9 +22,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import io.github.crustack.clapi.ui.shared.i18n.Strings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,12 +63,18 @@ fun SelectProtoFileDialog(
     errorMessage: String? = null,
     isLoading: Boolean = false,
     collectionProtoFiles: List<String> = emptyList(),
+    isGitSyncEnabled: Boolean = false,
+    initialSyncToGit: Boolean = false,
     onSave: (protoFilePath: String) -> Unit,
+    onSaveWithSync: ((protoFilePath: String, syncToGit: Boolean) -> Unit)? = null,
     onDismiss: () -> Unit,
     onPickFile: ((onSelected: (String) -> Unit) -> Unit)? = null,
 ) {
     var selectedPath by remember(currentProtoFilePath) {
         mutableStateOf(currentProtoFilePath.orEmpty())
+    }
+    var syncToGit by remember(initialSyncToGit) {
+        mutableStateOf(initialSyncToGit)
     }
     var offsetX by remember { mutableStateOf(0f) }
     var offsetY by remember { mutableStateOf(0f) }
@@ -271,6 +280,34 @@ fun SelectProtoFileDialog(
                         )
                     }
 
+                    if (isGitSyncEnabled) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable { syncToGit = !syncToGit }
+                                .padding(vertical = 4.dp)
+                                .testTag("proto-dialog-sync-to-git-toggle"),
+                        ) {
+                            Checkbox(
+                                checked = syncToGit,
+                                onCheckedChange = { syncToGit = it },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = ClapiColors.Primary,
+                                    checkmarkColor = ClapiColors.OnPrimary,
+                                    uncheckedColor = ClapiColors.OnSurfaceDim,
+                                ),
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Text(
+                                text = Strings.syncToGit,
+                                fontSize = 13.sp,
+                                color = ClapiColors.OnSurface,
+                            )
+                        }
+                    }
+
                     if (!errorMessage.isNullOrBlank()) {
                         Text(
                             text = errorMessage,
@@ -313,7 +350,12 @@ fun SelectProtoFileDialog(
                                     else ClapiColors.Primary.copy(alpha = 0.5f)
                                 )
                                 .clickable(enabled = selectedPath.isNotBlank() && !isLoading) {
-                                    onSave(selectedPath.trim())
+                                    val trimmed = selectedPath.trim()
+                                    if (onSaveWithSync != null) {
+                                        onSaveWithSync(trimmed, syncToGit)
+                                    } else {
+                                        onSave(trimmed)
+                                    }
                                 }
                                 .padding(horizontal = 20.dp, vertical = 8.dp)
                                 .testTag("proto-dialog-save"),

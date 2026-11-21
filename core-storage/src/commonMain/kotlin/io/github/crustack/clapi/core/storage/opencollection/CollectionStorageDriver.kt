@@ -165,4 +165,6 @@ expect fun readTextFile(path: String): String
 expect fun writeTextFile(path: String, content: String)
 expect fun deleteFile(path: String): Boolean
 expect fun fileExists(path: String): Boolean
+expect fun getDefaultStorageBaseDirectory(): String
+expect fun copyFileOrDirectory(sourcePath: String, destinationPath: String): Boolean
 

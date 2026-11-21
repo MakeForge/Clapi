@@ -6,6 +6,7 @@ import io.github.crustack.clapi.core.model.HttpMethodType
 import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.core.model.McpConnectionConfig
 import io.github.crustack.clapi.core.model.RequestKind
+import io.github.crustack.clapi.core.model.storage.StorageType
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.FormDataEntryState
 import io.github.crustack.clapi.ui.shared.state.HeaderKind
@@ -83,11 +84,17 @@ object TabsRepository {
                         put("headers", kvListJson(tab.headers))
                         put("grpcMetadata", kvListJson(tab.grpcMetadata))
                         put("protoFilePath", tab.protoFilePath ?: "")
+                        put("protoSyncToGit", tab.protoSyncToGit)
                         put("grpcMethod", tab.grpcMethod ?: "")
                         put("grpcMethodType", tab.grpcMethodType)
                         put("formRows", formRowListJson(tab.formRows))
                         put("urlencodedRows", formRowListJson(tab.urlencodedRows))
                         put("kind", tab.kind.name)
+                        put("collectionSummary", tab.collectionSummary ?: "")
+                        put("collectionVersion", tab.collectionVersion ?: "")
+                        put("storageType", tab.storageType.name)
+                        put("gitRemoteUrl", tab.gitRemoteUrl)
+                        put("gitBranch", tab.gitBranch)
                         put("mcp", json.parseToJsonElement(
                             json.encodeToString(McpConnectionConfig.serializer(), tab.mcpConfig),
                         ))
@@ -301,6 +308,7 @@ object TabsRepository {
                     tab.grpcMetadata.add(kvFromJson(kv.jsonObject))
                 }
                 tab.protoFilePath = obj["protoFilePath"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
+                tab.protoSyncToGit = obj["protoSyncToGit"]?.jsonPrimitive?.booleanOrNull ?: false
                 tab.grpcMethod = obj["grpcMethod"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
                 tab.grpcMethodType = obj["grpcMethodType"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } ?: "unary"
 
@@ -315,6 +323,12 @@ object TabsRepository {
                 }
 
                 if (savedKind == RequestKind.COLLECTION) {
+                    val colNode = state.collections.firstOrNull { it.id == realId || it.id == resolvedCollectionId }
+                    tab.collectionSummary = obj["collectionSummary"]?.jsonPrimitive?.content?.takeIf { it.isNotEmpty() } ?: colNode?.summary
+                    tab.collectionVersion = obj["collectionVersion"]?.jsonPrimitive?.content?.takeIf { it.isNotEmpty() } ?: colNode?.version
+                    tab.storageType = safeEnum(obj["storageType"]?.jsonPrimitive?.content, colNode?.storageType ?: StorageType.LOCAL)
+                    tab.gitRemoteUrl = obj["gitRemoteUrl"]?.jsonPrimitive?.content ?: colNode?.gitRemoteUrl ?: ""
+                    tab.gitBranch = obj["gitBranch"]?.jsonPrimitive?.content?.takeIf { it.isNotEmpty() } ?: colNode?.gitBranch ?: "main"
                     tab.collectionSnapshotProvider = { state.collectionProtobufSnapshot() }
                 }
 

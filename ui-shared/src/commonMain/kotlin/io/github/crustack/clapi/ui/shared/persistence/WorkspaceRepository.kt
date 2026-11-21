@@ -3,10 +3,15 @@ package io.github.crustack.clapi.ui.shared.persistence
 import androidx.compose.runtime.toMutableStateList
 import io.github.crustack.clapi.core.model.RequestKind
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
+import io.github.crustack.clapi.core.model.storage.StorageType
 import io.github.crustack.clapi.core.storage.opencollection.CanonicalCollectionRepository
 import io.github.crustack.clapi.core.storage.opencollection.CollectionStorageException
 import io.github.crustack.clapi.core.storage.opencollection.CollectionValidationException
 import io.github.crustack.clapi.core.storage.opencollection.DefaultCanonicalCollectionRepository
+import io.github.crustack.clapi.core.storage.opencollection.OpenCollectionSerializer
+import io.github.crustack.clapi.core.storage.opencollection.fileExists
+import io.github.crustack.clapi.core.storage.opencollection.readTextFile
+import io.github.crustack.clapi.core.storage.opencollection.writeTextFile
 import io.github.crustack.clapi.ui.shared.platform.generateUuid
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.CollectionNode
@@ -46,6 +51,7 @@ object WorkspaceRepository {
             runBlocking {
                 canonicalRepository.saveGlobalCollection(globalDoc)
             }
+            exportGitSyncedCollections(state)
             privateStateRepository.save(
                 PrivateWorkspaceState(
                     globalVariables = state.globalVariables
@@ -61,6 +67,66 @@ object WorkspaceRepository {
             reportSaveError(state, error)
             false
         }
+
+    fun exportCollectionToGitRepository(state: AppState, collection: CollectionNode): String {
+        val manager = state.gitRepositoryManager
+        val colDir = manager.getCollectionDirectory(collection.gitRemoteUrl, collection.name)
+        val doc = collection.toOpenCollectionDocumentForGitSync(colDir)
+        val yaml = OpenCollectionSerializer.serializeYaml(doc)
+        val yamlPath = "$colDir/collection.opencollection.yaml"
+        writeTextFile(yamlPath, yaml)
+        return yamlPath
+    }
+
+    private fun exportGitSyncedCollections(state: AppState) {
+        val gitCollections = state.collections.filter {
+            it.isCollection && it.storageType == StorageType.GIT && it.gitRemoteUrl.isNotBlank()
+        }
+        for (col in gitCollections) {
+            runCatching {
+                exportCollectionToGitRepository(state, col)
+            }
+        }
+        if (gitCollections.isNotEmpty()) {
+            state.refreshAllGitStatusesAsync()
+        }
+    }
+
+    fun reloadCollectionsFromGitRepository(state: AppState, remoteUrl: String) {
+        val manager = state.gitRepositoryManager
+        var changed = false
+        for (i in state.collections.indices) {
+            val col = state.collections[i]
+            if (col.isCollection && col.storageType == StorageType.GIT && col.gitRemoteUrl.trim() == remoteUrl.trim()) {
+                val colDir = manager.getCollectionDirectory(col.gitRemoteUrl, col.name)
+                val yamlPath = "$colDir/collection.opencollection.yaml"
+                if (fileExists(yamlPath)) {
+                    runCatching {
+                        val content = readTextFile(yamlPath)
+                        val doc = OpenCollectionSerializer.deserializeYaml(content)
+                        val reloadedNode = doc.toCollectionNode(
+                            nameOverride = col.name,
+                            preserveIds = true,
+                        ).copy(
+                            id = col.id,
+                            storageExtension = col.storageExtension,
+                        )
+                        state.collections[i] = reloadedNode
+                        changed = true
+                    }
+                }
+            }
+        }
+        if (changed) {
+            state.notifyCollectionsChanged()
+            runCatching {
+                val globalDoc = state.toGlobalOpenCollectionDocument()
+                runBlocking {
+                    canonicalRepository.saveGlobalCollection(globalDoc)
+                }
+            }
+        }
+    }
 
     // Save runs on every state change, so the same failure is shown once until its message changes.
     private fun reportSaveError(state: AppState, error: Throwable) {
