@@ -20,11 +20,11 @@ class CollectionEditorNavigationUiTest {
 
     @Test
     fun opens_collection_tab_when_clicking_collection_header_in_sidebar() {
-        val state = AppState()
+        val state = AppState(withDemoData = true)
         composeRule.setContent { MainScreen(state) }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithTag("sidebar-collection-header").performClick()
+        composeRule.onNodeWithTag("collection-node-c1").performClick()
         composeRule.waitForIdle()
 
         assertTrue(state.openTabs.any { it.kind == RequestKind.COLLECTION })
@@ -35,16 +35,16 @@ class CollectionEditorNavigationUiTest {
 
     @Test
     fun clicking_collection_again_focuses_existing_tab_without_duplication() {
-        val state = AppState()
+        val state = AppState(withDemoData = true)
         composeRule.setContent { MainScreen(state) }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithTag("sidebar-collection-header").performClick()
+        composeRule.onNodeWithTag("collection-node-c1").performClick()
         composeRule.waitForIdle()
         val countAfterFirst = state.openTabs.count { it.kind == RequestKind.COLLECTION }
         assertEquals(1, countAfterFirst)
 
-        composeRule.onNodeWithTag("sidebar-collection-header").performClick()
+        composeRule.onNodeWithTag("collection-node-c1").performClick()
         composeRule.waitForIdle()
         val countAfterSecond = state.openTabs.count { it.kind == RequestKind.COLLECTION }
         assertEquals(1, countAfterSecond)

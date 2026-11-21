@@ -86,14 +86,14 @@ description: "Task list for supporting multiple OpenCollection collections"
 
 ### Tests for User Story 3
 
-- [ ] T017 [P] [US3] Create unit and integration tests for collection-to-folder-to-request inheritance in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/state/CollectionInheritanceTest.kt`.
+- [x] T017 [P] [US3] Create unit and integration tests for collection-to-folder-to-request inheritance in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/state/CollectionInheritanceTest.kt`.
 
 ### Implementation for User Story 3
 
-- [ ] T018 [US3] Update `getAncestorFolders` and `findAncestorChain` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` to include the enclosing `CollectionNode` as root ancestor.
-- [ ] T019 [US3] Update `applyInheritedDefaults` and `resolveInheritedAuth` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` to cascade collection-level headers, variables, and authentication down to folders and requests.
-- [ ] T020 [US3] Update `FolderEditor.kt` and `AuthEditor.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/` to display inherited collection defaults and support `AuthType.INHERIT` resolving to the collection.
-- [ ] T021 [US3] Update script execution pipeline in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt` to execute pre-request and post-request scripts in cascade sequence (`Collection -> Folder -> Request`).
+- [x] T018 [US3] Update `getAncestorFolders` and `findAncestorChain` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` to include the enclosing `CollectionNode` as root ancestor.
+- [x] T019 [US3] Update `applyInheritedDefaults` and `resolveInheritedAuth` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/state/AppState.kt` to cascade collection-level headers, variables, and authentication down to folders and requests.
+- [x] T020 [US3] Update `FolderEditor.kt` and `AuthEditor.kt` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/` to display inherited collection defaults and support `AuthType.INHERIT` resolving to the collection.
+- [x] T021 [US3] Update script execution pipeline in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestExecutor.kt` to execute pre-request and post-request scripts in cascade sequence (`Collection -> Folder -> Request`).
 
 **Checkpoint**: User Stories 1, 2, and 3 work seamlessly together.
 
@@ -107,14 +107,14 @@ description: "Task list for supporting multiple OpenCollection collections"
 
 ### Tests for User Story 4
 
-- [ ] T022 [P] [US4] Create unit tests for multi-collection export and import in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/persistence/MultiCollectionImportExportTest.kt`.
+- [x] T022 [P] [US4] Create unit tests for multi-collection export and import in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/persistence/MultiCollectionImportExportTest.kt`.
 
 ### Implementation for User Story 4
 
-- [ ] T023 [P] [US4] Implement `ExportCollectionsDialog` composable in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ExportCollectionsDialog.kt` with collection checkboxes, select all toggle, and JSON/YAML format choice.
-- [ ] T024 [US4] Implement multi-collection export runner in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/ImportExportRepository.kt` writing 1 file per selected collection into user-selected directory.
-- [ ] T025 [US4] Update OpenCollection import handler in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/ImportExportRepository.kt` to create a new distinct collection in `state.collections` with automatic index disambiguation on collision.
-- [ ] T026 [US4] Wire the "Export Collections..." action in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` to show `ExportCollectionsDialog` with native directory picker.
+- [x] T023 [P] [US4] Implement `ExportCollectionsDialog` composable in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ExportCollectionsDialog.kt` with collection checkboxes, select all toggle, and JSON/YAML format choice.
+- [x] T024 [US4] Implement multi-collection export runner in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/ImportExportRepository.kt` writing 1 file per selected collection into user-selected directory.
+- [x] T025 [US4] Update OpenCollection import handler in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/ImportExportRepository.kt` to create a new distinct collection in `state.collections` with automatic index disambiguation on collision.
+- [x] T026 [US4] Wire the "Export Collections..." action in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/Sidebar.kt` to show `ExportCollectionsDialog` with native directory picker.
 
 **Checkpoint**: User Stories 1, 2, 3, and 4 are complete.
 
@@ -128,13 +128,13 @@ description: "Task list for supporting multiple OpenCollection collections"
 
 ### Tests for User Story 5
 
-- [ ] T027 [P] [US5] Create unit tests for single-collection migration and multi-collection persistence in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/persistence/WorkspaceMigrationTest.kt`.
+- [x] T027 [P] [US5] Create unit tests for single-collection migration and multi-collection persistence in `ui-shared/src/commonTest/kotlin/io/github/crustack/clapi/ui/shared/persistence/WorkspaceMigrationTest.kt`.
 
 ### Implementation for User Story 5
 
-- [ ] T028 [US5] Update `WorkspaceRepository.load` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/WorkspaceRepository.kt` to detect legacy single-collection files and wrap items into a primary collection on load.
-- [ ] T029 [US5] Update `toGlobalOpenCollectionDocument` and `save` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` and `WorkspaceRepository.kt` to persist all collections, their metadata, request defaults, and items.
-- [ ] T030 [US5] Update `CanonicalCollectionRepository.kt` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/opencollection/CanonicalCollectionRepository.kt` to support multi-collection persistence.
+- [x] T028 [US5] Update `WorkspaceRepository.load` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/WorkspaceRepository.kt` to detect legacy single-collection files and wrap items into a primary collection on load.
+- [x] T029 [US5] Update `toGlobalOpenCollectionDocument` and `save` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/persistence/OpenCollectionModelMapping.kt` and `WorkspaceRepository.kt` to persist all collections, their metadata, request defaults, and items.
+- [x] T030 [US5] Update `CanonicalCollectionRepository.kt` in `core-storage/src/commonMain/kotlin/io/github/crustack/clapi/core/storage/opencollection/CanonicalCollectionRepository.kt` to support multi-collection persistence.
 
 **Checkpoint**: All user stories functional with full persistence and backward compatibility.
 
@@ -144,9 +144,9 @@ description: "Task list for supporting multiple OpenCollection collections"
 
 **Purpose**: Cross-cutting improvements, documentation, and final end-to-end QA validation.
 
-- [ ] T031 [P] Update user documentation in `docs/collections.md` describing multiple collections hierarchy, Info tab, request defaults inheritance, and export/import.
-- [ ] T032 [P] Update and run end-to-end QA test suite in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/OpenCollectionRoundTripE2ETest.kt` for multiple collections.
-- [ ] T033 Execute manual validation scenarios in `specs/008-multiple-collections/quickstart.md`.
+- [x] T031 [P] Update user documentation in `docs/collections.md` describing multiple collections hierarchy, Info tab, request defaults inheritance, and export/import.
+- [x] T032 [P] Update and run end-to-end QA test suite in `qa-tests/src/test/kotlin/io/github/crustack/clapi/qa/OpenCollectionRoundTripE2ETest.kt` for multiple collections.
+- [x] T033 Execute manual validation scenarios in `specs/008-multiple-collections/quickstart.md`.
 
 ---
 

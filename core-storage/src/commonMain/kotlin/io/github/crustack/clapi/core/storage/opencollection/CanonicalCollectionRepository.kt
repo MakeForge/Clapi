@@ -190,6 +190,7 @@ private fun OpenCollectionDocument.toCollectionFolder(): FolderItem =
     FolderItem(
         info = FolderInfo(name = info.name, type = "folder"),
         items = items,
+        request = request,
         extensions = extensions + ("id" to JsonPrimitive(collectionId)),
     )
 
@@ -197,6 +198,7 @@ private fun FolderItem.toStandaloneDocument(): OpenCollectionDocument =
     OpenCollectionDocument(
         opencollection = "1.0.0",
         info = CollectionInfo(name = info.name),
+        request = request,
         bundled = true,
         items = items,
         extensions = extensions,

@@ -4,6 +4,7 @@ import androidx.compose.runtime.mutableStateListOf
 import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.core.model.BodyType
 import io.github.crustack.clapi.core.model.HttpMethodType
+import io.github.crustack.clapi.core.model.RequestKind
 import io.github.crustack.clapi.ui.shared.platform.currentTimeMillis
 
 internal object AppStateDemoData {
@@ -59,12 +60,12 @@ internal object AppStateDemoData {
     )
 
     fun collections(): List<CollectionNode> = listOf(
-        CollectionNode("c1", "Users API", isFolder = true, children = mutableStateListOf(
+        CollectionNode("c1", "Users API", isFolder = true, kind = RequestKind.COLLECTION, children = mutableStateListOf(
             CollectionNode("r1", "Get all users", method = HttpMethodType.GET, url = "{{baseUrl}}/users"),
             CollectionNode("r2", "Create user", method = HttpMethodType.POST, url = "{{baseUrl}}/users"),
             CollectionNode("r3", "Update user", method = HttpMethodType.PUT, url = "{{baseUrl}}/users/1"),
         )),
-        CollectionNode("c2", "Auth", isFolder = true, children = mutableStateListOf(
+        CollectionNode("c2", "Auth", isFolder = true, kind = RequestKind.COLLECTION, children = mutableStateListOf(
             CollectionNode("r4", "Login", method = HttpMethodType.POST, url = "{{baseUrl}}/auth/login"),
             CollectionNode("r5", "Refresh", method = HttpMethodType.POST, url = "{{baseUrl}}/auth/refresh"),
         )),

@@ -50,7 +50,7 @@ import io.github.crustack.clapi.ui.shared.theme.ClapiColors
  */
 @Composable
 fun AuthEditor(tab: RequestTabState, state: AppState, onDirty: () -> Unit) {
-    val hasFolderAncestor = tab.folderPath.isNotEmpty() || tab.collectionId != null || state.getAncestorFolders(tab).isNotEmpty()
+    val hasFolderAncestor = !tab.isCollectionTab && (tab.folderPath.isNotEmpty() || tab.collectionId != null || state.getAncestorFolders(tab).isNotEmpty())
     val selectableAuthTypes = AuthType.entries.filterNot {
         it == AuthType.OAUTH2 || (!hasFolderAncestor && it == AuthType.INHERIT)
     }
@@ -132,21 +132,23 @@ fun AuthEditor(tab: RequestTabState, state: AppState, onDirty: () -> Unit) {
                         .padding(12.dp)
                         .testTag("auth-inherit-panel"),
                 ) {
+                    val isCollectionSource = state.collections.any { it.name == resolved?.folderName && it.isCollection }
+                    val sourceLabel = if (isCollectionSource) "collection" else "folder"
                     if (resolved == null || resolved.authType == AuthType.NONE) {
                         Text(
-                            text = if (resolved?.folderName?.isNotBlank() == true) "Inheriting from folder ${resolved.folderName}" else "Inheriting from folder",
+                            text = if (resolved?.folderName?.isNotBlank() == true) "Inheriting from $sourceLabel '${resolved.folderName}'" else "Inheriting from $sourceLabel",
                             style = MaterialTheme.typography.titleSmall,
                             color = ClapiColors.Primary,
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text(
-                            text = "Folder has no authentication configured",
+                            text = "${sourceLabel.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }} has no authentication configured",
                             style = MaterialTheme.typography.bodySmall,
                             color = ClapiColors.OnSurfaceDim,
                         )
                     } else {
                         Text(
-                            text = "Inheriting from folder ${resolved.folderName} (${resolved.authType.name.replace('_', ' ')})",
+                            text = "Inheriting from $sourceLabel '${resolved.folderName}' (${resolved.authType.name.replace('_', ' ')})",
                             style = MaterialTheme.typography.titleSmall,
                             color = ClapiColors.Primary,
                             fontWeight = FontWeight.SemiBold,

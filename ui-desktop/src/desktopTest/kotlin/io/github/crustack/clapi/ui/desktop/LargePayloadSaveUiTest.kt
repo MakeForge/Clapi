@@ -4,6 +4,7 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import io.github.crustack.clapi.core.model.BodyType
 import io.github.crustack.clapi.core.model.HttpMethodType
+import io.github.crustack.clapi.core.model.RequestKind
 import io.github.crustack.clapi.core.storage.opencollection.DefaultCanonicalCollectionRepository
 import io.github.crustack.clapi.ui.shared.MainScreen
 import io.github.crustack.clapi.ui.shared.persistence.ImportExportRepository
@@ -77,6 +78,7 @@ class LargePayloadSaveUiTest {
             id = "col-large-1",
             name = "MyAPI",
             isFolder = true,
+            kind = RequestKind.COLLECTION,
         ).also { it.children.add(request) }
         return AppState(openDefaultTab = false).also { it.collections.add(collection) }
     }

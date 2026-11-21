@@ -140,4 +140,23 @@ class OpenCollectionRoundTripE2ETest {
         val reexported = DefaultCanonicalCollectionRepository().exportCollection(second, ExportFormat.JSON)
         assertEquals(Json.parseToJsonElement(exported), Json.parseToJsonElement(reexported))
     }
+
+    @Test
+    fun multipleCollectionsRoundTripPreservesIndependentCollections() = runBlocking {
+        val dir = tempDir.root.absolutePath
+        val repo = DefaultCanonicalCollectionRepository(baseDirectory = dir)
+
+        val col1 = repo.importCollection(fixture)
+        val fixture2 = fixture.replace("Round Trip", "Second Collection")
+        val col2 = repo.importCollection(fixture2)
+
+        val freshRepo = DefaultCanonicalCollectionRepository(baseDirectory = dir)
+        val loaded1 = freshRepo.getCollection("Round Trip")
+        val loaded2 = freshRepo.getCollection("Second Collection")
+
+        assertNotNull(loaded1)
+        assertNotNull(loaded2)
+        assertEquals("Round Trip", loaded1.info.name)
+        assertEquals("Second Collection", loaded2.info.name)
+    }
 }

@@ -59,7 +59,7 @@ class MainScreenUiTest {
         composeRule.setContent { MainScreen() }
 
         composeRule.onNodeWithText("History").assertIsDisplayed()
-        composeRule.onNodeWithText("Collection").assertIsDisplayed()
+        composeRule.onNodeWithText("Collections").assertIsDisplayed()
         composeRule.onNodeWithText("Environments").assertIsDisplayed()
     }
 

@@ -32,6 +32,7 @@ import io.github.crustack.clapi.ui.shared.mcp.McpSessionState
 import io.github.crustack.clapi.ui.shared.platform.generateUuid
 import io.github.crustack.clapi.ui.shared.platform.currentTimeMillis
 import io.github.crustack.clapi.ui.shared.components.syncParamsFromUrl
+import io.github.crustack.clapi.ui.shared.persistence.ImportExportNaming
 
 import io.github.crustack.clapi.ui.shared.i18n.AppLanguage
 
@@ -140,7 +141,13 @@ data class CollectionNode(
     val protoFilePath: String? = null,
     val grpcMethod: String? = null,
     val grpcMethodType: String? = "unary",
-)
+    val summary: String? = null,
+    val version: String? = null,
+    val protoFiles: List<ProtoFileItemState> = emptyList(),
+    val importPaths: List<ProtoImportPathState> = emptyList(),
+) {
+    val isCollection: Boolean get() = kind == RequestKind.COLLECTION
+}
 
 /**
  * Immutable snapshot of a form-data/urlencoded row — used in [CollectionNode]
@@ -353,6 +360,8 @@ class RequestTabState(
     folderPath: List<String> = emptyList(),
     requestRef: String? = null,
     kind: RequestKind = RequestKind.HTTP,
+    collectionSummary: String? = null,
+    collectionVersion: String? = null,
 ) {
     val requestId: String get() = id
 
@@ -419,6 +428,10 @@ class RequestTabState(
     var kind by mutableStateOf(kind)
     val isFolderTab: Boolean get() = kind == RequestKind.FOLDER
     val isCollectionTab: Boolean get() = kind == RequestKind.COLLECTION
+    var collectionSummary by mutableStateOf(collectionSummary)
+    var collectionVersion by mutableStateOf(collectionVersion)
+    val collectionProtoFiles = mutableStateListOf<ProtoFileItemState>()
+    val collectionImportPaths = mutableStateListOf<ProtoImportPathState>()
     var mcpConfig by mutableStateOf(McpConnectionConfig())
 
     // ── gRPC state ──────────────────────────────────────────────────────────
@@ -577,6 +590,10 @@ class RequestTabState(
             grpcMethod.orEmpty(),
             grpcMethodType,
             grpcMetadataSnapshot,
+            collectionSummary.orEmpty(),
+            collectionVersion.orEmpty(),
+            collectionProtoFiles.joinToString(";") { it.path },
+            collectionImportPaths.joinToString(";") { "${it.path}:${it.enabled}" },
         ).joinToString("#")
     }
 
@@ -955,6 +972,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     var showEnvEditDialog    by mutableStateOf(false)
     var editingEnvIndex      by mutableStateOf(-1)      // index into environments
     var showImportSpecificationDialog by mutableStateOf(false)
+    var showExportCollectionsDialog   by mutableStateOf(false)
 
     // ── import/export operation dialog ──
     var showOperationDialog  by mutableStateOf(false)
@@ -1325,6 +1343,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         folderNode.preRequestScript?.takeIf { it.isNotBlank() }?.let { tab.preRequestScript = it }
         folderNode.testScript?.takeIf { it.isNotBlank() }?.let { tab.testScript = it }
 
+        applyInheritedDefaults(tab)
         tab.restoreSavedSnapshot(null)
         openTabs.add(tab)
         activeTabIndex = openTabs.size - 1
@@ -1340,29 +1359,144 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     /**
      * Opens or focuses a dedicated settings tab for the top-level collection.
      */
-    fun openCollection() {
-        val existingIdx = openTabs.indexOfFirst { it.kind == RequestKind.COLLECTION }
-        if (existingIdx >= 0) {
-            val existing = openTabs[existingIdx]
-            if (existing.collectionSnapshotProvider == null) {
-                existing.collectionSnapshotProvider = { collectionProtobufSnapshot() }
+    fun openCollection(collectionId: String? = null) {
+        val target = if (collectionId != null) {
+            collections.firstOrNull { it.id == collectionId }
+        } else {
+            collections.firstOrNull { it.isCollection } ?: collections.firstOrNull()
+        }
+
+        if (target == null) {
+            val existingIdx = openTabs.indexOfFirst { it.kind == RequestKind.COLLECTION }
+            if (existingIdx >= 0) {
+                activeTabIndex = existingIdx
+                return
             }
+            val fallbackTab = RequestTabState(
+                id = "collection_settings",
+                name = "Collection",
+                kind = RequestKind.COLLECTION,
+            )
+            fallbackTab.collectionSnapshotProvider = { collectionProtobufSnapshot() }
+            fallbackTab.markSaved()
+            openTabs.add(fallbackTab)
+            activeTabIndex = openTabs.size - 1
+            return
+        }
+
+        val existingIdx = openTabs.indexOfFirst {
+            it.kind == RequestKind.COLLECTION && (it.id == target.id || it.collectionId == target.id || it.id == "collection_${target.id}")
+        }
+        if (existingIdx >= 0) {
             activeTabIndex = existingIdx
             return
         }
 
         val tab = RequestTabState(
-            id = "collection_settings",
-            name = "Collection",
+            id = target.id,
+            name = target.name,
             kind = RequestKind.COLLECTION,
+            collectionId = target.id,
+            collectionName = target.name,
+            collectionSummary = target.summary,
+            collectionVersion = target.version,
         )
-        tab.collectionSnapshotProvider = { collectionProtobufSnapshot() }
+
+        // Populate request defaults
+        if (target.variableEntries != null) {
+            tab.variables.clear()
+            tab.variables.addAll(target.variableEntries.map {
+                MutableKeyValue(key = it.key, value = it.value, enabled = it.enabled, secret = it.secret)
+            })
+        }
+        if (target.headerEntries != null) {
+            tab.headers.clear()
+            tab.headers.addAll(target.headerEntries.map {
+                MutableKeyValue(key = it.key, value = it.value, enabled = it.enabled, secret = it.secret, kind = HeaderKind.USER)
+            })
+        }
+        tab.authType = target.authType ?: AuthType.NONE
+        tab.authUsername = target.authUsername ?: ""
+        tab.authPassword = target.authPassword ?: ""
+        tab.authToken = target.authToken ?: ""
+        tab.authApiKey = target.authApiKey ?: ""
+        tab.authApiValue = target.authApiValue ?: ""
+        tab.authApiPlacement = target.authApiPlacement ?: "header"
+        tab.preRequestScript = target.preRequestScript ?: ""
+        tab.testScript = target.testScript ?: ""
+
+        // Populate collection-level protobuf
+        tab.collectionProtoFiles.clear()
+        tab.collectionProtoFiles.addAll(target.protoFiles.map { ProtoFileItemState(it.path) })
+        tab.collectionImportPaths.clear()
+        tab.collectionImportPaths.addAll(target.importPaths.map { ProtoImportPathState(it.path, it.enabled) })
+
+        tab.collectionSnapshotProvider = {
+            val protos = tab.collectionProtoFiles.joinToString(";") { it.path }
+            val imports = tab.collectionImportPaths.joinToString(";") { "${it.path}:${it.enabled}" }
+            "$protos#$imports"
+        }
         tab.markSaved()
         openTabs.add(tab)
         activeTabIndex = openTabs.size - 1
     }
 
+    fun createNewCollection(initialName: String = "New Collection"): CollectionNode {
+        val uniqueName = disambiguateCollectionName(initialName)
+        val node = CollectionNode(
+            id = generateUuid(),
+            name = uniqueName,
+            isFolder = true,
+            kind = RequestKind.COLLECTION,
+            children = mutableStateListOf(),
+        )
+        collections.add(node)
+        notifyCollectionsChanged()
+        return node
+    }
+
+    fun deleteCollection(collectionId: String): CollectionNode? {
+        val index = collections.indexOfFirst { it.id == collectionId }
+        if (index < 0) return null
+        val removed = collections.removeAt(index)
+        fun collectChildIds(node: CollectionNode): List<String> {
+            val ids = mutableListOf(node.id, "collection_${node.id}")
+            node.children.forEach { ids.addAll(collectChildIds(it)) }
+            return ids
+        }
+        closeTabsByIds(collectChildIds(removed))
+        notifyCollectionsChanged()
+        return removed
+    }
+
+    fun disambiguateCollectionName(name: String, excludeCollectionId: String? = null): String {
+        val existingNames = collections
+            .filter { it.id != excludeCollectionId }
+            .map { it.name }
+            .toSet()
+        return ImportExportNaming.generateUniqueCollectionName(name, existingNames)
+    }
+
+    fun renameCollection(collectionId: String, desiredName: String): String {
+        val trimmed = desiredName.trim()
+        val disambiguated = disambiguateCollectionName(trimmed, collectionId)
+        val idx = collections.indexOfFirst { it.id == collectionId }
+        if (idx >= 0) {
+            val oldName = collections[idx].name
+            collections[idx] = collections[idx].copy(name = disambiguated)
+            openTabs.filter { (it.id == collectionId || it.collectionId == collectionId) && it.isCollectionTab }.forEach { tab ->
+                tab.name = disambiguated
+                tab.collectionName = disambiguated
+                tab.reanchorSavedSnapshotAfterRename(oldName)
+            }
+            updateTabsCollectionName(oldName, disambiguated)
+            notifyCollectionsChanged()
+        }
+        return disambiguated
+    }
+
     fun getAncestorFolders(tab: RequestTabState): List<CollectionNode> {
+        if (tab.isCollectionTab) return emptyList()
         val chain = mutableListOf<CollectionNode>()
         for (root in collections) {
             if (findAncestorChain(root, tab.id, chain)) {
@@ -1381,7 +1515,11 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                     fallbackChain.add(next)
                     cursor = next
                 }
-                return fallbackChain
+                return if (tab.isFolderTab && fallbackChain.lastOrNull()?.id == tab.id) {
+                    fallbackChain.dropLast(1)
+                } else {
+                    fallbackChain
+                }
             }
         }
         return emptyList()
@@ -1435,14 +1573,19 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     }
 
     fun applyInheritedDefaults(tab: RequestTabState) {
-        if (tab.isFolderTab) return
+        if (tab.isCollectionTab) return
         val ancestors = getAncestorFolders(tab)
-        if (ancestors.isEmpty()) return
+        if (ancestors.isEmpty()) {
+            tab.headers.removeAll { it.kind == HeaderKind.INHERITED }
+            tab.variables.removeAll { it.kind == HeaderKind.INHERITED }
+            tab.params.removeAll { it.kind == HeaderKind.INHERITED }
+            return
+        }
 
         // 1. Cascade headers (root-to-leaf: closer ancestor overrides distant ancestor)
         val resolvedHeaders = mutableMapOf<String, KeyValueEntry>()
-        for (folder in ancestors) {
-            val entries = folder.headerEntries ?: folder.userHeaders.map { KeyValueEntry(it.first, it.second) }
+        for (ancestor in ancestors) {
+            val entries = ancestor.headerEntries ?: ancestor.userHeaders.map { KeyValueEntry(it.first, it.second) }
             for (entry in entries) {
                 if (entry.enabled && entry.key.isNotBlank()) {
                     resolvedHeaders[entry.key.lowercase()] = entry
@@ -1467,13 +1610,42 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
             }
         }
 
+        // 2. Cascade variables (root-to-leaf: closer ancestor overrides distant ancestor)
+        val resolvedVariables = mutableMapOf<String, KeyValueEntry>()
+        for (ancestor in ancestors) {
+            val entries = ancestor.variableEntries.orEmpty()
+            for (entry in entries) {
+                if (entry.enabled && entry.key.isNotBlank()) {
+                    resolvedVariables[entry.key.lowercase()] = entry
+                }
+            }
+        }
+
+        tab.variables.removeAll { it.kind == HeaderKind.INHERITED }
+
+        for (entry in resolvedVariables.values) {
+            val alreadyExists = tab.variables.any { it.key.equals(entry.key, ignoreCase = true) }
+            if (!alreadyExists) {
+                tab.variables.add(
+                    MutableKeyValue(
+                        key = entry.key,
+                        value = entry.value,
+                        enabled = true,
+                        secret = entry.secret,
+                        kind = HeaderKind.INHERITED,
+                        keyLocked = true,
+                    )
+                )
+            }
+        }
+
         // Folder settings no longer define query parameters; ensure inherited query params are cleared.
         tab.params.removeAll { it.kind == HeaderKind.INHERITED }
     }
 
     fun refreshInheritedDefaultsForOpenTabs() {
         for (openTab in openTabs) {
-            if (!openTab.isFolderTab) {
+            if (!openTab.isCollectionTab) {
                 applyInheritedDefaults(openTab)
             }
         }
@@ -2205,7 +2377,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
         val updated = syncTabToNodeRecursive(collections, tab)
         if (updated) {
             notifyCollectionsChanged()
-            if (tab.isFolderTab) {
+            if (tab.isFolderTab || tab.isCollectionTab) {
                 refreshInheritedDefaultsForOpenTabs()
             }
         }
@@ -2218,7 +2390,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     ): Boolean {
         nodes.indices.forEach { index ->
             val node = nodes[index]
-            if (node.isFolder && node.id == tab.id) {
+            if ((node.isFolder || node.isCollection) && (node.id == tab.id || (tab.isCollectionTab && (node.id == tab.collectionId || tab.id == "collection_${node.id}")))) {
                 val variableEntriesSnapshot = tab.variables
                     .filter { it.kind != HeaderKind.INHERITED }
                     .map { KeyValueEntry(it.key, it.value, it.enabled, it.secret) }
@@ -2228,8 +2400,26 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                 val userHeadersSnapshot = tab.headers
                     .filter { it.kind == HeaderKind.USER && it.enabled }
                     .map { it.key to it.value }
+                val oldName = node.name
+                val finalName = if (tab.isCollectionTab && tab.name != oldName) {
+                    disambiguateCollectionName(tab.name.trim(), node.id)
+                } else {
+                    tab.name
+                }
+                if (tab.isCollectionTab && finalName != tab.name) {
+                    tab.name = finalName
+                    tab.collectionName = finalName
+                }
+                if (tab.isCollectionTab && finalName != oldName) {
+                    updateTabsCollectionName(oldName, finalName)
+                    tab.reanchorSavedSnapshotAfterRename(oldName)
+                }
                 nodes[index] = node.copy(
-                    name = tab.name,
+                    name = finalName,
+                    summary = if (tab.isCollectionTab) tab.collectionSummary else node.summary,
+                    version = if (tab.isCollectionTab) tab.collectionVersion else node.version,
+                    protoFiles = if (tab.isCollectionTab) tab.collectionProtoFiles.map { ProtoFileItemState(it.path) } else node.protoFiles,
+                    importPaths = if (tab.isCollectionTab) tab.collectionImportPaths.map { ProtoImportPathState(it.path, it.enabled) } else node.importPaths,
                     variableEntries = variableEntriesSnapshot,
                     queryEntries = null,
                     headerEntries = headerEntriesSnapshot,
@@ -2244,6 +2434,12 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                     preRequestScript = tab.preRequestScript.ifBlank { null },
                     testScript = tab.testScript.ifBlank { null },
                 )
+                if (tab.isCollectionTab) {
+                    collectionProtoFiles.clear()
+                    collectionProtoFiles.addAll(tab.collectionProtoFiles.map { ProtoFileItemState(it.path) })
+                    collectionImportPaths.clear()
+                    collectionImportPaths.addAll(tab.collectionImportPaths.map { ProtoImportPathState(it.path, it.enabled) })
+                }
                 return true
             }
             if (!node.isFolder && node.id == tab.id) {
@@ -2304,7 +2500,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
                 )
                 return true
             }
-            if (node.isFolder && node.children.isNotEmpty()) {
+            if ((node.isFolder || node.isCollection) && node.children.isNotEmpty()) {
                 if (syncTabToNodeRecursive(node.children, tab)) return true
             }
         }
@@ -2314,7 +2510,7 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     private fun expandAncestorsForRequest(nodes: List<CollectionNode>, requestId: String): Boolean {
         for (node in nodes) {
             if (node.id == requestId) return true
-            if (node.isFolder && node.children.isNotEmpty()) {
+            if ((node.isFolder || node.isCollection) && node.children.isNotEmpty()) {
                 if (expandAncestorsForRequest(node.children, requestId)) {
                     collectionExpandedState[node.id] = true
                     return true

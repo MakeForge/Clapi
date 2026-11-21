@@ -200,6 +200,25 @@ actual fun saveFileForExport(content: String, defaultFilename: String) {
     }
 }
 
+actual fun pickDirectory(onResult: (directoryPath: String) -> Unit) {
+    javax.swing.SwingUtilities.invokeLater {
+        val chooser = javax.swing.JFileChooser().apply {
+            fileSelectionMode = javax.swing.JFileChooser.DIRECTORIES_ONLY
+            dialogTitle = "Select Destination Directory"
+            val remembered = FileChooserMemory.directoryToOpen(PlatformStorage.getString(FileChooserMemory.LAST_DIR_KEY)) { candidate ->
+                File(candidate).isDirectory
+            }
+            if (remembered != null) currentDirectory = File(remembered)
+        }
+        val result = chooser.showOpenDialog(null)
+        if (result == javax.swing.JFileChooser.APPROVE_OPTION && chooser.selectedFile != null) {
+            val dir = chooser.selectedFile
+            rememberChooserDirectory(dir)
+            onResult(dir.absolutePath)
+        }
+    }
+}
+
 private fun FileDialog.applyRememberedDirectory() {
     val path = FileChooserMemory.directoryToOpen(PlatformStorage.getString(FileChooserMemory.LAST_DIR_KEY)) { candidate ->
         File(candidate).isDirectory

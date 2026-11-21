@@ -147,7 +147,7 @@ class NewFeaturesUiTest {
 
         composeRule.setContent { MainScreen(state) }
 
-        composeRule.onNodeWithTag("collection-root-icon-${root.id}", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("collection-icon-${root.id}", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithTag("collection-subfolder-icon-${sub.id}", useUnmergedTree = true).assertIsDisplayed()
     }
 
