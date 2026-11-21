@@ -1,5 +1,10 @@
 package io.github.crustack.clapi.ui.shared.components
 
+
+
+import org.jetbrains.compose.resources.painterResource
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.hoverable
@@ -19,21 +24,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.DoneAll
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.FindReplace
-import androidx.compose.material.icons.filled.FormatAlignLeft
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.UnfoldLess
-import androidx.compose.material.icons.filled.UnfoldMore
-import androidx.compose.material.icons.filled.WrapText
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -53,9 +43,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import io.github.crustack.clapi.ui.shared.platform.handleCtrlSpaceKeyEvent
@@ -80,6 +69,20 @@ import io.github.crustack.clapi.editor.ui.EditorRenderer
 import io.github.crustack.clapi.editor.ui.EditorTheme
 import io.github.crustack.clapi.editor.ui.EditorViewModel
 import io.github.crustack.clapi.editor.ui.SyntaxHighlighterRegistry
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_arrow_downward
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_arrow_upward
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_close
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_content_copy
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_done_all
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_download
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_find_replace
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_format_align_left
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_keyboard_arrow_down
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_keyboard_arrow_up
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_search
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_unfold_less
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_unfold_more
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_wrap_text
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.platform.copyToClipboard as platformCopyToClipboard
 import io.github.crustack.clapi.ui.shared.platform.readFromClipboard
@@ -655,7 +658,7 @@ private fun CodeEditorToolbar(
         // Format / beautify
         if (onToggleFormat != null) {
             ToolbarBtn(
-                icon = Icons.Default.FormatAlignLeft,
+                icon = painterResource(Res.drawable.ic_format_align_left),
                 contentDescription = if (isFormatted) Strings.raw else Strings.format,
                 active = isFormatted && isReadOnly,
                 onClick = onToggleFormat,
@@ -666,7 +669,7 @@ private fun CodeEditorToolbar(
         // Word wrap
         if (onToggleWordWrap != null) {
             ToolbarBtn(
-                icon = Icons.Default.WrapText,
+                icon = painterResource(Res.drawable.ic_wrap_text),
                 contentDescription = if (wordWrap) Strings.disableWordWrap else Strings.enableWordWrap,
                 active = wordWrap,
                 onClick = onToggleWordWrap,
@@ -677,7 +680,7 @@ private fun CodeEditorToolbar(
         // Search
         if (onToggleSearch != null) {
             ToolbarBtn(
-                icon = Icons.Default.Search,
+                icon = painterResource(Res.drawable.ic_search),
                 contentDescription = Strings.search,
                 active = showSearch,
                 onClick = onToggleSearch,
@@ -688,13 +691,13 @@ private fun CodeEditorToolbar(
         // Fold / Unfold
         if (hasFoldRegions) {
             ToolbarBtn(
-                icon = Icons.Default.UnfoldLess,
+                icon = painterResource(Res.drawable.ic_unfold_less),
                 contentDescription = Strings.collapseAll,
                 onClick = onFoldAll ?: {},
                 testTag = "$testTagPrefix-fold-all",
             )
             ToolbarBtn(
-                icon = Icons.Default.UnfoldMore,
+                icon = painterResource(Res.drawable.ic_unfold_more),
                 contentDescription = Strings.expandAll,
                 onClick = onUnfoldAll ?: {},
                 testTag = "$testTagPrefix-unfold-all",
@@ -714,7 +717,7 @@ private fun CodeEditorToolbar(
         // Copy
         if (onCopy != null) {
             ToolbarBtn(
-                icon = Icons.Default.ContentCopy,
+                icon = painterResource(Res.drawable.ic_content_copy),
                 contentDescription = Strings.copyBody,
                 onClick = onCopy,
                 testTag = "$testTagPrefix-copy-button",
@@ -724,7 +727,7 @@ private fun CodeEditorToolbar(
         // Download
         if (onDownload != null) {
             ToolbarBtn(
-                icon = Icons.Default.Download,
+                icon = painterResource(Res.drawable.ic_download),
                 contentDescription = Strings.downloadResponse,
                 onClick = onDownload,
                 testTag = "$testTagPrefix-download-button",
@@ -737,7 +740,7 @@ private fun CodeEditorToolbar(
 
 @Composable
 private fun ToolbarBtn(
-    icon: ImageVector,
+    icon: Painter,
     contentDescription: String,
     active: Boolean = false,
     onClick: () -> Unit,
@@ -865,7 +868,7 @@ private fun CodeEditorSearchBar(
                     .testTag("$testTagPrefix-search-replace-toggle"),
             ) {
                 Icon(
-                    imageVector = if (showReplace) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    painter = if (showReplace) painterResource(Res.drawable.ic_keyboard_arrow_up) else painterResource(Res.drawable.ic_keyboard_arrow_down),
                     contentDescription = if (showReplace) Strings.hideReplace else Strings.showReplace,
                     tint = ClapiColors.OnSurfaceDim,
                     modifier = Modifier.size(16.dp),
@@ -877,13 +880,13 @@ private fun CodeEditorSearchBar(
             onClick = onPrev,
             modifier = Modifier.size(24.dp).focusProperties { canFocus = false },
         ) {
-            Icon(Icons.Default.ArrowUpward, Strings.previousMatch, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
+            Icon(painter = painterResource(Res.drawable.ic_arrow_upward), Strings.previousMatch, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
         }
         IconButton(
             onClick = onNext,
             modifier = Modifier.size(24.dp).focusProperties { canFocus = false },
         ) {
-            Icon(Icons.Default.ArrowDownward, Strings.nextMatch, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
+            Icon(painter = painterResource(Res.drawable.ic_arrow_downward), Strings.nextMatch, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
         }
         IconButton(
             onClick = onClose,
@@ -892,7 +895,7 @@ private fun CodeEditorSearchBar(
                 .focusProperties { canFocus = false }
                 .testTag("$testTagPrefix-search-close"),
         ) {
-            Icon(Icons.Default.Close, Strings.closeSearch, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
+            Icon(painter = painterResource(Res.drawable.ic_close), Strings.closeSearch, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
         }
     }
 
@@ -946,14 +949,14 @@ private fun CodeEditorSearchBar(
                 onClick = onReplace,
                 enabled = query.isNotEmpty(),
                 tooltip = Strings.replace,
-                icon = Icons.Default.FindReplace,
+                icon = painterResource(Res.drawable.ic_find_replace),
                 modifier = Modifier.testTag("$testTagPrefix-search-replace"),
             )
             EditorIconButtonWithTooltip(
                 onClick = onReplaceAll,
                 enabled = query.isNotEmpty(),
                 tooltip = Strings.replaceAll,
-                icon = Icons.Default.DoneAll,
+                icon = painterResource(Res.drawable.ic_done_all),
                 modifier = Modifier.testTag("$testTagPrefix-search-replace-all"),
             )
         }
@@ -973,7 +976,7 @@ private fun EditorIconButtonWithTooltip(
     onClick: () -> Unit,
     enabled: Boolean,
     tooltip: String,
-    icon: ImageVector,
+    icon: Painter,
     modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -998,7 +1001,7 @@ private fun EditorIconButtonWithTooltip(
                 .hoverable(interactionSource),
         ) {
             Icon(
-                imageVector = icon,
+                icon,
                 contentDescription = tooltip,
                 tint = if (enabled) ClapiColors.OnSurfaceDim else ClapiColors.OnSurfaceDim.copy(alpha = 0.45f),
                 modifier = Modifier.size(17.dp),
@@ -1084,7 +1087,7 @@ private fun CodeEditorGoToLineBar(
             onClick = onClose,
             modifier = Modifier.size(24.dp).focusProperties { canFocus = false },
         ) {
-            Icon(Icons.Default.Close, Strings.close, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
+            Icon(painter = painterResource(Res.drawable.ic_close), Strings.close, tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
         }
     }
     Box(Modifier.fillMaxWidth().height(1.dp).background(ClapiColors.Border))

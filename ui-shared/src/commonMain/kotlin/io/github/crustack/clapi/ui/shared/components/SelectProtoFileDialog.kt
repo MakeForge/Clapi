@@ -18,16 +18,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import io.github.crustack.clapi.ui.shared.i18n.Strings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,9 +44,15 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_close
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_description
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_folder_open
+import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.platform.pickProtoFile
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
 import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
+import org.jetbrains.compose.resources.painterResource
 import kotlin.math.roundToInt
 
 /**
@@ -128,8 +129,7 @@ fun SelectProtoFileDialog(
                             onClick = onDismiss,
                             modifier = Modifier.size(28.dp).testTag("proto-dialog-close"),
                         ) {
-                            Icon(
-                                Icons.Default.Close,
+                            Icon(painter = painterResource(Res.drawable.ic_close),
                                 contentDescription = "Close",
                                 tint = ClapiColors.OnSurfaceDim,
                                 modifier = Modifier.size(16.dp),
@@ -156,8 +156,7 @@ fun SelectProtoFileDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Icon(
-                            Icons.Default.Description,
+                        Icon(painter = painterResource(Res.drawable.ic_description),
                             contentDescription = null,
                             tint = ClapiColors.MethodPatch,
                             modifier = Modifier.size(16.dp),
@@ -221,8 +220,7 @@ fun SelectProtoFileDialog(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    Icon(
-                                        Icons.Default.Description,
+                                    Icon(painter = painterResource(Res.drawable.ic_description),
                                         contentDescription = null,
                                         tint = if (isSelected) ClapiColors.Primary else ClapiColors.OnSurfaceDim,
                                         modifier = Modifier.size(14.dp),
@@ -265,8 +263,7 @@ fun SelectProtoFileDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
                     ) {
-                        Icon(
-                            Icons.Default.FolderOpen,
+                        Icon(painter = painterResource(Res.drawable.ic_folder_open),
                             contentDescription = null,
                             tint = ClapiColors.OnSurface,
                             modifier = Modifier.size(16.dp),

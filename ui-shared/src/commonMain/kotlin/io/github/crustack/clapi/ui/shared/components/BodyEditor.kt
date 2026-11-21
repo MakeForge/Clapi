@@ -1,5 +1,7 @@
 package io.github.crustack.clapi.ui.shared.components
 
+import org.jetbrains.compose.resources.painterResource
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,10 +21,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Checkbox
@@ -50,6 +48,10 @@ import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.MutableFormDataRow
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_add
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_close
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_folder_open
 
 private const val BINARY_ATTACHMENT_PREFIX = "clapi-binary:"
 
@@ -587,7 +589,7 @@ private fun FormDataRowItem(
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Default.Close,
+                painter = painterResource(Res.drawable.ic_close),
                 contentDescription = "Remove row",
                 tint = ClapiColors.OnSurfaceDim,
                 modifier = Modifier
@@ -703,7 +705,7 @@ private fun FilePickerCell(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Icon(
-            imageVector = Icons.Default.FolderOpen,
+            painter = painterResource(Res.drawable.ic_folder_open),
             contentDescription = "Pick file",
             tint = ClapiColors.OnSurfaceDim,
             modifier = Modifier.size(12.dp),
@@ -730,7 +732,7 @@ private fun AddRowButton(onAdd: () -> Unit, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Icon(
-            imageVector = Icons.Default.Add,
+            painter = painterResource(Res.drawable.ic_add),
             contentDescription = "Add row",
             tint = ClapiColors.Primary,
             modifier = Modifier.size(14.dp),

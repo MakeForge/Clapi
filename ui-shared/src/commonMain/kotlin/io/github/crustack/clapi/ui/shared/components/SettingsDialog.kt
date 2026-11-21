@@ -1,5 +1,8 @@
 package io.github.crustack.clapi.ui.shared.components
 
+import org.jetbrains.compose.resources.painterResource
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,19 +25,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.DataObject
-import androidx.compose.material.icons.filled.FormatAlignLeft
-import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.NetworkCheck
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.SettingsApplications
-import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,7 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
@@ -65,6 +55,18 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_dark_mode
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_data_object
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_format_align_left
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_key
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_language
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_light_mode
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_network_check
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_settings
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_settings_applications
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_storage
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_visibility
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_visibility_off
 import kotlin.math.roundToInt
 import io.github.crustack.clapi.ui.shared.i18n.AppLanguage
 import io.github.crustack.clapi.ui.shared.i18n.Strings
@@ -75,17 +77,18 @@ import io.github.crustack.clapi.ui.shared.state.AppTheme
 import io.github.crustack.clapi.ui.shared.state.LogLevel
 import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
+import org.jetbrains.compose.resources.DrawableResource
 
-private enum class SettingsSection(val icon: ImageVector) {
-    GENERAL(Icons.Default.Settings),
-    EDITOR(Icons.Default.FormatAlignLeft),
-    THEME(Icons.Default.LightMode),
-    LANGUAGE(Icons.Default.Language),
-    NETWORK(Icons.Default.NetworkCheck),
-    PROXY(Icons.Default.SettingsApplications),
-    SECRETS(Icons.Default.Key),
-    SCRIPTING(Icons.Default.DataObject),
-    DATA(Icons.Default.Storage),
+private enum class SettingsSection(val icon: DrawableResource) {
+    GENERAL(Res.drawable.ic_settings),
+    EDITOR(Res.drawable.ic_format_align_left),
+    THEME(Res.drawable.ic_light_mode),
+    LANGUAGE(Res.drawable.ic_language),
+    NETWORK(Res.drawable.ic_network_check),
+    PROXY(Res.drawable.ic_settings_applications),
+    SECRETS(Res.drawable.ic_key),
+    SCRIPTING(Res.drawable.ic_data_object),
+    DATA(Res.drawable.ic_storage),
 }
 
 @Composable
@@ -178,7 +181,7 @@ fun SettingsDialog(state: AppState) {
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Icon(
-                                section.icon,
+                                painterResource(section.icon),
                                 contentDescription = null,
                                 tint = if (isActive) ClapiColors.Primary else ClapiColors.OnSurfaceDim,
                                 modifier = Modifier.size(16.dp),
@@ -321,9 +324,9 @@ private fun ThemeSettings(s: AppSettings) {
 
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf(
-            Triple(AppTheme.DARK, Strings.darkMode, Icons.Default.DarkMode),
-            Triple(AppTheme.LIGHT, Strings.lightMode, Icons.Default.LightMode),
-            Triple(AppTheme.SYSTEM, Strings.systemTheme, Icons.Default.SettingsApplications),
+            Triple(AppTheme.DARK, Strings.darkMode, painterResource(Res.drawable.ic_dark_mode)),
+            Triple(AppTheme.LIGHT, Strings.lightMode, painterResource(Res.drawable.ic_light_mode)),
+            Triple(AppTheme.SYSTEM, Strings.systemTheme, painterResource(Res.drawable.ic_settings_applications)),
         ).forEach { (theme, label, icon) ->
             val isSelected = s.theme == theme
             Column(
@@ -718,7 +721,7 @@ private fun SettingPasswordField(
                     .then(if (tag.isNotEmpty()) Modifier.testTag("$tag-toggle") else Modifier),
             ) {
                 Icon(
-                    imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                    painter = if (showPassword) painterResource(Res.drawable.ic_visibility_off) else painterResource(Res.drawable.ic_visibility),
                     contentDescription = if (showPassword) "Hide secret" else "Show secret",
                     tint = ClapiColors.OnSurfaceDim,
                     modifier = Modifier.size(16.dp),

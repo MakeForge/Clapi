@@ -1,5 +1,8 @@
 package io.github.crustack.clapi.ui.shared.components
 
+import org.jetbrains.compose.resources.painterResource
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,12 +25,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.LinkOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ScrollableTabRow
@@ -57,6 +54,10 @@ import io.github.crustack.clapi.core.model.RealtimeMessage
 import io.github.crustack.clapi.core.model.RealtimeProtocol
 import io.github.crustack.clapi.core.network.ConnectionState
 import io.github.crustack.clapi.core.network.RealtimeClient
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_clear
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_link
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_link_off
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_send
 import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
 import kotlinx.coroutines.launch
@@ -242,7 +243,7 @@ private fun RealtimeUrlBar(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(
-                if (isConnected) Icons.Default.LinkOff else Icons.Default.Link,
+                if (isConnected) painterResource(Res.drawable.ic_link_off) else painterResource(Res.drawable.ic_link),
                 contentDescription = null,
                 tint = if (isConnected) ClapiColors.Error else ClapiColors.Primary,
                 modifier = Modifier.size(16.dp),
@@ -383,8 +384,7 @@ private fun CommunicationView(
                         .background(ClapiColors.Primary.copy(alpha = 0.12f))
                         .testTag("send-message-button"),
                 ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Send,
+                    Icon(painter = painterResource(Res.drawable.ic_send),
                         contentDescription = Strings.sendMessage,
                         tint = if (connectionState == ConnectionState.CONNECTED) ClapiColors.Primary else ClapiColors.OnSurfaceDim,
                         modifier = Modifier.size(18.dp),
@@ -411,7 +411,7 @@ private fun CommunicationView(
             )
             Spacer(Modifier.weight(1f))
             IconButton(onClick = onClear, modifier = Modifier.size(24.dp)) {
-                Icon(Icons.Default.Clear, "Clear messages", tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
+                Icon(painter = painterResource(Res.drawable.ic_clear), "Clear messages", tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
             }
         }
 

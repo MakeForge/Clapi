@@ -12,25 +12,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -54,12 +46,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import io.github.crustack.clapi.core.model.HttpMethodType
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_arrow_drop_down
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_content_copy
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_refresh
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_save
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_send
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_stop
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
-import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
+import io.github.crustack.clapi.ui.shared.theme.CodeFontFamily
 import io.github.crustack.clapi.ui.shared.theme.httpMethodColor
+import org.jetbrains.compose.resources.painterResource
 import kotlin.math.roundToInt
 
 data class CopyFormatOption(
@@ -167,7 +167,7 @@ private fun MethodDropdown(method: HttpMethodType, onMethodChanged: (HttpMethodT
         ) {
             Text(method.name, color = color, fontWeight = FontWeight.Bold, fontSize = 13.sp)
             Spacer(Modifier.width(2.dp))
-            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
+            Icon(painter = painterResource(Res.drawable.ic_arrow_drop_down), contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
         }
 
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -206,8 +206,7 @@ private fun SendButton(isLoading: Boolean, onClick: () -> Unit, onCancel: () -> 
             contentAlignment = Alignment.Center,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Icon(
-                    Icons.Default.Stop,
+                Icon(painter = painterResource(Res.drawable.ic_stop),
                     contentDescription = Strings.t("stop_request"),
                     tint = ClapiColors.OnPrimary,
                     modifier = Modifier.size(16.dp),
@@ -243,7 +242,7 @@ private fun SendButton(isLoading: Boolean, onClick: () -> Unit, onCancel: () -> 
                     maxLines = 1,
                     overflow = TextOverflow.Clip,
                 )
-                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = ClapiColors.OnPrimary, modifier = Modifier.size(16.dp))
+                Icon(painter = painterResource(Res.drawable.ic_send), contentDescription = null, tint = ClapiColors.OnPrimary, modifier = Modifier.size(16.dp))
             }
         }
     }
@@ -274,7 +273,7 @@ private fun SaveButton(isLoading: Boolean, onClick: () -> Unit) {
                 maxLines = 1,
                 overflow = TextOverflow.Clip,
             )
-            Icon(Icons.Default.Save, contentDescription = null, tint = ClapiColors.OnSurface, modifier = Modifier.size(15.dp))
+            Icon(painter = painterResource(Res.drawable.ic_save), contentDescription = null, tint = ClapiColors.OnSurface, modifier = Modifier.size(15.dp))
         }
     }
 }
@@ -300,7 +299,7 @@ private fun CopyCurlButton(isLoading: Boolean, copyFormats: List<CopyFormatOptio
                 .testTag("copy-curl-button"),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Default.ContentCopy, contentDescription = Strings.t("copy_as"), tint = ClapiColors.OnSurface, modifier = Modifier.size(15.dp))
+            Icon(painter = painterResource(Res.drawable.ic_content_copy), contentDescription = Strings.t("copy_as"), tint = ClapiColors.OnSurface, modifier = Modifier.size(15.dp))
         }
 
         if (copyFormats.isNotEmpty()) {
@@ -356,8 +355,7 @@ private fun RetryControlsButton(
                 .testTag("retry-menu-button"),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                Icons.Default.Refresh,
+            Icon(painter = painterResource(Res.drawable.ic_refresh),
                 contentDescription = if (retryEnabled) {
                     "${Strings.retry} ($retryCount, ${retryDelayMs}ms)"
                 } else {

@@ -16,17 +16,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ViewSidebar
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Public
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.HelpOutline
-import androidx.compose.material.icons.filled.ViewWeek
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,13 +27,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import kotlinx.coroutines.delay
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
@@ -49,12 +39,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import io.github.crustack.clapi.ui.shared.generated.resources.Res
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_help_outline
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_menu
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_more_vert
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_public
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_settings
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_view_sidebar
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_view_week
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.EnvState
 import io.github.crustack.clapi.ui.shared.state.ResponseLayout
 import io.github.crustack.clapi.ui.shared.state.WorkspaceMode
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
+import kotlinx.coroutines.delay
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun TopToolbar(state: AppState) {
@@ -75,8 +75,7 @@ fun TopToolbar(state: AppState) {
     ) {
         // Sidebar toggle
         IconButton(onClick = { state.sidebarExpanded = !state.sidebarExpanded }) {
-            Icon(
-                Icons.Default.Menu,
+            Icon(painter = painterResource(Res.drawable.ic_menu),
                 contentDescription = Strings.t("toggle_sidebar"),
                 tint = ClapiColors.OnSurfaceVariant,
             )
@@ -141,10 +140,10 @@ fun TopToolbar(state: AppState) {
             modifier = Modifier.testTag("response-layout-toggle"),
         ) {
             Icon(
-                imageVector = if (state.settings.responseLayout == ResponseLayout.RIGHT) {
-                    Icons.AutoMirrored.Filled.ViewSidebar
+                painter = if (state.settings.responseLayout == ResponseLayout.RIGHT) {
+                    painterResource(Res.drawable.ic_view_sidebar)
                 } else {
-                    Icons.Default.ViewWeek
+                    painterResource(Res.drawable.ic_view_week)
                 },
                 contentDescription = Strings.t("toggle_response_layout"),
                 tint = ClapiColors.OnSurfaceVariant,
@@ -160,8 +159,7 @@ fun TopToolbar(state: AppState) {
             onClick = { state.showGlobalVariablesDialog = true },
             modifier = Modifier.testTag("global-variables-button"),
         ) {
-            Icon(
-                Icons.Default.Public,
+            Icon(painter = painterResource(Res.drawable.ic_public),
                 contentDescription = Strings.globalVariables,
                 tint = ClapiColors.OnSurfaceVariant,
             )
@@ -172,8 +170,7 @@ fun TopToolbar(state: AppState) {
             tooltipTag = "toolbar-tooltip-help-about",
             onClick = { state.showHelpDialog = true },
         ) {
-            Icon(
-                Icons.Default.HelpOutline,
+            Icon(painter = painterResource(Res.drawable.ic_help_outline),
                 contentDescription = "Help and About",
                 tint = ClapiColors.OnSurfaceVariant,
                 modifier = Modifier.testTag("help-about-button"),
@@ -186,8 +183,7 @@ fun TopToolbar(state: AppState) {
             tooltipTag = "toolbar-tooltip-settings",
             onClick = { state.showSettingsDialog = true },
         ) {
-            Icon(
-                Icons.Default.Settings,
+            Icon(painter = painterResource(Res.drawable.ic_settings),
                 contentDescription = Strings.settings,
                 tint = ClapiColors.OnSurfaceVariant,
                 modifier = Modifier.testTag("settings-button"),
@@ -297,8 +293,7 @@ private fun EnvironmentChip(state: AppState) {
                 style = MaterialTheme.typography.labelMedium,
                 color = ClapiColors.OnSurface,
             )
-            Icon(
-                Icons.Default.MoreVert,
+            Icon(painter = painterResource(Res.drawable.ic_more_vert),
                 contentDescription = null,
                 tint = ClapiColors.OnSurfaceDim,
                 modifier = Modifier.size(14.dp),
