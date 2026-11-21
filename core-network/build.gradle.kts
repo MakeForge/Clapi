@@ -28,7 +28,7 @@ kotlin {
         val desktopMain by getting {
             dependencies {
                 implementation(libs.ktor.client.cio)
-                implementation(libs.grpc.netty.shaded)
+                implementation(libs.grpc.okhttp)
                 implementation(libs.grpc.protobuf)
                 implementation(libs.grpc.stub)
                 implementation(libs.protobuf.java)
@@ -37,6 +37,11 @@ kotlin {
                 implementation(libs.coroutines.guava)
                 implementation(libs.keepassxc.proxy.access)
                 implementation(libs.keeper.secrets.manager.core)
+            }
+        }
+        val desktopTest by getting {
+            dependencies {
+                implementation(libs.grpc.netty.shaded)
             }
         }
     }

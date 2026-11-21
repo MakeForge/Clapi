@@ -24,7 +24,7 @@ description: "Task list for Desktop Release Artifact Size Optimization"
 
 **Purpose**: Confirm baseline metrics (`158.97 MB` `desktopRuntimeClasspath`, `132.80 MB` `Clapi-1.20.2.jar`, `133.11 MB` `main` `.deb` / `149.05 MB` `main-release` `.deb`) in `specs/022-release-artifact-size-optimization/research.md` before applying incremental optimizations.
 
-- [ ] T001 Verify baseline `analyzeReleaseSize` output and initialize the Incremental Actual Measurements tracking table in `specs/022-release-artifact-size-optimization/research.md`
+- [X] T001 Verify baseline `analyzeReleaseSize` output and initialize the Incremental Actual Measurements tracking table in `specs/022-release-artifact-size-optimization/research.md`
 
 ---
 
@@ -34,7 +34,7 @@ description: "Task list for Desktop Release Artifact Size Optimization"
 
 **⚠️ CRITICAL**: Complete before User Story phases that consume new catalog entries.
 
-- [ ] T002 Add `grpc-okhttp = { module = "io.grpc:grpc-okhttp", version.ref = "grpc" }` under `[libraries]` in `gradle/libs.versions.toml`
+- [X] T002 Add `grpc-okhttp = { module = "io.grpc:grpc-okhttp", version.ref = "grpc" }` under `[libraries]` in `gradle/libs.versions.toml`
 
 **Checkpoint**: Version catalog ready — User Story implementation and per-step measurements can begin.
 
@@ -48,12 +48,12 @@ description: "Task list for Desktop Release Artifact Size Optimization"
 
 ### Implementation & Measurement for User Story 1
 
-- [ ] T003 [P] [US1] Exclude `io.swagger.parser.v3:swagger-parser-v2-converter` from `implementation(libs.swagger.parser)` in `core-storage/build.gradle.kts`
-- [ ] T004 [US1] Run `rtk gradlew :core-storage:allTests :ui-desktop:analyzeReleaseSize` and record the exact measured `desktopRuntimeClasspath` and Fat JAR size delta for `swagger-parser-v2-converter` exclusion in `specs/022-release-artifact-size-optimization/research.md`
-- [ ] T005 [P] [US1] Remove `implementation(compose.uiTooling)` from `desktopMain` in `ui-shared/build.gradle.kts` and exclude `org.jetbrains.compose.material:material` and `org.jetbrains.compose.material:material-desktop` from `desktopRuntimeClasspath` in `ui-desktop/build.gradle.kts`
-- [ ] T006 [US1] Run `rtk gradlew :ui-shared:desktopTest :ui-desktop:desktopTest :ui-desktop:analyzeReleaseSize` and record the exact measured size delta for Compose Material 2 and UI Tooling removal in `specs/022-release-artifact-size-optimization/research.md`
-- [ ] T007 [US1] Exclude obsolete `bin/2.6.1/**` binaries from `packageClapiJar` (and via a slimming `ArtifactTransform` or packaging filter so native installers also receive the stripped `protoc-jar`) while preserving `bin/3.11.4/**` in `ui-desktop/build.gradle.kts`
-- [ ] T008 [US1] Run `rtk gradlew :core-network:desktopTest :ui-desktop:verifyPackagedRuntime :ui-desktop:analyzeReleaseSize` and record the exact measured size delta for `protoc-jar` `bin/2.6.1/**` removal in `specs/022-release-artifact-size-optimization/research.md`
+- [X] T003 [P] [US1] Exclude `io.swagger.parser.v3:swagger-parser-v2-converter` from `implementation(libs.swagger.parser)` in `core-storage/build.gradle.kts`
+- [X] T004 [US1] Run `rtk gradlew :core-storage:allTests :ui-desktop:analyzeReleaseSize` and record the exact measured `desktopRuntimeClasspath` and Fat JAR size delta for `swagger-parser-v2-converter` exclusion in `specs/022-release-artifact-size-optimization/research.md`
+- [X] T005 [P] [US1] Remove `implementation(compose.uiTooling)` from `desktopMain` in `ui-shared/build.gradle.kts` and exclude `org.jetbrains.compose.material:material` and `org.jetbrains.compose.material:material-desktop` from `desktopRuntimeClasspath` in `ui-desktop/build.gradle.kts`
+- [X] T006 [US1] Run `rtk gradlew :ui-shared:desktopTest :ui-desktop:desktopTest :ui-desktop:analyzeReleaseSize` and record the exact measured size delta for Compose Material 2 and UI Tooling removal in `specs/022-release-artifact-size-optimization/research.md`
+- [X] T007 [US1] Exclude obsolete `bin/2.6.1/**` binaries from `packageClapiJar` (and via a slimming `ArtifactTransform` or packaging filter so native installers also receive the stripped `protoc-jar`) while preserving `bin/3.11.4/**` in `ui-desktop/build.gradle.kts`
+- [X] T008 [US1] Run `rtk gradlew :core-network:desktopTest :ui-desktop:verifyPackagedRuntime :ui-desktop:analyzeReleaseSize` and record the exact measured size delta for `protoc-jar` `bin/2.6.1/**` removal in `specs/022-release-artifact-size-optimization/research.md`
 
 **Checkpoint**: User Story 1 complete — ~8.5 MB of dead dependencies and legacy compiler binaries removed, tested, and measured independently.
 
@@ -67,8 +67,8 @@ description: "Task list for Desktop Release Artifact Size Optimization"
 
 ### Implementation & Measurement for User Story 2
 
-- [ ] T009 [US2] Configure `modules("java.base", "java.datatransfer", "java.desktop", "java.instrument", "java.logging", "java.management", "java.naming", "java.net.http", "java.prefs", "java.security.jgss", "java.sql", "java.xml", "jdk.crypto.ec", "jdk.unsupported")` inside `compose.desktop.application.nativeDistributions` in `ui-desktop/build.gradle.kts`
-- [ ] T010 [US2] Run `rtk gradlew :ui-desktop:packageDeb :ui-desktop:analyzeReleaseSize` and record the measured `.deb` installer size and bundled runtime module list in `specs/022-release-artifact-size-optimization/research.md`
+- [X] T009 [US2] Configure `modules("java.base", "java.datatransfer", "java.desktop", "java.instrument", "java.logging", "java.management", "java.naming", "java.net.http", "java.prefs", "java.security.jgss", "java.sql", "java.xml", "jdk.crypto.ec", "jdk.unsupported")` inside `compose.desktop.application.nativeDistributions` in `ui-desktop/build.gradle.kts`
+- [X] T010 [US2] Run `rtk gradlew :ui-desktop:packageDeb :ui-desktop:analyzeReleaseSize` and record the measured `.deb` installer size and bundled runtime module list in `specs/022-release-artifact-size-optimization/research.md`
 
 **Checkpoint**: User Story 2 complete — Native installer JRE runtime module set explicitly locked and verified.
 
@@ -82,11 +82,11 @@ description: "Task list for Desktop Release Artifact Size Optimization"
 
 ### Implementation & Measurement for User Story 3
 
-- [ ] T011 [P] [US3] Replace `implementation(libs.grpc.netty.shaded)` with `implementation(libs.grpc.okhttp)` in `desktopMain` and add `implementation(libs.grpc.netty.shaded)` to `desktopTest` in `core-network/build.gradle.kts`
-- [ ] T012 [US3] Update `NettyDynamicGrpcClient` in `core-network/src/desktopMain/kotlin/io/github/makeforge/clapi/core/network/grpc/NettyDynamicGrpcClient.kt` to replace `io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder` with `io.grpc.okhttp.OkHttpChannelBuilder`
-- [ ] T013 [US3] Run `rtk gradlew :core-network:desktopTest :ui-desktop:verifyPackagedRuntime :ui-desktop:analyzeReleaseSize` and record the exact measured size delta for switching from `grpc-netty-shaded` to `grpc-okhttp` in `specs/022-release-artifact-size-optimization/research.md`
-- [ ] T014 [US3] Exclude unused ICU4J data subdirectories (`org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/brkitr/**`, `coll/**`, `lang/**`, `curr/**`, `unit/**`, `region/**`, `translit/**`, `rbnf/**`) during JAR packaging / `ArtifactTransform` in `ui-desktop/build.gradle.kts` while keeping all `.class` files, root `icudt74b/*` files, and `zone/**`
-- [ ] T015 [US3] Run `rtk gradlew :core-scripting:allTests :qa-tests:jvmTest :ui-desktop:verifyPackagedRuntime :ui-desktop:analyzeReleaseSize` and record the exact measured size delta for ICU4J data slimming in `specs/022-release-artifact-size-optimization/research.md`
+- [X] T011 [P] [US3] Replace `implementation(libs.grpc.netty.shaded)` with `implementation(libs.grpc.okhttp)` in `desktopMain` and add `implementation(libs.grpc.netty.shaded)` to `desktopTest` in `core-network/build.gradle.kts`
+- [X] T012 [US3] Update `NettyDynamicGrpcClient` in `core-network/src/desktopMain/kotlin/io/github/makeforge/clapi/core/network/grpc/NettyDynamicGrpcClient.kt` to replace `io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder` with `io.grpc.okhttp.OkHttpChannelBuilder`
+- [X] T013 [US3] Run `rtk gradlew :core-network:desktopTest :ui-desktop:verifyPackagedRuntime :ui-desktop:analyzeReleaseSize` and record the exact measured size delta for switching from `grpc-netty-shaded` to `grpc-okhttp` in `specs/022-release-artifact-size-optimization/research.md`
+- [X] T014 [US3] Exclude unused ICU4J data subdirectories (`org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/brkitr/**`, `coll/**`, `lang/**`, `curr/**`, `unit/**`, `region/**`, `translit/**`, `rbnf/**`) during JAR packaging / `ArtifactTransform` in `ui-desktop/build.gradle.kts` while keeping all `.class` files, root `icudt74b/*` files, and `zone/**`
+- [X] T015 [US3] Run `rtk gradlew :core-scripting:allTests :qa-tests:jvmTest :ui-desktop:verifyPackagedRuntime :ui-desktop:analyzeReleaseSize` and record the exact measured size delta for ICU4J data slimming in `specs/022-release-artifact-size-optimization/research.md`
 
 **Checkpoint**: User Story 3 complete — gRPC transport switched to pure-JVM `grpc-okhttp` (~9.1 MB Fat JAR savings) and ICU4J dictionary bloat stripped (~7.3 MB Fat JAR savings) with 100% test pass rate.
 
@@ -96,8 +96,8 @@ description: "Task list for Desktop Release Artifact Size Optimization"
 
 **Purpose**: Rebuild all release distribution targets (`packageClapiJar`, `packageDeb`), run the complete quality gate test suite, and update both `research.md` and `scratch/clapi_desktop_release_size_optimization_plan.md` with the final before/after numbers.
 
-- [ ] T016 Run full build and verification suite (`rtk gradlew :core-network:desktopTest :core-storage:allTests :core-scripting:allTests :editor-core:desktopTest :editor-ui:allTests :ui-shared:desktopTest :ui-desktop:desktopTest :qa-tests:jvmTest :ui-desktop:packageDeb :ui-desktop:verifyPackagedRuntime :ui-desktop:analyzeReleaseSize`)
-- [ ] T017 [P] Record final cumulative before/after comparison table across `desktopRuntimeClasspath`, `Clapi-1.20.2.jar`, and `clapi_1.20.2_amd64.deb` in `specs/022-release-artifact-size-optimization/research.md` and `scratch/clapi_desktop_release_size_optimization_plan.md`
+- [X] T016 Run full build and verification suite (`rtk gradlew :core-network:desktopTest :core-storage:allTests :core-scripting:allTests :editor-core:desktopTest :editor-ui:allTests :ui-shared:desktopTest :ui-desktop:desktopTest :qa-tests:jvmTest :ui-desktop:packageDeb :ui-desktop:verifyPackagedRuntime :ui-desktop:analyzeReleaseSize`)
+- [X] T017 [P] Record final cumulative before/after comparison table across `desktopRuntimeClasspath`, `Clapi-1.20.2.jar`, and `clapi_1.20.2_amd64.deb` in `specs/022-release-artifact-size-optimization/research.md` and `scratch/clapi_desktop_release_size_optimization_plan.md`
 
 ---
 

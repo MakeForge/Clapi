@@ -57,6 +57,7 @@ graalvm-polyglot = { module = "org.graalvm.polyglot:polyglot", version.ref = "gr
 graalvm-js = { module = "org.graalvm.polyglot:js-community", version.ref = "graalvm" }
 
 grpc-netty-shaded = { module = "io.grpc:grpc-netty-shaded", version.ref = "grpc" }
+grpc-okhttp = { module = "io.grpc:grpc-okhttp", version.ref = "grpc" }
 grpc-protobuf = { module = "io.grpc:grpc-protobuf", version.ref = "grpc" }
 grpc-stub = { module = "io.grpc:grpc-stub", version.ref = "grpc" }
 protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobuf" }

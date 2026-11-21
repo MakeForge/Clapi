@@ -1,4 +1,7 @@
+import java.io.FileOutputStream
+import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
+import java.util.zip.ZipOutputStream
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -41,6 +44,65 @@ kotlin {
     }
 }
 
+configurations.named("desktopRuntimeClasspath") {
+    exclude(group = "org.jetbrains.compose.material", module = "material")
+    exclude(group = "org.jetbrains.compose.material", module = "material-desktop")
+}
+
+private val strippedJarEntryPrefixes = listOf(
+    "bin/2.",
+    "org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/brkitr/",
+    "org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/coll/",
+    "org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/lang/",
+    "org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/curr/",
+    "org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/unit/",
+    "org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/region/",
+    "org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/translit/",
+    "org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/rbnf/",
+)
+
+private fun stripEmbeddedJarBlobs(jarFile: File) {
+    val tempFile = File(jarFile.parentFile, "${jarFile.name}.slim.tmp")
+    var removedAny = false
+    ZipFile(jarFile).use { zipIn ->
+        ZipOutputStream(FileOutputStream(tempFile).buffered()).use { zipOut ->
+            val entries = zipIn.entries()
+            while (entries.hasMoreElements()) {
+                val entry = entries.nextElement()
+                if (strippedJarEntryPrefixes.any { entry.name.startsWith(it) }) {
+                    removedAny = true
+                    continue
+                }
+                val newEntry = ZipEntry(entry.name).apply {
+                    time = entry.time
+                    comment = entry.comment
+                    extra = entry.extra
+                }
+                zipOut.putNextEntry(newEntry)
+                if (!entry.isDirectory) {
+                    zipIn.getInputStream(entry).use { it.copyTo(zipOut) }
+                }
+                zipOut.closeEntry()
+            }
+        }
+    }
+    if (removedAny) {
+        tempFile.copyTo(jarFile, overwrite = true)
+    }
+    tempFile.delete()
+}
+
+tasks.matching { it.name == "createDistributable" || it.name == "createReleaseDistributable" }.configureEach {
+    doLast {
+        val binariesDir = layout.buildDirectory.dir("compose/binaries").get().asFile
+        if (binariesDir.exists()) {
+            binariesDir.walkTopDown()
+                .filter { it.isFile && it.extension == "jar" && (it.name.startsWith("protoc-jar-") || it.name.startsWith("icu4j-")) }
+                .forEach { stripEmbeddedJarBlobs(it) }
+        }
+    }
+}
+
 // ─── Desktop application + native packaging ───────────────────────────────────
 // Version flows from gradle.properties → root build.gradle.kts → project.version
 // Change it in ONE place: gradle.properties  appVersion=x.y.z
@@ -49,6 +111,23 @@ compose.desktop {
         mainClass = "io.github.makeforge.clapi.ui.desktop.MainKt"
 
         nativeDistributions {
+            modules(
+                "java.base",
+                "java.datatransfer",
+                "java.desktop",
+                "java.instrument",
+                "java.logging",
+                "java.management",
+                "java.naming",
+                "java.net.http",
+                "java.prefs",
+                "java.security.jgss",
+                "java.sql",
+                "java.xml",
+                "jdk.crypto.ec",
+                "jdk.unsupported",
+            )
+
             // Target every platform; each CI runner builds only what it supports.
             targetFormats(
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg,  // macOS
@@ -131,8 +210,20 @@ tasks.register<org.gradle.jvm.tasks.Jar>("packageClapiJar") {
         exclude("META-INF/services/**")
     }
 
-    // Drop signature metadata that becomes invalid when jars are merged.
+    // Drop signature metadata that becomes invalid when jars are merged,
+    // strip obsolete protoc 2.x binaries (ProtocJarParser uses 3.11.4),
+    // and strip unused ICU4J dictionary/localization tables while preserving
+    // all .class files, root icudt74b resources, and zone/** tables.
     exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
+    exclude("bin/2.*/**")
+    exclude("org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/brkitr/**")
+    exclude("org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/coll/**")
+    exclude("org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/lang/**")
+    exclude("org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/curr/**")
+    exclude("org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/unit/**")
+    exclude("org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/region/**")
+    exclude("org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/translit/**")
+    exclude("org/graalvm/shadowed/com/ibm/icu/impl/data/icudt74b/rbnf/**")
 
     // Collect and merge all META-INF/services entries from every input JAR so that all
     // Truffle language providers (js, regex, icu, etc.) are present in the service loader.

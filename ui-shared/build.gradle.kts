@@ -132,8 +132,6 @@ kotlin {
                 implementation(libs.coroutines.swing)
 
                 implementation(compose.desktop.currentOs)
-                // 2. Provides the desktop rendering engine to the IDE
-                implementation(compose.uiTooling)
             }
         }
     }
