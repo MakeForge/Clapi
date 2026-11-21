@@ -53,6 +53,7 @@ data class GrpcCallRequest(
     val fullMethodName: String,
     val jsonPayload: String,
     val metadata: List<Pair<String, String>> = emptyList(),
+    val includePaths: List<String> = emptyList(),
 )
 
 data class GrpcCallResponse(

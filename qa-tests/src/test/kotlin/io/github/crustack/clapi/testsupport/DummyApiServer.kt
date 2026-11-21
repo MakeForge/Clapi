@@ -82,7 +82,9 @@ class DummyApiServer(
 ) {
     private var engine: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>? = null
     private var grpcServer: Server? = null
+    private var tempProtoDir: java.io.File? = null
     private var tempProtoFile: java.io.File? = null
+    private var tempMetaFile: java.io.File? = null
     private val idSequence = AtomicInteger(3)
     private val users = ConcurrentHashMap<Int, UserRecord>()
     private val _requestsLog = MutableStateFlow<List<LoggedRequest>>(emptyList())
@@ -118,14 +120,32 @@ class DummyApiServer(
         grpcServer?.let { return it.port }
         val protoStream = DummyApiServer::class.java.getResourceAsStream("/greeter.proto")
             ?: error("greeter.proto resource not found on test classpath")
-        val protoFile = java.io.File.createTempFile("dummy_greeter_", ".proto")
+        val metaStream = DummyApiServer::class.java.getResourceAsStream("/protobuf/common/metadata.proto")
+            ?: error("metadata.proto resource not found on test classpath")
+
+        val tempDir = java.nio.file.Files.createTempDirectory("dummy_grpc_protos_").toFile()
+        tempProtoDir = tempDir
+
+        val metaDir = java.io.File(tempDir, "protobuf/common").apply { mkdirs() }
+        val metaFile = java.io.File(metaDir, "metadata.proto")
+        metaStream.use { input ->
+            metaFile.outputStream().use { output -> input.copyTo(output) }
+        }
+        tempMetaFile = metaFile
+
+        val protoFile = java.io.File(tempDir, "greeter.proto")
         protoStream.use { input ->
             protoFile.outputStream().use { output -> input.copyTo(output) }
         }
         tempProtoFile = protoFile
 
         val parser = ProtocJarParser()
-        val schema = runBlocking { parser.parseProtoFile(protoFile) }
+        val schema = runBlocking {
+            parser.parseProtoFile(
+                protoFilePath = protoFile.absolutePath,
+                includePaths = listOf(metaFile.absolutePath),
+            )
+        }
         val fds = DescriptorProtos.FileDescriptorSet.parseFrom(
             requireNotNull(schema.fileDescriptorBytes) { "Failed to compile greeter.proto" }
         )
@@ -149,6 +169,7 @@ class DummyApiServer(
             val nameField = methodDesc.inputType.findFieldByName("name")!!
             val messageField = methodDesc.outputType.findFieldByName("message")!!
             val receivedMetaField = methodDesc.outputType.findFieldByName("received_meta")
+            val ackMetadataField = methodDesc.outputType.findFieldByName("ack_metadata")
 
             val handler = ServerCalls.asyncUnaryCall<DynamicMessage, DynamicMessage> { req, observer ->
                 val name = req.getField(nameField)?.toString().orEmpty()
@@ -178,6 +199,18 @@ class DummyApiServer(
                             .setField(messageField, "$prefix, $name!")
                         if (receivedMetaField != null && combinedMeta.isNotEmpty()) {
                             replyBuilder.setField(receivedMetaField, combinedMeta)
+                        }
+                        if (ackMetadataField != null) {
+                            val ackMetaDesc = ackMetadataField.messageType
+                            val traceField = ackMetaDesc.findFieldByName("trace_id")
+                            val versionField = ackMetaDesc.findFieldByName("client_version")
+                            val timeField = ackMetaDesc.findFieldByName("timestamp_epoch_ms")
+                            val ackMeta = DynamicMessage.newBuilder(ackMetaDesc).apply {
+                                if (traceField != null) setField(traceField, "trace-$name")
+                                if (versionField != null) setField(versionField, "clapi-qa-1.0")
+                                if (timeField != null) setField(timeField, 1700000000000L)
+                            }.build()
+                            replyBuilder.setField(ackMetadataField, ackMeta)
                         }
                         observer.onNext(replyBuilder.build())
                         observer.onCompleted()
@@ -251,8 +284,10 @@ class DummyApiServer(
     fun stop() {
         grpcServer?.shutdownNow()
         grpcServer = null
-        tempProtoFile?.delete()
         tempProtoFile = null
+        tempMetaFile = null
+        tempProtoDir?.deleteRecursively()
+        tempProtoDir = null
         engine?.stop(gracePeriodMillis = 500, timeoutMillis = 2_000)
         engine = null
     }
@@ -264,6 +299,8 @@ class DummyApiServer(
     fun grpcEndpoint(): String = "127.0.0.1:${grpcPort()}"
 
     fun protoFilePath(): String = requireNotNull(tempProtoFile) { "gRPC server not started" }.absolutePath
+
+    fun metadataProtoFilePath(): String = requireNotNull(tempMetaFile) { "gRPC server not started" }.absolutePath
 
     private fun resolvedPort(): Int {
         val appEngine = requireNotNull(engine) { "Server not started" }

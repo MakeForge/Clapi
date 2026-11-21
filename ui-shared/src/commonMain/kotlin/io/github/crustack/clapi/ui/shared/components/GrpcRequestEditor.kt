@@ -92,13 +92,15 @@ fun GrpcRequestEditor(
     val markDirty = { tab.markDirty() }
     var showProtoDialog by remember { mutableStateOf(false) }
 
-    // Automatically parse the configured .proto file when opening a saved/imported tab
-    LaunchedEffect(tab.protoFilePath) {
+    val importPathsKey = state.collectionImportPaths.joinToString(";") { "${it.path}:${it.enabled}" }
+    // Automatically parse the configured .proto file when opening a saved/imported tab or when collection imports change
+    LaunchedEffect(tab.protoFilePath, importPathsKey) {
         val path = tab.protoFilePath?.trim().orEmpty()
-        if (path.isNotEmpty() && tab.availableMethods.isEmpty() && !tab.isProtoLoading) {
+        if (path.isNotEmpty() && !tab.isProtoLoading) {
             tab.isProtoLoading = true
             try {
-                val schema = NetworkClientFactory.createProtoParser().parseProtoFile(path)
+                val includePaths = state.collectionImportPaths.filter { it.enabled }.map { it.path }
+                val schema = NetworkClientFactory.createProtoParser().parseProtoFile(path, includePaths)
                 val methods = schema.services.flatMap { it.methods }
                 tab.availableMethods = methods
                 tab.protoLoadError = null
@@ -108,6 +110,7 @@ fun GrpcRequestEditor(
                 }
             } catch (e: Exception) {
                 tab.protoLoadError = e.message ?: "Failed to parse proto file"
+                tab.availableMethods = emptyList()
             } finally {
                 tab.isProtoLoading = false
             }
@@ -119,12 +122,14 @@ fun GrpcRequestEditor(
             currentProtoFilePath = tab.protoFilePath,
             errorMessage = tab.protoLoadError,
             isLoading = tab.isProtoLoading,
+            collectionProtoFiles = state.collectionProtoFiles.map { it.path },
             onSave = { selectedPath ->
                 scope.launch {
                     tab.isProtoLoading = true
                     tab.protoLoadError = null
                     try {
-                        val schema = NetworkClientFactory.createProtoParser().parseProtoFile(selectedPath)
+                        val includePaths = state.collectionImportPaths.filter { it.enabled }.map { it.path }
+                        val schema = NetworkClientFactory.createProtoParser().parseProtoFile(selectedPath, includePaths)
                         val methods = schema.services.flatMap { it.methods }
                         tab.protoFilePath = selectedPath
                         tab.availableMethods = methods
@@ -270,6 +275,10 @@ fun resolveGrpcCallRequest(
                 VariableResolver.resolve(entry.value, allLayers, removeUnresolved = false)
         }
 
+    val enabledImportPaths = state.collectionImportPaths
+        .filter { it.enabled }
+        .map { it.path }
+
     return GrpcCallRequest(
         requestId = tab.id,
         host = endpoint.host,
@@ -279,6 +288,7 @@ fun resolveGrpcCallRequest(
         fullMethodName = resolvedMethod,
         jsonPayload = wireJsonPayload,
         metadata = resolvedMetadata,
+        includePaths = enabledImportPaths,
     )
 }
 

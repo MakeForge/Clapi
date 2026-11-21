@@ -59,7 +59,7 @@ class NettyDynamicGrpcClient(
             }
 
             val schema = try {
-                protoParser.parseProtoFile(request.protoFilePath)
+                protoParser.parseProtoFile(request.protoFilePath, request.includePaths)
             } catch (e: ProtoParseException) {
                 return@withContext GrpcCallResponse(
                     requestId = request.requestId,

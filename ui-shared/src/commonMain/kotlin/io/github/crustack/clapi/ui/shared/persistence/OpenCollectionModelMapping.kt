@@ -14,6 +14,7 @@ import io.github.crustack.clapi.core.model.opencollection.AuthBearer
 import io.github.crustack.clapi.core.model.opencollection.AuthConfig
 import io.github.crustack.clapi.core.model.opencollection.CollectionConfig
 import io.github.crustack.clapi.core.model.opencollection.CollectionInfo
+import io.github.crustack.clapi.core.model.opencollection.CollectionProtobufConfig
 import io.github.crustack.clapi.core.model.opencollection.Description
 import io.github.crustack.clapi.core.model.opencollection.Environment
 import io.github.crustack.clapi.core.model.opencollection.ExternalSecrets
@@ -33,6 +34,8 @@ import io.github.crustack.clapi.core.model.opencollection.MultipartFormBody
 import io.github.crustack.clapi.core.model.opencollection.MultipartPartEntry
 import io.github.crustack.clapi.core.model.opencollection.OpenCollectionDocument
 import io.github.crustack.clapi.core.model.opencollection.OpenCollectionItem
+import io.github.crustack.clapi.core.model.opencollection.ProtoFile
+import io.github.crustack.clapi.core.model.opencollection.ProtoFileImportPath
 import io.github.crustack.clapi.core.model.opencollection.RawBody
 import io.github.crustack.clapi.core.model.opencollection.RegularVariable
 import io.github.crustack.clapi.core.model.opencollection.RequestDefaults
@@ -207,10 +210,23 @@ fun AppState.toGlobalOpenCollectionDocument(): OpenCollectionDocument {
         }
     }
     val openCollectionEnvs = environments.map { it.toOpenCollectionEnvironment() }
+    val protobufConfig = if (collectionProtoFiles.isNotEmpty() || collectionImportPaths.isNotEmpty()) {
+        CollectionProtobufConfig(
+            protoFiles = collectionProtoFiles
+                .filter { it.path.isNotBlank() }
+                .map { ProtoFile(type = "file", path = it.path) },
+            importPaths = collectionImportPaths
+                .filter { it.path.isNotBlank() }
+                .map { ProtoFileImportPath(path = it.path, disabled = if (!it.enabled) true else null) },
+        )
+    } else null
     return OpenCollectionDocument(
         opencollection = "1.0.0",
         info = CollectionInfo(name = "Workspace"),
-        config = CollectionConfig(environments = openCollectionEnvs),
+        config = CollectionConfig(
+            environments = openCollectionEnvs,
+            protobuf = protobufConfig,
+        ),
         bundled = true,
         items = collections.map { it.toCollectionFolder() },
         extensions = ext,

@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.crustack.clapi.core.model.RequestKind
 import io.github.crustack.clapi.ui.shared.components.BottomPanel
+import io.github.crustack.clapi.ui.shared.components.CollectionEditor
 import io.github.crustack.clapi.ui.shared.components.ConfirmDeleteDialog
 import io.github.crustack.clapi.ui.shared.components.DirtyCloseDialog
 import io.github.crustack.clapi.ui.shared.components.DirtyMultiCloseDialog
@@ -405,6 +406,15 @@ private fun ColumnScope.HttpWorkspaceContent(
                         if (tab.kind == RequestKind.FOLDER) {
                             key(tab.id) {
                                 FolderEditor(
+                                    tab = tab,
+                                    state = state,
+                                    onSave = { saveRequest(scope, state, tab) },
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+                        } else if (tab.kind == RequestKind.COLLECTION) {
+                            key(tab.id) {
+                                CollectionEditor(
                                     tab = tab,
                                     state = state,
                                     onSave = { saveRequest(scope, state, tab) },

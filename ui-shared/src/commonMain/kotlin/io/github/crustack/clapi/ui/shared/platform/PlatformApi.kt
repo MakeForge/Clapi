@@ -88,6 +88,16 @@ expect fun pickBinaryFileForRequest(onResult: (PickedBinaryFile) -> Unit)
 expect fun pickProtoFile(onResult: (filePath: String) -> Unit)
 
 /**
+ * Pick one or more `.proto` files from the filesystem and deliver their absolute file paths to [onResult].
+ */
+expect fun pickProtoFiles(onResult: (filePaths: List<String>) -> Unit)
+
+/**
+ * Open a file with the system default viewer or application.
+ */
+expect fun openFileInDefaultApp(filePath: String)
+
+/**
  * Save [content] as a file with the given [defaultFilename].
  * On desktop this opens a save dialog; on web it triggers a browser download.
  */

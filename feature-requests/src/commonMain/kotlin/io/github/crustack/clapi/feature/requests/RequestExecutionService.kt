@@ -108,6 +108,7 @@ class RequestExecutionService(
         mountPath: String = "secret",
         namespace: String? = null,
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
+        includePaths: List<String> = emptyList(),
     ): GrpcCallResponse {
         val textsToScan = mutableListOf<String>()
         textsToScan.add(requestItem.grpc.url)
@@ -124,7 +125,7 @@ class RequestExecutionService(
             processEnvProvider = processEnvProvider,
         )
         val effectiveLayers = if (secretMap.isNotEmpty()) listOf(secretMap) + variableLayers else variableLayers
-        return executeGrpc(requestItem, protoFilePathOverride, effectiveLayers)
+        return executeGrpc(requestItem, protoFilePathOverride, effectiveLayers, includePaths)
     }
 
     fun execute(
@@ -173,6 +174,7 @@ class RequestExecutionService(
         requestItem: GrpcRequestItem,
         protoFilePathOverride: String? = null,
         variableLayers: List<Map<String, String>> = emptyList(),
+        includePaths: List<String> = emptyList(),
     ): GrpcCallResponse {
         val resolvedUrl = VariableResolver.resolve(requestItem.grpc.url, variableLayers, removeUnresolved = false)
         val endpoint = parseGrpcEndpoint(resolvedUrl)
@@ -215,6 +217,7 @@ class RequestExecutionService(
                 fullMethodName = requestItem.grpc.method.orEmpty(),
                 jsonPayload = resolvedPayload,
                 metadata = resolvedMetadata,
+                includePaths = includePaths,
             ),
             variableLayers = emptyList(),
         )
