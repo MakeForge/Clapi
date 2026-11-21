@@ -34,7 +34,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -63,6 +62,7 @@ import androidx.compose.ui.input.pointer.isShiftPressed
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -90,6 +90,7 @@ import io.github.makeforge.clapi.ui.shared.i18n.Strings
 import io.github.makeforge.clapi.ui.shared.platform.PlatformHorizontalScrollbar
 import io.github.makeforge.clapi.ui.shared.platform.horizontalResizeCursor
 import io.github.makeforge.clapi.ui.shared.platform.isPointerDoubleClick
+import io.github.makeforge.clapi.ui.shared.platform.resetPointerDoubleClickState
 import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.state.RequestTabState
 import io.github.makeforge.clapi.ui.shared.state.ResponseLayout
@@ -117,20 +118,26 @@ fun RequestTabsBar(
     modifier: Modifier = Modifier,
 ) {
     val tabScrollState = rememberScrollState()
-    // Natural (layout-coordinate) x-position of each tab chip inside the
-    // scrollable Row. Populated by onGloballyPositioned on each chip wrapper.
-    val tabPositions = remember { mutableStateMapOf<Int, Int>() }
+    var viewportWidthPx by remember { mutableStateOf(0) }
     val dragState = remember { RequestTabsDragState() }
 
     LaunchedEffect(state.openTabs.size) {
         dragState.tabBounds.keys.retainAll(state.openTabs.indices)
     }
 
-    // Auto-scroll so the active tab is visible whenever it changes
-    // (e.g. when the user clicks a request in the sidebar).
+    // Auto-scroll only when the active tab is clipped outside the visible viewport
+    // (e.g. when the user clicks an off-screen request in the sidebar).
     LaunchedEffect(state.activeTabIndex) {
-        val x = tabPositions[state.activeTabIndex] ?: return@LaunchedEffect
-        tabScrollState.animateScrollTo(x)
+        val bounds = dragState.tabBounds[state.activeTabIndex] ?: return@LaunchedEffect
+        val viewport = viewportWidthPx.toFloat()
+        if (viewport <= 0f) return@LaunchedEffect
+        val currentScroll = tabScrollState.value.toFloat()
+        val targetScroll = when {
+            bounds.startX < currentScroll -> bounds.startX
+            bounds.endX > currentScroll + viewport -> bounds.endX - viewport
+            else -> return@LaunchedEffect
+        }
+        tabScrollState.animateScrollTo(targetScroll.roundToInt().coerceAtLeast(0))
     }
 
     Column(modifier = modifier.fillMaxWidth().testTag("request-tabs-bar")) {
@@ -142,7 +149,12 @@ fun RequestTabsBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // Horizontally scrollable chips row
-            Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .onSizeChanged { viewportWidthPx = it.width },
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
@@ -174,7 +186,6 @@ fun RequestTabsBar(
                                         val currentIndex = state.openTabs.indexOfFirst { it.id == tab.id }
                                         val targetIdx = if (currentIndex >= 0) currentIndex else index
                                         dragState.tabBounds[targetIdx] = TabBounds(targetIdx, x, w)
-                                        tabPositions[targetIdx] = x.toInt()
                                     },
                             ) {
                                 // Subtle placeholder slot in the original location of the dragged tab
@@ -207,6 +218,7 @@ fun RequestTabsBar(
                                     isDragged = isDragged,
                                     dragOffsetX = if (isDragged) dragState.dragOffsetX else 0f,
                                     onDragStart = {
+                                        resetPointerDoubleClickState()
                                         val currentIndex = state.openTabs.indexOfFirst { it.id == tab.id }
                                         dragState.onDragStart(if (currentIndex >= 0) currentIndex else index, tab.id)
                                     },

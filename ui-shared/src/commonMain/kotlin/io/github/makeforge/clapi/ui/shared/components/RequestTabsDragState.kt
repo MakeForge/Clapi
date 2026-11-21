@@ -4,9 +4,11 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
 import androidx.compose.foundation.gestures.drag
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -128,6 +130,7 @@ class RequestTabsDragState {
  * Only triggers on primary mouse button press past drag slop, allowing natural
  * slight vertical mouse drift without cancelling the gesture.
  */
+@Composable
 fun Modifier.draggableTab(
     enabled: Boolean = true,
     onDragStart: () -> Unit,
@@ -136,7 +139,11 @@ fun Modifier.draggableTab(
     onDragCancel: () -> Unit,
 ): Modifier {
     if (!enabled) return this
-    return this.pointerInput(enabled, onDragStart, onDragDelta, onDragEnd, onDragCancel) {
+    val currentOnDragStart by rememberUpdatedState(onDragStart)
+    val currentOnDragDelta by rememberUpdatedState(onDragDelta)
+    val currentOnDragEnd by rememberUpdatedState(onDragEnd)
+    val currentOnDragCancel by rememberUpdatedState(onDragCancel)
+    return this.pointerInput(enabled) {
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false)
             if (!currentEvent.buttons.isPrimaryPressed || currentEvent.buttons.isSecondaryPressed) {
@@ -148,20 +155,20 @@ fun Modifier.draggableTab(
                 overSlop = over
             }
             if (drag != null) {
-                onDragStart()
+                currentOnDragStart()
                 val initialDelta = drag.position.x - down.position.x
-                onDragDelta(if (initialDelta != 0f) initialDelta else overSlop.x)
+                currentOnDragDelta(if (initialDelta != 0f) initialDelta else overSlop.x)
                 val success = drag(drag.id) { change ->
                     val dx = change.positionChange().x
                     change.consume()
                     if (dx != 0f) {
-                        onDragDelta(dx)
+                        currentOnDragDelta(dx)
                     }
                 }
                 if (success) {
-                    onDragEnd()
+                    currentOnDragEnd()
                 } else {
-                    onDragCancel()
+                    currentOnDragCancel()
                 }
             }
         }

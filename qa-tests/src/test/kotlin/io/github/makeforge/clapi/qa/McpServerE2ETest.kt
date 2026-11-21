@@ -87,9 +87,9 @@ class McpServerE2ETest {
         assertEquals("clapi-mcp-server", initResult.serverInfo.name)
         assertNotNull(client.sessionId)
 
-        // 1. Verify all 17 tools are listed
+        // 1. Verify all 18 tools are listed
         val tools = client.listTools()
-        assertEquals(17, tools.size)
+        assertEquals(18, tools.size)
 
         // 2. Create Environment and write-only Secret Variable + Regular Variable
         val secretToken = "e2e-super-secret-bearer-token-98765"

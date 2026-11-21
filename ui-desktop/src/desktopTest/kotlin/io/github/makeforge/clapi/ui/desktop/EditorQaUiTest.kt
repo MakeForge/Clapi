@@ -1448,6 +1448,11 @@ class LargeFileEditorQaTest {
         }
         composeRule.setContent { MainScreen(state) }
         composeRule.waitForIdle()
+        composeRule.waitUntil(timeoutMillis = 15_000) {
+            composeRule.onAllNodesWithTag("body-editor-fold-all", useUnmergedTree = true)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
 
         composeRule.onNodeWithTag("body-editor-fold-all", useUnmergedTree = true)
             .performClick()

@@ -55,7 +55,7 @@ jobs:
             --console=plain
 
       - name: Diagnose Docker Compose failure
-        if: always()
+        if: failure()
         shell: bash
         run: |
           echo "::group::Docker version"
@@ -118,9 +118,9 @@ jobs:
 
           - os: windows-latest
             platform: windows
-            package-task: packageMsi
-            artifact-ext: msi
-            artifact-subdir: msi
+            package-task: packageNsis
+            artifact-ext: exe
+            artifact-subdir: nsis
             include-jar: "false"
 
     steps:
@@ -323,6 +323,6 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             artifacts/*.dmg
-            artifacts/*.msi
+            artifacts/*.exe
             artifacts/*.deb
             artifacts/*.jar

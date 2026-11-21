@@ -123,8 +123,15 @@ class FirstLaunchUiTest {
             assertEquals(1, state.collections.size)
             assertEquals("New Collection", state.collections.first().name)
 
-            // 2. Add new request in that collection via tab bar '+' button
-            composeRule.onNodeWithContentDescription("New tab").performClick()
+            // 2. Commit inline rename for the new collection, then add a new HTTP request via its '+' menu
+            val collectionId = state.collections.first().id
+            composeRule.onNodeWithTag("folder-rename-input-$collectionId", useUnmergedTree = true).performKeyInput {
+                pressKey(androidx.compose.ui.input.key.Key.Enter)
+            }
+            composeRule.waitForIdle()
+            composeRule.onNodeWithTag("collection-add-$collectionId", useUnmergedTree = true).performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithTag("folder-menu-new-http", useUnmergedTree = true).performClick()
             composeRule.waitForIdle()
             assertEquals(1, state.openTabs.size)
             val tab = state.openTabs.first()
