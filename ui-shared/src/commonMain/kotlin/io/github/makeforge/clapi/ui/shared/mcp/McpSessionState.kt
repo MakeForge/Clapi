@@ -205,6 +205,9 @@ class McpSessionState(
             if (init.capabilities.resources != null) _resources.value = created.listResources()
             if (init.capabilities.prompts != null) _prompts.value = created.listPrompts()
             _error.value = null
+        } catch (e: CancellationException) {
+            _connectionState.value = McpConnectionState.DISCONNECTED
+            throw e
         } catch (e: Exception) {
             _connectionState.value = McpConnectionState.ERROR
             _error.value = e.message
@@ -386,6 +389,8 @@ class McpSessionState(
             val (draft, err) = try {
                 val generated = client?.generateSampling(pending.request) ?: emptyMcpSamplingResult()
                 generated to null
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 emptyMcpSamplingResult() to (e.message ?: e.toString())
             }
@@ -444,7 +449,7 @@ class McpSessionState(
         logJob = null
         notifJob?.cancel()
         notifJob = null
-        runCatching { client?.disconnect() }
+        runCatching { client?.close() }
         client = null
         connectedFingerprint = null
         _connectionState.value = McpConnectionState.DISCONNECTED

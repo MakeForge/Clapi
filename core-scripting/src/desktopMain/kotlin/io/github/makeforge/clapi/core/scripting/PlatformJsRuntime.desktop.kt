@@ -4,6 +4,8 @@ import com.caoccao.javet.exceptions.JavetException
 import com.caoccao.javet.exceptions.JavetTerminatedException
 import com.caoccao.javet.interop.V8Host
 import com.caoccao.javet.interop.V8Runtime
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Javet V8 JS runtime for Desktop (JVM).
@@ -13,6 +15,11 @@ import com.caoccao.javet.interop.V8Runtime
  */
 
 private const val SCRIPT_TIMEOUT_SECONDS = 5L
+
+internal suspend fun evaluateJsOffMain(script: String): String =
+    withContext(Dispatchers.Default) {
+        evaluateJs(script)
+    }
 
 internal actual fun evaluateJs(script: String): String {
     return try {

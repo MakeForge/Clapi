@@ -15,7 +15,11 @@ import androidx.compose.ui.input.key.utf16CodePoint
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerIcon
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import javax.swing.SwingUtilities
 import java.awt.Cursor
 import java.awt.Desktop
 import java.awt.FileDialog
@@ -73,6 +77,8 @@ actual fun Modifier.platformResizeCursorStyle(isHorizontal: Boolean): Modifier =
 
 actual fun Modifier.platformDiagonalResizeCursorStyle(isNwSe: Boolean): Modifier = this
 
+private val fileIoScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
 actual fun pickFileForImport(onResult: (fileName: String, content: String) -> Unit) {
     val dialog = FileDialog(null as Frame?, "Import Specification", FileDialog.LOAD).apply {
         applyRememberedDirectory()
@@ -88,8 +94,14 @@ actual fun pickFileForImport(onResult: (fileName: String, content: String) -> Un
     if (selectedDir != null && selectedFile != null) {
         val selected = File(selectedDir, selectedFile)
         rememberChooserDirectory(selected)
-        runCatching { selected.readText() }
-            .onSuccess { content -> onResult(selected.name, content) }
+        fileIoScope.launch {
+            runCatching { selected.readText() }
+                .onSuccess { content ->
+                    SwingUtilities.invokeLater {
+                        onResult(selected.name, content)
+                    }
+                }
+        }
     }
 }
 
@@ -103,11 +115,16 @@ actual fun pickBinaryFileForRequest(onResult: (PickedBinaryFile) -> Unit) {
     if (selectedDir != null && selectedFile != null) {
         val selected = File(selectedDir, selectedFile)
         rememberChooserDirectory(selected)
-        runCatching { selected.readBytes() }
-            .onSuccess { bytes ->
-                val base64 = Base64.getEncoder().encodeToString(bytes)
-                onResult(PickedBinaryFile(name = selected.name, base64Content = base64))
+        fileIoScope.launch {
+            runCatching {
+                val bytes = selected.readBytes()
+                Base64.getEncoder().encodeToString(bytes)
+            }.onSuccess { base64 ->
+                SwingUtilities.invokeLater {
+                    onResult(PickedBinaryFile(name = selected.name, base64Content = base64))
+                }
             }
+        }
     }
 }
 
@@ -211,7 +228,10 @@ actual fun saveFileForExport(content: String, defaultFilename: String) {
             }
         }
         rememberChooserDirectory(file)
-        runCatching { file.writeText(content) }
+        val targetFile = file
+        fileIoScope.launch {
+            runCatching { targetFile.writeText(content) }
+        }
     }
 }
 

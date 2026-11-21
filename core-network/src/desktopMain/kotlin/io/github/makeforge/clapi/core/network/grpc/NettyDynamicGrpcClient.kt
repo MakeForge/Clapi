@@ -23,6 +23,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.guava.await
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -37,6 +38,22 @@ class NettyDynamicGrpcClient(
         val port: Int,
         val useTls: Boolean,
     )
+
+    internal data class ProtoDescriptorCacheKey(
+        val protoFilePath: String,
+        val includePaths: List<String>,
+        val lastModifiedMillis: Long,
+    )
+
+    internal class CachedProtoDescriptors(
+        val fileDescriptors: List<Descriptors.FileDescriptor>,
+        val typeRegistry: JsonFormat.TypeRegistry,
+    )
+
+    companion object {
+        private const val MAX_CACHED_DESCRIPTORS = 64
+        private val descriptorCache = ConcurrentHashMap<ProtoDescriptorCacheKey, CachedProtoDescriptors>()
+    }
 
     private val channels = ConcurrentHashMap<ChannelKey, ManagedChannel>()
 
@@ -58,8 +75,8 @@ class NettyDynamicGrpcClient(
                 )
             }
 
-            val schema = try {
-                protoParser.parseProtoFile(request.protoFilePath, request.includePaths)
+            val cachedDescriptors = try {
+                loadOrParseProtoDescriptors(request.protoFilePath, request.includePaths)
             } catch (e: ProtoParseException) {
                 return@withContext GrpcCallResponse(
                     requestId = request.requestId,
@@ -69,20 +86,17 @@ class NettyDynamicGrpcClient(
                     durationMs = elapsedMs(),
                     errorMessage = e.message ?: "Failed to parse proto file",
                 )
-            }
+            } ?: return@withContext GrpcCallResponse(
+                requestId = request.requestId,
+                statusCode = Status.Code.INTERNAL.value(),
+                statusDescription = Status.Code.INTERNAL.name,
+                responseJson = null,
+                durationMs = elapsedMs(),
+                errorMessage = "Compiled proto schema did not contain descriptor bytes",
+            )
 
-            val descriptorBytes = schema.fileDescriptorBytes
-                ?: return@withContext GrpcCallResponse(
-                    requestId = request.requestId,
-                    statusCode = Status.Code.INTERNAL.value(),
-                    statusDescription = Status.Code.INTERNAL.name,
-                    responseJson = null,
-                    durationMs = elapsedMs(),
-                    errorMessage = "Compiled proto schema did not contain descriptor bytes",
-                )
-
-            val fileDescriptorSet = DescriptorProtos.FileDescriptorSet.parseFrom(descriptorBytes)
-            val fileDescriptors = ProtocJarParser.buildFileDescriptors(fileDescriptorSet)
+            val fileDescriptors = cachedDescriptors.fileDescriptors
+            val typeRegistry = cachedDescriptors.typeRegistry
 
             val normalizedFullMethod = request.fullMethodName.trim().removePrefix("/")
             val serviceName = normalizedFullMethod.substringBeforeLast('/', "")
@@ -100,14 +114,6 @@ class NettyDynamicGrpcClient(
                 durationMs = elapsedMs(),
                 errorMessage = "Method '${request.fullMethodName}' not found in proto schema",
             )
-
-            val typeRegistryBuilder = JsonFormat.TypeRegistry.newBuilder()
-            fileDescriptors.forEach { fd ->
-                fd.messageTypes.forEach { msgType ->
-                    typeRegistryBuilder.add(msgType)
-                }
-            }
-            val typeRegistry = typeRegistryBuilder.build()
 
             val requestBuilder = DynamicMessage.newBuilder(methodDescriptor.inputType)
             val payloadToParse = request.jsonPayload.trim().ifBlank { "{}" }
@@ -198,6 +204,41 @@ class NettyDynamicGrpcClient(
                 errorMessage = detail,
             )
         }
+    }
+
+    private suspend fun loadOrParseProtoDescriptors(
+        protoFilePath: String,
+        includePaths: List<String>,
+    ): CachedProtoDescriptors? {
+        val protoFile = File(protoFilePath)
+        val lastMod = if (protoFile.exists()) protoFile.lastModified() else 0L
+        val canUseSharedCache = protoParser is ProtocJarParser && lastMod > 0L
+        val cacheKey = ProtoDescriptorCacheKey(protoFilePath, includePaths, lastMod)
+        if (canUseSharedCache) {
+            descriptorCache[cacheKey]?.let { return it }
+        }
+
+        val schema = protoParser.parseProtoFile(protoFilePath, includePaths)
+        val descriptorBytes = schema.fileDescriptorBytes ?: return null
+        val fileDescriptorSet = DescriptorProtos.FileDescriptorSet.parseFrom(descriptorBytes)
+        val fileDescriptors = ProtocJarParser.buildFileDescriptors(fileDescriptorSet)
+        val typeRegistryBuilder = JsonFormat.TypeRegistry.newBuilder()
+        fileDescriptors.forEach { fd ->
+            fd.messageTypes.forEach { msgType ->
+                typeRegistryBuilder.add(msgType)
+            }
+        }
+        val built = CachedProtoDescriptors(
+            fileDescriptors = fileDescriptors,
+            typeRegistry = typeRegistryBuilder.build(),
+        )
+        if (canUseSharedCache) {
+            if (descriptorCache.size >= MAX_CACHED_DESCRIPTORS) {
+                descriptorCache.keys.firstOrNull()?.let { descriptorCache.remove(it) }
+            }
+            descriptorCache[cacheKey] = built
+        }
+        return built
     }
 
     private fun getOrCreateChannel(key: ChannelKey): ManagedChannel {

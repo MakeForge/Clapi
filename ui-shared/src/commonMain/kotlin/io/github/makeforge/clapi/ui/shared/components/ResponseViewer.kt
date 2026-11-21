@@ -27,6 +27,7 @@ import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -418,28 +419,38 @@ private fun ResponseCookiesView(response: ResponseDefinition) {
 
 @Composable
 private fun ResponseRawView(response: ResponseDefinition) {
-    val verticalScrollState = rememberScrollState()
+    val listState = rememberLazyListState()
     val horizontalScrollState = rememberScrollState()
+    val rawLines = remember(response.bodyText, response.streamEvents) {
+        val fullText = if (response.streamEvents.isNotEmpty()) {
+            response.streamEvents.joinToString("\n")
+        } else {
+            response.bodyText
+        }
+        fullText.split('\n')
+    }
     Box(modifier = Modifier.fillMaxSize()) {
         SelectionContainer {
-            Text(
-                text = if (response.streamEvents.isNotEmpty()) {
-                    response.streamEvents.joinToString("\n")
-                } else {
-                    response.bodyText
-                },
-                color = ClapiColors.OnSurface,
-                fontSize = 13.sp,
-                fontFamily = CodeFontFamily,
+            LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(verticalScrollState)
                     .horizontalScroll(horizontalScrollState)
                     .padding(end = 12.dp, start = 12.dp, top = 12.dp, bottom = 12.dp),
-            )
+            ) {
+                itemsIndexed(rawLines, key = { index, _ -> index }) { _, line ->
+                    Text(
+                        text = line,
+                        color = ClapiColors.OnSurface,
+                        fontSize = 13.sp,
+                        fontFamily = CodeFontFamily,
+                        softWrap = false,
+                    )
+                }
+            }
         }
-        PlatformColumnVerticalScrollbar(
-            scrollState = verticalScrollState,
+        PlatformLazyVerticalScrollbar(
+            listState = listState,
             modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
             testTag = "response-raw-scrollbar",
         )

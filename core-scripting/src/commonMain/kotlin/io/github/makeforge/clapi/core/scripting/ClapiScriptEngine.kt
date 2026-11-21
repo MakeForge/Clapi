@@ -1,5 +1,8 @@
 package io.github.makeforge.clapi.core.scripting
 
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -61,7 +64,9 @@ class ClapiScriptEngine(
         }
         return try {
             val jsProgram = bootstrapBuilder(script, context, prefix)
-            val resultJson = evaluator(jsProgram)
+            val resultJson = withContext(Dispatchers.Default) {
+                evaluator(jsProgram)
+            }
             val baseResult = parseResult(resultJson)
             val pendingSendRequests = parseSendRequests(resultJson)
             if (pendingSendRequests.isNotEmpty() && sendRequestExecutor != null) {
@@ -69,6 +74,8 @@ class ClapiScriptEngine(
             } else {
                 baseResult
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             ScriptResult(
                 success = false,
@@ -91,9 +98,13 @@ class ClapiScriptEngine(
                 val callbackScript = buildCallbackUserScript(callbackSrc, subResponse)
                 val callbackCtx = buildCallbackContext(context, merged, subResponse)
                 val callbackProgram = bootstrapBuilder(callbackScript, callbackCtx, prefix)
-                val callbackResultJson = evaluator(callbackProgram)
+                val callbackResultJson = withContext(Dispatchers.Default) {
+                    evaluator(callbackProgram)
+                }
                 val callbackResult = parseResult(callbackResultJson)
                 merged = mergeResults(merged, callbackResult)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 merged = merged.copy(
                     logs = merged.logs + "[sendRequest error] ${e.message ?: "Unknown error"}",

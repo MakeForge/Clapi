@@ -85,6 +85,9 @@ import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.state.ResponseLayout
 import io.github.makeforge.clapi.ui.shared.state.WorkspaceMode
 import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -93,7 +96,7 @@ import kotlinx.coroutines.withContext
  * The main composable shell shared between Desktop and Web.
  * Contains: toolbar, sidebar, request/response editors, bottom panel, and all dialog overlays.
  */
-@OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+@OptIn(kotlinx.serialization.ExperimentalSerializationApi::class, FlowPreview::class)
 @Composable
 fun MainScreen(
     state: AppState = remember { AppState() },
@@ -141,7 +144,8 @@ fun MainScreen(
                     "|${state.selectedEnvironment?.name ?: ""}"
             }
         }.drop(1)
-            .collect {
+            .debounce(500)
+            .collectLatest {
                 state.settings.selectedEnvName = state.selectedEnvironment?.name ?: ""
                 withContext(ioDispatcher) { SettingsRepository.save(state.settings) }
             }
@@ -154,9 +158,11 @@ fun MainScreen(
             val revisions = state.openTabs.joinToString("|") { "${it.id}:${it.persistenceRevision}" }
             "${state.openTabs.size}|${state.activeTabIndex}|${t?.id}|$revisions"
         }.drop(1)
-            .collect {
+            .debounce(500)
+            .collectLatest {
                 if (state.settings.autoSaveRequests) {
-                    withContext(ioDispatcher) { TabsRepository.save(state) }
+                    val snapshot = TabsRepository.buildSnapshot(state)
+                    withContext(ioDispatcher) { TabsRepository.saveSnapshot(snapshot) }
                 }
             }
     }
@@ -177,7 +183,10 @@ fun MainScreen(
                 .joinToString(",") { (k, v) -> "$k=$v" }
             "$collectionFingerprint#$envFingerprint#$globalFingerprint#$historyFingerprint#$expandedFingerprint"
         }.drop(1)
-            .collect { withContext(ioDispatcher) { WorkspaceRepository.save(state) } }
+            .debounce(500)
+            .collectLatest {
+                WorkspaceRepository.saveAsync(state, ioDispatcher)
+            }
     }
 
     LaunchedEffect(state.activeTabIndex, state.openTabs.size) {

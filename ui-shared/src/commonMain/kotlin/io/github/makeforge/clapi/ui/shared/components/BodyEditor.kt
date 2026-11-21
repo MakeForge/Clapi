@@ -30,6 +30,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -284,10 +285,23 @@ fun BodyEditor(
                 // Compute the set of all defined variable names from all active layers
                 // (env → collection → globals). Used to colour tokens orange (resolved)
                 // vs red (unresolved) inside the code editor.
-                val definedVarNames: Set<String> = state?.activeVariableLayers(tab)
-                    ?.flatMap { it.keys }?.toSet() ?: emptySet()
+                val definedVarNames: Set<String> by remember(state, tab) {
+                    derivedStateOf {
+                        state.activeVariableLayers(tab)
+                            .flatMap { it.keys }
+                            .toSet()
+                    }
+                }
                 val availableVars = remember(state, tab, definedVarNames) {
                     getAvailableVariables(state, tab)
+                }
+                val hasVariableTokens = remember(tab.bodyContent) {
+                    tab.bodyContent.contains("{{")
+                }
+                val variableHighlightProvider = remember(hasVariableTokens, definedVarNames) {
+                    if (hasVariableTokens) {
+                        { line: String, _: Int -> variableRangesForLine(line, definedVarNames) }
+                    } else null
                 }
 
                 val allowJson5 = state.settings.allowJson5InJsonBodies
@@ -337,9 +351,7 @@ fun BodyEditor(
                             onCursorTap = { offset ->
                                 bodyPopupVariable = variableNameAtOffset(tab.bodyContent, offset)
                             },
-                            lineVariableSpans = if (tab.bodyContent.contains("{{")) {
-                                { line, _ -> variableRangesForLine(line, definedVarNames) }
-                            } else null,
+                            lineVariableSpans = variableHighlightProvider,
                             availableVariables = availableVars,
                             externalViewModel = bodyViewModel,
                         )

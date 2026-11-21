@@ -40,14 +40,14 @@ internal fun sendGraphQlRequestInternal(
     state: AppState,
     tab: RequestTabState,
     chainDepth: Int,
-    tokenClient: OAuth2TokenClient = KtorOAuth2TokenClient(),
+    tokenClient: OAuth2TokenClient = SharedExecutionClients.oauth2TokenClient,
     clientFactory: (AppSettings, NetworkLogger, RetryPolicy) -> ApiClient = { s, l, r ->
         NetworkClientFactory.build(s, l, r)
     },
     grpcClientFactory: (AppSettings) -> DynamicGrpcClient = { s ->
         NetworkClientFactory.buildGrpcClient(s)
     },
-    secretResolutionService: SecretResolutionService = SecretResolutionService(),
+    secretResolutionService: SecretResolutionService = SharedExecutionClients.secretResolutionService,
     processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
 ) {
     if (tab.url.isBlank()) {
@@ -69,7 +69,10 @@ internal fun sendGraphQlRequestInternal(
         tab.lastError = null
         tab.streamChunks.clear()
         tab.liveStreamText = ""
-        state.testResults.clear()
+        tab.testResults.clear()
+        if (tab !in state.openTabs) {
+            state.standaloneTestResultsTab = tab
+        }
 
         val urlParts = splitRequestUrl(tab.url.trim())
         var effectiveUrl = urlParts.base
@@ -289,7 +292,13 @@ internal fun sendGraphQlRequestInternal(
         } else {
             resolvedBaseForLog
         }
-        state.logNetworkEvent("→ $effectiveMethod $effectiveUrlForLog")
+        val secretValuesForLog = SecretLogRedactor.collectSecretValues(
+            state = state,
+            tab = tab,
+            resolvedSecrets = resolvedSecrets,
+        )
+        val redactedUrlForLog = SecretLogRedactor.redact(effectiveUrlForLog, secretValuesForLog)
+        state.logNetworkEvent("→ $effectiveMethod $redactedUrlForLog")
 
         try {
             val request = initialRequest.copy(auth = buildAuthConfig(tab, state))
@@ -303,9 +312,10 @@ internal fun sendGraphQlRequestInternal(
             }
 
             val retryPolicy = buildRetryPolicyForTab(tab)
+            val effectiveSettings = resolveGraphQlExecutionSettings(state.settings, tab)
 
             client = clientFactory(
-                state.settings,
+                effectiveSettings,
                 logger,
                 retryPolicy,
             )
@@ -328,8 +338,13 @@ internal fun sendGraphQlRequestInternal(
                         )
                     }
                     is NetworkEvent.Chunk -> {
-                        tab.streamChunks.add(event.raw)
-                        tab.liveStreamText = LlmTextAssembler.assemble(tab.streamChunks.toList())
+                        tab.appendStreamChunk(event.raw)
+                        val delta = LlmTextAssembler.extractChunkDelta(event.raw)
+                        if (!delta.isNullOrEmpty()) {
+                            tab.liveStreamText += delta
+                        } else if (tab.liveStreamText.isEmpty()) {
+                            tab.liveStreamText = LlmTextAssembler.assemble(tab.streamChunks.toList())
+                        }
                     }
                     is NetworkEvent.Success -> {
                         tab.response = event.response
@@ -393,4 +408,42 @@ internal fun sendGraphQlRequestInternal(
         }
     }
     tab.currentJob = job
+}
+
+internal fun resolveGraphQlExecutionSettings(
+    baseSettings: AppSettings,
+    tab: RequestTabState,
+): AppSettings {
+    val rawTimeout = tab.graphQlTimeout
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() && !it.equals("inherit", ignoreCase = true) }
+        ?.toLongOrNull()
+        ?.takeIf { it > 0L }
+    val timeoutMsOverride = rawTimeout?.let { value ->
+        if (value >= 1_000L) value else value * 1_000L
+    }
+
+    val followRedirectsOverride = tab.graphQlFollowRedirects
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() && !it.equals("inherit", ignoreCase = true) }
+        ?.lowercase()
+        ?.let {
+            when (it) {
+                "true" -> true
+                "false" -> false
+                else -> null
+            }
+        }
+
+    val maxRedirectsOverride = tab.graphQlMaxRedirects
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() && !it.equals("inherit", ignoreCase = true) }
+        ?.toIntOrNull()
+        ?.takeIf { it >= 0 }
+
+    return baseSettings.withNetworkOverrides(
+        timeoutMsOverride = timeoutMsOverride,
+        followRedirectsOverride = followRedirectsOverride,
+        maxRedirectsOverride = maxRedirectsOverride,
+    )
 }

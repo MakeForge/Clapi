@@ -30,14 +30,14 @@ internal fun sendGrpcRequestInternal(
     state: AppState,
     tab: RequestTabState,
     chainDepth: Int,
-    tokenClient: OAuth2TokenClient = KtorOAuth2TokenClient(),
+    tokenClient: OAuth2TokenClient = SharedExecutionClients.oauth2TokenClient,
     clientFactory: (AppSettings, NetworkLogger, RetryPolicy) -> ApiClient = { s, l, r ->
         NetworkClientFactory.build(s, l, r)
     },
     grpcClientFactory: (AppSettings) -> DynamicGrpcClient = { s ->
         NetworkClientFactory.buildGrpcClient(s)
     },
-    secretResolutionService: SecretResolutionService = SecretResolutionService(),
+    secretResolutionService: SecretResolutionService = SharedExecutionClients.secretResolutionService,
     processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
 ) {
     if (tab.url.isBlank()) {
@@ -69,7 +69,10 @@ internal fun sendGrpcRequestInternal(
         tab.lastError = null
         tab.streamChunks.clear()
         tab.liveStreamText = ""
-        state.testResults.clear()
+        tab.testResults.clear()
+        if (tab !in state.openTabs) {
+            state.standaloneTestResultsTab = tab
+        }
 
         var effectiveUrl = tab.url.trim()
         val effectiveMetadata = tab.grpcMetadata

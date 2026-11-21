@@ -19,6 +19,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -40,19 +42,22 @@ interface WebSocketClientManager {
     fun connectionState(tabId: String): SharedFlow<ConnectionState>
     fun messages(tabId: String): SharedFlow<WebSocketLogMessage>
     fun isConnected(tabId: String): Boolean
+    fun close() {}
 
     companion object {
         val default: WebSocketClientManager by lazy { KtorWebSocketClientManager() }
     }
 }
 
-class KtorWebSocketClientManager(
-    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default + Job()),
-    private val httpClientProvider: (() -> HttpClient) = {
-        HttpClient {
-            install(WebSockets)
-        }
+private val sharedWebSocketHttpClient: HttpClient by lazy {
+    HttpClient {
+        install(WebSockets)
     }
+}
+
+class KtorWebSocketClientManager(
+    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob()),
+    private val httpClientProvider: (() -> HttpClient) = { sharedWebSocketHttpClient },
 ) : WebSocketClientManager {
 
     private class TabSession(
@@ -87,9 +92,11 @@ class KtorWebSocketClientManager(
         tabSession.sendChannel = Channel(Channel.BUFFERED)
 
         tabSession.connectionJob = scope.launch {
+            var client: HttpClient? = null
             try {
-                val client = httpClientProvider()
-                client.webSocket(
+                val acquired = httpClientProvider()
+                client = acquired
+                acquired.webSocket(
                     urlString = config.url,
                     request = {
                         config.headers.forEach { (key, value) ->
@@ -202,8 +209,16 @@ class KtorWebSocketClientManager(
             } finally {
                 tabSession.isConnected = false
                 tabSession.session = null
+                if (client != null && client !== sharedWebSocketHttpClient) {
+                    runCatching { client.close() }
+                }
             }
         }
+    }
+
+    override fun close() {
+        sessions.keys.toList().forEach { disconnect(it) }
+        scope.cancel()
     }
 
     override suspend fun sendMessage(tabId: String, content: String, format: WebSocketMessageType) {

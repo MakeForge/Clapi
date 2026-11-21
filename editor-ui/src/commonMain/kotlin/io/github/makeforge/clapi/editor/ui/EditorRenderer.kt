@@ -198,13 +198,23 @@ fun EditorRenderer(
     focusRequester: FocusRequester? = null,
 ) {
     val state        by viewModel.state.collectAsState()
-    val listStateCache = remember { mutableMapOf<EditorViewModel, LazyListState>() }
-    val hScrollCache   = remember { mutableMapOf<EditorViewModel, ScrollState>() }
+    val listStateCache = remember { linkedMapOf<EditorViewModel, LazyListState>() }
+    val hScrollCache   = remember { linkedMapOf<EditorViewModel, ScrollState>() }
     val listState    = remember(viewModel) {
-        listStateCache.getOrPut(viewModel) { LazyListState() }
+        listStateCache.remove(viewModel) ?: run {
+            if (listStateCache.size >= MAX_CACHED_EDITOR_SCROLL_STATES) {
+                listStateCache.keys.firstOrNull()?.let { listStateCache.remove(it) }
+            }
+            LazyListState()
+        }.also { listStateCache[viewModel] = it }
     }
     val hScrollState = remember(viewModel) {
-        hScrollCache.getOrPut(viewModel) { ScrollState(0) }
+        hScrollCache.remove(viewModel) ?: run {
+            if (hScrollCache.size >= MAX_CACHED_EDITOR_SCROLL_STATES) {
+                hScrollCache.keys.firstOrNull()?.let { hScrollCache.remove(it) }
+            }
+            ScrollState(0)
+        }.also { hScrollCache[viewModel] = it }
     }
     val scope        = rememberCoroutineScope()
     val fallbackFocus = remember { FocusRequester() }
@@ -532,13 +542,21 @@ fun EditorRenderer(
             val foldStartSet = remember(state.version, state.foldVersion) {
                 viewModel.foldRegions.associate { it.startLine - 1 to it }
             }
+            val diagnosticsByLine = remember(state.diagnostics) {
+                if (state.diagnostics.isEmpty()) emptyMap()
+                else state.diagnostics.groupBy { it.line - 1 }
+            }
             var suppressBracketAtCursor by remember { mutableStateOf<Int?>(null) }
             val bracketPair = remember(state.cursorOffset, state.version, suppressBracketAtCursor) {
-                bracketMatchForCursor(
-                    text = viewModel.getFullText(),
-                    cursor = state.cursorOffset,
-                    suppressAtCursor = suppressBracketAtCursor,
-                )
+                if (viewModel.document.length > MAX_BRACKET_MATCH_DOCUMENT_CHARS) {
+                    null
+                } else {
+                    bracketMatchForCursor(
+                        text = viewModel.getFullText(),
+                        cursor = state.cursorOffset,
+                        suppressAtCursor = suppressBracketAtCursor,
+                    )
+                }
             }
             val contentWidthPx = (
                 with(density) { maxWidth.toPx() } -
@@ -685,7 +703,7 @@ fun EditorRenderer(
                     }
                     val isCurrentLine = cursorHere >= 0
                     val lineFill = if (isCurrentLine) theme.cursorLine else theme.background
-                    val lineDiags = state.diagnostics.filter { it.line - 1 == docLine }
+                    val lineDiags = diagnosticsByLine[docLine].orEmpty()
                     val diagMsg = lineDiags.firstOrNull()?.message
                     val diagInteraction = remember { MutableInteractionSource() }
                     val diagHovered by diagInteraction.collectIsHoveredAsState()
@@ -875,7 +893,7 @@ fun EditorRenderer(
                                 cursorOffset     = if (!isReadOnly) cursorHere else -1,
                                 selStart         = state.selectionStart,
                                 selEnd           = state.selectionEnd,
-                                diagnostics      = state.diagnostics.filter { it.line - 1 == docLine },
+                                diagnostics      = lineDiags,
                                 onTap            = { abs, extend, trailingWhitespace ->
                                     focus.requestFocus()
                                     viewModel.moveCursorTo(abs, extendSelection = extend)
@@ -1069,6 +1087,8 @@ fun EditorRenderer(
 }
 
 private const val LARGE_EDIT_SCROLL_SUPPRESS_THRESHOLD_CHARS = 100_000
+private const val MAX_BRACKET_MATCH_DOCUMENT_CHARS = 256_000
+private const val MAX_CACHED_EDITOR_SCROLL_STATES = 16
 
 /**
  * Maps a pointer position within the LazyColumn coordinate space to a document character offset.

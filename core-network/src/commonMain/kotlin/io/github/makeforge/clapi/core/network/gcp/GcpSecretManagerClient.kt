@@ -40,19 +40,24 @@ interface GcpSecretManagerClient {
     )
 }
 
-private fun defaultGcpHttpClient(): HttpClient = createPlatformHttpClient {
-    install(ContentNegotiation) {
-        json(Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-        })
+private val sharedGcpHttpClient: HttpClient by lazy {
+    createPlatformHttpClient {
+        install(ContentNegotiation) {
+            json(Json {
+                ignoreUnknownKeys = true
+                isLenient = true
+            })
+        }
     }
 }
 
 class KtorGcpSecretManagerClient(
-    private val httpClient: HttpClient = defaultGcpHttpClient(),
+    private val httpClient: HttpClient = sharedGcpHttpClient,
     private val json: Json = Json { ignoreUnknownKeys = true },
 ) : GcpSecretManagerClient {
+    companion object {
+        val Shared: KtorGcpSecretManagerClient by lazy { KtorGcpSecretManagerClient() }
+    }
 
     override suspend fun fetchSecret(config: GcpSecretManagerConfig): Map<String, String> {
         require(config.projectId.isNotBlank()) { "GCP Project ID must not be blank" }

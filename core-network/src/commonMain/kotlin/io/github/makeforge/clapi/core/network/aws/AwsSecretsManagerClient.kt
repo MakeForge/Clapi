@@ -50,19 +50,24 @@ private data class GetSecretValueResponse(
     val SecretBinary: String? = null,
 )
 
-private fun defaultAwsHttpClient(): HttpClient = createPlatformHttpClient {
-    install(ContentNegotiation) {
-        json(Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-        })
+private val sharedAwsHttpClient: HttpClient by lazy {
+    createPlatformHttpClient {
+        install(ContentNegotiation) {
+            json(Json {
+                ignoreUnknownKeys = true
+                isLenient = true
+            })
+        }
     }
 }
 
 class KtorAwsSecretsManagerClient(
-    private val httpClient: HttpClient = defaultAwsHttpClient(),
+    private val httpClient: HttpClient = sharedAwsHttpClient,
     private val json: Json = Json { ignoreUnknownKeys = true },
 ) : AwsSecretsManagerClient {
+    companion object {
+        val Shared: KtorAwsSecretsManagerClient by lazy { KtorAwsSecretsManagerClient() }
+    }
 
     override suspend fun fetchSecret(config: AwsSecretsManagerConfig): Map<String, String> {
         require(config.secretId.isNotBlank()) { "secretId must not be blank" }

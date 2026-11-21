@@ -71,6 +71,17 @@ class DesktopGitCliExecutor(
                 stdout = stdout,
                 stderr = stderr,
             )
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            process.destroyForcibly()
+            throw GitExecutionException(
+                exitCode = -1,
+                stdout = "",
+                stderr = e.message.orEmpty(),
+                message = "Git process error: ${e.message}",
+            )
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            process.destroyForcibly()
+            throw e
         } catch (e: Exception) {
             process.destroyForcibly()
             if (e is GitException) throw e

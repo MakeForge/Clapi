@@ -2,6 +2,7 @@ import java.io.FileOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
+import kotlin.text.Typography.copyright
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)

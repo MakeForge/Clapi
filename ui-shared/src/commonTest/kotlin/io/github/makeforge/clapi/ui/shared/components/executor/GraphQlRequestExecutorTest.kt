@@ -196,4 +196,51 @@ class GraphQlRequestExecutorTest {
         assertEquals("script-scoped-token", gqlLayers[0]["token"])
         assertEquals("FollowUpHttp", fakeClient.capturedRequests[1].name)
     }
+
+    @Test
+    fun graphql_request_honors_per_tab_timeout_followRedirects_and_maxRedirects_overrides() = runTest {
+        val state = AppState(withDemoData = false)
+        state.settings.requestTimeoutSec = 30
+        state.settings.followRedirects = true
+        state.settings.maxRedirects = 20
+
+        val tab = RequestTabState(
+            name = "GraphQL Settings Override",
+            url = "https://api.example.com/graphql",
+            kind = RequestKind.GRAPHQL,
+        ).apply {
+            graphQlTimeout = "15000"
+            graphQlFollowRedirects = "false"
+            graphQlMaxRedirects = "3"
+        }
+
+        var capturedTimeoutSec: Int? = null
+        var capturedTimeoutMsOverride: Long? = null
+        var capturedFollowRedirects: Boolean? = null
+        var capturedMaxRedirects: Int? = null
+        val fakeClient = CapturingApiClient()
+
+        sendRequest(
+            scope = this,
+            state = state,
+            tab = tab,
+            clientFactory = { settings, _, _ ->
+                capturedTimeoutSec = settings.requestTimeoutSec
+                capturedTimeoutMsOverride = settings.requestTimeoutMsOverride
+                capturedFollowRedirects = settings.followRedirects
+                capturedMaxRedirects = settings.maxRedirects
+                fakeClient
+            },
+        )
+        tab.currentJob?.join()
+
+        assertEquals(15, capturedTimeoutSec)
+        assertEquals(15_000L, capturedTimeoutMsOverride)
+        assertEquals(false, capturedFollowRedirects)
+        assertEquals(3, capturedMaxRedirects)
+        // Base settings remain untouched
+        assertEquals(30, state.settings.requestTimeoutSec)
+        assertEquals(true, state.settings.followRedirects)
+        assertEquals(20, state.settings.maxRedirects)
+    }
 }

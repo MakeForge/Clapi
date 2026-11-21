@@ -110,6 +110,13 @@ class SseParser {
 }
 
 object LlmTextAssembler {
+    fun extractChunkDelta(rawChunk: String): String? = extractDeltaContent(rawChunk)
+
+    fun mayContainLlmEnvelope(raw: String): Boolean {
+        if (raw.isBlank()) return false
+        return "\"choices\"" in raw || "\"message\"" in raw || "\"response\"" in raw || "\"delta\"" in raw
+    }
+
     fun assemble(events: List<String>): String {
         if (events.isEmpty()) return ""
         val sb = StringBuilder()
