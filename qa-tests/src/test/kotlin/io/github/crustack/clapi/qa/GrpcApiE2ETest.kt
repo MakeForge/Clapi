@@ -1,5 +1,6 @@
 package io.github.crustack.clapi.qa
 
+import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.core.model.opencollection.AuthBearer
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
 import io.github.crustack.clapi.core.model.opencollection.GrpcMetadata
@@ -7,11 +8,19 @@ import io.github.crustack.clapi.core.model.opencollection.GrpcMethodType
 import io.github.crustack.clapi.core.model.opencollection.GrpcRequestDetails
 import io.github.crustack.clapi.core.model.opencollection.GrpcRequestInfo
 import io.github.crustack.clapi.core.model.opencollection.GrpcRequestItem
+import io.github.crustack.clapi.core.model.opencollection.OAuth2CredentialsPlacement
 import io.github.crustack.clapi.core.network.KtorApiClient
 import io.github.crustack.clapi.core.network.RetryPolicy
+import io.github.crustack.clapi.core.network.VariableResolver
+import io.github.crustack.clapi.core.network.dynamicvar.DynamicVariableContext
+import io.github.crustack.clapi.core.network.dynamicvar.DynamicVariableRegistry
+import io.github.crustack.clapi.core.network.dynamicvar.OAuth2ResolvedConfig
 import io.github.crustack.clapi.core.network.grpc.GrpcCallRequest
 import io.github.crustack.clapi.core.network.grpc.NettyDynamicGrpcClient
 import io.github.crustack.clapi.core.network.grpc.ProtocJarParser
+import io.github.crustack.clapi.core.network.oauth2.OAuth2TokenClient
+import io.github.crustack.clapi.core.network.oauth2.OAuth2TokenResponse
+import io.github.crustack.clapi.core.network.oauth2.OAuth2TokenState
 import io.github.crustack.clapi.core.storage.opencollection.OpenCollectionSchemaValidator
 import io.github.crustack.clapi.core.storage.opencollection.OpenCollectionSerializer
 import io.github.crustack.clapi.feature.requests.RequestExecutionService
@@ -238,5 +247,90 @@ class GrpcApiE2ETest {
         assertEquals("helloworld.Greeter/SayHello", sayHello.grpc.method)
         assertEquals(GrpcMethodType.UNARY, sayHello.grpc.methodType)
         assertEquals("greeter.proto", sayHello.grpc.protoFilePath)
+    }
+
+    @Test
+    fun `resolves oauth2 access token in grpc metadata authorization header when sending request`() = runTest {
+        val fakeTokenClient = object : OAuth2TokenClient {
+            override suspend fun fetchClientCredentialsToken(
+                tokenUrl: String,
+                clientId: String,
+                clientSecret: String,
+                placement: OAuth2CredentialsPlacement,
+                scope: String?,
+            ): Result<OAuth2TokenResponse> = Result.success(
+                OAuth2TokenResponse(
+                    accessToken = "mock-grpc-token-xyz-123",
+                    expiresIn = 3600,
+                )
+            )
+
+            override suspend fun fetchPasswordToken(
+                tokenUrl: String,
+                clientId: String,
+                clientSecret: String,
+                placement: OAuth2CredentialsPlacement,
+                username: String,
+                password: String,
+                scope: String?,
+            ): Result<OAuth2TokenResponse> = error("Not needed")
+
+            override suspend fun refreshToken(
+                tokenUrl: String,
+                refreshToken: String,
+                clientId: String?,
+                clientSecret: String?,
+                placement: OAuth2CredentialsPlacement,
+                scope: String?,
+            ): Result<OAuth2TokenResponse> = error("Not needed")
+        }
+
+        val registry = DynamicVariableRegistry()
+        val context = DynamicVariableContext(
+            effectiveAuthType = AuthType.OAUTH2,
+            oauth2Config = OAuth2ResolvedConfig(
+                tokenUrl = "https://auth.example.com/oauth/token",
+                clientId = "grpc-client-id",
+                clientSecret = "grpc-client-secret",
+            ),
+            oauth2TokenState = OAuth2TokenState(accessToken = ""),
+            oauth2TokenClient = fakeTokenClient,
+        )
+
+        val rawMetadata = listOf("authorization" to "Bearer {{_auth.oauth2.accessToken}}")
+        val resolvedDynamicVars = registry.resolveDynamicVariables(
+            texts = rawMetadata.flatMap { listOf(it.first, it.second) },
+            context = context,
+        )
+
+        assertEquals("mock-grpc-token-xyz-123", resolvedDynamicVars["_auth.oauth2.accessToken"])
+
+        val resolvedMetadata = rawMetadata.map { (key, value) ->
+            VariableResolver.resolve(key, listOf(resolvedDynamicVars)) to
+                VariableResolver.resolve(value, listOf(resolvedDynamicVars))
+        }
+
+        val response = grpcClient.executeUnary(
+            GrpcCallRequest(
+                requestId = "e2e-oauth2-meta-test",
+                host = "127.0.0.1",
+                port = server.grpcPort(),
+                useTls = false,
+                protoFilePath = server.protoFilePath(),
+                fullMethodName = "helloworld.Greeter/SayHello",
+                jsonPayload = """{"name": "Authenticated gRPC User"}""",
+                metadata = resolvedMetadata,
+                includePaths = listOf(server.metadataProtoFilePath()),
+            )
+        )
+
+        assertEquals(0, response.statusCode)
+        assertEquals("OK", response.statusDescription)
+        assertNotNull(response.responseJson)
+        assertTrue(response.responseJson!!.contains("Hello, Authenticated gRPC User!"))
+
+        val lastLogged = server.requestsLog.value.lastOrNull { it.path == "helloworld.Greeter/SayHello" }
+        assertNotNull(lastLogged, "Expected logged request on DummyApiServer")
+        assertEquals("Bearer mock-grpc-token-xyz-123", lastLogged.headers["authorization"])
     }
 }

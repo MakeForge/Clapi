@@ -31,6 +31,7 @@ import io.github.crustack.clapi.core.model.opencollection.ClientCertificate
 import io.github.crustack.clapi.core.model.opencollection.Description
 import io.github.crustack.clapi.core.model.opencollection.OAuth2CredentialsPlacement
 import io.github.crustack.clapi.core.model.opencollection.OAuth2Flow
+import io.github.crustack.clapi.core.network.dynamicvar.DynamicVariableRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -54,7 +55,7 @@ enum class RequestEditorTab(val label: String) {
 }
 
 enum class GrpcEditorTab(val label: String) {
-    MESSAGE("Message"), HEADERS("Headers"), SCRIPTS("Scripts")
+    MESSAGE("Message"), HEADERS("Headers"), AUTH("Auth"), SCRIPTS("Scripts")
 }
 
 enum class ResponseTab(val label: String) {
@@ -873,6 +874,8 @@ class RequestTabState(
 // ── Global application state ────────────────────────────────────
 
 class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
+    val dynamicVariableRegistry: DynamicVariableRegistry = DynamicVariableRegistry()
+
     // ── workspace mode ──
     var workspaceMode by mutableStateOf(WorkspaceMode.HTTP)
 
