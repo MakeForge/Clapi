@@ -178,6 +178,23 @@ class ProtocJarParser(
     }
 
     companion object {
+        val WELL_KNOWN_DESCRIPTORS: Map<String, Descriptors.FileDescriptor> by lazy {
+            listOf(
+                com.google.protobuf.AnyProto.getDescriptor(),
+                com.google.protobuf.ApiProto.getDescriptor(),
+                com.google.protobuf.DurationProto.getDescriptor(),
+                com.google.protobuf.EmptyProto.getDescriptor(),
+                com.google.protobuf.FieldMaskProto.getDescriptor(),
+                com.google.protobuf.SourceContextProto.getDescriptor(),
+                com.google.protobuf.StructProto.getDescriptor(),
+                com.google.protobuf.TimestampProto.getDescriptor(),
+                com.google.protobuf.TypeProto.getDescriptor(),
+                com.google.protobuf.WrappersProto.getDescriptor(),
+                com.google.protobuf.DescriptorProtos.getDescriptor(),
+                com.google.protobuf.compiler.PluginProtos.getDescriptor(),
+            ).associateBy { it.name }
+        }
+
         fun buildFileDescriptors(
             fileDescriptorSet: DescriptorProtos.FileDescriptorSet,
         ): List<Descriptors.FileDescriptor> {
@@ -187,7 +204,7 @@ class ProtocJarParser(
             fun resolve(proto: DescriptorProtos.FileDescriptorProto): Descriptors.FileDescriptor {
                 builtDescriptors[proto.name]?.let { return it }
                 val deps = proto.dependencyList.mapNotNull { depName ->
-                    protoMap[depName]?.let { resolve(it) }
+                    protoMap[depName]?.let { resolve(it) } ?: WELL_KNOWN_DESCRIPTORS[depName]
                 }.toTypedArray()
                 val fd = Descriptors.FileDescriptor.buildFrom(proto, deps)
                 builtDescriptors[proto.name] = fd

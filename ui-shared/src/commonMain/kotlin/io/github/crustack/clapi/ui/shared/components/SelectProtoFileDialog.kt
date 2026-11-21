@@ -35,9 +35,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -48,6 +50,8 @@ import io.github.crustack.clapi.ui.shared.generated.resources.Res
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_close
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_description
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_folder_open
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_help_outline
+import io.github.crustack.clapi.ui.shared.generated.resources.ic_open_in_new
 import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.platform.pickProtoFile
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
@@ -314,6 +318,61 @@ fun SelectProtoFileDialog(
                                 .fillMaxWidth()
                                 .testTag("proto-dialog-error"),
                         )
+                    }
+
+                    // Built-in types hint
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(ClapiColors.SurfaceContainer)
+                            .border(1.dp, ClapiColors.Border, RoundedCornerShape(6.dp))
+                            .padding(horizontal = 10.dp, vertical = 8.dp)
+                            .testTag("proto-dialog-builtin-hint"),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_help_outline),
+                            contentDescription = null,
+                            tint = ClapiColors.OnSurfaceDim,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Standard Google protobuf types (e.g. google/protobuf/timestamp.proto) are supported by default.",
+                                fontSize = 11.sp,
+                                color = ClapiColors.OnSurfaceDim,
+                                lineHeight = 15.sp,
+                            )
+                            val uriHandler = LocalUriHandler.current
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier
+                                    .clickable {
+                                        runCatching {
+                                            uriHandler.openUri("https://protobuf.dev/reference/protobuf/google.protobuf")
+                                        }
+                                    }
+                                    .testTag("proto-dialog-builtin-link"),
+                            ) {
+                                Text(
+                                    text = "protobuf.dev/reference",
+                                    fontSize = 11.sp,
+                                    color = ClapiColors.Primary,
+                                    textDecoration = TextDecoration.Underline,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_open_in_new),
+                                    contentDescription = "Open Link",
+                                    tint = ClapiColors.Primary,
+                                    modifier = Modifier.size(11.dp),
+                                )
+                            }
+                        }
                     }
 
                     Spacer(Modifier.height(4.dp))

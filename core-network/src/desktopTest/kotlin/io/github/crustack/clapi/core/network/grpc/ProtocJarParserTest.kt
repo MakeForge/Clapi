@@ -193,4 +193,119 @@ class ProtocJarParserTest {
             rootDir.deleteRecursively()
         }
     }
+
+    @Test
+    fun `parses proto file with well-known google protobuf built-in types without extra include paths`() = runTest {
+        val tempFile = File.createTempFile("well_known_types_", ".proto")
+        try {
+            tempFile.writeText(
+                """
+                syntax = "proto3";
+                package clapi.test;
+
+                import "google/protobuf/timestamp.proto";
+                import "google/protobuf/duration.proto";
+                import "google/protobuf/empty.proto";
+                import "google/protobuf/any.proto";
+                import "google/protobuf/struct.proto";
+                import "google/protobuf/wrappers.proto";
+                import "google/protobuf/field_mask.proto";
+
+                service WellKnownService {
+                  rpc GetTimestamp (google.protobuf.Empty) returns (google.protobuf.Timestamp);
+                  rpc EchoDuration (google.protobuf.Duration) returns (google.protobuf.Duration);
+                }
+
+                message TestPayload {
+                  google.protobuf.Timestamp created_at = 1;
+                  google.protobuf.Duration timeout = 2;
+                  google.protobuf.Any details = 3;
+                  google.protobuf.Struct payload = 4;
+                  google.protobuf.StringValue note = 5;
+                  google.protobuf.FieldMask mask = 6;
+                }
+                """.trimIndent()
+            )
+
+            val schema = parser.parseProtoFile(
+                protoFilePath = tempFile.absolutePath,
+                includePaths = emptyList(),
+            )
+
+            assertEquals(1, schema.services.size)
+            val service = schema.services.single()
+            assertEquals("clapi.test.WellKnownService", service.fullName)
+            assertEquals(2, service.methods.size)
+
+            val getTimestamp = service.methods.first { it.methodName == "GetTimestamp" }
+            assertEquals("google.protobuf.Empty", getTimestamp.inputTypeName)
+            assertEquals("google.protobuf.Timestamp", getTimestamp.outputTypeName)
+
+            val echoDuration = service.methods.first { it.methodName == "EchoDuration" }
+            assertEquals("google.protobuf.Duration", echoDuration.inputTypeName)
+            assertEquals("google.protobuf.Duration", echoDuration.outputTypeName)
+
+            // Verify Java protobuf Descriptors and JsonFormat integration
+            val fds = com.google.protobuf.DescriptorProtos.FileDescriptorSet.parseFrom(schema.fileDescriptorBytes!!)
+            val fileDescriptors = ProtocJarParser.buildFileDescriptors(fds)
+            val typeRegistryBuilder = com.google.protobuf.util.JsonFormat.TypeRegistry.newBuilder()
+            fileDescriptors.forEach { fd ->
+                fd.messageTypes.forEach { msgType ->
+                    typeRegistryBuilder.add(msgType)
+                }
+            }
+            val typeRegistry = typeRegistryBuilder.build()
+            val testPayloadDesc = fileDescriptors.flatMap { it.messageTypes }.first { it.name == "TestPayload" }
+            val json = """
+                {
+                  "createdAt": "2026-11-09T20:00:00Z",
+                  "timeout": "10s",
+                  "note": "sample note"
+                }
+            """.trimIndent()
+            val builder = com.google.protobuf.DynamicMessage.newBuilder(testPayloadDesc)
+            com.google.protobuf.util.JsonFormat.parser().usingTypeRegistry(typeRegistry).merge(json, builder)
+            val msg = builder.build()
+            val printedJson = com.google.protobuf.util.JsonFormat.printer().usingTypeRegistry(typeRegistry).print(msg)
+            assertTrue(printedJson.contains("2026-11-09T20:00:00Z"))
+        } finally {
+            tempFile.delete()
+        }
+    }
+
+    @Test
+    fun `buildFileDescriptors resolves standard types from Java runtime even when descriptor set lacks imported protos`() = runTest {
+        val tempFile = File.createTempFile("timestamp_dep_", ".proto")
+        try {
+            tempFile.writeText(
+                """
+                syntax = "proto3";
+                package clapi.test;
+                import "google/protobuf/timestamp.proto";
+                message TimestampedRecord {
+                  string id = 1;
+                  google.protobuf.Timestamp time = 2;
+                }
+                """.trimIndent()
+            )
+
+            val schema = parser.parseProtoFile(tempFile)
+            val fullFds = com.google.protobuf.DescriptorProtos.FileDescriptorSet.parseFrom(schema.fileDescriptorBytes!!)
+
+            // Filter out google.protobuf files to simulate a stripped FileDescriptorSet
+            val strippedFds = com.google.protobuf.DescriptorProtos.FileDescriptorSet.newBuilder()
+                .addAllFile(fullFds.fileList.filter { !it.name.startsWith("google/protobuf/") })
+                .build()
+
+            val builtDescriptors = ProtocJarParser.buildFileDescriptors(strippedFds)
+            assertEquals(1, builtDescriptors.size)
+            val recordDesc = builtDescriptors.first().findMessageTypeByName("TimestampedRecord")
+            assertNotNull(recordDesc)
+            val timeField = recordDesc.findFieldByName("time")
+            assertNotNull(timeField)
+            assertEquals("google.protobuf.Timestamp", timeField.messageType.fullName)
+        } finally {
+            tempFile.delete()
+        }
+    }
 }
