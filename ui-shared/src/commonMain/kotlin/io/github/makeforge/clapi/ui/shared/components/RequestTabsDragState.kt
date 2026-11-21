@@ -2,13 +2,14 @@ package io.github.makeforge.clapi.ui.shared.components
 
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.awaitHorizontalTouchSlopOrCancellation
-import androidx.compose.foundation.gestures.horizontalDrag
+import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.isPrimaryPressed
 import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
@@ -122,9 +123,10 @@ class RequestTabsDragState {
 
 /**
  * Modifier detecting horizontal drag gestures for reordering tabs.
- * Uses pointer lock via `horizontalDrag` to track movement reliably across
+ * Uses pointer lock via `drag` to track movement reliably across
  * adjacent tabs and boundaries without being intercepted by child components.
- * Only triggers on primary mouse button press past drag slop.
+ * Only triggers on primary mouse button press past drag slop, allowing natural
+ * slight vertical mouse drift without cancelling the gesture.
  */
 fun Modifier.draggableTab(
     enabled: Boolean = true,
@@ -134,22 +136,22 @@ fun Modifier.draggableTab(
     onDragCancel: () -> Unit,
 ): Modifier {
     if (!enabled) return this
-    return this.pointerInput(enabled) {
+    return this.pointerInput(enabled, onDragStart, onDragDelta, onDragEnd, onDragCancel) {
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false)
             if (!currentEvent.buttons.isPrimaryPressed || currentEvent.buttons.isSecondaryPressed) {
                 return@awaitEachGesture
             }
-            var overSlop = 0f
-            val drag = awaitHorizontalTouchSlopOrCancellation(down.id) { change, over ->
+            var overSlop = Offset.Zero
+            val drag = awaitTouchSlopOrCancellation(down.id) { change, over ->
                 change.consume()
                 overSlop = over
             }
             if (drag != null) {
                 onDragStart()
                 val initialDelta = drag.position.x - down.position.x
-                onDragDelta(if (initialDelta != 0f) initialDelta else overSlop)
-                val success = horizontalDrag(drag.id) { change ->
+                onDragDelta(if (initialDelta != 0f) initialDelta else overSlop.x)
+                val success = drag(drag.id) { change ->
                     val dx = change.positionChange().x
                     change.consume()
                     if (dx != 0f) {
