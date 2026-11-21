@@ -103,10 +103,10 @@ description: "Task list for Production VitePress Documentation Site implementati
 
 ### Implementation for User Story 2
 
-- [X] T046 [US2] Author Zero-Telemetry & Air-Gap Privacy Policy with packet inspection verification guide in `docs/security/zero-telemetry.md`
-- [X] T047 [US2] Author Local Credential Encryption architecture guide detailing KSafe AES-256-GCM and PBKDF2 in `docs/security/ksafe-encryption.md`
-- [X] T048 [US2] Author CycloneDX SBOM generation, OSV-Scanner checks, and GitHub Security SARIF reporting guide in `docs/security/sbom-vulnerabilities.md`
-- [X] T049 [US2] Author Comprehensive External Libraries Directory listing all runtime dependencies with active GitHub links and licenses in `docs/security/external-libraries.md`
+- [X] T046 [US2] Author Zero-Telemetry & Air-Gap Privacy Policy with packet inspection verification guide in `../../docs/about`
+- [X] T047 [US2] Author Local Credential Encryption architecture guide detailing KSafe AES-256-GCM and PBKDF2 in `../../docs/about`
+- [X] T048 [US2] Author CycloneDX SBOM generation, OSV-Scanner checks, and GitHub Security SARIF reporting guide in `../../docs/about`
+- [X] T049 [US2] Author Comprehensive External Libraries Directory listing all runtime dependencies with active GitHub links and licenses in `../../docs/about`
 
 **Checkpoint**: User Stories 1 and 2 are complete, establishing both functional protocol mastery and enterprise trust
 
@@ -120,12 +120,12 @@ description: "Task list for Production VitePress Documentation Site implementati
 
 ### Implementation for User Story 3
 
-- [X] T050 [US3] Author Multiple Collections & OpenCollection Architecture guide in `../../docs/organization`
-- [X] T051 [US3] Author Folder Settings & Cascaded Request Defaults Inheritance guide in `../../docs/organization`
-- [X] T052 [P] [US3] Author Collection-Level Protobuf Settings guide in `../../docs/organization`
-- [X] T053 [US3] Author Git Sync Architecture and OpenCollection Git-native diffing guide in `../../docs/organization/git-sync-overview.md`
-- [X] T054 [US3] Author In-App Git Operations (GitSyncDialog, status indicator, branch, commit, push, pull) guide in `../../docs/organization/git-operations.md`
-- [X] T055 [P] [US3] Author Team Workflows, Pull Requests, and Conflict Resolution guide in `../../docs/organization/team-workflows.md`
+- [X] T050 [US3] Author Multiple Collections & OpenCollection Architecture guide in `../../docs/organization/workspace`
+- [X] T051 [US3] Author Folder Settings & Cascaded Request Defaults Inheritance guide in `../../docs/organization/workspace`
+- [X] T052 [P] [US3] Author Collection-Level Protobuf Settings guide in `../../docs/organization/workspace`
+- [X] T053 [US3] Author Git Sync Architecture and OpenCollection Git-native diffing guide in `../../docs/organization/collaboration`
+- [X] T054 [US3] Author In-App Git Operations (GitSyncDialog, status indicator, branch, commit, push, pull) guide in `../../docs/organization/collaboration`
+- [X] T055 [P] [US3] Author Team Workflows, Pull Requests, and Conflict Resolution guide in `../../docs/organization/collaboration`
 
 **Checkpoint**: Team collaboration workflows and OpenCollection architecture are fully documented
 
@@ -139,9 +139,9 @@ description: "Task list for Production VitePress Documentation Site implementati
 
 ### Implementation for User Story 4
 
-- [X] T056 [US4] Author Variable Scopes, Interpolation Syntax & Dynamic Variables guide in `docs/environments/variables.md`
-- [X] T057 [P] [US4] Author Environments & Fast Switching guide in `docs/environments/environments.md`
-- [X] T058 [US4] Author External Secret Managers guide (KeePassXC, AWS Secrets Manager, Azure Key Vault, GCP, Keeper) with KSafe encryption guarantees in `docs/environments/secret-managers.md`
+- [X] T056 [US4] Author Variable Scopes, Interpolation Syntax & Dynamic Variables guide in `../../docs/organization/environments`
+- [X] T057 [P] [US4] Author Environments & Fast Switching guide in `../../docs/organization/environments`
+- [X] T058 [US4] Author External Secret Managers guide (KeePassXC, AWS Secrets Manager, Azure Key Vault, GCP, Keeper) with KSafe encryption guarantees in `../../docs/organization/environments`
 - [X] T059 [US4] Author Javet V8 Embedded JavaScript Engine Architecture & Sandbox Security guide in `../../docs/automation`
 - [X] T060 [P] [US4] Author Pre-Request Scripting Guide in `../../docs/automation`
 - [X] T061 [P] [US4] Author Post-Response Testing & Assertions Guide in `../../docs/automation`
@@ -159,11 +159,11 @@ description: "Task list for Production VitePress Documentation Site implementati
 
 ### Implementation for User Story 5
 
-- [X] T063 [US5] Author Specification Import (OpenAPI v3+, OpenCollection, Postman, Insomnia) guide in `docs/import-export/import.md`
-- [X] T064 [P] [US5] Author Workspace and Sanitized Collection Export guide in `docs/import-export/export.md`
-- [X] T065 [P] [US5] Author Application Settings, Themes & Proxy/TLS Configuration guide in `docs/reference/settings.md`
-- [X] T066 [P] [US5] Author Complete Keyboard Shortcuts Cheat Sheet (macOS, Windows, Linux) in `docs/reference/shortcuts.md`
-- [X] T067 [P] [US5] Port Clapi Architectural Deep Dive and Module Map from legacy docs to `docs/reference/architecture.md`
+- [X] T063 [US5] Author Specification Import (OpenAPI v3+, OpenCollection, Postman, Insomnia) guide in `../../docs/settings/import-export`
+- [X] T064 [P] [US5] Author Workspace and Sanitized Collection Export guide in `../../docs/settings/import-export`
+- [X] T065 [P] [US5] Author Application Settings, Themes & Proxy/TLS Configuration guide in `../../docs/settings/settings.md`
+- [X] T066 [P] [US5] Author Complete Keyboard Shortcuts Cheat Sheet (macOS, Windows, Linux) in `../../docs/settings/shortcuts.md`
+- [X] T067 [P] [US5] Port Clapi Architectural Deep Dive and Module Map from legacy docs to `../../docs/settings/architecture.md`
 - [X] T068 [P] [US5] Port Testing Strategy & Integration Test Reference from legacy docs to `docs/reference/testing.md`
 - [X] T069 [US5] Implement Automated GitHub Pages Deployment CI/CD workflow in `.github/workflows/deploy-docs.yml`
 - [X] T070 [US5] Remove legacy disconnected markdown documents in root `docs/` (`../../docs/old/mcp.md`, `../../docs/old/collections.md`, etc.) to establish new docs as single source of truth

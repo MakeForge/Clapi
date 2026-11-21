@@ -107,7 +107,7 @@
 ### Implementation for User Story 4
 
 - [X] T025 [P] [US4] Update `docs/features/dynamic-variables.md` to document the Kind selection box (`Regular`, `Secret`, `Dynamic`), Type selection box (`String`, `Number`, `Boolean`, `Object`), OpenCollection schema updates, and JSON body quoting rules (when to quote vs unquote).
-- [X] T026 [P] [US4] Update `docs/environments/dynamic-variables.md` and related environment documentation pages with updated table column guides and template syntax examples.
+- [X] T026 [P] [US4] Update `../../docs/organization/environments` and related environment documentation pages with updated table column guides and template syntax examples.
 
 ---
 
