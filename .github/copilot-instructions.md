@@ -15,6 +15,15 @@ docker ps                  rtk docker ps
 kubectl get pods           rtk kubectl pods
 ```
 
+## Build & Test Execution Rule
+Whenever you run Gradle commands (such as tests, builds, linting, or formatting checks), **always omit the `./` prefix and always prefix with `rtk`** so output is token-filtered.
+
+Examples:
+- Instead of `./gradlew test` -> Use `rtk gradlew test`
+- Instead of `./gradlew :app:testDebugUnitTest` -> Use `rtk gradlew :app:testDebugUnitTest`
+- Instead of `./gradlew ktfmtCheck` -> Use `rtk gradlew ktfmtCheck`
+- Never use raw `./gradlew` unless debugging command output issues.
+- 
 ## Meta commands (use directly)
 
 ```bash

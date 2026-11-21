@@ -2,6 +2,7 @@ package io.github.crustack.core.model
 
 import kotlinx.serialization.Serializable
 
+@Deprecated("Legacy workspace model. Replaced by OpenCollection canonical model.")
 @Serializable
 data class WorkspaceDefinition(
     val id: String,
@@ -12,6 +13,7 @@ data class WorkspaceDefinition(
     val updatedAtEpochMillis: Long
 )
 
+@Deprecated("Legacy collection model. Use io.github.crustack.core.model.opencollection.OpenCollectionDocument instead.")
 @Serializable
 data class CollectionDefinition(
     val id: String,
@@ -24,6 +26,7 @@ data class CollectionDefinition(
     val updatedAtEpochMillis: Long
 )
 
+@Deprecated("Legacy folder model. Use io.github.crustack.core.model.opencollection.FolderItem instead.")
 @Serializable
 data class FolderDefinition(
     val id: String,

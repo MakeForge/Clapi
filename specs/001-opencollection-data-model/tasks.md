@@ -22,11 +22,11 @@ Multi-module Kotlin project. Paths are relative to the repository root (see plan
 
 **Purpose**: Dependencies and module scaffolding required by all stories
 
-- [ ] T001 Add `com.networknt:json-schema-validator` (Draft-07) to the core-storage module dependencies in `core-storage/build.gradle.kts`
-- [ ] T002 [P] Add `com.charleskorn.kaml:kaml` to the core-storage module dependencies in `core-storage/build.gradle.kts`
-- [ ] T003 [P] Create the `opencollection` package directory `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/`
-- [ ] T004 [P] Create the `opencollection` package directory `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/`
-- [ ] T005 [P] Copy the official schema `docs/Clapi/todos/opencollection_v1.0.0.json` into a bundled resource at `core-storage/src/commonMain/resources/opencollection/opencollection_v1.0.0.json` (the resource is loaded by the schema validator)
+- [X] T001 Add `com.networknt:json-schema-validator` (Draft-07) to the core-storage module dependencies in `core-storage/build.gradle.kts`
+- [X] T002 [P] Add `com.charleskorn.kaml:kaml` to the core-storage module dependencies in `core-storage/build.gradle.kts`
+- [X] T003 [P] Create the `opencollection` package directory `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/`
+- [X] T004 [P] Create the `opencollection` package directory `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/`
+- [X] T005 [P] Copy the official schema `docs/Clapi/todos/opencollection_v1.0.0.json` into a bundled resource at `core-storage/src/commonMain/resources/opencollection/opencollection_v1.0.0.json` (the resource is loaded by the schema validator)
 
 ---
 
@@ -36,20 +36,20 @@ Multi-module Kotlin project. Paths are relative to the repository root (see plan
 
 **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T006 Define the root document model `OpenCollectionDocument` (with `opencollection` version field, `info`, `config`, `items`, `bundled`, `extensions`) in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/OpenCollectionDocument.kt`. Constraints: `opencollection` must be `"1.0.0"` (FR-002); `bundled` must be `true` for single-file collections (FR-034); `items` order is preserved at root and folder level (FR-004)
-- [ ] T007 [P] Define `Info` (with `name`, `type`, and `"folder"` / `"http"` discrimination) in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/OpenCollectionDocument.kt`. Folder `info.type` is `"folder"`; request `info.type` is `"http"` (data-model §2.1)
-- [ ] T008 Define the sealed `OpenCollectionItem` hierarchy with `FolderItem` and `HttpRequestItem` in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/OpenCollectionItem.kt`. A folder is never an HTTP request (FR-010)
-- [ ] T009 [P] Define the HTTP request details model (`HttpRequestDetails`, headers, params, bodies) in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/OpenCollectionHttp.kt`
-- [ ] T010 [P] Define the auth models (`AuthBasic`, `AuthBearer`, `AuthApiKey` with header|query placement, `OAuth2`, `AuthInherit`, and none→null) in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/OpenCollectionAuth.kt`. Mapping per research §6: JWT maps to bearer with `extensions.clapi.authType="jwt"`
-- [ ] T011 [P] Define the environment models (`Environment` under `config.environments`, `Variable`, `SecretVariable` with `secret: true` and no `value` property) in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/OpenCollectionEnvironment.kt` (FR-017, SC-007)
-- [ ] T012 [P] Define the script and assertion models (`before-request`, `after-response`, `tests`, `runtime.assertions`) in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/OpenCollectionScript.kt` (research §8)
-- [ ] T013 [P] Define `ClapiExtensionData` and MCP config models (MCP config lives at `extensions.clapi.mcp`) in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/OpenCollectionExtensions.kt`. Unknown fields are kept in the extensions bag (FR-007, FR-031)
-- [ ] T014 Mark the legacy models in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/CollectionModels.kt` as `@Deprecated` and keep them only for the existing runtime until the repository switches over. Do not add migration logic
-- [ ] T015 [P] Define the execution models consumed by the network engine in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/RequestModels.kt`
-- [ ] T016 Define `StorageLocation` as a sealed interface with `FilePath` and `MemoryKey` variants in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/CollectionStorageDriver.kt` (collection-repository contract)
-- [ ] T017 Define the `CollectionStorageDriver` interface with `read`, `write`, and `delete`, throwing `CollectionValidationException`, `StorageReadException`, or `StorageWriteException`, in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/CollectionStorageDriver.kt`
-- [ ] T018 Implement the schema validator `OpenCollectionSchemaValidator` (Draft-07, bundled schema from T005) in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/OpenCollectionSchemaValidator.kt`. Errors must identify the path and reason (FR-006, FR-009)
-- [ ] T019 Implement `OpenCollectionSerializer` for JSON and YAML (kotlinx.serialization + kaml) with unknown-field capture into `extensions` in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/OpenCollectionSerializer.kt` (FR-007, FR-008)
+- [X] T006 Define the root document model `OpenCollectionDocument` (with `opencollection` version field, `info`, `config`, `items`, `bundled`, `extensions`) in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/OpenCollectionDocument.kt`. Constraints: `opencollection` must be `"1.0.0"` (FR-002); `bundled` must be `true` for single-file collections (FR-034); `items` order is preserved at root and folder level (FR-004)
+- [X] T007 [P] Define `Info` (with `name`, `type`, and `"folder"` / `"http"` discrimination) in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/OpenCollectionDocument.kt`. Folder `info.type` is `"folder"`; request `info.type` is `"http"` (data-model §2.1)
+- [X] T008 Define the sealed `OpenCollectionItem` hierarchy with `FolderItem` and `HttpRequestItem` in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/OpenCollectionItem.kt`. A folder is never an HTTP request (FR-010)
+- [X] T009 [P] Define the HTTP request details model (`HttpRequestDetails`, headers, params, bodies) in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/OpenCollectionHttp.kt`
+- [X] T010 [P] Define the auth models (`AuthBasic`, `AuthBearer`, `AuthApiKey` with header|query placement, `OAuth2`, `AuthInherit`, and none→null) in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/OpenCollectionAuth.kt`. Mapping per research §6: JWT maps to bearer with `extensions.clapi.authType="jwt"`
+- [X] T011 [P] Define the environment models (`Environment` under `config.environments`, `Variable`, `SecretVariable` with `secret: true` and no `value` property) in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/OpenCollectionEnvironment.kt` (FR-017, SC-007)
+- [X] T012 [P] Define the script and assertion models (`before-request`, `after-response`, `tests`, `runtime.assertions`) in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/OpenCollectionScript.kt` (research §8)
+- [X] T013 [P] Define `ClapiExtensionData` and MCP config models (MCP config lives at `extensions.clapi.mcp`) in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/OpenCollectionExtensions.kt`. Unknown fields are kept in the extensions bag (FR-007, FR-031)
+- [X] T014 Mark the legacy models in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/CollectionModels.kt` as `@Deprecated` and keep them only for the existing runtime until the repository switches over. Do not add migration logic
+- [X] T015 [P] Define the execution models consumed by the network engine in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/RequestModels.kt`
+- [X] T016 Define `StorageLocation` as a sealed interface with `FilePath` and `MemoryKey` variants in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/CollectionStorageDriver.kt` (collection-repository contract)
+- [X] T017 Define the `CollectionStorageDriver` interface with `read`, `write`, and `delete`, throwing `CollectionValidationException`, `StorageReadException`, or `StorageWriteException`, in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/CollectionStorageDriver.kt`
+- [X] T018 Implement the schema validator `OpenCollectionSchemaValidator` (Draft-07, bundled schema from T005) in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/OpenCollectionSchemaValidator.kt`. Errors must identify the path and reason (FR-006, FR-009)
+- [X] T019 Implement `OpenCollectionSerializer` for JSON and YAML (kotlinx.serialization + kaml) with unknown-field capture into `extensions` in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/OpenCollectionSerializer.kt` (FR-007, FR-008)
 
 **Checkpoint**: Core model, storage interface, validator, and serializer exist. User stories can start.
 
@@ -63,11 +63,11 @@ Multi-module Kotlin project. Paths are relative to the repository root (see plan
 
 **Contracts**: `opencollection-document.contract.md`, `collection-repository.contract.md`
 
-- [ ] T020 [US1] Implement `BundledCollectionStorageDriver` (single-file read/write/delete for `FilePath`) in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/CollectionStorageDriver.kt`. Only the bundled layout is implemented (FR-034)
-- [ ] T021 [US1] Implement `CanonicalCollectionRepository` with `observeCollections`, `getCollection`, `saveCollection`, and `deleteCollection` in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/CanonicalCollectionRepository.kt`. Validate before write; invalid documents are never written (FR-006); no runtime state (FR-024); no filesystem leakage (FR-033)
-- [ ] T022 [US1] Implement `importCollection` and `exportCollection(ExportFormat JSON|YAML)` in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/CanonicalCollectionRepository.kt`
-- [ ] T023 [US1] Wire the workspace to the canonical repository so collections load and save through it, in `ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/persistence/WorkspaceRepository.kt`. Keep open tabs and runtime state out of the document (FR-024)
-- [ ] T024 [US1] Update import and export to read and write OpenCollection documents in `ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/persistence/ImportExportRepository.kt`
+- [X] T020 [US1] Implement `BundledCollectionStorageDriver` (single-file read/write/delete for `FilePath`) in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/CollectionStorageDriver.kt`. Only the bundled layout is implemented (FR-034)
+- [X] T021 [US1] Implement `CanonicalCollectionRepository` with `observeCollections`, `getCollection`, `saveCollection`, and `deleteCollection` in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/CanonicalCollectionRepository.kt`. Validate before write; invalid documents are never written (FR-006); no runtime state (FR-024); no filesystem leakage (FR-033)
+- [X] T022 [US1] Implement `importCollection` and `exportCollection(ExportFormat JSON|YAML)` in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/CanonicalCollectionRepository.kt`
+- [X] T023 [US1] Wire the workspace to the canonical repository so collections load and save through it, in `ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/persistence/WorkspaceRepository.kt`. Keep open tabs and runtime state out of the document (FR-024)
+- [X] T024 [US1] Update import and export to read and write OpenCollection documents in `ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/persistence/ImportExportRepository.kt`
 
 **Checkpoint**: US1 is independently testable. Open, edit, and save round-trips a collection.
 
@@ -81,11 +81,11 @@ Multi-module Kotlin project. Paths are relative to the repository root (see plan
 
 **Contracts**: `http-execution-adapter.contract.md`
 
-- [ ] T025 [US2] Implement `HttpExecutionAdapter.toExecutableRequest(requestItem, parentHierarchy, collectionRoot): RequestDefinition` in `feature-requests/src/commonMain/kotlin/io/github/crustack/feature/requests/HttpExecutionAdapter.kt`. Must produce identical wire requests (FR-035, SC-003)
-- [ ] T026 [US2] Implement auth and header inheritance in `HttpExecutionAdapter.kt`. `AuthInherit` traverses parents up to the collection root. Precedence: request > folder > collection defaults (FR-035)
-- [ ] T027 [US2] Implement variable resolution precedence in `HttpExecutionAdapter.kt`: request/runtime > environment > collection > global (research §7)
-- [ ] T028 [US2] Keep the adapter free of Compose and platform dependencies in `feature-requests/src/commonMain/kotlin/io/github/crustack/feature/requests/HttpExecutionAdapter.kt`
-- [ ] T029 [US2] Route the existing request execution path through the adapter in `feature-requests/src/commonMain/kotlin/io/github/crustack/feature/requests/HttpExecutionAdapter.kt` callers (search `feature-requests` for the current `RequestDefinition` construction and replace it)
+- [X] T025 [US2] Implement `HttpExecutionAdapter.toExecutableRequest(requestItem, parentHierarchy, collectionRoot): RequestDefinition` in `feature-requests/src/commonMain/kotlin/io/github/crustack/feature/requests/HttpExecutionAdapter.kt`. Must produce identical wire requests (FR-035, SC-003)
+- [X] T026 [US2] Implement auth and header inheritance in `HttpExecutionAdapter.kt`. `AuthInherit` traverses parents up to the collection root. Precedence: request > folder > collection defaults (FR-035)
+- [X] T027 [US2] Implement variable resolution precedence in `HttpExecutionAdapter.kt`: request/runtime > environment > collection > global (research §7)
+- [X] T028 [US2] Keep the adapter free of Compose and platform dependencies in `feature-requests/src/commonMain/kotlin/io/github/crustack/feature/requests/HttpExecutionAdapter.kt`
+- [X] T029 [US2] Route the existing request execution path through the adapter in `feature-requests/src/commonMain/kotlin/io/github/crustack/feature/requests/HttpExecutionAdapter.kt` callers (search `feature-requests` for the current `RequestDefinition` construction and replace it)
 
 **Checkpoint**: US2 is independently testable. Execution output is unchanged for equivalent collections.
 
@@ -97,9 +97,9 @@ Multi-module Kotlin project. Paths are relative to the repository root (see plan
 
 **Independent Test**: A collection with MCP config round-trips with the MCP block intact under `extensions.clapi.mcp`, and the HTTP request payloads contain no MCP fields.
 
-- [ ] T030 [US4] Store MCP configuration under `extensions.clapi.mcp` in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/OpenCollectionExtensions.kt` (refines T013)
-- [ ] T031 [US4] Ensure `HttpExecutionAdapter.toExecutableRequest` ignores the `extensions.clapi.mcp` block in `feature-requests/src/commonMain/kotlin/io/github/crustack/feature/requests/HttpExecutionAdapter.kt`
-- [ ] T032 [US4] Preserve the `extensions.clapi.mcp` block on save and export in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/OpenCollectionSerializer.kt`
+- [X] T030 [US4] Store MCP configuration under `extensions.clapi.mcp` in `core-model/src/commonMain/kotlin/io/github/crustack/core/model/opencollection/OpenCollectionExtensions.kt` (refines T013)
+- [X] T031 [US4] Ensure `HttpExecutionAdapter.toExecutableRequest` ignores the `extensions.clapi.mcp` block in `feature-requests/src/commonMain/kotlin/io/github/crustack/feature/requests/HttpExecutionAdapter.kt`
+- [X] T032 [US4] Preserve the `extensions.clapi.mcp` block on save and export in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/OpenCollectionSerializer.kt`
 
 **Checkpoint**: US4 is independently testable.
 
@@ -113,10 +113,10 @@ Multi-module Kotlin project. Paths are relative to the repository root (see plan
 
 **Contracts**: `collection-repository.contract.md`
 
-- [ ] T033 [US5] Enforce secret variables as `secret: true` with no `value` property on write in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/OpenCollectionSerializer.kt` (FR-017, SC-007)
+- [X] T033 [US5] Enforce secret variables as `secret: true` with no `value` property on write in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/OpenCollectionSerializer.kt` (FR-017, SC-007)
 - [ ] T034 [US5] Store secret values in local secure storage, keyed by environment ID and variable name, in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/SecretValueStore.kt` (research §7, FR-015, FR-016)
 - [ ] T035 [US5] Resolve secret values from secure storage at execution time in `feature-requests/src/commonMain/kotlin/io/github/crustack/feature/requests/HttpExecutionAdapter.kt`
-- [ ] T036 [US5] Keep tabs, history, and responses out of `CanonicalCollectionRepository` writes in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/CanonicalCollectionRepository.kt` (FR-024)
+- [X] T036 [US5] Keep tabs, history, and responses out of `CanonicalCollectionRepository` writes in `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/CanonicalCollectionRepository.kt` (FR-024)
 
 **Checkpoint**: US5 is independently testable.
 
@@ -128,9 +128,9 @@ Multi-module Kotlin project. Paths are relative to the repository root (see plan
 
 **Independent Test**: Feed documents with a wrong `opencollection` version, a folder with an HTTP request type, and a bad auth type. Each is rejected, the error names the offending path, and the file on disk is unchanged.
 
-- [ ] T037 [US6] Return path-and-reason detail in `CollectionValidationException` from `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/OpenCollectionSchemaValidator.kt` (FR-006, FR-009)
-- [ ] T038 [US6] Surface validation errors to the user in `ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/persistence/WorkspaceRepository.kt` without writing the invalid document (FR-006)
-- [ ] T039 [US6] Map `StorageReadException` and `StorageWriteException` to user-facing messages in `ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/persistence/ImportExportRepository.kt`
+- [X] T037 [US6] Return path-and-reason detail in `CollectionValidationException` from `core-storage/src/commonMain/kotlin/io/github/crustack/core/storage/opencollection/OpenCollectionSchemaValidator.kt` (FR-006, FR-009)
+- [X] T038 [US6] Surface validation errors to the user in `ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/persistence/WorkspaceRepository.kt` without writing the invalid document (FR-006)
+- [X] T039 [US6] Map `StorageReadException` and `StorageWriteException` to user-facing messages in `ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/persistence/ImportExportRepository.kt`
 
 **Checkpoint**: US6 is independently testable.
 
@@ -140,11 +140,11 @@ Multi-module Kotlin project. Paths are relative to the repository root (see plan
 
 **Purpose**: Validation, cleanup, and documentation across stories
 
-- [ ] T040 [P] Add the schema conformance suite `qa-tests/src/test/kotlin/io/github/crustack/qa/OpenCollectionValidationE2ETest.kt` that validates written documents against `opencollection_v1.0.0.json` (quickstart Scenarios 1 and 2)
-- [ ] T041 [P] Add the lossless round-trip suite `qa-tests/src/test/kotlin/io/github/crustack/qa/OpenCollectionRoundTripE2ETest.kt` (SC-002, FR-008)
-- [ ] T042 Run `./gradlew :core-model:desktopTest :core-storage:desktopTest :qa-tests:test` and confirm all pass (quickstart)
-- [ ] T043 [P] Update `docs/Clapi/todos/02_opencollection-adoption.md` to reflect the completed work
-- [ ] T044 Run the quickstart scenarios that remain in scope (1, 2, 3, 5 as numbered in quickstart.md). Scenario 4 (migration) is excluded
+- [X] T040 [P] Add the schema conformance suite `qa-tests/src/test/kotlin/io/github/crustack/qa/OpenCollectionValidationE2ETest.kt` that validates written documents against `opencollection_v1.0.0.json` (quickstart Scenarios 1 and 2)
+- [X] T041 [P] Add the lossless round-trip suite `qa-tests/src/test/kotlin/io/github/crustack/qa/OpenCollectionRoundTripE2ETest.kt` (SC-002, FR-008)
+- [X] T042 Run `./gradlew :core-model:desktopTest :core-storage:desktopTest :qa-tests:jvmTest` and confirm all pass (quickstart). Note: `:qa-tests:test` does not exist for this KMP module; the task is `:qa-tests:jvmTest`
+- [X] T043 [P] Update `docs/Clapi/todos/02_opencollection-adoption.md` to reflect the completed work
+- [ ] T044 Run the quickstart scenarios that remain in scope (1, 2, 3, 5 as numbered in quickstart.md). Scenario 4 (migration) is excluded. PARTIAL: scenarios 1 and 3 pass. Scenario 2 names `*OpenCollectionRoundTripTest*` in core-storage, which does not exist (the qa-tests `OpenCollectionRoundTripE2ETest` passes). Scenario 5 names `McpOpenCollectionIsolationTest`, which does not exist
 
 ---
 
