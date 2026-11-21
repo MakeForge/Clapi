@@ -28,7 +28,7 @@ slf4j = "2.0.17"
 kotlin-logging = "8.0.7"
 nucleus = "2.5.18"
 filekit = "0.14.2"
-amqp-client = "5.37.1"
+amqp-client = "5.38.0"
 
 [libraries]
 tinylog-api = { module = "org.tinylog:tinylog-api", version.ref = "tinylog" }
