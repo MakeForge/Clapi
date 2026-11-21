@@ -1,7 +1,7 @@
 [versions]
 kotlin = "2.1.21"
 compose = "1.8.1"
-ktor = "3.1.2"
+ktor = "3.6.1"
 coroutines = "1.10.2"
 serialization = "1.8.1"
 datetime = "0.6.2"
@@ -10,13 +10,14 @@ sqldelight = "2.0.2"
 graalvm = "24.1.1"
 networknt = "3.0.9"
 kaml = "0.104.0"
-swagger-parser = "2.1.25"
-grpc = "1.68.2"
-protobuf = "4.28.3"
+swagger-parser = "2.1.48"
+grpc = "1.85.1"
+protobuf = "4.36.2"
 protoc-jar = "3.11.4"
 ksafe = "3.3.0"
 keepassxc-proxy-access = "1.2.9" # higher versions require java >=21
 cyclonedxBom = "3.5.1"
+jackson = "2.22.4"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -62,6 +63,7 @@ protobuf-java-util = { module = "com.google.protobuf:protobuf-java-util", versio
 protoc-jar = { module = "com.github.os72:protoc-jar", version.ref = "protoc-jar" }
 ksafe = { module = "eu.anifantakis:ksafe", version.ref = "ksafe" }
 keepassxc-proxy-access = { module = "org.purejava:keepassxc-proxy-access", version.ref = "keepassxc-proxy-access" }
+jackson-bom = { module = "com.fasterxml.jackson:jackson-bom", version.ref = "jackson" }
 
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
