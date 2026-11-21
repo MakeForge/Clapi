@@ -31,3 +31,16 @@ data class RealtimeMessage(
     val protocol: RealtimeProtocol,
     val eventType: String? = null,  // SSE event type, Socket.IO event name, MQTT topic
 )
+
+/**
+ * A message logged during an active WebSocket request session.
+ */
+@Serializable
+data class WebSocketLogMessage(
+    val id: String,
+    val timestamp: Long,
+    val direction: MessageDirection,
+    val format: String = "text",
+    val payload: String = "",
+    val byteLength: Long = payload.encodeToByteArray().size.toLong(),
+)

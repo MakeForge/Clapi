@@ -6,6 +6,9 @@ import io.github.crustack.clapi.core.model.HttpMethodType
 import io.github.crustack.clapi.core.model.AuthType
 import io.github.crustack.clapi.core.model.McpConnectionConfig
 import io.github.crustack.clapi.core.model.RequestKind
+import io.github.crustack.clapi.core.model.opencollection.WebSocketMessage
+import io.github.crustack.clapi.core.model.opencollection.WebSocketMessageType
+import io.github.crustack.clapi.core.model.opencollection.WebSocketMessageVariant
 import io.github.crustack.clapi.core.model.storage.StorageType
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.FormDataEntryState
@@ -95,6 +98,21 @@ object TabsRepository {
                         put("storageType", tab.storageType.name)
                         put("gitRemoteUrl", tab.gitRemoteUrl)
                         put("gitBranch", tab.gitBranch)
+                        put("webSocketTimeout", tab.webSocketTimeout ?: "inherit")
+                        put("webSocketKeepAliveInterval", tab.webSocketKeepAliveInterval ?: "inherit")
+                        put("webSocketDocs", tab.webSocketDocs)
+                        put("webSocketMessageFormat", tab.effectiveWebSocketFormat.value)
+                        put("webSocketOutgoingPayload", tab.webSocketOutgoingPayload)
+                        put("webSocketVariants", buildJsonArray {
+                            tab.webSocketMessageVariants.forEach { v ->
+                                add(buildJsonObject {
+                                    put("title", v.title)
+                                    put("selected", v.selected)
+                                    put("type", v.message.type.value)
+                                    put("data", v.message.data)
+                                })
+                            }
+                        })
                         put("mcp", json.parseToJsonElement(
                             json.encodeToString(McpConnectionConfig.serializer(), tab.mcpConfig),
                         ))
@@ -301,7 +319,7 @@ object TabsRepository {
                 if (savedHeaders.isNotEmpty()) {
                     tab.headers.clear()
                     tab.headers.addAll(savedHeaders)
-                } else if (savedKind == RequestKind.FOLDER || savedKind == RequestKind.GRPC) {
+                } else if (savedKind == RequestKind.FOLDER || savedKind == RequestKind.GRPC || savedKind == RequestKind.WEBSOCKET) {
                     tab.headers.clear()
                 }
                 obj["grpcMetadata"]?.jsonArray?.forEach { kv ->
@@ -311,6 +329,31 @@ object TabsRepository {
                 tab.protoSyncToGit = obj["protoSyncToGit"]?.jsonPrimitive?.booleanOrNull ?: false
                 tab.grpcMethod = obj["grpcMethod"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
                 tab.grpcMethodType = obj["grpcMethodType"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } ?: "unary"
+
+                if (savedKind == RequestKind.WEBSOCKET) {
+                    tab.webSocketTimeout = obj["webSocketTimeout"]?.jsonPrimitive?.content ?: "inherit"
+                    tab.webSocketKeepAliveInterval = obj["webSocketKeepAliveInterval"]?.jsonPrimitive?.content ?: "inherit"
+                    tab.webSocketDocs = obj["webSocketDocs"]?.jsonPrimitive?.content ?: ""
+                    obj["webSocketMessageFormat"]?.jsonPrimitive?.content?.let { formatStr ->
+                        tab.webSocketMessageFormat = WebSocketMessageType.fromValue(formatStr)
+                    }
+                    tab.webSocketOutgoingPayload = obj["webSocketOutgoingPayload"]?.jsonPrimitive?.content ?: ""
+                    obj["webSocketVariants"]?.jsonArray?.forEach { el ->
+                        val vObj = el.jsonObject
+                        tab.webSocketMessageVariants.add(
+                            WebSocketMessageVariant(
+                                title = vObj["title"]?.jsonPrimitive?.content ?: "Variant",
+                                selected = vObj["selected"]?.jsonPrimitive?.booleanOrNull ?: false,
+                                message = WebSocketMessage(
+                                    type = WebSocketMessageType.fromValue(vObj["type"]?.jsonPrimitive?.content),
+                                    data = vObj["data"]?.jsonPrimitive?.content ?: "",
+                                )
+                            )
+                        )
+                    }
+                    val selectedVarIdx = tab.webSocketMessageVariants.indexOfFirst { it.selected == true }
+                    tab.activeWebSocketVariantIndex = if (selectedVarIdx >= 0) selectedVarIdx else 0
+                }
 
                 // Load form rows BEFORE restoreSavedSnapshot so that recomputeDirty()
                 // sees the complete state when comparing against the persisted savedSnapshot.

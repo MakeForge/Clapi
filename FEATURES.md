@@ -7,6 +7,7 @@ Clapi is a desktop-first API testing tool built with Kotlin and Compose Multipla
 Clapi supports end-to-end API testing with:
 
 - HTTP request authoring and execution
+- WebSocket request authoring, message variants, and live bi-directional streaming
 - Pre-request scripting
 - Post-request scripting
 - Multi-scope variables (environment, global, collection, request-local)
@@ -34,6 +35,17 @@ Clapi supports end-to-end API testing with:
 - HTTP streaming for SSE (`text/event-stream`) and NDJSON (OpenAI-style `"stream": true`). Items with `Accept: text/event-stream` show an **SSE** badge in the HTTP method color; folder ⋮ → **New SSE Request**.
 - **MCP client** for Streamable HTTP (2025-06-18), legacy HTTP+SSE, and desktop stdio. Tools (Form/JSON arguments), resources (read + subscribe), prompts, Activity JSON-RPC inspector, sampling/roots/elicitation, and auth (None, Basic, Bearer, API Key, JWT) match the REST workspace. See [docs/mcp.md](docs/mcp.md).
 - Copy request as `curl`
+
+### WebSocket Request Authoring and Execution
+
+- First-class WebSocket request type (`RequestKind.WEBSOCKET`) with dedicated `WS` blue badge (`#0288D1`) across tree nodes and editor tabs.
+- Full OpenCollection v1.0.0 compliance with bidirectional import/export round-trip (`WebSocketRequestItem`, `WebSocketRequestDetails`, `WebSocketMessageVariant`, `WebSocketRequestSettings`).
+- Legacy HTTP requests with `ws://` or `wss://` URLs automatically upgraded on import.
+- Interactive connection lifecycle: Connect, Disconnect, Clear timeline, and live connection status indicator (Disconnected, Connecting, Connected, Closing, Error).
+- Message authoring with multiple format support: Plain text, JSON, XML, Binary (hex/Base64).
+- Reusable named Message Variants with selector, variant creation, deletion, and persistent state.
+- Real-time bi-directional message timeline displaying timestamp, direction (incoming/outgoing), format, payload, and byte length, capped at 1,000 frames FIFO with auto-scroll.
+- Configuration of custom connection headers, query parameters, auth (Bearer, Basic, API Key), timeout, and keep-alive ping intervals.
 
 ### External Secret Managers (KeePassXC & HashiCorp Vault)
 

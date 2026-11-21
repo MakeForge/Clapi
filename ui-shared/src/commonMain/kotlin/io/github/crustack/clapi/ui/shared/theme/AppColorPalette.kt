@@ -44,6 +44,7 @@ data class AppColorPalette(
     val methodHead: Color,
     val methodTrace: Color,
     val methodConnect: Color,
+    val methodWebSocket: Color = Color(0xFF29B6F6),
 
     val statusSuccess: Color,
     val statusRedirect: Color,
@@ -95,6 +96,7 @@ val DarkAppColors = AppColorPalette(
     methodHead    = Color(0xFFA1A1AA),
     methodTrace   = Color(0xFF56B6C2),
     methodConnect = Color(0xFF56B6C2),
+    methodWebSocket = Color(0xFF29B6F6),
 
     // Status
     statusSuccess     = Color(0xFF4EC9B0),
@@ -146,6 +148,7 @@ val LightAppColors = AppColorPalette(
     methodHead    = Color(0xFF6E7A91),
     methodTrace   = Color(0xFF2A8FA3),       // teal-cyan
     methodConnect = Color(0xFF2A8FA3),
+    methodWebSocket = Color(0xFF0288D1),
 
     // Status
     statusSuccess     = Color(0xFF0FA88E),
