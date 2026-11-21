@@ -1,6 +1,9 @@
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import dev.nucleusframework.desktop.application.dsl.TargetFormat
 import java.io.FileOutputStream
+import java.util.jar.Attributes
+import java.util.jar.JarOutputStream
+import java.util.jar.Manifest
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
@@ -275,90 +278,116 @@ nucleus.application {
 // ─── Runnable fat JAR task ───────────────────────────────────────────────────
 // Produces ui-desktop/build/distribute/Clapi-{version}.jar
 // Includes app classes + runtime classpath and sets Main-Class so `java -jar` works.
-tasks.register<org.gradle.jvm.tasks.Jar>("packageClapiJar") {
-    val mainClassName = "io.github.makeforge.clapi.ui.desktop.MainKt"
+// Implemented as a dedicated DefaultTask so desktopRuntimeClasspath is only resolved at
+// execution time (after project JAR tasks have built their outputs and artifact transforms
+// like Nucleus's CleanNativeLibsTransform can read them).
+abstract class PackageClapiJarTask : DefaultTask() {
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val mainJar: RegularFileProperty
+
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val runtimeClasspath: ConfigurableFileCollection
+
+    @get:Input
+    abstract val mainClassName: Property<String>
+
+    @get:OutputFile
+    abstract val outputJar: RegularFileProperty
+
+    @TaskAction
+    fun packageJar() {
+        val outFile = outputJar.get().asFile
+        outFile.parentFile.mkdirs()
+
+        val manifest = Manifest().apply {
+            mainAttributes[Attributes.Name.MANIFEST_VERSION] = "1.0"
+            mainAttributes[Attributes.Name.MAIN_CLASS] = mainClassName.get()
+        }
+
+        val allJars = buildList {
+            add(mainJar.get().asFile)
+            addAll(runtimeClasspath.files.filter { it.isFile && it.name.endsWith(".jar") })
+        }
+
+        val serviceMap = linkedMapOf<String, LinkedHashSet<String>>()
+        val seenEntries = hashSetOf("META-INF/", "META-INF/MANIFEST.MF")
+
+        JarOutputStream(FileOutputStream(outFile).buffered(), manifest).use { jarOut ->
+            for (jarFile in allJars) {
+                if (!jarFile.exists()) continue
+                ZipFile(jarFile).use { zip ->
+                    val entries = zip.entries()
+                    while (entries.hasMoreElements()) {
+                        val entry = entries.nextElement()
+                        val name = entry.name
+
+                        // Merge META-INF/services/* across all JARs so GraalVM Truffle languages
+                        // and other ServiceLoader providers are not lost to duplicate exclusion.
+                        if (name.startsWith("META-INF/services/")) {
+                            if (!entry.isDirectory) {
+                                val lines = zip.getInputStream(entry).bufferedReader().use { reader ->
+                                    reader.readLines()
+                                        .filter { line -> line.isNotBlank() && !line.trimStart().startsWith("#") }
+                                }
+                                serviceMap.getOrPut(name) { linkedSetOf() }.addAll(lines)
+                            }
+                            continue
+                        }
+
+                        // Drop signature metadata that becomes invalid when jars are merged,
+                        // and strip obsolete protoc 2.x binaries (ProtocJarParser uses 3.11.4).
+                        if (isExcludedEntry(name)) continue
+                        if (!seenEntries.add(name)) continue
+
+                        val newEntry = ZipEntry(name).apply {
+                            time = entry.time
+                        }
+                        jarOut.putNextEntry(newEntry)
+                        if (!entry.isDirectory) {
+                            zip.getInputStream(entry).use { it.copyTo(jarOut) }
+                        }
+                        jarOut.closeEntry()
+                    }
+                }
+            }
+
+            // Write merged META-INF/services/* entries.
+            if (serviceMap.isNotEmpty() && seenEntries.add("META-INF/services/")) {
+                jarOut.putNextEntry(ZipEntry("META-INF/services/"))
+                jarOut.closeEntry()
+            }
+            for ((path, implementations) in serviceMap) {
+                jarOut.putNextEntry(ZipEntry(path))
+                jarOut.write((implementations.joinToString("\n") + "\n").toByteArray(Charsets.UTF_8))
+                jarOut.closeEntry()
+            }
+        }
+    }
+
+    private fun isExcludedEntry(name: String): Boolean {
+        if (name.startsWith("bin/2.")) return true
+        if (name.startsWith("META-INF/") && name.indexOf('/', startIndex = "META-INF/".length) == -1) {
+            if (name.endsWith(".SF", ignoreCase = true) ||
+                name.endsWith(".DSA", ignoreCase = true) ||
+                name.endsWith(".RSA", ignoreCase = true)
+            ) {
+                return true
+            }
+        }
+        return false
+    }
+}
+
+val packageClapiJar = tasks.register<PackageClapiJarTask>("packageClapiJar") {
     val desktopJarTask = tasks.named<org.gradle.jvm.tasks.Jar>("desktopJar")
     val desktopRuntimeClasspath = configurations.named("desktopRuntimeClasspath")
 
-    notCompatibleWithConfigurationCache("Merges META-INF/services entries at execution time from runtime JARs")
-
-    dependsOn(desktopJarTask)
-
-    archiveBaseName.set("Clapi")
-    archiveVersion.set(project.version.toString())
-    archiveClassifier.set("")
-    destinationDirectory.set(layout.buildDirectory.dir("distribute"))
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-
-    manifest {
-        attributes["Main-Class"] = mainClassName
-    }
-
-    // GraalVM Truffle languages (js, regex, etc.) each register themselves via
-    // META-INF/services/. DuplicatesStrategy.EXCLUDE would silently drop all but the
-    // first entry, causing "No language for id regex found" at runtime.
-    // Fix: exclude services from all sources, merge them manually in doFirst, then
-    // include the merged result (added first so it wins the EXCLUDE dedup).
-    val mergedServicesDir = layout.buildDirectory.dir("tmp/merged-services")
-    from(mergedServicesDir)
-
-    // Include compiled classes/resources from the desktop jar (services merged separately).
-    from(desktopJarTask.map { zipTree(it.archiveFile.get().asFile) }) {
-        exclude("META-INF/services/**")
-    }
-
-    // Include all runtime dependency jars so the artifact is self-contained (services merged separately).
-    from(
-        desktopRuntimeClasspath.map { files ->
-            files
-                .filter { it.name.endsWith(".jar") }
-                .map { zipTree(it) }
-        }
-    ) {
-        exclude("META-INF/services/**")
-    }
-
-    // Drop signature metadata that becomes invalid when jars are merged,
-    // and strip obsolete protoc 2.x binaries (ProtocJarParser uses 3.11.4).
-    exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
-    exclude("bin/2.*/**")
-
-    // Collect and merge all META-INF/services entries from every input JAR so that all
-    // service providers are present in the service loader.
-    doFirst {
-        val outDir = mergedServicesDir.get().asFile
-        outDir.deleteRecursively()
-
-        val serviceMap = mutableMapOf<String, LinkedHashSet<String>>()
-
-        val allJars = buildList {
-            add(desktopJarTask.get().archiveFile.get().asFile)
-            addAll(desktopRuntimeClasspath.get().filter { it.name.endsWith(".jar") })
-        }
-
-        allJars.forEach { jarFile ->
-            if (!jarFile.exists()) return@forEach
-            ZipFile(jarFile).use { zip ->
-                val entries = zip.entries()
-                while (entries.hasMoreElements()) {
-                    val entry = entries.nextElement()
-                    if (!entry.name.startsWith("META-INF/services/") || entry.isDirectory) continue
-
-                    val lines = zip.getInputStream(entry).bufferedReader().use { reader ->
-                        reader.readLines()
-                            .filter { line -> line.isNotBlank() && !line.trimStart().startsWith("#") }
-                    }
-                    serviceMap.getOrPut(entry.name) { linkedSetOf() }.addAll(lines)
-                }
-            }
-        }
-
-        serviceMap.forEach { (path, implementations) ->
-            val file = outDir.resolve(path)
-            file.parentFile.mkdirs()
-            file.writeText(implementations.joinToString("\n") + "\n")
-        }
-    }
+    mainClassName.set("io.github.makeforge.clapi.ui.desktop.MainKt")
+    mainJar.set(desktopJarTask.flatMap { it.archiveFile })
+    runtimeClasspath.from(desktopRuntimeClasspath)
+    outputJar.set(layout.buildDirectory.file("distribute/Clapi-${project.version}.jar"))
 
     description = "Builds a runnable fat JAR at build/distribute/Clapi-{version}.jar"
     group = "distribution"
@@ -370,12 +399,16 @@ tasks.register<org.gradle.jvm.tasks.Jar>("packageClapiJar") {
  * generated coroutine lambda) before an artifact is uploaded.
  */
 tasks.register<Exec>("verifyPackagedRuntime") {
-    dependsOn("packageClapiJar")
-    val jarFile = layout.buildDirectory.file("distribute/Clapi-${project.version}.jar")
+    dependsOn(packageClapiJar)
+    val jarFile = packageClapiJar.flatMap { it.outputJar }
+    val javaToolchains = project.extensions.getByType<JavaToolchainService>()
+    val javaExecutable = javaToolchains.launcherFor {
+        languageVersion.set(JavaLanguageVersion.of(25))
+    }.get().executablePath.asFile.absolutePath
 
     workingDir = project.rootDir
     commandLine(
-        "java",
+        javaExecutable,
         "-jar",
         jarFile.get().asFile.absolutePath,
         "--shutdown-smoke-test",
