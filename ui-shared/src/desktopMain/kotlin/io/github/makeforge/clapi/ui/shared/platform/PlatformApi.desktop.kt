@@ -387,9 +387,9 @@ actual object PlatformStorage {
         val custom = customStorageDir()
         if (custom != null) {
             val nodeName = custom.hashCode().let { if (it < 0) "dir_${-it}" else "dir_$it" }
-            KSafe(fileName = "clapi_secrets_$nodeName")
+            KSafe(fileName = "clapi_secrets_$nodeName", lazyLoad = true)
         } else {
-            KSafe(fileName = "clapi_secrets")
+            KSafe(fileName = "clapi_secrets", lazyLoad = true)
         }
     }
 
