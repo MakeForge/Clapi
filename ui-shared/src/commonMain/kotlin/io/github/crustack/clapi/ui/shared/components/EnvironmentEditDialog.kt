@@ -104,6 +104,8 @@ import io.github.crustack.clapi.ui.shared.platform.nwseResizeCursor
 import io.github.crustack.clapi.ui.shared.platform.platformDiagonalResizeCursorStyle
 import io.github.crustack.clapi.ui.shared.platform.platformResizeCursorStyle
 import io.github.crustack.clapi.ui.shared.platform.verticalResizeCursor
+import io.github.crustack.clapi.ui.shared.shortcuts.AppHotkeys
+import io.github.crustack.clapi.ui.shared.shortcuts.hotkeys
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.MutableExternalSecret
 import io.github.crustack.clapi.ui.shared.state.MutableKeyValue
@@ -296,15 +298,88 @@ fun EnvironmentEditDialog(state: AppState) {
         state.showEnvEditDialog = false
     }
 
+    val captureSnapshot: () -> List<Any?> = {
+        listOf(
+            workingName.value,
+            workingProvider,
+            workingVars.filter { it.key.isNotBlank() || it.value.isNotBlank() }
+                .map { listOf(it.key, it.value, it.enabled, it.secret) },
+            workingSecrets.filter { it.name.isNotBlank() || it.path.isNotBlank() || it.url.isNotBlank() }
+                .map { listOf(it.name, it.path, it.description, it.enabled, it.url, it.targetField, it.customFilters.toMap()) },
+        )
+    }
+
+    var baselineSnapshot by remember(envIndex) { mutableStateOf(captureSnapshot()) }
+    var showUnsavedConfirm by remember(envIndex) { mutableStateOf(false) }
+
+    fun isDirty(): Boolean = captureSnapshot() != baselineSnapshot
+
+    fun saveEnvironment(closeDialog: Boolean = false) {
+        env.name = workingName.value
+        env.variables.clear()
+        workingVars.forEach { v ->
+            if (v.key.isNotBlank() || v.value.isNotBlank()) {
+                env.variables.add(MutableKeyValue(v.key, v.value, v.enabled, v.secret))
+            }
+        }
+        state.pruneEmptyVariablesForEnvironment(envIndex)
+
+        env.externalSecretsProvider = workingProvider
+        env.externalSecrets.clear()
+        val isKeePassXc = workingProvider.equals("keepassxc", ignoreCase = true)
+        workingSecrets.forEach { s ->
+            if (isKeePassXc) {
+                if (s.name.isNotBlank() || s.url.isNotBlank()) {
+                    env.externalSecrets.add(
+                        MutableExternalSecret(
+                            name = s.name,
+                            path = s.path,
+                            description = s.description,
+                            enabled = s.enabled,
+                            url = s.url,
+                            targetField = s.targetField,
+                            customFilters = s.customFilters.toMap(),
+                        )
+                    )
+                }
+            } else {
+                if (s.name.isNotBlank() || s.path.isNotBlank()) {
+                    env.externalSecrets.add(
+                        MutableExternalSecret(
+                            name = s.name,
+                            path = s.path,
+                            description = s.description,
+                            enabled = s.enabled,
+                        )
+                    )
+                }
+            }
+        }
+
+        baselineSnapshot = captureSnapshot()
+        state.log("✓ Environment '${env.name}' saved (${env.variables.size} variables, ${env.externalSecrets.size} secrets)", io.github.crustack.clapi.ui.shared.state.LogLevel.SUCCESS)
+        if (closeDialog) {
+            dismissDialog()
+        }
+    }
+
+    fun requestClose() {
+        if (isDirty()) {
+            showUnsavedConfirm = true
+        } else {
+            dismissDialog()
+        }
+    }
+
     Dialog(
-        onDismissRequest = ::dismissDialog,
+        onDismissRequest = ::requestClose,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .lockedResizeCursor(activeResizeHandle)
-                .pointerInput(envIndex) { detectTapGestures { if (!resizeActive.value) dismissDialog() } },
+                .pointerInput(envIndex) { detectTapGestures { if (!resizeActive.value) requestClose() } },
             contentAlignment = Alignment.Center,
         ) {
             val viewportWidthDp = maxWidth.value
@@ -368,22 +443,21 @@ fun EnvironmentEditDialog(state: AppState) {
                         .background(ClapiColors.Surface)
                         .border(1.dp, ClapiColors.Border, RoundedCornerShape(12.dp))
                         .padding(16.dp)
-                        .onPreviewKeyEvent { event ->
-                            if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-                            val command = event.isMetaPressed || event.isCtrlPressed
-                            when {
-                                command && event.key == Key.F -> {
-                                    searchValue = searchValue.copy(
-                                        selection = TextRange(0, searchValue.text.length),
-                                    )
-                                    searchFocusRequester.requestFocus()
-                                    true
-                                }
-                                event.key == Key.Escape && searchValue.text.isNotEmpty() -> {
+                        .hotkeys {
+                            on(AppHotkeys.Save) {
+                                saveEnvironment(closeDialog = false)
+                            }
+                            on(AppHotkeys.Find) {
+                                searchValue = searchValue.copy(
+                                    selection = TextRange(0, searchValue.text.length),
+                                )
+                                searchFocusRequester.requestFocus()
+                            }
+                            onConditional(AppHotkeys.Escape) {
+                                if (searchValue.text.isNotEmpty()) {
                                     clearSearch()
                                     true
-                                }
-                                else -> false
+                                } else false
                             }
                         }
                         .testTag("env-edit-dialog"),
@@ -793,7 +867,7 @@ fun EnvironmentEditDialog(state: AppState) {
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(ClapiColors.SurfaceContainer)
                                 .border(1.dp, ClapiColors.Border, RoundedCornerShape(8.dp))
-                                .clickable { dismissDialog() }
+                                .clickable { requestClose() }
                                 .padding(horizontal = 16.dp, vertical = 7.dp)
                                 .testTag("env-cancel-button"),
                         ) { Text(Strings.cancel, color = ClapiColors.OnSurface, fontSize = 13.sp) }
@@ -803,51 +877,7 @@ fun EnvironmentEditDialog(state: AppState) {
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(ClapiColors.Primary)
-                                .clickable {
-                                    env.name = workingName.value
-                                    env.variables.clear()
-                                    workingVars.forEach { v ->
-                                        if (v.key.isNotBlank() || v.value.isNotBlank()) {
-                                            env.variables.add(MutableKeyValue(v.key, v.value, v.enabled, v.secret))
-                                        }
-                                    }
-                                    state.pruneEmptyVariablesForEnvironment(envIndex)
-
-                                    env.externalSecretsProvider = workingProvider
-                                    env.externalSecrets.clear()
-                                    val isKeePassXc = workingProvider.equals("keepassxc", ignoreCase = true)
-                                    workingSecrets.forEach { s ->
-                                        if (isKeePassXc) {
-                                            if (s.name.isNotBlank() || s.url.isNotBlank()) {
-                                                env.externalSecrets.add(
-                                                    MutableExternalSecret(
-                                                        name = s.name,
-                                                        path = s.path,
-                                                        description = s.description,
-                                                        enabled = s.enabled,
-                                                        url = s.url,
-                                                        targetField = s.targetField,
-                                                        customFilters = s.customFilters.toMap(),
-                                                    )
-                                                )
-                                            }
-                                        } else {
-                                            if (s.name.isNotBlank() || s.path.isNotBlank()) {
-                                                env.externalSecrets.add(
-                                                    MutableExternalSecret(
-                                                        name = s.name,
-                                                        path = s.path,
-                                                        description = s.description,
-                                                        enabled = s.enabled,
-                                                    )
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    dismissDialog()
-                                    state.log("✓ Environment '${env.name}' saved (${env.variables.size} variables, ${env.externalSecrets.size} secrets)", io.github.crustack.clapi.ui.shared.state.LogLevel.SUCCESS)
-                                }
+                                .clickable { saveEnvironment(closeDialog = true) }
                                 .padding(horizontal = 16.dp, vertical = 7.dp)
                                 .testTag("env-save-button"),
                         ) { Text(Strings.save, color = ClapiColors.OnPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
@@ -887,6 +917,24 @@ fun EnvironmentEditDialog(state: AppState) {
                 }
             }
         }
+    }
+
+    if (showUnsavedConfirm) {
+        DirtyCloseDialog(
+            title = "Unsaved Changes",
+            message = Strings.t("request_unsaved_changes_message"),
+            onSave = {
+                saveEnvironment(closeDialog = true)
+                showUnsavedConfirm = false
+            },
+            onDiscard = {
+                showUnsavedConfirm = false
+                dismissDialog()
+            },
+            onCancel = {
+                showUnsavedConfirm = false
+            },
+        )
     }
 }
 

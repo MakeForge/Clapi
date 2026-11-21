@@ -66,6 +66,9 @@ import io.github.crustack.clapi.ui.shared.persistence.WorkspaceRepository
 import io.github.crustack.clapi.ui.shared.platform.ioDispatcher
 import io.github.crustack.clapi.ui.shared.platform.openFileInDefaultApp
 import io.github.crustack.clapi.ui.shared.platform.pickProtoFiles
+import io.github.crustack.clapi.ui.shared.shortcuts.AppHotkeys
+import io.github.crustack.clapi.ui.shared.shortcuts.hotkeys
+import io.github.crustack.clapi.ui.shared.shortcuts.onSaveHotkey
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.LogLevel
 import io.github.crustack.clapi.ui.shared.state.ProtoFileItemState
@@ -112,6 +115,7 @@ fun CollectionEditor(
         modifier = modifier
             .fillMaxSize()
             .background(ClapiColors.Background)
+            .onSaveHotkey { onSave() }
             .testTag("collection-editor"),
     ) {
         // Header bar displaying article icon, title, and Save button
@@ -431,6 +435,7 @@ fun CollectionStorageSettings(
         modifier = modifier
             .fillMaxSize()
             .padding(24.dp)
+            .onSaveHotkey { if (canSaveGit && !tab.isSavingStorage) handleSaveStorage() }
             .testTag("collection-storage-panel"),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
