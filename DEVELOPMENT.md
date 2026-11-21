@@ -26,9 +26,8 @@ clapi/
 ├── editor-core/         # Pure-Kotlin editor engine: document model, lexer, fold map, diagnostics
 ├── editor-ui/           # Compose editor renderer: EditorRenderer, EditorViewModel, IdleLexer
 ├── feature-requests/    # Request use-cases wiring core-model + core-network
-├── ui-shared/           # Shared Compose UI code (jvm + wasmJs) — 95% of all UI
+├── ui-shared/           # Compose UI code (desktop/JVM target) — 95% of all UI
 ├── ui-desktop/          # Thin Compose Desktop launcher (~74 lines)
-├── ui-web/              # Thin Compose/Wasm browser launcher (~30 lines, CanvasBasedWindow)
 ├── qa-tests/            # JVM integration + end-to-end tests
 ├── sample-server/       # Standalone Ktor server for manual/exploratory testing
 ├── buildSrc/            # Shared Gradle build logic
@@ -51,7 +50,7 @@ Full version catalog: [`gradle/libs.versions.toml`](gradle/libs.versions.toml).
 
 ## Building
 
-Prefer a targeted compile or run while developing. `./gradlew build` compiles every Kotlin Multiplatform target, including unused Android variants, and can fail on this Gradle/Kotlin combo.
+Clapi is a **desktop-only** application (Kotlin Multiplatform with a single `jvm("desktop")` target; there are no Android, iOS or web targets). Prefer a targeted compile or run while developing.
 
 ```bash
 ./gradlew :ui-desktop:compileKotlinDesktop
@@ -64,13 +63,6 @@ If you still want a full `build`:
 ./gradlew build
 ```
 
-If Android Kotlin compile fails (`compileDebugKotlinAndroid` / `CompilationService`), skip those tasks or use the desktop/wasm commands above. If build fails with `:kotlinStoreYarnLock` and a message that the lock file changed, refresh and store the lock, then rerun:
-
-```bash
-./gradlew kotlinUpgradeYarnLock
-./gradlew kotlinStoreYarnLock
-./gradlew build
-```
 **FOR ALL GRADLE COMMANDS USE `rtk` as described in [copilot-instructions.md](./.github/copilot-instructions.md)**
 
 Compile only the shared UI module (fast check during development):
@@ -84,7 +76,6 @@ Compile only the shared UI module (fast check during development):
 App icons are versioned in:
 
 - `ui-desktop/src/desktopMain/resources/icons/` (PNG sizes + `.icns` + `.ico`)
-- `ui-web/src/wasmJsMain/resources/icons/` (favicon and PWA icons)
 
 Desktop window icon is loaded from `Main.kt`; native package icons are configured in
 `ui-desktop/build.gradle.kts` under `nativeDistributions`.
@@ -250,18 +241,6 @@ Query string simulation modes:
 - `?mode=error` — returns a 500 error
 - `?large=true` — returns a large payload
 
-### Web (Compose/Wasm — canvas-based)
-
-```bash
-./gradlew :ui-web:wasmJsBrowserDevelopmentRun
-```
-
-Production bundle:
-
-```bash
-./gradlew :ui-web:wasmJsBrowserProductionWebpack
-```
-
 ---
 
 ## Testing
@@ -320,17 +299,17 @@ git push origin v1.19.0
 
 See [`docs/architecture.md`](docs/architecture.md) for a full write-up. Key rules:
 
-- **UI launchers** (`ui-desktop`, `ui-web`) depend on **ui-shared** only.
+- The **UI launcher** (`ui-desktop`) depends on **ui-shared** only.
 - **ui-shared** depends on **feature modules** and **core modules**.
 - **Feature modules** depend on **core modules** only.
 - **Core modules** do not depend on feature or UI modules.
 - All business logic and UI composables live in `commonMain` sources.
-- Platform-specific code uses `expect`/`actual` declarations in `ui-shared`.
+- Platform-specific code uses `expect`/`actual` declarations in `ui-shared`; the only actuals are in `desktopMain` (JVM).
 
 ### `ui-shared` component map
 
 All shared UI code lives in
-`ui-shared/src/commonMain/kotlin/io/github/crustack/ui/shared/`:
+`ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/`:
 
 ```
 MainScreen.kt              — root composable (toolbar, sidebar, editors, dialogs)
@@ -366,17 +345,12 @@ theme/
 └── ClapiTheme.kt         — Material 3 colour tokens, typography, code font
 ```
 
-Platform-specific actuals are in `desktopMain/` (JVM) and `wasmJsMain/` (browser).
+Platform-specific actuals are in `desktopMain/` (JVM).
 
 ### `ui-desktop` (thin launcher)
 
 `ui-desktop/src/desktopMain/kotlin/io/github/crustack/ui/desktop/Main.kt` — ~44 lines.
 Opens a Compose `Window`, loads settings/tabs/workspace, and renders `MainScreen`.
-
-### `ui-web` (thin launcher)
-
-`ui-web/src/wasmJsMain/kotlin/io/github/crustack/ui/web/Main.kt` — ~15 lines.
-Uses `CanvasBasedWindow` to render `MainScreen` in an HTML `<canvas>` element.
 
 ---
 
@@ -395,17 +369,8 @@ Uses `CanvasBasedWindow` to render `MainScreen` in an HTML `<canvas>` element.
 # Compile shared UI for desktop
 ./gradlew :ui-shared:compileKotlinDesktop
 
-# Compile shared UI for wasmJs
-./gradlew :ui-shared:compileKotlinWasmJs
-
-# Build web production bundle
-./gradlew :ui-web:wasmJsBrowserProductionWebpack
-
 # Run desktop
 ./gradlew :ui-desktop:run
-
-# Run web dev server
-./gradlew :ui-web:wasmJsBrowserDevelopmentRun
 ```
 
 
