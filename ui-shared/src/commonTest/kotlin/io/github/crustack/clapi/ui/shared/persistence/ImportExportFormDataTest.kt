@@ -2,6 +2,8 @@ package io.github.crustack.clapi.ui.shared.persistence
 
 import io.github.crustack.clapi.core.model.BodyType
 import io.github.crustack.clapi.core.model.FormEntryType
+import io.github.crustack.clapi.core.model.HttpMethodType
+import io.github.crustack.clapi.core.model.KeyValueEntry
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.CollectionNode
 import io.github.crustack.clapi.ui.shared.state.FormDataEntryState
@@ -277,5 +279,67 @@ class ImportExportFormDataTest {
         assertTrue(imported.urlencodedEntries.any { it.key == "username" && it.value == "alice" })
         assertTrue(imported.urlencodedEntries.any { it.key == "password" && it.value == "secret123" })
         assertTrue(imported.urlencodedEntries.any { it.key == "remember" && it.value == "true" })
+    }
+
+    @Test
+    fun folderRequestDefaults_roundtrip_preserves_headers_params_auth_and_scripts() {
+        val folderNode = CollectionNode(
+            id = "folder-defaults-1",
+            name = "Folder With Defaults",
+            isFolder = true,
+            headerEntries = listOf(
+                KeyValueEntry("X-Folder-Api", "v1.2", enabled = true),
+                KeyValueEntry("X-Disabled", "off", enabled = false),
+            ),
+            queryEntries = listOf(
+                KeyValueEntry("locale", "en-US", enabled = true),
+            ),
+            authType = io.github.crustack.clapi.core.model.AuthType.BEARER,
+            authToken = "folder-bearer-secret",
+            preRequestScript = "console.log('folder pre');",
+            testScript = "console.log('folder post');",
+            children = androidx.compose.runtime.mutableStateListOf(
+                CollectionNode(
+                    id = "child-req-1",
+                    name = "Child Request",
+                    isFolder = false,
+                    method = HttpMethodType.GET,
+                    url = "https://example.com/api",
+                )
+            ),
+        )
+
+        val state = buildState(folderNode)
+        val exported = ImportExportRepository.exportCollectionToString(state.collections.first())
+
+        val importState = AppState(openDefaultTab = false)
+        ImportExportRepository.importCollectionFromString(importState, exported)
+
+        val importedRoot = importState.collections.first()
+        val importedFolder = importedRoot.children.first { it.name == "Folder With Defaults" }
+
+        assertTrue(importedFolder.isFolder)
+        assertNotNull(importedFolder.headerEntries)
+        assertEquals(2, importedFolder.headerEntries?.size)
+        val header = importedFolder.headerEntries?.first { it.key == "X-Folder-Api" }
+        assertEquals("v1.2", header?.value)
+        assertTrue(header?.enabled == true)
+
+        val disabledHeader = importedFolder.headerEntries?.first { it.key == "X-Disabled" }
+        assertEquals("off", disabledHeader?.value)
+        assertEquals(false, disabledHeader?.enabled)
+
+        assertNotNull(importedFolder.queryEntries)
+        assertEquals(1, importedFolder.queryEntries?.size)
+        assertEquals("locale", importedFolder.queryEntries?.first()?.key)
+        assertEquals("en-US", importedFolder.queryEntries?.first()?.value)
+
+        assertEquals(io.github.crustack.clapi.core.model.AuthType.BEARER, importedFolder.authType)
+        assertEquals("folder-bearer-secret", importedFolder.authToken)
+        assertEquals("console.log('folder pre');", importedFolder.preRequestScript)
+        assertEquals("console.log('folder post');", importedFolder.testScript)
+
+        assertEquals(1, importedFolder.children.size)
+        assertEquals("Child Request", importedFolder.children.first().name)
     }
 }

@@ -99,8 +99,8 @@ class NewFeaturesUiTest {
         // Verify menu items appear with icons
         composeRule.onNodeWithText("Add Folder").assertIsDisplayed()
         composeRule.onNodeWithText("Add Request").assertIsDisplayed()
-        composeRule.onNodeWithText("Export Collection").assertIsDisplayed()
-        composeRule.onNodeWithText("Duplicate Collection").assertIsDisplayed()
+        composeRule.onNodeWithText("Export Folder").assertIsDisplayed()
+        composeRule.onNodeWithText("Duplicate Folder").assertIsDisplayed()
         composeRule.onNodeWithText("Rename").assertIsDisplayed()
         composeRule.onNodeWithText("Delete").assertIsDisplayed()
     }

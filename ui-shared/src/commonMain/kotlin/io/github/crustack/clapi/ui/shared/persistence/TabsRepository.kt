@@ -125,6 +125,10 @@ object TabsRepository {
                 val savedMethod = safeEnum(obj["method"]?.jsonPrimitive?.content, HttpMethodType.GET)
                 val savedUrl = obj["url"]?.jsonPrimitive?.content ?: ""
 
+                val savedKind = runCatching {
+                    RequestKind.valueOf(obj["kind"]?.jsonPrimitive?.content ?: "HTTP")
+                }.getOrDefault(RequestKind.HTTP)
+
                 fun findByRequestRef(nodes: List<io.github.crustack.clapi.ui.shared.state.CollectionNode>, ref: String): io.github.crustack.clapi.ui.shared.state.CollectionNode? {
                     nodes.forEach { node ->
                         if (!node.isFolder && node.requestRef == ref) return node
@@ -144,43 +148,59 @@ object TabsRepository {
                 }
                 var resolvedCollection: io.github.crustack.clapi.ui.shared.state.CollectionNode? = null
 
-                // Strongest match: stable request identity persisted on the tab.
-                if (savedRequestRef != null) {
-                    val byRef = findByRequestRef(state.collections, savedRequestRef)
-                    if (byRef != null) {
-                        realId = byRef.id
+                if (savedKind == RequestKind.FOLDER) {
+                    fun findFolder(nodes: List<io.github.crustack.clapi.ui.shared.state.CollectionNode>): io.github.crustack.clapi.ui.shared.state.CollectionNode? {
+                        for (node in nodes) {
+                            if (node.isFolder && (node.id == savedId || node.name == reqName)) return node
+                            if (node.isFolder) {
+                                findFolder(node.children)?.let { return it }
+                            }
+                        }
+                        return null
                     }
-                }
+                    val folderNode = findFolder(state.collections)
+                    if (folderNode != null) {
+                        realId = folderNode.id
+                    }
+                } else {
+                    // Strongest match: stable request identity persisted on the tab.
+                    if (savedRequestRef != null) {
+                        val byRef = findByRequestRef(state.collections, savedRequestRef)
+                        if (byRef != null) {
+                            realId = byRef.id
+                        }
+                    }
 
-                fun resolveFolderScope(root: io.github.crustack.clapi.ui.shared.state.CollectionNode): io.github.crustack.clapi.ui.shared.state.CollectionNode {
-                    var cursor: io.github.crustack.clapi.ui.shared.state.CollectionNode = root
-                    for (folder in parsedFolderPath) {
-                        val next = cursor.children.find { it.name == folder && it.isFolder } ?: break
-                        cursor = next
+                    fun resolveFolderScope(root: io.github.crustack.clapi.ui.shared.state.CollectionNode): io.github.crustack.clapi.ui.shared.state.CollectionNode {
+                        var cursor: io.github.crustack.clapi.ui.shared.state.CollectionNode = root
+                        for (folder in parsedFolderPath) {
+                            val next = cursor.children.find { it.name == folder && it.isFolder } ?: break
+                            cursor = next
+                        }
+                        return cursor
                     }
-                    return cursor
-                }
 
-                candidateCollections.forEach { coll ->
-                    if (resolvedCollection != null) return@forEach
-                    val scope = resolveFolderScope(coll)
-                    val bySignature = scope.children.firstOrNull {
-                        !it.isFolder && it.name == reqName && it.method == savedMethod && (it.url ?: "") == savedUrl
-                    }
-                    if (bySignature != null) {
-                        realId = bySignature.id
-                        resolvedCollection = coll
-                    }
-                }
-
-                if (resolvedCollection == null) {
                     candidateCollections.forEach { coll ->
                         if (resolvedCollection != null) return@forEach
                         val scope = resolveFolderScope(coll)
-                        val byName = scope.children.firstOrNull { !it.isFolder && it.name == reqName }
-                        if (byName != null) {
-                            realId = byName.id
+                        val bySignature = scope.children.firstOrNull {
+                            !it.isFolder && it.name == reqName && it.method == savedMethod && (it.url ?: "") == savedUrl
+                        }
+                        if (bySignature != null) {
+                            realId = bySignature.id
                             resolvedCollection = coll
+                        }
+                    }
+
+                    if (resolvedCollection == null) {
+                        candidateCollections.forEach { coll ->
+                            if (resolvedCollection != null) return@forEach
+                            val scope = resolveFolderScope(coll)
+                            val byName = scope.children.firstOrNull { !it.isFolder && it.name == reqName }
+                            if (byName != null) {
+                                realId = byName.id
+                                resolvedCollection = coll
+                            }
                         }
                     }
                 }
@@ -196,7 +216,8 @@ object TabsRepository {
                     url    = savedUrl,
                     collectionName = resolvedCollectionName,
                     collectionId = resolvedCollectionId,
-                    folderPath = parsedFolderPath
+                    folderPath = parsedFolderPath,
+                    kind   = savedKind,
                 )
                 tab.bodyType    = safeEnum(obj["bodyType"]?.jsonPrimitive?.content, BodyType.JSON)
                 tab.lastRawSubtype = safeEnum(obj["lastRawSubtype"]?.jsonPrimitive?.content, BodyType.JSON)
@@ -222,9 +243,6 @@ object TabsRepository {
                 tab.retryCount = obj["retryCount"]?.jsonPrimitive?.intOrNull ?: 1
                 tab.retryDelayMs = obj["retryDelayMs"]?.jsonPrimitive?.content?.toLongOrNull() ?: 250L
                 tab.lastSavedTimestamp = obj["lastSavedTimestamp"]?.jsonPrimitive?.content?.toLongOrNull()
-                tab.kind = runCatching {
-                    RequestKind.valueOf(obj["kind"]?.jsonPrimitive?.content ?: "HTTP")
-                }.getOrDefault(RequestKind.HTTP)
                 obj["mcp"]?.jsonObject?.let { mcpObj ->
                     tab.mcpConfig = json.decodeFromJsonElement(
                         McpConnectionConfig.serializer(),
@@ -240,6 +258,8 @@ object TabsRepository {
                 if (savedHeaders.isNotEmpty()) {
                     tab.headers.clear()
                     tab.headers.addAll(savedHeaders)
+                } else if (savedKind == RequestKind.FOLDER) {
+                    tab.headers.clear()
                 }
 
                 // Load form rows BEFORE restoreSavedSnapshot so that recomputeDirty()

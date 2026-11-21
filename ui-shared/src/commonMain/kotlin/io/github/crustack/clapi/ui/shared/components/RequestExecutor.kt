@@ -28,6 +28,7 @@ import io.github.crustack.clapi.ui.shared.network.NetworkClientFactory
 import io.github.crustack.clapi.ui.shared.persistence.TabsRepository
 import io.github.crustack.clapi.ui.shared.persistence.WorkspaceRepository
 import io.github.crustack.clapi.ui.shared.state.AppState
+import io.github.crustack.clapi.ui.shared.state.HeaderKind
 import io.github.crustack.clapi.ui.shared.state.LogLevel
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
 import io.github.crustack.clapi.ui.shared.state.TestResultEntry
@@ -120,29 +121,27 @@ private fun sendRequestInternal(scope: CoroutineScope, state: AppState, tab: Req
         // `tag=kotlin&tag=ktor` are distinct values and must reach the wire.
         // Do not use associate() here because it silently keeps only the last
         // row for each key.
-        val effectiveQueryParams = tab.params
-            .filter { it.enabled }
-            .map { KeyValueEntry(it.key, it.value, secret = it.secret) }
-            .toMutableList()
+        val effectiveQueryParams = enabledQueryParamsForSend(tab).toMutableList()
         var effectiveBodyContent = tab.bodyContent
         val requestScopedScriptVars = mutableMapOf<String, String>()
 
-        // ── Pre-request script ────────────────────────────────────────────
+        // ── Pre-request script chain (Root-to-Leaf) ───────────────────────
+        // T024: Ancestor folder pre-request scripts execute before request pre-request script.
+        // T025: // TODO: Cross-Script Variable Isolation: Currently, folder pre-request and request scripts share and mutate the same mutable variable context (environment, global, and request-scoped script variables). In future revisions with sandbox isolation, consider adding lexical scope isolation or copy-on-write variable scoping so parent folder scripts cannot unintentionally clobber variables meant to be private to child requests or sibling folders.
+        // T025: // TODO: Script Error Boundary Handling: If a pre-request script in an ancestor folder fails or throws an unhandled exception, currently the error is logged and subsequent scripts continue unless executionSkipRequest was called. Consider adding configurable error boundary strategies (e.g., FAIL_FAST to abort the entire dispatch immediately on script error, vs BEST_EFFORT to continue).
+        val ancestorFolders = state.getAncestorFolders(tab)
+        val preScriptChain = mutableListOf<Pair<String, String>>()
+        for (ancestor in ancestorFolders) {
+            val s = ancestor.preRequestScript
+            if (!s.isNullOrBlank()) {
+                preScriptChain.add("Folder '${ancestor.name}'" to s)
+            }
+        }
         if (tab.preRequestScript.isNotBlank()) {
-            val layers = state.activeVariableLayers()
-            val flatVars = buildMap<String, String> { layers.asReversed().forEach { putAll(it) } }
-            val preCtx = ScriptContext(
-                url       = tab.url,
-                method    = tab.method.name,
-                variables = flatVars,
-                globalVariables = state.globalVariables.filter { it.enabled }.associate { it.key to it.value },
-                collectionVariables = state.collectionVariables.toMap(),
-                requestHeaders = effectiveHeaders.associate { it.key to it.value },
-                // The current script API exposes a map/get-by-name view. Keep its
-                // historical last-value behavior without collapsing the wire list.
-                requestQueryParams = effectiveQueryParams.associate { it.key to it.value },
-                requestBody = tab.bodyContent,
-            )
+            preScriptChain.add("Request '${tab.name}'" to tab.preRequestScript)
+        }
+
+        if (preScriptChain.isNotEmpty()) {
             // M-8: Clean up variables injected by the previous run of this script
             // so stale keys don't accumulate across re-sends.
             if (tab.scriptInjectedVarKeys.isNotEmpty()) {
@@ -150,72 +149,93 @@ private fun sendRequestInternal(scope: CoroutineScope, state: AppState, tab: Req
                 env?.variables?.removeAll { it.key in tab.scriptInjectedVarKeys && it.kind == io.github.crustack.clapi.ui.shared.state.HeaderKind.USER }
                 tab.scriptInjectedVarKeys.clear()
             }
-            val preResult = scriptEngine.executePreRequestScript(tab.preRequestScript, preCtx, state.settings.scriptPrefix)
-            preResult.logs.forEach { state.log(it) }
-            if (preResult.error != null) {
-                state.log("⚠ Pre-request script error: ${preResult.error}", LogLevel.ERROR)
-            }
-            // Merge new variables from the script into the active environment
-            if (preResult.newVariables.isNotEmpty()) {
-                // M-8: Track which keys were added by this script run
-                tab.scriptInjectedVarKeys.addAll(preResult.newVariables.keys)
-                state.mergeScriptVariables(preResult.newVariables)
-            }
-            if (preResult.newRequestVariables.isNotEmpty()) {
-                requestScopedScriptVars.putAll(preResult.newRequestVariables)
-            }
-            if (preResult.newGlobalVariables.isNotEmpty()) {
-                state.mergeGlobalScriptVariables(preResult.newGlobalVariables)
-            }
-            if (preResult.newCollectionVariables.isNotEmpty()) {
-                state.mergeCollectionScriptVariables(preResult.newCollectionVariables)
-            }
-            if (preResult.executionSkipRequest) {
-                state.log("↷ Request skipped by script", LogLevel.INFO)
-                tab.isLoading = false
-                tab.currentJob = null
-                return@launch
-            }
-            if (preResult.requestMutations.url != null) {
-                val scriptParts = splitRequestUrl(preResult.requestMutations.url!!)
-                effectiveUrl = scriptParts.base
-                effectiveQueryParams.clear()
-                effectiveQueryParams.addAll(
-                    parseQueryPairs(scriptParts.query).map { KeyValueEntry(it.first, it.second) },
+
+            for ((source, scriptContent) in preScriptChain) {
+                val layers = state.activeVariableLayers()
+                val flatVars = buildMap<String, String> { layers.asReversed().forEach { putAll(it) } }
+                val preCtx = ScriptContext(
+                    url       = effectiveUrl,
+                    method    = effectiveMethod.name,
+                    variables = buildMap {
+                        putAll(flatVars)
+                        putAll(requestScopedScriptVars)
+                    },
+                    globalVariables = state.globalVariables.filter { it.enabled }.associate { it.key to it.value },
+                    collectionVariables = state.collectionVariables.toMap(),
+                    requestHeaders = effectiveHeaders.associate { it.key to it.value },
+                    // The current script API exposes a map/get-by-name view. Keep its
+                    // historical last-value behavior without collapsing the wire list.
+                    requestQueryParams = effectiveQueryParams.associate { it.key to it.value },
+                    requestBody = effectiveBodyContent,
                 )
-            }
-            if (preResult.requestMutations.method != null) {
-                effectiveMethod = HttpMethodType.entries.firstOrNull {
-                    it.name.equals(preResult.requestMutations.method, ignoreCase = true)
-                } ?: effectiveMethod
-            }
-            if (preResult.requestMutations.body != null) {
-                effectiveBodyContent = preResult.requestMutations.body ?: effectiveBodyContent
-            }
-            if (preResult.requestMutations.headers.isNotEmpty()) {
-                preResult.requestMutations.headers.forEach { (key, value) ->
-                    val firstIndex = effectiveHeaders.indexOfFirst { it.key.equals(key, ignoreCase = true) }
-                    effectiveHeaders.removeAll { it.key.equals(key, ignoreCase = true) }
-                    val replacement = KeyValueEntry(key, value)
-                    if (firstIndex >= 0) {
-                        effectiveHeaders.add(firstIndex, replacement)
-                    } else {
-                        effectiveHeaders.add(replacement)
+
+                val preResult = scriptEngine.executePreRequestScript(scriptContent, preCtx, state.settings.scriptPrefix)
+                preResult.logs.forEach { state.log(it) }
+                if (preResult.error != null) {
+                    state.log("⚠ Pre-request script error ($source): ${preResult.error}", LogLevel.ERROR)
+                }
+                // Merge new variables from the script into the active environment
+                if (preResult.newVariables.isNotEmpty()) {
+                    // M-8: Track which keys were added by this script run
+                    tab.scriptInjectedVarKeys.addAll(preResult.newVariables.keys)
+                    state.mergeScriptVariables(preResult.newVariables)
+                }
+                if (preResult.newRequestVariables.isNotEmpty()) {
+                    requestScopedScriptVars.putAll(preResult.newRequestVariables)
+                }
+                if (preResult.newGlobalVariables.isNotEmpty()) {
+                    state.mergeGlobalScriptVariables(preResult.newGlobalVariables)
+                }
+                if (preResult.newCollectionVariables.isNotEmpty()) {
+                    state.mergeCollectionScriptVariables(preResult.newCollectionVariables)
+                }
+                if (preResult.executionSkipRequest) {
+                    state.log("↷ Request skipped by script ($source)", LogLevel.INFO)
+                    tab.isLoading = false
+                    tab.currentJob = null
+                    return@launch
+                }
+                if (preResult.requestMutations.url != null) {
+                    val scriptParts = splitRequestUrl(preResult.requestMutations.url!!)
+                    effectiveUrl = scriptParts.base
+                    effectiveQueryParams.clear()
+                    effectiveQueryParams.addAll(
+                        parseQueryPairs(scriptParts.query).map { KeyValueEntry(it.first, it.second) },
+                    )
+                }
+                if (preResult.requestMutations.method != null) {
+                    effectiveMethod = HttpMethodType.entries.firstOrNull {
+                        it.name.equals(preResult.requestMutations.method, ignoreCase = true)
+                    } ?: effectiveMethod
+                }
+                if (preResult.requestMutations.body != null) {
+                    effectiveBodyContent = preResult.requestMutations.body ?: effectiveBodyContent
+                }
+                if (preResult.requestMutations.headers.isNotEmpty()) {
+                    preResult.requestMutations.headers.forEach { (key, value) ->
+                        val firstIndex = effectiveHeaders.indexOfFirst { it.key.equals(key, ignoreCase = true) }
+                        effectiveHeaders.removeAll { it.key.equals(key, ignoreCase = true) }
+                        val replacement = KeyValueEntry(key, value)
+                        if (firstIndex >= 0) {
+                            effectiveHeaders.add(firstIndex, replacement)
+                        } else {
+                            effectiveHeaders.add(replacement)
+                        }
                     }
                 }
-            }
-            if (preResult.requestMutations.queryParams.isNotEmpty()) {
-                preResult.requestMutations.queryParams.forEach { (key, value) ->
-                    // setQueryParam is an upsert-by-name operation. If the original
-                    // request contained repeated values for this key, replace the
-                    // group with the explicitly scripted value.
-                    val firstIndex = effectiveQueryParams.indexOfFirst { it.key == key }
-                    effectiveQueryParams.removeAll { it.key == key }
-                    val replacement = KeyValueEntry(key, value)
-                    if (firstIndex >= 0) {
-                        effectiveQueryParams.add(firstIndex, replacement)
-                    } else {
-                        effectiveQueryParams.add(replacement)
+                if (preResult.requestMutations.queryParams.isNotEmpty()) {
+                    preResult.requestMutations.queryParams.forEach { (key, value) ->
+                        // setQueryParam is an upsert-by-name operation. If the original
+                        // request contained repeated values for this key, replace the
+                        // group with the explicitly scripted value.
+                        val firstIndex = effectiveQueryParams.indexOfFirst { it.key == key }
+                        effectiveQueryParams.removeAll { it.key == key }
+                        val replacement = KeyValueEntry(key, value)
+                        if (firstIndex >= 0) {
+                            effectiveQueryParams.add(firstIndex, replacement)
+                        } else {
+                            effectiveQueryParams.add(replacement)
+                        }
                     }
                 }
             }
@@ -242,6 +262,7 @@ private fun sendRequestInternal(scope: CoroutineScope, state: AppState, tab: Req
                 queryParams = effectiveQueryParams,
                 headers = effectiveHeaders,
                 bodyContent = effectiveBodyContent,
+                state = state,
             ).toRequestDefinition()
 
             val logger = object : NetworkLogger {
@@ -303,8 +324,21 @@ private fun sendRequestInternal(scope: CoroutineScope, state: AppState, tab: Req
                                 " ${event.response.metrics.responseSizeBytes}B)",
                             LogLevel.SUCCESS,
                         )
-                        // ── Post-request script ───────────────────────────
+                        // ── Post-request script chain (Leaf-to-Root) ──────
+                        // T024: Request test script executes first, followed by ancestor folder test scripts in leaf-to-root order.
+                        // T025: // TODO: Test Script Cascading & Error Boundaries: Test scripts execute leaf-to-root (child request first, then ancestor folders). Currently, assertions and logs from all cascading scripts are aggregated into state.testResults and console logs. Future work should provide separate test summary reporting per folder hierarchy level and allow configuring failure behaviors (e.g. aborting parent test scripts if child assertion fails).
+                        val testScriptChain = mutableListOf<Pair<String, String>>()
                         if (tab.testScript.isNotBlank()) {
+                            testScriptChain.add("Request '${tab.name}'" to tab.testScript)
+                        }
+                        for (ancestor in ancestorFolders.asReversed()) {
+                            val s = ancestor.testScript
+                            if (!s.isNullOrBlank()) {
+                                testScriptChain.add("Folder '${ancestor.name}'" to s)
+                            }
+                        }
+
+                        for ((source, scriptContent) in testScriptChain) {
                             val resp = event.response
                             val layers2 = state.activeVariableLayers()
                             val flatVars2 = buildMap<String, String> { layers2.asReversed().forEach { putAll(it) } }
@@ -327,10 +361,10 @@ private fun sendRequestInternal(scope: CoroutineScope, state: AppState, tab: Req
                                 streamEvents = resp.streamEvents,
                                 assembledText = resp.assembledText ?: tab.liveStreamText.ifBlank { null },
                             )
-                            val testResult = scriptEngine.executeTestScript(tab.testScript, testCtx, state.settings.scriptPrefix)
+                            val testResult = scriptEngine.executeTestScript(scriptContent, testCtx, state.settings.scriptPrefix)
                             testResult.logs.forEach { state.log(it) }
                             if (testResult.error != null) {
-                                state.log("⚠ Post-request script error: ${testResult.error}", LogLevel.ERROR)
+                                state.log("⚠ Post-request script error ($source): ${testResult.error}", LogLevel.ERROR)
                             }
                             testResult.assertions.forEach { a ->
                                 state.testResults.add(TestResultEntry(a.name, a.passed, a.message ?: ""))
@@ -355,6 +389,7 @@ private fun sendRequestInternal(scope: CoroutineScope, state: AppState, tab: Req
                                 val token = testResult.executionNextRequest
                                 if (token == null) {
                                     state.log("↷ Script setNextRequest(null): stopping chain", LogLevel.INFO)
+                                    break
                                 } else {
                                     if (chainDepth >= MAX_SCRIPT_CHAIN_DEPTH) {
                                         state.log("⚠ Script chain limit reached ($MAX_SCRIPT_CHAIN_DEPTH)", LogLevel.WARNING)
@@ -424,7 +459,7 @@ fun saveRequest(
         // TabsRepository.save ran first, so an immediate reload restored a dirty tab.
         tab.markSaved()
         val tabsSaved = withContext(ioDispatcher) { TabsRepository.save(state) }
-        val workspaceSaved = if (tab.collectionName != null && collectionSynced) {
+        val workspaceSaved = if ((tab.isFolderTab || tab.collectionName != null) && collectionSynced) {
             withContext(ioDispatcher) { WorkspaceRepository.save(state) }
         } else {
             collectionSynced
@@ -453,7 +488,7 @@ fun saveRequest(
  * Canonical tab-to-request projection shared by Send and every Copy As format.
  * Script mutations are supplied as overrides by Send; Copy uses the tab defaults.
  */
-internal data class PreparedTabRequest(
+data class PreparedTabRequest(
     val id: String,
     val name: String,
     val method: HttpMethodType,
@@ -478,15 +513,14 @@ internal data class PreparedTabRequest(
     )
 }
 
-internal fun prepareTabRequest(
+fun prepareTabRequest(
     tab: RequestTabState,
     method: HttpMethodType = tab.method,
     url: String = tab.url.trim(),
-    queryParams: List<KeyValueEntry> = tab.params
-        .filter { it.enabled }
-        .map { KeyValueEntry(it.key, it.value, secret = it.secret) },
+    queryParams: List<KeyValueEntry> = enabledQueryParamsForSend(tab),
     headers: List<KeyValueEntry> = enabledHeadersForSend(tab),
     bodyContent: String = tab.bodyContent,
+    state: AppState? = null,
 ): PreparedTabRequest {
     val parts = splitRequestUrl(url)
     return PreparedTabRequest(
@@ -497,25 +531,50 @@ internal fun prepareTabRequest(
         fragment = parts.fragment,
         queryParams = queryParams,
         headers = headers,
-        auth = buildAuthConfig(tab),
+        auth = buildAuthConfig(tab, state),
         body = buildRequestBody(tab, bodyContent),
     )
 }
 
-fun buildAuthConfig(tab: RequestTabState): AuthConfig {
-    val params = when (tab.authType) {
-        AuthType.BASIC   -> mapOf("username" to tab.authUsername, "password" to tab.authPassword)
-        AuthType.BEARER  -> mapOf("token" to tab.authToken)
-        AuthType.JWT     -> mapOf("token" to tab.authToken)
-        AuthType.API_KEY -> mapOf("key" to tab.authApiKey, "value" to tab.authApiValue)
-        else             -> emptyMap()
+fun buildAuthConfig(tab: RequestTabState, state: AppState? = null): AuthConfig {
+    val effectiveAuthType: AuthType
+    val effectiveParams: Map<String, String>
+    val effectivePlacement: String?
+    if (tab.authType == AuthType.INHERIT && state != null) {
+        val resolved = state.resolveInheritedAuth(tab)
+        if (resolved != null && resolved.authType != AuthType.NONE && resolved.authType != AuthType.INHERIT) {
+            effectiveAuthType = resolved.authType
+            effectiveParams = when (resolved.authType) {
+                AuthType.BASIC -> mapOf("username" to (resolved.username ?: ""), "password" to (resolved.password ?: ""))
+                AuthType.BEARER, AuthType.JWT -> mapOf("token" to (resolved.token ?: ""))
+                AuthType.API_KEY -> mapOf("key" to (resolved.apiKey ?: ""), "value" to (resolved.apiValue ?: ""))
+                else -> emptyMap()
+            }
+            effectivePlacement = if (resolved.authType == AuthType.API_KEY) {
+                io.github.crustack.clapi.ui.shared.state.normalizeApiKeyPlacement(resolved.apiPlacement)
+            } else null
+        } else {
+            effectiveAuthType = AuthType.NONE
+            effectiveParams = emptyMap()
+            effectivePlacement = null
+        }
+    } else {
+        effectiveAuthType = tab.authType
+        effectiveParams = when (tab.authType) {
+            AuthType.BASIC   -> mapOf("username" to tab.authUsername, "password" to tab.authPassword)
+            AuthType.BEARER  -> mapOf("token" to tab.authToken)
+            AuthType.JWT     -> mapOf("token" to tab.authToken)
+            AuthType.API_KEY -> mapOf("key" to tab.authApiKey, "value" to tab.authApiValue)
+            else             -> emptyMap()
+        }
+        effectivePlacement = if (tab.authType == AuthType.API_KEY) {
+            io.github.crustack.clapi.ui.shared.state.normalizeApiKeyPlacement(tab.authApiPlacement)
+        } else null
     }
     return AuthConfig(
-        type = tab.authType,
-        params = params,
-        placement = if (tab.authType == AuthType.API_KEY) {
-            io.github.crustack.clapi.ui.shared.state.normalizeApiKeyPlacement(tab.authApiPlacement)
-        } else null,
+        type = effectiveAuthType,
+        params = effectiveParams,
+        placement = effectivePlacement,
     )
 }
 
@@ -601,8 +660,9 @@ fun buildCurlCommand(
     tab: RequestTabState,
     variableLayers: List<Map<String, String>> = emptyList(),
     allowJson5: Boolean = true,
+    state: AppState? = null,
 ): String {
-    val request = prepareTabRequest(tab)
+    val request = prepareTabRequest(tab, state = state)
     val parts = mutableListOf("curl", "-X ${request.method.name}")
 
     preparedHeaderList(request, variableLayers).forEach { (key, value) ->
@@ -621,10 +681,23 @@ fun buildCurlCommand(
     return parts.joinToString(" \\\n  ")
 }
 
-internal fun enabledHeadersForSend(tab: RequestTabState): List<KeyValueEntry> =
-    tab.headers
-        .filter { it.enabled && it.key.isNotBlank() }
-        .map { KeyValueEntry(it.key, it.value, secret = it.secret) }
+fun enabledHeadersForSend(tab: RequestTabState): List<KeyValueEntry> {
+    val enabled = tab.headers.filter { it.enabled && it.key.isNotBlank() }
+    val userHeaders = enabled.filter { it.kind != HeaderKind.INHERITED }
+    val inheritedHeaders = enabled.filter { it.kind == HeaderKind.INHERITED }
+    val userKeys = userHeaders.map { it.key.lowercase() }.toSet()
+    val activeInherited = inheritedHeaders.filter { it.key.lowercase() !in userKeys }
+    return (userHeaders + activeInherited).map { KeyValueEntry(it.key, it.value, secret = it.secret) }
+}
+
+fun enabledQueryParamsForSend(tab: RequestTabState): List<KeyValueEntry> {
+    val enabled = tab.params.filter { it.enabled && it.key.isNotBlank() }
+    val userParams = enabled.filter { it.kind != HeaderKind.INHERITED }
+    val inheritedParams = enabled.filter { it.kind == HeaderKind.INHERITED }
+    val userKeys = userParams.map { it.key.lowercase() }.toSet()
+    val activeInherited = inheritedParams.filter { it.key.lowercase() !in userKeys }
+    return (userParams + activeInherited).map { KeyValueEntry(it.key, it.value, secret = it.secret) }
+}
 
 internal fun resolveUrlForLog(
     url: String,
@@ -648,8 +721,9 @@ fun buildPythonCommand(
     tab: RequestTabState,
     variableLayers: List<Map<String, String>> = emptyList(),
     allowJson5: Boolean = true,
+    state: AppState? = null,
 ): String {
-    val request = prepareTabRequest(tab)
+    val request = prepareTabRequest(tab, state = state)
     val sb = StringBuilder()
     sb.appendLine("import requests")
     sb.appendLine()
@@ -691,8 +765,9 @@ fun buildHTTPieCommand(
     tab: RequestTabState,
     variableLayers: List<Map<String, String>> = emptyList(),
     allowJson5: Boolean = true,
+    state: AppState? = null,
 ): String {
-    val request = prepareTabRequest(tab)
+    val request = prepareTabRequest(tab, state = state)
     val parts = mutableListOf("http", tab.method.name)
     val url = buildUrlWithParams(request, variableLayers, removeUnresolved = true)
     parts += shellQuote(url)
@@ -712,8 +787,9 @@ fun buildPowerShellCommand(
     tab: RequestTabState,
     variableLayers: List<Map<String, String>> = emptyList(),
     allowJson5: Boolean = true,
+    state: AppState? = null,
 ): String {
-    val request = prepareTabRequest(tab)
+    val request = prepareTabRequest(tab, state = state)
     val sb = StringBuilder()
     val url = buildUrlWithParams(request, variableLayers, removeUnresolved = true)
     val headers = preparedHeaderList(request, variableLayers)

@@ -71,7 +71,7 @@ internal fun HttpRequestBuilder.applyAuth(auth: AuthConfig, oauth: McpOAuthConfi
         return
     }
     when (auth.type) {
-        AuthType.NONE -> Unit
+        AuthType.NONE, AuthType.INHERIT -> Unit
         AuthType.BASIC -> {
             val username = auth.params["username"].orEmpty()
             val password = auth.params["password"].orEmpty()

@@ -47,6 +47,7 @@ import io.github.crustack.clapi.ui.shared.components.DirtyCloseDialog
 import io.github.crustack.clapi.ui.shared.components.DirtyMultiCloseDialog
 import io.github.crustack.clapi.ui.shared.components.EnvironmentEditDialog
 import io.github.crustack.clapi.ui.shared.components.ErrorMessageDialog
+import io.github.crustack.clapi.ui.shared.components.FolderEditor
 import io.github.crustack.clapi.ui.shared.components.GlobalVariablesDialog
 import io.github.crustack.clapi.ui.shared.components.GraphQLPanel
 import io.github.crustack.clapi.ui.shared.components.HelpAboutDialog
@@ -370,7 +371,16 @@ private fun ColumnScope.HttpWorkspaceContent(
 
                 val tab = state.activeTab
                 if (tab != null) {
-                    if (tab.kind == RequestKind.MCP) {
+                    if (tab.kind == RequestKind.FOLDER) {
+                        key(tab.id) {
+                            FolderEditor(
+                                tab = tab,
+                                state = state,
+                                onSave = { saveRequest(scope, state, tab) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    } else if (tab.kind == RequestKind.MCP) {
                         if (state.settings.responseLayout == ResponseLayout.RIGHT) {
                             HorizontalSplitPane(
                                 modifier = Modifier.weight(1f).testTag("mcp-workspace"),

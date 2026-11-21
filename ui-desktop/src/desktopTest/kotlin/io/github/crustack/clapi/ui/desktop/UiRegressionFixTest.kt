@@ -55,8 +55,8 @@ class UiRegressionFixTest {
             "Add Request",
             "New MCP Connection",
             "New SSE Request",
-            "Export Collection",
-            "Duplicate Collection",
+            "Export Folder",
+            "Duplicate Folder",
             "Rename",
             "Delete",
         ).forEach { label ->

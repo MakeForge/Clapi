@@ -11,6 +11,7 @@ import io.github.crustack.clapi.core.model.RequestKind
 import io.github.crustack.clapi.core.model.opencollection.AuthApiKey
 import io.github.crustack.clapi.core.model.opencollection.AuthBasic
 import io.github.crustack.clapi.core.model.opencollection.AuthBearer
+import io.github.crustack.clapi.core.model.opencollection.AuthConfig
 import io.github.crustack.clapi.core.model.opencollection.CollectionConfig
 import io.github.crustack.clapi.core.model.opencollection.CollectionInfo
 import io.github.crustack.clapi.core.model.opencollection.Description
@@ -32,6 +33,7 @@ import io.github.crustack.clapi.core.model.opencollection.OpenCollectionDocument
 import io.github.crustack.clapi.core.model.opencollection.OpenCollectionItem
 import io.github.crustack.clapi.core.model.opencollection.RawBody
 import io.github.crustack.clapi.core.model.opencollection.RegularVariable
+import io.github.crustack.clapi.core.model.opencollection.RequestDefaults
 import io.github.crustack.clapi.core.model.opencollection.Script
 import io.github.crustack.clapi.core.model.opencollection.SecretVariable
 import io.github.crustack.clapi.core.model.opencollection.VariableEntry
@@ -62,6 +64,28 @@ private fun collectClapiMetadata(
     path: String = "",
 ) {
     if (node.isFolder) {
+        val folderMeta = mutableMapOf<String, JsonElement>()
+        if (node.queryEntries != null) {
+            folderMeta["queryEntries"] = buildJsonArray {
+                node.queryEntries.forEach { entry ->
+                    add(buildJsonObject {
+                        put("key", entry.key)
+                        put("value", entry.value)
+                        put("enabled", entry.enabled)
+                        put("secret", entry.secret)
+                    })
+                }
+            }
+        }
+        if (node.authApiPlacement != null) {
+            folderMeta["authApiPlacement"] = JsonPrimitive(node.authApiPlacement)
+        }
+        if (folderMeta.isNotEmpty()) {
+            folderMeta["id"] = JsonPrimitive(node.id)
+            folderMeta["name"] = JsonPrimitive(node.name)
+            val key = if (path.isEmpty()) node.id else path
+            out[key] = JsonObject(folderMeta)
+        }
         node.children.forEachIndexed { index, child ->
             val childPath = if (path.isEmpty()) index.toString() else "$path/$index"
             collectClapiMetadata(child, out, childPath)
@@ -144,12 +168,18 @@ fun CollectionNode.toOpenCollectionDocument(): OpenCollectionDocument {
 /**
  * Maps a Clapi Collection [CollectionNode] to a top-level [FolderItem] of the global OpenCollection document.
  */
-fun CollectionNode.toCollectionFolder(): FolderItem =
-    FolderItem(
+fun CollectionNode.toCollectionFolder(): FolderItem {
+    val ext = mutableMapOf<String, JsonElement>("id" to JsonPrimitive(id))
+    if (authType == AuthType.JWT) {
+        ext["clapi"] = buildJsonObject { put("authType", "jwt") }
+    }
+    return FolderItem(
         info = FolderInfo(name = name, type = "folder"),
         items = children.map { it.toOpenCollectionItem() },
-        extensions = mapOf("id" to JsonPrimitive(id)),
+        request = toRequestDefaults(),
+        extensions = ext,
     )
+}
 
 /**
  * Maps a standalone [OpenCollectionDocument] into a top-level [FolderItem] representing a Clapi Collection.
@@ -160,6 +190,7 @@ fun OpenCollectionDocument.toCollectionFolder(nameOverride: String? = null): Fol
     return FolderItem(
         info = FolderInfo(name = nameOverride ?: info.name, type = "folder"),
         items = items,
+        request = request,
         extensions = extensions + ("id" to JsonPrimitive(folderId)),
     )
 }
@@ -283,13 +314,69 @@ fun EnvState.mergeFrom(incoming: Environment) {
     }
 }
 
+internal fun CollectionNode.toRequestDefaults(): RequestDefaults? {
+    val effectiveHeaders = (headerEntries ?: userHeaders.map { KeyValueEntry(it.first, it.second) }).map {
+        HttpRequestHeader(
+            name = it.key,
+            value = it.value,
+            disabled = if (it.enabled) null else true
+        )
+    }
+    val authConfig: AuthConfig? = when (authType) {
+        AuthType.BASIC -> AuthBasic(username = authUsername ?: "", password = authPassword ?: "")
+        AuthType.BEARER, AuthType.JWT -> AuthBearer(token = authToken ?: "")
+        AuthType.API_KEY -> AuthApiKey(
+            key = authApiKey ?: "",
+            value = authApiValue ?: "",
+            placement = authApiPlacement ?: "header"
+        )
+        else -> null
+    }
+    val scripts = mutableListOf<Script>()
+    if (!preRequestScript.isNullOrBlank()) {
+        scripts.add(Script(type = "before-request", code = preRequestScript))
+    }
+    if (!testScript.isNullOrBlank()) {
+        scripts.add(Script(type = "after-response", code = testScript))
+    }
+    return if (effectiveHeaders.isNotEmpty() || authConfig != null || scripts.isNotEmpty()) {
+        RequestDefaults(
+            headers = effectiveHeaders,
+            auth = authConfig,
+            scripts = scripts,
+        )
+    } else {
+        null
+    }
+}
+
 fun CollectionNode.toOpenCollectionItem(): OpenCollectionItem {
     return if (isFolder) {
         val ext = mutableMapOf<String, JsonElement>()
         ext["id"] = JsonPrimitive(id)
+        val clapiFields = mutableMapOf<String, JsonElement>()
+        if (authType == AuthType.JWT) {
+            clapiFields["authType"] = JsonPrimitive("jwt")
+        }
+        if (!queryEntries.isNullOrEmpty()) {
+            clapiFields["queryEntries"] = buildJsonArray {
+                queryEntries.forEach { e ->
+                    add(buildJsonObject {
+                        put("key", e.key)
+                        put("value", e.value)
+                        put("enabled", e.enabled)
+                        put("secret", e.secret)
+                    })
+                }
+            }
+        }
+        if (clapiFields.isNotEmpty()) {
+            ext["clapi"] = JsonObject(clapiFields)
+        }
         FolderItem(
             info = FolderInfo(name = name, type = "folder"),
             items = children.map { it.toOpenCollectionItem() },
+            request = toRequestDefaults(),
             extensions = ext
         )
     } else {
@@ -421,10 +508,86 @@ fun OpenCollectionItem.toCollectionNode(
                 generateUuid()
             }
             val updatedExistingIds = existingIds + folderId
+
+            val req = request
+            val headers = req?.headers?.map {
+                KeyValueEntry(key = it.name, value = it.value, enabled = it.disabled != true)
+            }
+            val userHeaders = req?.headers?.map { it.name to it.value } ?: emptyList()
+
+            var authType: AuthType? = null
+            var authUsername: String? = null
+            var authPassword: String? = null
+            var authToken: String? = null
+            var authApiKey: String? = null
+            var authApiValue: String? = null
+            var authApiPlacement: String? = null
+
+            val clapiExt = extensions["clapi"] as? JsonObject
+            val isJwt = (clapiExt?.get("authType") as? JsonPrimitive)?.content == "jwt"
+
+            when (val a = req?.auth) {
+                is AuthBasic -> {
+                    authType = AuthType.BASIC
+                    authUsername = a.username
+                    authPassword = a.password
+                }
+                is AuthBearer -> {
+                    authType = if (isJwt) AuthType.JWT else AuthType.BEARER
+                    authToken = a.token
+                }
+                is AuthApiKey -> {
+                    authType = AuthType.API_KEY
+                    authApiKey = a.key
+                    authApiValue = a.value
+                    authApiPlacement = a.placement
+                }
+                else -> {
+                    authType = null
+                }
+            }
+
+            val preScript = req?.scripts?.firstOrNull { it.type == "before-request" }?.code
+            val postScript = req?.scripts?.firstOrNull { it.type == "after-response" || it.type == "tests" }?.code
+
+            val meta = clapiExt
+                ?: (if (path.isNotEmpty()) clapiRequests?.get(path) as? JsonObject else null)
+                ?: clapiRequests?.get(info.name) as? JsonObject
+                ?: clapiRequests?.get(folderId) as? JsonObject
+
+            var queryParams: List<KeyValueEntry>? = null
+            if (meta != null) {
+                meta["queryEntries"]?.jsonArray?.let { arr ->
+                    queryParams = arr.mapNotNull { it as? JsonObject }.map { entryObj ->
+                        KeyValueEntry(
+                            key = entryObj["key"]?.jsonPrimitive?.content ?: "",
+                            value = entryObj["value"]?.jsonPrimitive?.content ?: "",
+                            enabled = entryObj["enabled"]?.jsonPrimitive?.booleanOrNull ?: true,
+                            secret = entryObj["secret"]?.jsonPrimitive?.booleanOrNull ?: false
+                        )
+                    }
+                }
+                meta["authApiPlacement"]?.jsonPrimitive?.contentOrNull?.let {
+                    authApiPlacement = it
+                }
+            }
+
             CollectionNode(
                 id = folderId,
                 name = info.name,
                 isFolder = true,
+                headerEntries = headers,
+                userHeaders = userHeaders,
+                queryEntries = queryParams,
+                authType = authType,
+                authUsername = authUsername,
+                authPassword = authPassword,
+                authToken = authToken,
+                authApiKey = authApiKey,
+                authApiValue = authApiValue,
+                authApiPlacement = authApiPlacement,
+                preRequestScript = preScript,
+                testScript = postScript,
                 children = items.mapIndexed { index, child ->
                     val childPath = if (path.isEmpty()) index.toString() else "$path/$index"
                     child.toCollectionNode(

@@ -60,6 +60,7 @@ fun KeyValueEditor(
     onDirty: () -> Unit,
 ) {
     val isHeaderEditor = tag == "header"
+    val showTypeColumn = isHeaderEditor || entries.any { it.kind == HeaderKind.INHERITED }
     Column(modifier = Modifier.fillMaxSize().background(ClapiColors.Background).padding(8.dp)) {
         // Column header labels
         Row(
@@ -69,7 +70,7 @@ fun KeyValueEditor(
             androidx.compose.foundation.layout.Spacer(Modifier.size(32.dp))
             Text(Strings.t("key_upper"),   style = MaterialTheme.typography.labelSmall, color = ClapiColors.OnSurfaceDim, modifier = Modifier.weight(1f))
             Text(Strings.t("value_upper"), style = MaterialTheme.typography.labelSmall, color = ClapiColors.OnSurfaceDim, modifier = Modifier.weight(1f))
-            if (isHeaderEditor) {
+            if (showTypeColumn) {
                 Text(Strings.t("type_upper"), style = MaterialTheme.typography.labelSmall, color = ClapiColors.OnSurfaceDim, modifier = Modifier.size(70.dp, 20.dp))
             }
             androidx.compose.foundation.layout.Spacer(Modifier.size(32.dp))
@@ -85,13 +86,14 @@ fun KeyValueEditor(
                     KeyValueRow(
                         kv = kv,
                         onDelete = {
-                            if (!(isHeaderEditor && kv.kind == HeaderKind.SYSTEM)) {
+                            if (!((isHeaderEditor && kv.kind == HeaderKind.SYSTEM) || kv.kind == HeaderKind.INHERITED)) {
                                 entries.removeAt(idx)
                                 onDirty()
                             }
                         },
                         onDirty = onDirty,
                         isHeaderEditor = isHeaderEditor,
+                        showTypeColumn = showTypeColumn,
                         state = state,
                         testTag = "$tag-row-$idx",
                     )
@@ -134,11 +136,13 @@ private fun KeyValueRow(
     onDelete: () -> Unit,
     onDirty: () -> Unit,
     isHeaderEditor: Boolean,
+    showTypeColumn: Boolean = false,
     state: AppState? = null,
     testTag: String,
 ) {
     val isSystemHeader = isHeaderEditor &&
         (kv.kind == HeaderKind.SYSTEM || SystemHeaderRules.isSystemHeader(kv.key))
+    val isInherited = kv.kind == HeaderKind.INHERITED
 
     Row(
         modifier = Modifier
@@ -150,7 +154,8 @@ private fun KeyValueRow(
     ) {
         Checkbox(
             checked = kv.enabled,
-            onCheckedChange = { kv.enabled = it; onDirty() },
+            onCheckedChange = { if (!isInherited) { kv.enabled = it; onDirty() } },
+            enabled = !isInherited,
             modifier = Modifier.size(24.dp),
             colors = CheckboxDefaults.colors(
                 checkedColor = ClapiColors.Primary,
@@ -161,35 +166,48 @@ private fun KeyValueRow(
 
         InlineTextField(
             value = kv.key,
-            onValueChange = { if (!isSystemHeader) { kv.key = it; onDirty() } },
+            onValueChange = { if (!isSystemHeader && !isInherited) { kv.key = it; onDirty() } },
             placeholder = Strings.t("key_upper"),
+            readOnly = isSystemHeader || isInherited,
             modifier = Modifier.weight(1f).testTag("$testTag-key"),
             state = state,
         )
         InlineTextField(
             value = kv.value,
-            onValueChange = { kv.value = it; onDirty() },
+            onValueChange = { if (!isInherited) { kv.value = it; onDirty() } },
             placeholder = Strings.t("value_upper"),
+            readOnly = isInherited,
             modifier = Modifier.weight(1f).testTag("$testTag-value"),
             state = state,
         )
 
-        if (isHeaderEditor) {
+        if (showTypeColumn) {
             Row(
                 modifier = Modifier.size(70.dp, 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                if (isSystemHeader) {
-                    Icon(Icons.Default.Lock, contentDescription = Strings.t("system_header"), tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(12.dp))
-                    Text(Strings.t("system"), fontSize = 11.sp, color = ClapiColors.OnSurfaceDim)
-                } else {
-                    Text(Strings.t("user"), fontSize = 11.sp, color = ClapiColors.OnSurfaceDim)
+                when {
+                    isSystemHeader -> {
+                        Icon(Icons.Default.Lock, contentDescription = Strings.t("system_header"), tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(12.dp))
+                        Text(Strings.t("system"), fontSize = 11.sp, color = ClapiColors.OnSurfaceDim)
+                    }
+                    isInherited -> {
+                        Text(
+                            text = Strings.inherited,
+                            fontSize = 11.sp,
+                            color = ClapiColors.Tertiary,
+                            modifier = Modifier.testTag("$testTag-type-inherited"),
+                        )
+                    }
+                    else -> {
+                        Text(Strings.t("user"), fontSize = 11.sp, color = ClapiColors.OnSurfaceDim)
+                    }
                 }
             }
         }
 
-        IconButton(onClick = onDelete, modifier = Modifier.size(24.dp).testTag("$testTag-remove"), enabled = !isSystemHeader) {
+        IconButton(onClick = onDelete, modifier = Modifier.size(24.dp).testTag("$testTag-remove"), enabled = !isSystemHeader && !isInherited) {
             Icon(Icons.Default.Delete, contentDescription = Strings.t("remove"), tint = ClapiColors.OnSurfaceDim, modifier = Modifier.size(14.dp))
         }
     }
@@ -204,29 +222,40 @@ fun InlineTextField(
     placeholder: String,
     modifier: Modifier = Modifier,
     state: AppState? = null,
+    readOnly: Boolean = false,
 ) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(4.dp))
-            .background(ClapiColors.SurfaceContainer)
+            .background(if (readOnly) ClapiColors.SurfaceContainer.copy(alpha = 0.6f) else ClapiColors.SurfaceContainer)
             .border(1.dp, ClapiColors.Border, RoundedCornerShape(4.dp))
             .padding(horizontal = 8.dp, vertical = 6.dp),
     ) {
         if (state != null) {
             VariableAwareTextField(
                 value = value,
-                onValueChange = onValueChange,
+                onValueChange = if (readOnly) ({}) else onValueChange,
                 placeholder = placeholder,
-                textStyle = TextStyle(color = ClapiColors.OnSurface, fontSize = 13.sp, fontFamily = CodeFontFamily),
+                textStyle = TextStyle(
+                    color = if (readOnly) ClapiColors.OnSurfaceDim else ClapiColors.OnSurface,
+                    fontSize = 13.sp,
+                    fontFamily = CodeFontFamily,
+                ),
                 state = state,
+                readOnly = readOnly,
                 modifier = Modifier.fillMaxWidth(),
             )
         } else {
             BasicTextField(
                 value = value,
-                onValueChange = onValueChange,
+                onValueChange = if (readOnly) ({}) else onValueChange,
+                readOnly = readOnly,
                 singleLine = true,
-                textStyle = TextStyle(color = ClapiColors.OnSurface, fontSize = 13.sp, fontFamily = CodeFontFamily),
+                textStyle = TextStyle(
+                    color = if (readOnly) ClapiColors.OnSurfaceDim else ClapiColors.OnSurface,
+                    fontSize = 13.sp,
+                    fontFamily = CodeFontFamily,
+                ),
                 cursorBrush = SolidColor(ClapiColors.Primary),
                 modifier = Modifier.fillMaxWidth(),
                 decorationBox = { inner ->
