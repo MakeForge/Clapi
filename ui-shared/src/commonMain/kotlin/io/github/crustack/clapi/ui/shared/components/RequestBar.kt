@@ -81,23 +81,24 @@ fun RequestBar(
     onUrlChanged: (String) -> Unit,
     isLoading: Boolean,
     onSend: () -> Unit,
-    /** Called when the user clicks the Stop button while a request is in-flight (H-2). */
-    onCancel: () -> Unit = {},
     onSave: () -> Unit,
-    copyFormats: List<CopyFormatOption> = emptyList(),
     retryEnabled: Boolean,
     retryCount: Int,
     retryDelayMs: Long,
     onRetryEnabledChanged: (Boolean) -> Unit,
     onRetryCountChanged: (Int) -> Unit,
     onRetryDelayChanged: (Long) -> Unit,
+    modifier: Modifier = Modifier,
+    /** Called when the user clicks the Stop button while a request is in-flight (H-2). */
+    onCancel: () -> Unit = {},
+    copyFormats: List<CopyFormatOption> = emptyList(),
     state: AppState? = null,
     tab: RequestTabState? = state?.activeTab,
     /** Per-tab undo stack for the URL field. Pass [RequestTabState.urlUndoStack]. */
     urlUndoStack: ArrayDeque<String>? = null,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(ClapiColors.Surface)
             .padding(8.dp)
@@ -160,6 +161,7 @@ private fun MethodDropdown(method: HttpMethodType, onMethodChanged: (HttpMethodT
                 .clip(RoundedCornerShape(8.dp))
                 .background(color.copy(alpha = 0.12f))
                 .border(1.dp, color.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                .handPointerHover()
                 .clickable { expanded = true }
                 .padding(horizontal = 10.dp, vertical = 8.dp)
                 .testTag("method-dropdown"),
@@ -200,6 +202,7 @@ private fun SendButton(isLoading: Boolean, onClick: () -> Unit, onCancel: () -> 
                     else androidx.compose.ui.graphics.Color(0xFFC62828)
                 )
                 .hoverable(interactionSource)
+                .handPointerHover()
                 .clickable(onClick = onCancel)
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .testTag("stop-button"),
@@ -228,6 +231,7 @@ private fun SendButton(isLoading: Boolean, onClick: () -> Unit, onCancel: () -> 
                 .clip(RoundedCornerShape(8.dp))
                 .background(if (isHovered) ClapiColors.Primary.copy(alpha = 0.9f) else ClapiColors.Primary)
                 .hoverable(interactionSource)
+                .handPointerHover()
                 .clickable(onClick = onClick)
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .testTag("send-button"),
@@ -259,6 +263,7 @@ internal fun SaveButton(isLoading: Boolean, onClick: () -> Unit) {
             .clip(RoundedCornerShape(8.dp))
             .background(if (isHovered) ClapiColors.SurfaceHigh else ClapiColors.SurfaceContainer)
             .hoverable(interactionSource)
+            .handPointerHover(!isLoading)
             .clickable(enabled = !isLoading, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp)
             .testTag("save-button"),
@@ -290,6 +295,7 @@ private fun CopyCurlButton(isLoading: Boolean, copyFormats: List<CopyFormatOptio
                 .clip(RoundedCornerShape(8.dp))
                 .background(if (isHovered) ClapiColors.SurfaceHigh else ClapiColors.SurfaceContainer)
                 .hoverable(interactionSource)
+                .handPointerHover(!isLoading)
                 .clickable(enabled = !isLoading) {
                     if (copyFormats.size == 1 && copyFormats.first().available) copyFormats.first().action()
                     else if (copyFormats.isNotEmpty()) expanded = true
@@ -350,6 +356,7 @@ private fun RetryControlsButton(
                 .clip(RoundedCornerShape(8.dp))
                 .background(if (isHovered) ClapiColors.SurfaceHigh else ClapiColors.SurfaceContainer)
                 .hoverable(interactionSource)
+                .handPointerHover(!isLoading)
                 .clickable(enabled = !isLoading) { showDialog = true }
                 .padding(horizontal = 7.dp, vertical = 8.dp)
                 .testTag("retry-menu-button"),

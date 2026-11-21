@@ -64,6 +64,8 @@ object ClapiColors {
     val StatusRedirect: Color      @Composable @ReadOnlyComposable get() = LocalAppColors.current.statusRedirect
     val StatusClientError: Color   @Composable @ReadOnlyComposable get() = LocalAppColors.current.statusClientError
     val StatusServerError: Color   @Composable @ReadOnlyComposable get() = LocalAppColors.current.statusServerError
+    val StatusWarning: Color       @Composable @ReadOnlyComposable get() = LocalAppColors.current.statusWarning
+    val StatusInfo: Color          @Composable @ReadOnlyComposable get() = LocalAppColors.current.statusInfo
 
     val HoverOverlay: Color        @Composable @ReadOnlyComposable get() = LocalAppColors.current.hoverOverlay
     val SelectedItem: Color        @Composable @ReadOnlyComposable get() = LocalAppColors.current.selectedItem

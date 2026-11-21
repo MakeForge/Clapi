@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,22 +32,27 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import io.github.crustack.clapi.ui.shared.build.GeneratedBuildInfo
 import io.github.crustack.clapi.ui.shared.i18n.Strings
+import io.github.crustack.clapi.ui.shared.platform.PlatformColumnVerticalScrollbar
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.theme.ClapiColors
 
 @Composable
-fun HelpAboutDialog(state: AppState) {
+fun HelpAboutDialog(
+    state: AppState,
+    modifier: Modifier = Modifier,
+) {
     if (!state.showHelpDialog) return
 
     Dialog(onDismissRequest = { state.showHelpDialog = false }) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .dialogEscape(onDismiss = { state.showHelpDialog = false })
                 .pointerInput(Unit) { detectTapGestures { state.showHelpDialog = false } },
             contentAlignment = Alignment.Center,
         ) {
             Column(
-                modifier = Modifier
+                modifier = modifier
                     .widthIn(min = 720.dp, max = 920.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(ClapiColors.Surface)
@@ -81,13 +87,15 @@ fun HelpAboutDialog(state: AppState) {
                     )
                 }
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(520.dp)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
+                val scrollState = rememberScrollState()
+                Box(modifier = Modifier.fillMaxWidth().height(520.dp)) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(scrollState)
+                            .padding(end = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
                     HelpSection("About ${Strings.appName}") {
                         HelpText("Clapi is a lightweight API client for HTTP workflows with local-first request editing, scripting, environments, and test assertions.")
                     }
@@ -130,6 +138,11 @@ fun HelpAboutDialog(state: AppState) {
                         HelpText("Supported platforms: macOS, Windows, Linux, and Web (Wasm)")
                     }
                 }
+                PlatformColumnVerticalScrollbar(
+                    scrollState = scrollState,
+                    modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+                )
+            }
             }
         }
     }

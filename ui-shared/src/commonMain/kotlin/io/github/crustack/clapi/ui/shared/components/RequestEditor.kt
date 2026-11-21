@@ -45,7 +45,6 @@ import io.github.crustack.clapi.ui.shared.theme.ClapiTheme
 import io.ktor.http.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import io.github.crustack.clapi.ui.shared.platform.copyToClipboard as platformCopyToClipboard
 
 /**
@@ -66,6 +65,7 @@ fun RequestEditor(
     state: AppState,
     onSend: () -> Unit,
     onSave: () -> Unit,
+    modifier: Modifier = Modifier,
     /** Cancels the in-flight request when the Stop button is pressed (H-2). */
     onCancel: () -> Unit = {},
 ) {
@@ -76,6 +76,7 @@ fun RequestEditor(
             onSend = onSend,
             onSave = onSave,
             onCancel = onCancel,
+            modifier = modifier,
         )
         return
     }
@@ -85,6 +86,7 @@ fun RequestEditor(
             tab = tab,
             state = state,
             onSave = onSave,
+            modifier = modifier,
         )
         return
     }
@@ -96,6 +98,7 @@ fun RequestEditor(
             onSend = onSend,
             onSave = onSave,
             onCancel = onCancel,
+            modifier = modifier,
         )
         return
     }
@@ -103,7 +106,7 @@ fun RequestEditor(
     val markDirty = { tab.markDirty() }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(ClapiColors.Background)
             .onSaveHotkey { onSave() }
@@ -170,14 +173,6 @@ fun RequestEditor(
     }
 }
 
-@Preview
-@Composable
-private fun RequestEditorPreview(){
-    ClapiTheme(){
-        RequestEditor(tab = RequestTabState(), state = AppState(), {}, {}){
-        }
-    }
-}
 // ── URL ↔ Params two-way sync ───────────────────────────────────
 
 /**
@@ -307,6 +302,7 @@ private val defaultRequestEditorTabs = listOf(
 internal fun EditorTabBar(
     selectedTab: RequestEditorTab,
     onTabSelected: (RequestEditorTab) -> Unit,
+    modifier: Modifier = Modifier,
     paramCount: Int = 0,
     headerCount: Int = 0,
     variableCount: Int = 0,
@@ -328,7 +324,7 @@ internal fun EditorTabBar(
     )
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(ClapiColors.Surface)
     ) {

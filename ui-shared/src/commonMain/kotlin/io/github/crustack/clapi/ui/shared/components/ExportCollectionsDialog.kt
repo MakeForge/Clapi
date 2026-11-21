@@ -4,9 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -15,6 +17,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import io.github.crustack.clapi.ui.shared.platform.PlatformLazyVerticalScrollbar
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -83,6 +87,7 @@ fun ExportCollectionsDialog(
     Dialog(onDismissRequest = onDismiss) {
         Column(
             modifier = modifier
+                .dialogEscape(onDismiss = onDismiss)
                 .widthIn(min = 460.dp, max = 560.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(ClapiColors.Surface)
@@ -160,55 +165,69 @@ fun ExportCollectionsDialog(
             HorizontalDivider(color = ClapiColors.Border)
 
             // Collections list
-            LazyColumn(
+            val listState = rememberLazyListState()
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = 240.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                items(state.collections, key = { it.id }) { node ->
-                    val isChecked = node.id in selectedIds
-                    val folderCount = countFolders(node)
-                    val requestCount = countRequests(node)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(4.dp))
-                            .clickable {
-                                if (isChecked) selectedIds.remove(node.id)
-                                else selectedIds.add(node.id)
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(end = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    items(state.collections, key = { it.id }) { node ->
+                        val isChecked = node.id in selectedIds
+                        val folderCount = countFolders(node)
+                        val requestCount = countRequests(node)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(4.dp))
+                                .handPointerHover()
+                                .clickable {
+                                    if (isChecked) selectedIds.remove(node.id)
+                                    else selectedIds.add(node.id)
+                                }
+                                .padding(vertical = 4.dp, horizontal = 2.dp)
+                                .testTag("collection-export-item-${node.id}"),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Checkbox(
+                                checked = isChecked,
+                                onCheckedChange = {
+                                    if (it) selectedIds.add(node.id)
+                                    else selectedIds.remove(node.id)
+                                },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = ClapiColors.Primary,
+                                    checkmarkColor = ClapiColors.OnPrimary,
+                                ),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = node.name,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = ClapiColors.OnSurface,
+                                )
+                                Text(
+                                    text = "$folderCount folder(s), $requestCount request(s)",
+                                    fontSize = 11.sp,
+                                    color = ClapiColors.OnSurfaceDim,
+                                )
                             }
-                            .padding(vertical = 4.dp, horizontal = 2.dp)
-                            .testTag("collection-export-item-${node.id}"),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Checkbox(
-                            checked = isChecked,
-                            onCheckedChange = {
-                                if (it) selectedIds.add(node.id)
-                                else selectedIds.remove(node.id)
-                            },
-                            colors = CheckboxDefaults.colors(
-                                checkedColor = ClapiColors.Primary,
-                                checkmarkColor = ClapiColors.OnPrimary,
-                            ),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Column {
-                            Text(
-                                text = node.name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium,
-                                color = ClapiColors.OnSurface,
-                            )
-                            Text(
-                                text = "$folderCount folder(s), $requestCount request(s)",
-                                fontSize = 11.sp,
-                                color = ClapiColors.OnSurfaceDim,
-                            )
                         }
                     }
                 }
+                PlatformLazyVerticalScrollbar(
+                    listState = listState,
+                    modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+                    testTag = "export-collections-scrollbar",
+                )
             }
 
             HorizontalDivider(color = ClapiColors.Border)
@@ -294,7 +313,7 @@ fun ExportCollectionsDialog(
                     shape = RoundedCornerShape(6.dp),
                     modifier = Modifier.testTag("export-collections-confirm-button"),
                 ) {
-                    Text("Export (${selectedIds.size})", fontSize = 12.sp)
+                    Text("${Strings.export} (${selectedIds.size})", fontSize = 12.sp)
                 }
             }
         }

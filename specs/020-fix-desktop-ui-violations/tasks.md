@@ -10,9 +10,9 @@
 
 **Purpose**: Verify repository health and ensure shared scrollbar/tooltip abstractions are ready.
 
-- [ ] T001 Verify baseline compilation and existing test suite via `./gradlew compileKotlinDesktop`
-- [ ] T002 [P] Inspect and ensure `PlatformLazyVerticalScrollbar` and `PlatformColumnVerticalScrollbar` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/platform/PlatformScrollbar.kt` support required test tags and alignment
-- [ ] T003 [P] Verify `IconButtonWithTooltip` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SharedTooltip.kt` conforms to `contracts/icon-button-tooltip-contract.md`
+- [X] T001 Verify baseline compilation and existing test suite via `./gradlew compileKotlinDesktop`
+- [X] T002 [P] Inspect and ensure `PlatformLazyVerticalScrollbar` and `PlatformColumnVerticalScrollbar` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/platform/PlatformScrollbar.kt` support required test tags and alignment
+- [X] T003 [P] Verify `IconButtonWithTooltip` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SharedTooltip.kt` conforms to `contracts/icon-button-tooltip-contract.md`
 
 ---
 
@@ -20,8 +20,8 @@
 
 **Purpose**: Core component contracts that must be in place before wide rollout across editors.
 
-- [ ] T004 Standardize `IconButtonWithTooltip` signature and remove redundant hover handlers in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SharedTooltip.kt`
-- [ ] T005 [P] Verify horizontal scrollbar support for tab strips in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/platform/PlatformScrollbar.kt`
+- [X] T004 Standardize `IconButtonWithTooltip` signature and remove redundant hover handlers in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SharedTooltip.kt`
+- [X] T005 [P] Verify horizontal scrollbar support for tab strips in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/platform/PlatformScrollbar.kt`
 
 **Checkpoint**: Foundation ready — user story implementation can proceed.
 
@@ -35,22 +35,22 @@
 
 ### Implementation for User Story 1
 
-- [ ] T006 [P] [US1] Add `PlatformLazyVerticalScrollbar` and `PlatformColumnVerticalScrollbar` to response body, headers, cookies, and timing views in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ResponseViewer.kt`
-- [ ] T007 [P] [US1] Add `PlatformLazyVerticalScrollbar` to console log view and test results view in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/BottomPanel.kt`
-- [ ] T008 [P] [US1] Add `PlatformColumnVerticalScrollbar` to the scrollable authorization configuration column in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/AuthEditor.kt`
-- [ ] T009 [P] [US1] Add desktop scrollbars to form data and urlencoded tables in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/BodyEditor.kt`
-- [ ] T010 [P] [US1] Add `PlatformColumnVerticalScrollbar` to collection settings column in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/CollectionEditor.kt`
-- [ ] T011 [P] [US1] Add `PlatformLazyVerticalScrollbar` to collection item selector in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ExportCollectionsDialog.kt`
-- [ ] T012 [P] [US1] Add `PlatformColumnVerticalScrollbar` to scrollable dialog content in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GitSyncDialog.kt`
-- [ ] T013 [P] [US1] Add `PlatformLazyVerticalScrollbar` to variables table in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GlobalVariablesDialog.kt`
-- [ ] T014 [P] [US1] Add desktop scrollbars to query editor, headers, and response panel in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GraphQLPanel.kt`
-- [ ] T015 [P] [US1] Add desktop scrollbars to body and variable editors in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GraphQLRequestEditor.kt`
-- [ ] T016 [P] [US1] Add `PlatformColumnVerticalScrollbar` to scrollable about dialog content in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/HelpAboutDialog.kt`
-- [ ] T017 [P] [US1] Add `PlatformColumnVerticalScrollbar` to specification import form in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ImportSpecificationDialog.kt`
-- [ ] T018 [P] [US1] Add `PlatformLazyVerticalScrollbar` to message timeline and communication view in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RealtimePanel.kt`
-- [ ] T019 [P] [US1] Add `HorizontalScrollbar` to overflowing tab strip in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestTabsBar.kt`
-- [ ] T020 [P] [US1] Add `PlatformColumnVerticalScrollbar` to active settings pane in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SettingsDialog.kt`
-- [ ] T021 [P] [US1] Add desktop scrollbars to message payload pane and timeline in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt`
+- [X] T006 [P] [US1] Add `PlatformLazyVerticalScrollbar` and `PlatformColumnVerticalScrollbar` to response body, headers, cookies, and timing views in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ResponseViewer.kt`
+- [X] T007 [P] [US1] Add `PlatformLazyVerticalScrollbar` to console log view and test results view in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/BottomPanel.kt`
+- [X] T008 [P] [US1] Add `PlatformColumnVerticalScrollbar` to the scrollable authorization configuration column in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/AuthEditor.kt`
+- [X] T009 [P] [US1] Add desktop scrollbars to form data and urlencoded tables in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/BodyEditor.kt`
+- [X] T010 [P] [US1] Add `PlatformColumnVerticalScrollbar` to collection settings column in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/CollectionEditor.kt`
+- [X] T011 [P] [US1] Add `PlatformLazyVerticalScrollbar` to collection item selector in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ExportCollectionsDialog.kt`
+- [X] T012 [P] [US1] Add `PlatformColumnVerticalScrollbar` to scrollable dialog content in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GitSyncDialog.kt`
+- [X] T013 [P] [US1] Add `PlatformLazyVerticalScrollbar` to variables table in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GlobalVariablesDialog.kt`
+- [X] T014 [P] [US1] Add desktop scrollbars to query editor, headers, and response panel in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GraphQLPanel.kt`
+- [X] T015 [P] [US1] Add desktop scrollbars to body and variable editors in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GraphQLRequestEditor.kt`
+- [X] T016 [P] [US1] Add `PlatformColumnVerticalScrollbar` to scrollable about dialog content in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/HelpAboutDialog.kt`
+- [X] T017 [P] [US1] Add `PlatformColumnVerticalScrollbar` to specification import form in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ImportSpecificationDialog.kt`
+- [X] T018 [P] [US1] Add `PlatformLazyVerticalScrollbar` to message timeline and communication view in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RealtimePanel.kt`
+- [X] T019 [P] [US1] Add `HorizontalScrollbar` to overflowing tab strip in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestTabsBar.kt`
+- [X] T020 [P] [US1] Add `PlatformColumnVerticalScrollbar` to active settings pane in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SettingsDialog.kt`
+- [X] T021 [P] [US1] Add desktop scrollbars to message payload pane and timeline in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt`
 
 **Checkpoint**: All 16 scrollable panels now display functional desktop scrollbars without content obstruction.
 
@@ -64,9 +64,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T022 [P] [US2] Remove redundant `.hoverable(interactionSource)` and migrate `EditorIconButtonWithTooltip` to use `IconButtonWithTooltip` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/CodeEditor.kt`
-- [ ] T023 [P] [US2] Remove redundant `.hoverable(interactionSource)` and migrate `ToolbarIconButtonWithTooltip` to use `IconButtonWithTooltip` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/TopToolbar.kt`
-- [ ] T024 [US2] Verify that rapid consecutive clicks on toolbar and code editor action buttons trigger without delay or event swallowing
+- [X] T022 [P] [US2] Remove redundant `.hoverable(interactionSource)` and migrate `EditorIconButtonWithTooltip` to use `IconButtonWithTooltip` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/CodeEditor.kt`
+- [X] T023 [P] [US2] Remove redundant `.hoverable(interactionSource)` and migrate `ToolbarIconButtonWithTooltip` to use `IconButtonWithTooltip` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/TopToolbar.kt`
+- [X] T024 [US2] Verify that rapid consecutive clicks on toolbar and code editor action buttons trigger without delay or event swallowing
 
 **Checkpoint**: Action buttons in toolbars and code editor respond reliably to every click while displaying non-blocking tooltips.
 
@@ -80,40 +80,40 @@
 
 ### Implementation for User Story 3: Workspace Panels
 
-- [ ] T025 [P] [US3] Add `modifier: Modifier = Modifier` to `MainScreen` and `HttpWorkspaceContent` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/MainScreen.kt`
-- [ ] T026 [P] [US3] Add `modifier: Modifier = Modifier` to `RequestEditor` and `EditorTabBar` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestEditor.kt`
-- [ ] T027 [P] [US3] Add `modifier: Modifier = Modifier` to `BottomPanel` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/BottomPanel.kt`
-- [ ] T028 [P] [US3] Add `modifier: Modifier = Modifier` to `ResponseViewer` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ResponseViewer.kt`
-- [ ] T029 [P] [US3] Add `modifier: Modifier = Modifier` to `AuthEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/AuthEditor.kt`
-- [ ] T030 [P] [US3] Add `modifier: Modifier = Modifier` to `BodyEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/BodyEditor.kt`
-- [ ] T031 [P] [US3] Add `modifier: Modifier = Modifier` to `CodeEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/CodeEditor.kt`
-- [ ] T032 [P] [US3] Add `modifier: Modifier = Modifier` to `CollectionEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/CollectionEditor.kt`
-- [ ] T033 [P] [US3] Add `modifier: Modifier = Modifier` to `FolderEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/FolderEditor.kt`
-- [ ] T034 [P] [US3] Add `modifier: Modifier = Modifier` to `GraphQLPanel` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GraphQLPanel.kt`
-- [ ] T035 [P] [US3] Add `modifier: Modifier = Modifier` to `GraphQLRequestEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GraphQLRequestEditor.kt`
-- [ ] T036 [P] [US3] Add `modifier: Modifier = Modifier` to `GrpcRequestEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GrpcRequestEditor.kt`
-- [ ] T037 [P] [US3] Add `modifier: Modifier = Modifier` to `RealtimePanel` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RealtimePanel.kt`
-- [ ] T038 [P] [US3] Add `modifier: Modifier = Modifier` to `RequestBar` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestBar.kt`
-- [ ] T039 [P] [US3] Add `modifier: Modifier = Modifier` to `RequestTabsBar` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestTabsBar.kt`
-- [ ] T040 [P] [US3] Add `modifier: Modifier = Modifier` to `TopToolbar` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/TopToolbar.kt`
-- [ ] T041 [P] [US3] Add `modifier: Modifier = Modifier` to `WebSocketRequestEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt`
+- [X] T025 [P] [US3] Add `modifier: Modifier = Modifier` to `MainScreen` and `HttpWorkspaceContent` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/MainScreen.kt`
+- [X] T026 [P] [US3] Add `modifier: Modifier = Modifier` to `RequestEditor` and `EditorTabBar` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestEditor.kt`
+- [X] T027 [P] [US3] Add `modifier: Modifier = Modifier` to `BottomPanel` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/BottomPanel.kt`
+- [X] T028 [P] [US3] Add `modifier: Modifier = Modifier` to `ResponseViewer` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ResponseViewer.kt`
+- [X] T029 [P] [US3] Add `modifier: Modifier = Modifier` to `AuthEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/AuthEditor.kt`
+- [X] T030 [P] [US3] Add `modifier: Modifier = Modifier` to `BodyEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/BodyEditor.kt`
+- [X] T031 [P] [US3] Add `modifier: Modifier = Modifier` to `CodeEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/CodeEditor.kt`
+- [X] T032 [P] [US3] Add `modifier: Modifier = Modifier` to `CollectionEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/CollectionEditor.kt`
+- [X] T033 [P] [US3] Add `modifier: Modifier = Modifier` to `FolderEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/FolderEditor.kt`
+- [X] T034 [P] [US3] Add `modifier: Modifier = Modifier` to `GraphQLPanel` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GraphQLPanel.kt`
+- [X] T035 [P] [US3] Add `modifier: Modifier = Modifier` to `GraphQLRequestEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GraphQLRequestEditor.kt`
+- [X] T036 [P] [US3] Add `modifier: Modifier = Modifier` to `GrpcRequestEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GrpcRequestEditor.kt`
+- [X] T037 [P] [US3] Add `modifier: Modifier = Modifier` to `RealtimePanel` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RealtimePanel.kt`
+- [X] T038 [P] [US3] Add `modifier: Modifier = Modifier` to `RequestBar` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestBar.kt`
+- [X] T039 [P] [US3] Add `modifier: Modifier = Modifier` to `RequestTabsBar` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestTabsBar.kt`
+- [X] T040 [P] [US3] Add `modifier: Modifier = Modifier` to `TopToolbar` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/TopToolbar.kt`
+- [X] T041 [P] [US3] Add `modifier: Modifier = Modifier` to `WebSocketRequestEditor` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt`
 
 ### Implementation for User Story 3: Modal Dialogs
 
-- [ ] T042 [P] [US3] Add `modifier: Modifier = Modifier` to `ConfirmDeleteDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ConfirmDeleteDialog.kt`
-- [ ] T043 [P] [US3] Add `modifier: Modifier = Modifier` to `DirtyCloseDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/DirtyCloseDialog.kt`
-- [ ] T044 [P] [US3] Add `modifier: Modifier = Modifier` to `DirtyMultiCloseDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/DirtyMultiCloseDialog.kt`
-- [ ] T045 [P] [US3] Add `modifier: Modifier = Modifier` to `EnvironmentEditDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/EnvironmentEditDialog.kt`
-- [ ] T046 [P] [US3] Add `modifier: Modifier = Modifier` to `ErrorMessageDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ErrorMessageDialog.kt`
-- [ ] T047 [P] [US3] Add `modifier: Modifier = Modifier` to `ExportCollectionsDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ExportCollectionsDialog.kt`
-- [ ] T048 [P] [US3] Add `modifier: Modifier = Modifier` to `GitSyncDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GitSyncDialog.kt`
-- [ ] T049 [P] [US3] Add `modifier: Modifier = Modifier` to `GlobalVariablesDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GlobalVariablesDialog.kt`
-- [ ] T050 [P] [US3] Add `modifier: Modifier = Modifier` to `HelpAboutDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/HelpAboutDialog.kt`
-- [ ] T051 [P] [US3] Add `modifier: Modifier = Modifier` to `ImportSpecificationDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ImportSpecificationDialog.kt`
-- [ ] T052 [P] [US3] Add `modifier: Modifier = Modifier` to `OperationProgressDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/OperationProgressDialog.kt`
-- [ ] T053 [P] [US3] Add `modifier: Modifier = Modifier` to `SelectProtoFileDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SelectProtoFileDialog.kt`
-- [ ] T054 [P] [US3] Add `modifier: Modifier = Modifier` to `SettingsDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SettingsDialog.kt`
-- [ ] T055 [P] [US3] Add `modifier: Modifier = Modifier` to `RenameVariantDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt`
+- [X] T042 [P] [US3] Add `modifier: Modifier = Modifier` to `ConfirmDeleteDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ConfirmDeleteDialog.kt`
+- [X] T043 [P] [US3] Add `modifier: Modifier = Modifier` to `DirtyCloseDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/DirtyCloseDialog.kt`
+- [X] T044 [P] [US3] Add `modifier: Modifier = Modifier` to `DirtyMultiCloseDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/DirtyMultiCloseDialog.kt`
+- [X] T045 [P] [US3] Add `modifier: Modifier = Modifier` to `EnvironmentEditDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/EnvironmentEditDialog.kt`
+- [X] T046 [P] [US3] Add `modifier: Modifier = Modifier` to `ErrorMessageDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ErrorMessageDialog.kt`
+- [X] T047 [P] [US3] Add `modifier: Modifier = Modifier` to `ExportCollectionsDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ExportCollectionsDialog.kt`
+- [X] T048 [P] [US3] Add `modifier: Modifier = Modifier` to `GitSyncDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GitSyncDialog.kt`
+- [X] T049 [P] [US3] Add `modifier: Modifier = Modifier` to `GlobalVariablesDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/GlobalVariablesDialog.kt`
+- [X] T050 [P] [US3] Add `modifier: Modifier = Modifier` to `HelpAboutDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/HelpAboutDialog.kt`
+- [X] T051 [P] [US3] Add `modifier: Modifier = Modifier` to `ImportSpecificationDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/ImportSpecificationDialog.kt`
+- [X] T052 [P] [US3] Add `modifier: Modifier = Modifier` to `OperationProgressDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/OperationProgressDialog.kt`
+- [X] T053 [P] [US3] Add `modifier: Modifier = Modifier` to `SelectProtoFileDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SelectProtoFileDialog.kt`
+- [X] T054 [P] [US3] Add `modifier: Modifier = Modifier` to `SettingsDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SettingsDialog.kt`
+- [X] T055 [P] [US3] Add `modifier: Modifier = Modifier` to `RenameVariantDialog` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/WebSocketRequestEditor.kt`
 
 **Checkpoint**: All workspace panels and dialogs now adhere to modifier pass-through conventions.
 
@@ -127,9 +127,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T056 [P] [US4] Reorder parameters in `HorizontalSplitPane` and `VerticalSplitPane` to place `splitFraction` and `onSplitChanged` before `modifier: Modifier = Modifier` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SplitPane.kt`
-- [ ] T057 [P] [US4] Reorder parameters in `MethodBadge` and badge helpers to place `modifier: Modifier = Modifier` as the first optional parameter before boolean flags in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/MethodBadge.kt`
-- [ ] T058 [US4] Update all split pane and method badge call sites across `ui-shared` (`MainScreen.kt`, `RequestTabsBar.kt`, `CollectionTreeNode.kt`, `SidebarHistoryRow.kt`, etc.) to match the new signatures
+- [X] T056 [P] [US4] Reorder parameters in `HorizontalSplitPane` and `VerticalSplitPane` to place `splitFraction` and `onSplitChanged` before `modifier: Modifier = Modifier` in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/SplitPane.kt`
+- [X] T057 [P] [US4] Reorder parameters in `MethodBadge` and badge helpers to place `modifier: Modifier = Modifier` as the first optional parameter before boolean flags in `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/MethodBadge.kt`
+- [X] T058 [US4] Update all split pane and method badge call sites across `ui-shared` (`MainScreen.kt`, `RequestTabsBar.kt`, `CollectionTreeNode.kt`, `SidebarHistoryRow.kt`, etc.) to match the new signatures
 
 **Checkpoint**: Parameter signatures follow Compose standards with zero call-site regressions.
 
@@ -139,10 +139,10 @@
 
 **Purpose**: Verification, cleanup, and quality gates across all stories.
 
-- [ ] T059 Remove redundant `@Preview` declaration (`RequestEditorPreview`) from `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestEditor.kt`
-- [ ] T060 Run full compilation and lint check via `./gradlew compileKotlinDesktop` and `./gradlew check`
-- [ ] T061 Run automated UI and unit test suites via `./gradlew :ui-shared:allTests :ui-desktop:desktopTest`
-- [ ] T062 Execute validation scenarios in `specs/020-fix-desktop-ui-violations/quickstart.md`
+- [X] T059 Remove redundant `@Preview` declaration (`RequestEditorPreview`) from `ui-shared/src/commonMain/kotlin/io/github/crustack/clapi/ui/shared/components/RequestEditor.kt`
+- [X] T060 Run full compilation and lint check via `./gradlew compileKotlinDesktop` and `./gradlew check`
+- [X] T061 Run automated UI and unit test suites via `./gradlew :ui-shared:allTests :ui-desktop:desktopTest`
+- [X] T062 Execute validation scenarios in `specs/020-fix-desktop-ui-violations/quickstart.md`
 
 ---
 

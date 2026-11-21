@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,6 +25,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import io.github.crustack.clapi.ui.shared.platform.PlatformColumnVerticalScrollbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -82,7 +84,10 @@ private val prettyJson = Json { prettyPrint = true }
  * variables panel, headers, and response viewer.
  */
 @Composable
-fun GraphQLPanel(state: AppState) {
+fun GraphQLPanel(
+    state: AppState,
+    modifier: Modifier = Modifier,
+) {
     val scope = rememberCoroutineScope()
 
     var endpoint by remember { mutableStateOf("https://api.example.com/graphql") }
@@ -107,7 +112,7 @@ fun GraphQLPanel(state: AppState) {
     var lastError by remember { mutableStateOf<String?>(null) }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(ClapiColors.Background)
             .testTag("graphql-panel"),
@@ -283,14 +288,14 @@ private fun GraphQLUrlBar(
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(4.dp))
-                .background(Color(0xFF49CC90).copy(alpha = 0.15f))
+                .background(ClapiColors.StatusSuccess.copy(alpha = 0.15f))
                 .padding(horizontal = 8.dp, vertical = 4.dp),
         ) {
             Text(
                 text = "POST",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF49CC90),
+                color = ClapiColors.StatusSuccess,
                 fontFamily = CodeFontFamily,
             )
         }
@@ -342,14 +347,14 @@ private fun GraphQLUrlBar(
                 Icon(
                     painter = painterResource(Res.drawable.ic_play_arrow),
                     contentDescription = Strings.t("execute"),
-                    tint = Color.White,
+                    tint = ClapiColors.OnPrimary,
                     modifier = Modifier.size(16.dp),
                 )
                 Text(
                     text = if (isLoading) Strings.t("running") else Strings.t("execute"),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
+                    color = ClapiColors.OnPrimary,
                 )
             }
         }
@@ -412,11 +417,11 @@ private fun GraphQLQueryEditor(
                 text = "GRAPHQL",
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFFE535AB),
+                color = ClapiColors.Tertiary,
                 fontFamily = CodeFontFamily,
                 modifier = Modifier
                     .clip(RoundedCornerShape(4.dp))
-                    .background(Color(0xFFE535AB).copy(alpha = 0.1f))
+                    .background(ClapiColors.Tertiary.copy(alpha = 0.1f))
                     .padding(horizontal = 6.dp, vertical = 2.dp),
             )
             Spacer(Modifier.weight(1f))
@@ -522,11 +527,11 @@ private fun GraphQLVariablesEditor(
                 text = "JSON",
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFFFFA500),
+                color = ClapiColors.StatusWarning,
                 fontFamily = CodeFontFamily,
                 modifier = Modifier
                     .clip(RoundedCornerShape(4.dp))
-                    .background(Color(0xFFFFA500).copy(alpha = 0.1f))
+                    .background(ClapiColors.StatusWarning.copy(alpha = 0.1f))
                     .padding(horizontal = 6.dp, vertical = 2.dp),
             )
             Spacer(Modifier.weight(1f))
@@ -660,9 +665,9 @@ private fun GraphQLResponseViewer(
             Spacer(Modifier.weight(1f))
             if (responseStatus != null) {
                 val statusColor = when {
-                    responseStatus in 200..299 -> Color(0xFF49CC90)
-                    responseStatus in 300..399 -> Color(0xFFFFA500)
-                    else -> Color(0xFFFF6B6B)
+                    responseStatus in 200..299 -> ClapiColors.StatusSuccess
+                    responseStatus in 300..399 -> ClapiColors.StatusWarning
+                    else -> ClapiColors.Error
                 }
                 Text(
                     text = "$responseStatus",
@@ -721,17 +726,17 @@ private fun GraphQLResponseViewer(
                             .padding(16.dp),
                     ) {
                         Text(
-                            text = "Error",
+                            text = Strings.t("error"),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFFF6B6B),
+                            color = ClapiColors.Error,
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
                             text = lastError,
                             fontSize = 12.sp,
                             fontFamily = CodeFontFamily,
-                            color = Color(0xFFFF6B6B).copy(alpha = 0.8f),
+                            color = ClapiColors.Error.copy(alpha = 0.8f),
                             lineHeight = 18.sp,
                         )
                     }
@@ -740,52 +745,61 @@ private fun GraphQLResponseViewer(
                     val highlighted = remember(responseBody) {
                         highlightJson(responseBody)
                     }
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState()),
-                    ) {
-                        Row(modifier = Modifier.fillMaxWidth()) {
-                            // Line numbers
-                            val lines = responseBody.lines()
-                            Column(
-                                modifier = Modifier
-                                    .width(40.dp)
-                                    .padding(vertical = 8.dp),
-                                horizontalAlignment = Alignment.End,
-                            ) {
-                                lines.forEachIndexed { idx, _ ->
-                                    Text(
-                                        text = "${idx + 1}",
-                                        fontSize = 12.sp,
-                                        fontFamily = CodeFontFamily,
-                                        color = ClapiColors.OnSurfaceDim.copy(alpha = 0.5f),
-                                        modifier = Modifier.padding(end = 8.dp),
-                                        lineHeight = 18.sp,
-                                    )
+                    val scrollState = rememberScrollState()
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(scrollState)
+                                .padding(end = 12.dp),
+                        ) {
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                // Line numbers
+                                val lines = responseBody.lines()
+                                Column(
+                                    modifier = Modifier
+                                        .width(40.dp)
+                                        .padding(vertical = 8.dp),
+                                    horizontalAlignment = Alignment.End,
+                                ) {
+                                    lines.forEachIndexed { idx, _ ->
+                                        Text(
+                                            text = "${idx + 1}",
+                                            fontSize = 12.sp,
+                                            fontFamily = CodeFontFamily,
+                                            color = ClapiColors.OnSurfaceDim.copy(alpha = 0.5f),
+                                            modifier = Modifier.padding(end = 8.dp),
+                                            lineHeight = 18.sp,
+                                        )
+                                    }
                                 }
+
+                                // Divider
+                                Box(
+                                    modifier = Modifier
+                                        .width(1.dp)
+                                        .fillMaxSize()
+                                        .background(ClapiColors.Border),
+                                )
+
+                                // Highlighted body
+                                Text(
+                                    text = highlighted,
+                                    fontSize = 12.sp,
+                                    fontFamily = CodeFontFamily,
+                                    lineHeight = 18.sp,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(8.dp)
+                                        .testTag("graphql-response-body"),
+                                )
                             }
-
-                            // Divider
-                            Box(
-                                modifier = Modifier
-                                    .width(1.dp)
-                                    .fillMaxSize()
-                                    .background(ClapiColors.Border),
-                            )
-
-                            // Highlighted body
-                            Text(
-                                text = highlighted,
-                                fontSize = 12.sp,
-                                fontFamily = CodeFontFamily,
-                                lineHeight = 18.sp,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(8.dp)
-                                    .testTag("graphql-response-body"),
-                            )
                         }
+                        PlatformColumnVerticalScrollbar(
+                            scrollState = scrollState,
+                            modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+                            testTag = "graphql-response-scrollbar",
+                        )
                     }
                 }
                 else -> {

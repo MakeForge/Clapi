@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.crustack.clapi.ui.shared.components.IconButtonWithTooltip
 import io.github.crustack.clapi.ui.shared.components.MethodBadge
+import io.github.crustack.clapi.ui.shared.components.handPointerHover
 import io.github.crustack.clapi.ui.shared.components.sharedSidebarTooltipState
 import io.github.crustack.clapi.ui.shared.generated.resources.Res
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_more_vert
@@ -94,7 +95,7 @@ internal fun HistoryRow(
                 }
             }
             .hoverable(interactionSource)
-            .pointerHoverIcon(PointerIcon.Hand)
+            .handPointerHover()
             .onPointerEvent(PointerEventType.Press) {
                 if (it.buttons.isSecondaryPressed) {
                     showMenu = true

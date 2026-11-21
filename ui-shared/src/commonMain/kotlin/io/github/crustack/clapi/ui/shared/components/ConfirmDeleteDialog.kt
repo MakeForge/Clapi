@@ -51,9 +51,10 @@ import kotlin.math.roundToInt
 fun ConfirmDeleteDialog(
     title: String,
     message: String,
-    confirmLabel: String = "Delete",
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    confirmLabel: String = "Delete",
 ) {
     // M-2: Track drag offset so the dialog is repositionable.
     var offsetX by remember { mutableStateOf(0f) }
@@ -65,12 +66,13 @@ fun ConfirmDeleteDialog(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .dialogEscape(onDismiss = onDismiss)
                 .onSizeChanged { viewportSize = it }
                 .pointerInput(Unit) { detectTapGestures { onDismiss() } },
             contentAlignment = Alignment.Center,
         ) {
         Box(
-            modifier = Modifier
+            modifier = modifier
                 .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                 .widthIn(min = 360.dp, max = 480.dp)
                 .onSizeChanged { cardSize = it }

@@ -1,5 +1,6 @@
 package io.github.crustack.clapi.ui.shared.components
 
+import io.github.crustack.clapi.ui.shared.components.graphql.GraphQLAddressBar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,8 +12,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -54,6 +58,7 @@ import io.github.crustack.clapi.ui.shared.generated.resources.ic_format_align_le
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_send
 import io.github.crustack.clapi.ui.shared.generated.resources.ic_stop
 import io.github.crustack.clapi.ui.shared.i18n.Strings
+import io.github.crustack.clapi.ui.shared.platform.PlatformColumnVerticalScrollbar
 import io.github.crustack.clapi.ui.shared.shortcuts.onSaveHotkey
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.GraphQLEditorTab
@@ -73,8 +78,8 @@ fun GraphQLRequestEditor(
     state: AppState,
     onSend: () -> Unit,
     onSave: () -> Unit,
-    onCancel: () -> Unit = {},
     modifier: Modifier = Modifier,
+    onCancel: () -> Unit = {},
 ) {
     val markDirty = { tab.markDirty() }
 
@@ -174,176 +179,6 @@ fun GraphQLRequestEditor(
 
 // ── Top Address Bar ─────────────────────────────────────────────────
 
-@Composable
-private fun GraphQLAddressBar(
-    tab: RequestTabState,
-    state: AppState,
-    onSend: () -> Unit,
-    onCancel: () -> Unit,
-    onSave: () -> Unit,
-    markDirty: () -> Unit,
-) {
-    var methodMenuExpanded by remember { mutableStateOf(false) }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(ClapiColors.Surface)
-            .border(width = 1.dp, color = ClapiColors.Border)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        GraphQLBadge(compact = false)
-
-        // Method selector dropdown (POST / GET)
-        Box {
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(ClapiColors.SurfaceContainer)
-                    .border(1.dp, ClapiColors.Border, RoundedCornerShape(6.dp))
-                    .clickable { methodMenuExpanded = true }
-                    .padding(horizontal = 10.dp, vertical = 7.dp)
-                    .testTag("graphql-method-selector"),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    text = tab.graphQlMethod,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    fontFamily = CodeFontFamily,
-                    color = ClapiColors.MethodGraphQl,
-                )
-                Icon(
-                    painter = painterResource(Res.drawable.ic_arrow_drop_down),
-                    contentDescription = null,
-                    tint = ClapiColors.OnSurfaceDim,
-                    modifier = Modifier.size(14.dp),
-                )
-            }
-
-            DropdownMenu(
-                expanded = methodMenuExpanded,
-                onDismissRequest = { methodMenuExpanded = false },
-            ) {
-                listOf("POST", "GET").forEach { m ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = m,
-                                fontWeight = if (tab.graphQlMethod == m) FontWeight.Bold else FontWeight.Normal,
-                                color = if (tab.graphQlMethod == m) ClapiColors.MethodGraphQl else ClapiColors.OnSurface,
-                                fontFamily = CodeFontFamily,
-                            )
-                        },
-                        onClick = {
-                            tab.graphQlMethod = m
-                            methodMenuExpanded = false
-                            markDirty()
-                        },
-                        modifier = Modifier.testTag("graphql-method-option-$m"),
-                    )
-                }
-            }
-        }
-
-        // URL input with variable token resolution
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .clip(RoundedCornerShape(8.dp))
-                .background(ClapiColors.SurfaceContainer)
-                .border(1.dp, ClapiColors.Border, RoundedCornerShape(8.dp))
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-        ) {
-            VariableAwareTextField(
-                value = tab.url,
-                onValueChange = { newUrl ->
-                    tab.url = newUrl
-                    markDirty()
-                },
-                placeholder = "https://example.com/graphql",
-                textStyle = TextStyle(
-                    color = ClapiColors.OnSurface,
-                    fontSize = 14.sp,
-                    fontFamily = CodeFontFamily,
-                ),
-                state = state,
-                tab = tab,
-                undoStack = tab.urlUndoStack,
-                modifier = Modifier.fillMaxWidth().testTag("graphql-url-input"),
-            )
-        }
-
-        // Send / Stop Button
-        val sendInteraction = remember { MutableInteractionSource() }
-        val sendHovered by sendInteraction.collectIsHoveredAsState()
-
-        if (tab.isLoading) {
-            Box(
-                modifier = Modifier
-                    .widthIn(min = 80.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(if (sendHovered) Color(0xFFD32F2F) else Color(0xFFC62828))
-                    .hoverable(sendInteraction)
-                    .clickable(onClick = onCancel)
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .testTag("graphql-stop-button"),
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(
-                        painter = painterResource(Res.drawable.ic_stop),
-                        contentDescription = Strings.t("stop_request"),
-                        tint = ClapiColors.OnPrimary,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Text(
-                        text = Strings.t("stop"),
-                        color = ClapiColors.OnPrimary,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp,
-                    )
-                }
-            }
-        } else {
-            Box(
-                modifier = Modifier
-                    .widthIn(min = 80.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(if (sendHovered) ClapiColors.MethodGraphQl.copy(alpha = 0.85f) else ClapiColors.MethodGraphQl)
-                    .hoverable(sendInteraction)
-                    .clickable(onClick = onSend)
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .testTag("graphql-send-button"),
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = Strings.send,
-                        color = Color.White,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp,
-                    )
-                    Icon(
-                        painter = painterResource(Res.drawable.ic_send),
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
-            }
-        }
-
-        // Save Button
-        SaveButton(isLoading = false, onClick = onSave)
-    }
-}
-
-// ── Body Pane (Variants + Query + Variables) ─────────────────────────
-
 @OptIn(ExperimentalSerializationApi::class)
 @Composable
 private fun GraphQLBodyPane(
@@ -414,7 +249,7 @@ private fun GraphQLBodyPane(
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                             .testTag("graphql-rename-variant-confirm"),
                     ) {
-                        Text("Rename", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Text(Strings.rename, color = ClapiColors.OnPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -664,11 +499,11 @@ private fun GraphQLBodyPane(
                             text = "VARIABLES (JSON)",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFFFA500),
+                            color = ClapiColors.StatusWarning,
                             fontFamily = CodeFontFamily,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
-                                .background(Color(0xFFFFA500).copy(alpha = 0.1f))
+                                .background(ClapiColors.StatusWarning.copy(alpha = 0.1f))
                                 .padding(horizontal = 6.dp, vertical = 2.dp),
                         )
                         Spacer(Modifier.weight(1f))
@@ -801,12 +636,16 @@ private fun GraphQLSettingsPane(
     tab: RequestTabState,
     markDirty: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
+    val scrollState = rememberScrollState()
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(16.dp)
+                .padding(end = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
         Text(
             text = "GraphQL Execution Settings",
             fontSize = 14.sp,
@@ -948,6 +787,11 @@ private fun GraphQLSettingsPane(
                     .testTag("graphql-settings-max-redirects"),
             )
         }
+        }
+        PlatformColumnVerticalScrollbar(
+            scrollState = scrollState,
+            modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+        )
     }
 }
 

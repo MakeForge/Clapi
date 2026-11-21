@@ -26,10 +26,12 @@ fun ErrorMessageDialog(
     title: String,
     message: String,
     onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Column(
-            modifier = Modifier
+            modifier = modifier
+                .dialogEscape(onDismiss = onDismiss)
                 .widthIn(min = 360.dp, max = 560.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(ClapiColors.Surface)

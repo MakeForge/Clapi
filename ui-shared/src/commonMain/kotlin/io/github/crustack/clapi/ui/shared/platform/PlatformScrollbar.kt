@@ -23,6 +23,13 @@ expect fun PlatformColumnVerticalScrollbar(
     testTag: String = "",
 )
 
+@Composable
+expect fun PlatformHorizontalScrollbar(
+    scrollState: ScrollState,
+    modifier: Modifier = Modifier,
+    testTag: String = "",
+)
+
 /** Right-side inset only so the thumb can travel the full list height. */
 fun Modifier.insetScrollbar(): Modifier =
     fillMaxHeight().padding(end = 4.dp)

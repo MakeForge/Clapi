@@ -40,9 +40,9 @@ import io.github.crustack.clapi.ui.shared.platform.verticalResizeCursor
  */
 @Composable
 fun HorizontalSplitPane(
-    modifier: Modifier = Modifier,
     splitFraction: Float,
     onSplitChanged: (Float) -> Unit,
+    modifier: Modifier = Modifier,
     minFraction: Float = 0.20f,
     maxFraction: Float = 0.80f,
     dividerTag: String = "h-split-divider",
@@ -116,9 +116,9 @@ fun HorizontalSplitPane(
  */
 @Composable
 fun VerticalSplitPane(
-    modifier: Modifier = Modifier,
     splitFraction: Float,
     onSplitChanged: (Float) -> Unit,
+    modifier: Modifier = Modifier,
     minFraction: Float = 0.20f,
     maxFraction: Float = 0.85f,
     dividerTag: String = "v-split-divider",

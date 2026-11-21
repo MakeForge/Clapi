@@ -67,6 +67,8 @@ import kotlin.math.roundToInt
 @Composable
 fun SelectProtoFileDialog(
     currentProtoFilePath: String?,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
     errorMessage: String? = null,
     isLoading: Boolean = false,
     collectionProtoFiles: List<String> = emptyList(),
@@ -75,7 +77,6 @@ fun SelectProtoFileDialog(
     onSave: (protoFilePath: String) -> Unit = {},
     onSaveWithSync: ((protoFilePath: String, syncToGit: Boolean) -> Unit)? = null,
     onSaveWithClose: ((protoFilePath: String, syncToGit: Boolean, closeDialog: Boolean) -> Unit)? = null,
-    onDismiss: () -> Unit,
     onPickFile: ((onSelected: (String) -> Unit) -> Unit)? = null,
 ) {
     var selectedPath by remember(currentProtoFilePath) {
@@ -129,12 +130,13 @@ fun SelectProtoFileDialog(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .dialogEscape(onDismiss = { requestDismiss() })
                 .onSizeChanged { viewportSize = it }
                 .pointerInput(Unit) { detectTapGestures { requestDismiss() } },
             contentAlignment = Alignment.Center,
         ) {
             Box(
-                modifier = Modifier
+                modifier = modifier
                     .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                     .widthIn(min = 440.dp, max = 560.dp)
                     .onSizeChanged { cardSize = it }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import io.github.crustack.clapi.ui.shared.platform.PlatformColumnVerticalScrollbar
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -73,12 +75,14 @@ import org.jetbrains.compose.resources.painterResource
 fun AuthEditor(
     tab: RequestTabState,
     state: AppState,
+    modifier: Modifier = Modifier,
     onDirty: () -> Unit,
 ) {
     AuthEditor(
         tab = tab,
         state = state,
         tokenClient = remember { KtorOAuth2TokenClient() },
+        modifier = modifier,
         onDirty = onDirty,
     )
 }
@@ -88,6 +92,7 @@ fun AuthEditor(
     tab: RequestTabState,
     state: AppState,
     tokenClient: OAuth2TokenClient,
+    modifier: Modifier = Modifier,
     onDirty: () -> Unit,
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -96,13 +101,16 @@ fun AuthEditor(
         !hasFolderAncestor && it == AuthType.INHERIT
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
+    val scrollState = rememberScrollState()
+
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(end = 16.dp, start = 12.dp, top = 12.dp, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
         // Auth-type selector
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             selectableAuthTypes.forEach { at ->
@@ -115,6 +123,7 @@ fun AuthEditor(
                     modifier = Modifier
                         .clip(RoundedCornerShape(4.dp))
                         .background(if (selected) ClapiColors.SelectedItem else Color.Transparent)
+                        .handPointerHover()
                         .clickable {
                             if (at != tab.authType) {
                                 tab.authType = at
@@ -153,6 +162,7 @@ fun AuthEditor(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
                                 .background(if (selected) ClapiColors.SelectedItem else Color.Transparent)
+                                .handPointerHover()
                                 .clickable { tab.authApiPlacement = placement; onDirty() }
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                                 .testTag("api-key-placement-$placement"),
@@ -230,6 +240,12 @@ fun AuthEditor(
                 }
             }
         }
+        }
+        PlatformColumnVerticalScrollbar(
+            scrollState = scrollState,
+            modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+            testTag = "auth-editor-scrollbar",
+        )
     }
 }
 
@@ -259,6 +275,7 @@ private fun OAuth2EditorSection(
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
                             .background(if (selected) ClapiColors.SelectedItem else Color.Transparent)
+                            .handPointerHover()
                             .clickable {
                                 if (tab.authOAuth2Flow != flow) {
                                     tab.authOAuth2Flow = flow
@@ -334,6 +351,7 @@ private fun OAuth2EditorSection(
                     modifier = Modifier
                         .clip(RoundedCornerShape(4.dp))
                         .background(if (selected) ClapiColors.SelectedItem else Color.Transparent)
+                        .handPointerHover()
                         .clickable {
                             if (tab.authOAuth2CredentialsPlacement != placement) {
                                 tab.authOAuth2CredentialsPlacement = placement
@@ -410,19 +428,19 @@ private fun OAuth2TokenInspectionSection(
                 if (tab.authOAuth2IsFetching) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(14.dp),
-                        color = Color.White,
+                        color = ClapiColors.OnPrimary,
                         strokeWidth = 2.dp,
                     )
                     Text(
                         text = " " + Strings.t("oauth2_fetching_tokens"),
                         fontSize = 12.sp,
-                        color = Color.White,
+                        color = ClapiColors.OnPrimary,
                     )
                 } else {
                     Text(
                         text = Strings.t("oauth2_fetch_tokens"),
                         fontSize = 12.sp,
-                        color = Color.White,
+                        color = ClapiColors.OnPrimary,
                     )
                 }
             }
@@ -459,14 +477,14 @@ private fun OAuth2TokenInspectionSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(6.dp))
-                    .background(Color(0xFF3B1E1E))
-                    .border(1.dp, Color(0xFF8B2525), RoundedCornerShape(6.dp))
+                    .background(ClapiColors.Error.copy(alpha = 0.15f))
+                    .border(1.dp, ClapiColors.Error.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
                     .padding(8.dp)
                     .testTag("auth-oauth2-error-banner"),
             ) {
                 Text(
                     text = tab.authOAuth2FetchError ?: "",
-                    color = Color(0xFFFF8B8B),
+                    color = ClapiColors.Error,
                     fontSize = 12.sp,
                 )
             }
@@ -555,7 +573,7 @@ fun CopyableTokenField(
                         copied = true
                     }
                 },
-                modifier = Modifier.size(32.dp).testTag(copyTestTag),
+                modifier = Modifier.size(32.dp).handPointerHover().testTag(copyTestTag),
             ) {
                 Icon(
                     painter = painterResource(Res.drawable.ic_content_copy),

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -18,6 +19,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import io.github.crustack.clapi.ui.shared.platform.PlatformLazyVerticalScrollbar
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -196,6 +199,7 @@ fun GitSyncDialog(
     Dialog(onDismissRequest = onDismiss) {
         Column(
             modifier = modifier
+                .dialogEscape(onDismiss = onDismiss)
                 .widthIn(min = 500.dp, max = 620.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(ClapiColors.Surface)
@@ -326,86 +330,98 @@ fun GitSyncDialog(
                     )
                 }
             } else {
-                LazyColumn(
+                val changesListState = rememberLazyListState()
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 200.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(ClapiColors.SurfaceContainer)
-                        .padding(8.dp)
-                        .testTag("git-sync-changes-list"),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                        .background(ClapiColors.SurfaceContainer),
                 ) {
-                    groupedChanges.forEach { (collectionFolder, colChanges) ->
-                        val isExpanded = expandedGroups[collectionFolder] ?: true
-                        val displayCollectionName = state.collections.firstOrNull {
-                            state.gitRepositoryManager.sanitizeCollectionName(it.name) == collectionFolder
-                        }?.name ?: collectionFolder
+                    LazyColumn(
+                        state = changesListState,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(end = 10.dp, start = 8.dp, top = 8.dp, bottom = 8.dp)
+                            .testTag("git-sync-changes-list"),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        groupedChanges.forEach { (collectionFolder, colChanges) ->
+                            val isExpanded = expandedGroups[collectionFolder] ?: true
+                            val displayCollectionName = state.collections.firstOrNull {
+                                state.gitRepositoryManager.sanitizeCollectionName(it.name) == collectionFolder
+                            }?.name ?: collectionFolder
 
-                        item(key = "header_$collectionFolder") {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .clickable { expandedGroups[collectionFolder] = !isExpanded }
-                                    .padding(horizontal = 6.dp, vertical = 4.dp)
-                                    .testTag("git-sync-group-$collectionFolder"),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                Icon(
-                                    painter = if (isExpanded) painterResource(Res.drawable.ic_keyboard_arrow_down) else painterResource(Res.drawable.ic_keyboard_arrow_right),
-                                    contentDescription = null,
-                                    tint = ClapiColors.OnSurfaceDim,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                                Text(
-                                    text = "$displayCollectionName (${colChanges.size} change${if (colChanges.size == 1) "" else "s"})",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = ClapiColors.OnSurface,
-                                )
-                            }
-                        }
-
-                        if (isExpanded) {
-                            items(colChanges, key = { it.relativePath }) { change ->
-                                val fileWithinCollection = change.relativePath
-                                    .removePrefix("$collectionFolder/")
-                                    .removePrefix("$collectionFolder\\")
-                                val kindLabel = when (change.changeKind) {
-                                    GitChangeKind.MODIFIED -> "Modified"
-                                    GitChangeKind.ADDED, GitChangeKind.UNTRACKED -> "Added"
-                                    GitChangeKind.DELETED -> "Deleted"
-                                    GitChangeKind.CONFLICTED -> "Conflicted"
-                                }
+                            item(key = "header_$collectionFolder") {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(start = 24.dp, end = 8.dp, top = 2.dp, bottom = 2.dp)
-                                        .testTag("git-sync-file-${change.relativePath}"),
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .clickable { expandedGroups[collectionFolder] = !isExpanded }
+                                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                                        .testTag("git-sync-group-$collectionFolder"),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
+                                    Icon(
+                                        painter = if (isExpanded) painterResource(Res.drawable.ic_keyboard_arrow_down) else painterResource(Res.drawable.ic_keyboard_arrow_right),
+                                        contentDescription = null,
+                                        tint = ClapiColors.OnSurfaceDim,
+                                        modifier = Modifier.size(16.dp),
+                                    )
                                     Text(
-                                        text = "• $fileWithinCollection",
+                                        text = "$displayCollectionName (${colChanges.size} change${if (colChanges.size == 1) "" else "s"})",
                                         fontSize = 12.sp,
-                                        fontFamily = CodeFontFamily,
+                                        fontWeight = FontWeight.SemiBold,
                                         color = ClapiColors.OnSurface,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f),
                                     )
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(
-                                        text = "($kindLabel)",
-                                        fontSize = 11.sp,
-                                        color = if (change.changeKind == GitChangeKind.CONFLICTED) ClapiColors.Error else ClapiColors.OnSurfaceDim,
-                                    )
+                                }
+                            }
+
+                            if (isExpanded) {
+                                items(colChanges, key = { it.relativePath }) { change ->
+                                    val fileWithinCollection = change.relativePath
+                                        .removePrefix("$collectionFolder/")
+                                        .removePrefix("$collectionFolder\\")
+                                    val kindLabel = when (change.changeKind) {
+                                        GitChangeKind.MODIFIED -> "Modified"
+                                        GitChangeKind.ADDED, GitChangeKind.UNTRACKED -> "Added"
+                                        GitChangeKind.DELETED -> "Deleted"
+                                        GitChangeKind.CONFLICTED -> "Conflicted"
+                                    }
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(start = 24.dp, end = 8.dp, top = 2.dp, bottom = 2.dp)
+                                            .testTag("git-sync-file-${change.relativePath}"),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                    ) {
+                                        Text(
+                                            text = "• $fileWithinCollection",
+                                            fontSize = 12.sp,
+                                            fontFamily = CodeFontFamily,
+                                            color = ClapiColors.OnSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            text = "($kindLabel)",
+                                            fontSize = 11.sp,
+                                            color = if (change.changeKind == GitChangeKind.CONFLICTED) ClapiColors.Error else ClapiColors.OnSurfaceDim,
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
+                    PlatformLazyVerticalScrollbar(
+                        listState = changesListState,
+                        modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+                        testTag = "git-sync-changes-scrollbar",
+                    )
                 }
             }
 
@@ -414,7 +430,7 @@ fun GitSyncDialog(
                 value = commitMessage,
                 onValueChange = { commitMessage = it },
                 label = { Text(Strings.gitCommitMessage) },
-                placeholder = { Text("Commit message (required to commit)...") },
+                placeholder = { Text(Strings.gitCommitMessage) },
                 minLines = 2,
                 maxLines = 4,
                 modifier = Modifier

@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import io.github.crustack.clapi.ui.shared.platform.PlatformLazyVerticalScrollbar
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Checkbox
@@ -73,7 +75,10 @@ import org.jetbrains.compose.resources.painterResource
  * If the same key exists in an environment, the environment value wins.
  */
 @Composable
-fun GlobalVariablesDialog(state: AppState) {
+fun GlobalVariablesDialog(
+    state: AppState,
+    modifier: Modifier = Modifier,
+) {
     if (!state.showGlobalVariablesDialog) return
 
     val workingVars = remember {
@@ -127,13 +132,14 @@ fun GlobalVariablesDialog(state: AppState) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .dialogEscape(onDismiss = { requestClose() })
                 .pointerInput(Unit) {
                     detectTapGestures { requestClose() }
                 },
             contentAlignment = Alignment.Center,
         ) {
             Column(
-                modifier = Modifier
+                modifier = modifier
                     .widthIn(min = 500.dp, max = 700.dp)
                     .fillMaxHeight(0.7f)
                     .clip(RoundedCornerShape(12.dp))
@@ -215,39 +221,52 @@ fun GlobalVariablesDialog(state: AppState) {
                 }
 
                 // ── Variable list ──
-                LazyColumn(
+                val varsListState = rememberLazyListState()
+                Box(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxWidth()
-                        .testTag("global-variables-list"),
+                        .fillMaxWidth(),
                 ) {
-                    itemsIndexed(
-                        items = workingVars,
-                        key = { _, item -> item.uid },
-                    ) { index, variable ->
-                        GlobalVariableRow(
-                            variable = variable,
-                            index = index,
-                            onDelete = { workingVars.removeAt(index) },
-                        )
-                    }
+                    LazyColumn(
+                        state = varsListState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(end = 10.dp)
+                            .testTag("global-variables-list"),
+                    ) {
+                        itemsIndexed(
+                            items = workingVars,
+                            key = { _, item -> item.uid },
+                        ) { index, variable ->
+                            GlobalVariableRow(
+                                variable = variable,
+                                index = index,
+                                onDelete = { workingVars.removeAt(index) },
+                            )
+                        }
 
-                    if (workingVars.isEmpty()) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(80.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    Strings.noGlobalVariables,
-                                    color = ClapiColors.OnSurfaceDim,
-                                    fontSize = 13.sp,
-                                )
+                        if (workingVars.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(80.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        Strings.noGlobalVariables,
+                                        color = ClapiColors.OnSurfaceDim,
+                                        fontSize = 13.sp,
+                                    )
+                                }
                             }
                         }
                     }
+                    PlatformLazyVerticalScrollbar(
+                        listState = varsListState,
+                        modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+                        testTag = "global-variables-scrollbar",
+                    )
                 }
 
                 HorizontalDivider(color = ClapiColors.Border)
@@ -429,6 +448,7 @@ private fun GlobalVariableRow(
                 .width(72.dp)
                 .clip(RoundedCornerShape(6.dp))
                 .background(if (variable.secret) ClapiColors.Tertiary.copy(alpha = 0.10f) else ClapiColors.SurfaceContainer)
+                .handPointerHover()
                 .clickable {
                     variable.secret = !variable.secret
                     if (variable.secret) showValue = false
@@ -443,7 +463,7 @@ private fun GlobalVariableRow(
         if (variable.secret) {
             IconButton(
                 onClick = { showValue = !showValue },
-                modifier = Modifier.size(24.dp).testTag("global-var-eye-$index"),
+                modifier = Modifier.size(24.dp).handPointerHover().testTag("global-var-eye-$index"),
             ) {
                 Icon(
                     if (showValue) painterResource(Res.drawable.ic_visibility_off) else painterResource(Res.drawable.ic_visibility),
@@ -459,7 +479,7 @@ private fun GlobalVariableRow(
         // Delete
         IconButton(
             onClick = onDelete,
-            modifier = Modifier.size(24.dp).testTag("global-var-delete-$index"),
+            modifier = Modifier.size(24.dp).handPointerHover().testTag("global-var-delete-$index"),
         ) {
             Icon(painter = painterResource(Res.drawable.ic_delete),
                 contentDescription = Strings.t("delete_variable"),

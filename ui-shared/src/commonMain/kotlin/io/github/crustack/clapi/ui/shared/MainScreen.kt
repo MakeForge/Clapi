@@ -95,7 +95,10 @@ import kotlinx.coroutines.withContext
  */
 @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
 @Composable
-fun MainScreen(state: AppState = remember { AppState() }) {
+fun MainScreen(
+    state: AppState = remember { AppState() },
+    modifier: Modifier = Modifier,
+) {
     val scope = rememberCoroutineScope()
     var dirtyCloseTabIndex by remember { mutableStateOf<Int?>(null) }
     var multiDirtyIdsToClose by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -197,7 +200,7 @@ fun MainScreen(state: AppState = remember { AppState() }) {
     }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(ClapiColors.Background)
             .testTag("main-screen")
@@ -367,8 +370,10 @@ private fun ColumnScope.HttpWorkspaceContent(
     scope: kotlinx.coroutines.CoroutineScope,
     onRequestClose: (Int) -> Unit,
     closeManyTabs: (List<String>) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-                RequestTabsBar(
+    Column(modifier = modifier.weight(1f).fillMaxWidth()) {
+        RequestTabsBar(
                     state = state,
                     onRequestClose = onRequestClose,
                     onRenameTab = { requestId, newName ->
@@ -539,4 +544,5 @@ private fun ColumnScope.HttpWorkspaceContent(
                         }
                     }
                 }
+    }
 }

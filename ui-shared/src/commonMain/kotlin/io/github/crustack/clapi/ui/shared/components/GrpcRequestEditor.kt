@@ -96,6 +96,7 @@ fun GrpcRequestEditor(
     state: AppState,
     onSend: () -> Unit,
     onSave: () -> Unit,
+    modifier: Modifier = Modifier,
     onCancel: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
@@ -194,7 +195,7 @@ fun GrpcRequestEditor(
     }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(ClapiColors.Background)
             .onSaveHotkey { onSave() }
@@ -601,10 +602,11 @@ private fun GrpcSendButton(
                 .widthIn(min = 80.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(
-                    if (isHovered) Color(0xFFD32F2F)
-                    else Color(0xFFC62828)
+                    if (isHovered) ClapiColors.Error.copy(alpha = 0.85f)
+                    else ClapiColors.Error
                 )
                 .hoverable(interactionSource)
+                .handPointerHover()
                 .clickable(onClick = onCancel)
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .testTag("stop-button"),
