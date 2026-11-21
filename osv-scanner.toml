@@ -1,0 +1,9 @@
+# osv-scanner.toml
+# OpenSSF OSV-Scanner configuration
+# Use this file to suppress verified false positives or temporarily ignore unfixable advisories.
+#
+# Example:
+# [[IgnoredVulns]]
+# id = "GHSA-xxxx-xxxx-xxxx"
+# ignoreUntil = 2026-12-31
+# reason = "False positive: vulnerable code path is unused in desktop client"

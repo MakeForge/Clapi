@@ -1,0 +1,72 @@
+name: Security Scan & SBOM
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write        # Required to upload SBOM assets to GitHub Releases
+  security-events: write # Required to upload SARIF results to GitHub Security tab
+
+jobs:
+  sbom-and-osv-scan:
+    name: SBOM & Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Generate CycloneDX SBOM
+        run: ./gradlew cyclonedxBom --no-daemon
+
+      - name: Install OSV-Scanner
+        run: |
+          curl -fsSL https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o /usr/local/bin/osv-scanner
+          chmod +x /usr/local/bin/osv-scanner
+
+      - name: Scan SBOM with OSV-Scanner
+        id: osv-scan
+        continue-on-error: true
+        run: |
+          osv-scanner --format=sarif --output-file=osv-results.sarif -L build/reports/sbom/bom.json
+
+      - name: Upload OSV SARIF to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: osv-results.sarif
+          category: osv-scanner
+
+      - name: Upload SBOM Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cyclonedx-sbom
+          path: build/reports/sbom/bom.json
+
+      - name: Attach SBOM to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/reports/sbom/bom.json
+
+      - name: Enforce Vulnerability Gate
+        if: steps.osv-scan.outcome == 'failure'
+        run: exit 1
