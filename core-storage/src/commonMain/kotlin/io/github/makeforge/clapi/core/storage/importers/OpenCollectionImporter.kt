@@ -19,7 +19,13 @@ class OpenCollectionImporter(
 ) : SpecificationImporter {
 
     override suspend fun scanContent(rawContent: String): ImportScanResult {
-        val issues = validator.validateYaml(rawContent)
+        val trimmed = rawContent.trim()
+        val isJson = trimmed.startsWith("{")
+        val issues = if (isJson) {
+            validator.validate(rawContent)
+        } else {
+            validator.validateYaml(rawContent)
+        }
         if (issues.isNotEmpty()) {
             return ImportScanResult.Failure(
                 message = "Invalid OpenCollection specification: ${issues.first().message}",
@@ -28,7 +34,11 @@ class OpenCollectionImporter(
         }
 
         val document: OpenCollectionDocument = try {
-            OpenCollectionSerializer.deserializeYaml(rawContent)
+            if (isJson) {
+                OpenCollectionSerializer.deserializeJson(rawContent)
+            } else {
+                OpenCollectionSerializer.deserializeYaml(rawContent)
+            }
         } catch (e: Exception) {
             return ImportScanResult.Failure(
                 message = "Failed to deserialize OpenCollection: ${e.message ?: "Unknown error"}",

@@ -74,13 +74,12 @@ import io.github.makeforge.clapi.ui.shared.i18n.Strings
 import io.github.makeforge.clapi.ui.shared.platform.DocsLinks
 import io.github.makeforge.clapi.ui.shared.persistence.WorkspaceRepository
 import io.github.makeforge.clapi.ui.shared.persistence.toCollectionNode
-import io.github.makeforge.clapi.ui.shared.persistence.toMutableKeyValue
+import io.github.makeforge.clapi.ui.shared.persistence.toEnvState
 import io.github.makeforge.clapi.ui.shared.platform.PlatformLazyVerticalScrollbar
 import io.github.makeforge.clapi.ui.shared.platform.fileDropTarget
 import io.github.makeforge.clapi.ui.shared.platform.pickFileForImport
 import io.github.makeforge.clapi.ui.shared.platform.readFromClipboard
 import io.github.makeforge.clapi.ui.shared.state.AppState
-import io.github.makeforge.clapi.ui.shared.state.EnvState
 import io.github.makeforge.clapi.ui.shared.state.LogLevel
 import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
 import kotlinx.coroutines.Dispatchers
@@ -684,15 +683,7 @@ fun ImportSpecificationDialog(
 
                                 val selectedEnvs = candidateEnvironments.filter { it.selected }
                                 for (cEnv in selectedEnvs) {
-                                    val envState = EnvState(
-                                        name = cEnv.name,
-                                        variables = cEnv.environment.variables.map { it.toMutableKeyValue() },
-                                        color = cEnv.environment.color,
-                                        description = cEnv.environment.description,
-                                        clientCertificates = cEnv.environment.clientCertificates,
-                                        extends = cEnv.environment.extends,
-                                        dotEnvFilePath = cEnv.environment.dotEnvFilePath,
-                                    )
+                                    val envState = cEnv.environment.copy(name = cEnv.name).toEnvState()
                                     val existingEnvIndex = state.environments.indexOfFirst { it.name == cEnv.name }
                                     if (existingEnvIndex >= 0) {
                                         state.environments[existingEnvIndex] = envState
@@ -701,6 +692,9 @@ fun ImportSpecificationDialog(
                                     }
                                 }
 
+                                if (selectedFolders.isNotEmpty()) {
+                                    state.notifyCollectionsChanged()
+                                }
                                 WorkspaceRepository.save(state)
                                 state.log(
                                     "Import completed: ${selectedFolders.size} folder(s), ${selectedEnvs.size} environment(s)",
