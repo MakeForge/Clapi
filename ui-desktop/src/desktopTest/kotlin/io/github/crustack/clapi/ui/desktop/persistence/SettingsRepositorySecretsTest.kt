@@ -18,6 +18,12 @@ class SettingsRepositorySecretsTest {
         "settings.vaultMountPath",
         "settings.vaultNamespace",
         "settings.vaultToken",
+        "settings.awsRegion",
+        "settings.awsAccessKeyId",
+        "settings.awsSecretAccessKey",
+        "settings.awsSessionToken",
+        "settings.awsEndpointUrl",
+        "settings.awsVersionStage",
     )
 
     @Before
@@ -100,5 +106,62 @@ class SettingsRepositorySecretsTest {
         assertEquals("https://prod-vault:8200", reloaded.vaultServerUrl)
         assertEquals("v2", reloaded.vaultMountPath)
         assertEquals("token-2-updated", reloaded.vaultToken)
+    }
+
+    @Test
+    fun default_aws_settings_are_populated_on_empty_storage() {
+        val settings = AppSettings()
+        SettingsRepository.load(settings)
+
+        assertEquals("us-east-1", settings.awsRegion)
+        assertEquals("", settings.awsAccessKeyId)
+        assertEquals("", settings.awsSecretAccessKey)
+        assertEquals("", settings.awsSessionToken)
+        assertEquals("", settings.awsEndpointUrl)
+        assertEquals("AWSCURRENT", settings.awsVersionStage)
+    }
+
+    @Test
+    fun save_and_load_roundtrips_aws_settings() {
+        val original = AppSettings().apply {
+            vaultProviderType = "aws-secrets-manager"
+            awsRegion = "eu-central-1"
+            awsAccessKeyId = "AKIAEXAMPLE123"
+            awsSecretAccessKey = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+            awsSessionToken = "AQoDYXdzEJr1EXAMPLETOKEN"
+            awsEndpointUrl = "http://localhost:4566"
+            awsVersionStage = "AWSPREVIOUS"
+        }
+
+        SettingsRepository.save(original)
+
+        val restored = AppSettings()
+        SettingsRepository.load(restored)
+
+        assertEquals("aws-secrets-manager", restored.vaultProviderType)
+        assertEquals("eu-central-1", restored.awsRegion)
+        assertEquals("AKIAEXAMPLE123", restored.awsAccessKeyId)
+        assertEquals("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", restored.awsSecretAccessKey)
+        assertEquals("AQoDYXdzEJr1EXAMPLETOKEN", restored.awsSessionToken)
+        assertEquals("http://localhost:4566", restored.awsEndpointUrl)
+        assertEquals("AWSPREVIOUS", restored.awsVersionStage)
+    }
+
+    @Test
+    fun aws_credentials_are_persisted_in_encrypted_storage_not_plain_text() {
+        val sensitiveKey = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+        val sensitiveToken = "AQoDYXdzEJr1EXAMPLETOKEN"
+        val settings = AppSettings().apply {
+            awsSecretAccessKey = sensitiveKey
+            awsSessionToken = sensitiveToken
+        }
+
+        SettingsRepository.save(settings)
+
+        assertEquals(sensitiveKey, PlatformStorage.getSecretString("settings.awsSecretAccessKey"))
+        assertNotEquals(sensitiveKey, PlatformStorage.getString("settings.awsSecretAccessKey"))
+
+        assertEquals(sensitiveToken, PlatformStorage.getSecretString("settings.awsSessionToken"))
+        assertNotEquals(sensitiveToken, PlatformStorage.getString("settings.awsSessionToken"))
     }
 }

@@ -1,5 +1,7 @@
 package io.github.crustack.clapi.core.network.vault
 
+import io.github.crustack.clapi.core.network.aws.AwsSecretsManagerClient
+import io.github.crustack.clapi.core.network.aws.AwsSecretsManagerConfig
 import io.github.crustack.clapi.core.network.keepassxc.KeePassXcClient
 import io.github.crustack.clapi.core.network.keepassxc.KeePassXcEntry
 import io.github.crustack.clapi.core.network.keepassxc.KeePassXcStatus
@@ -502,5 +504,274 @@ class SecretResolutionServiceTest {
         )
 
         assertEquals("kp_secret_password", resolved["_secret.my_secret"])
+    }
+
+    private class FakeAwsSecretsManagerClient(
+        private val secrets: Map<String, Map<String, String>>,
+    ) : AwsSecretsManagerClient {
+        val calls = mutableListOf<String>()
+
+        override suspend fun fetchSecret(config: AwsSecretsManagerConfig): Map<String, String> {
+            calls.add(config.secretId)
+            return secrets[config.secretId]
+                ?: throw IllegalStateException("External secret not found in AWS Secrets Manager (Secret ID: '${config.secretId}')")
+        }
+
+        override suspend fun fetchSecret(
+            secretId: String,
+            accessKey: String,
+            secretKey: String,
+            region: String,
+            sessionToken: String?,
+            endpointUrl: String?,
+            versionStage: String?,
+        ): Map<String, String> {
+            calls.add(secretId)
+            return secrets[secretId]
+                ?: throw IllegalStateException("External secret not found in AWS Secrets Manager (Secret ID: '$secretId')")
+        }
+    }
+
+    @Test
+    fun resolveAwsSecrets_batches_calls_by_secret_id() = runTest {
+        val fakeAwsClient = FakeAwsSecretsManagerClient(
+            mapOf(
+                "local/payment/foo" to mapOf(
+                    "client_id" to "id_123",
+                    "client_secret" to "sec_456",
+                ),
+            ),
+        )
+        val service = SecretResolutionService(awsClient = fakeAwsClient)
+
+        val declarations = listOf(
+            SecretDeclaration(
+                name = "client_id",
+                path = "local/payment/foo",
+                targetField = "client_id",
+                enabled = true,
+                providerType = "aws-secrets-manager",
+            ),
+            SecretDeclaration(
+                name = "client_secret",
+                path = "local/payment/foo",
+                targetField = "client_secret",
+                enabled = true,
+                providerType = "aws-secrets-manager",
+            ),
+        )
+
+        val resolved = service.resolveAwsSecrets(
+            requiredSecretNames = setOf("client_id", "client_secret"),
+            declarations = declarations,
+            accessKeyId = "test-access-key",
+            secretAccessKey = "test-secret-key",
+            client = fakeAwsClient,
+        )
+
+        // Only one fetch call made for secret ID "local/payment/foo"
+        assertEquals(1, fakeAwsClient.calls.size)
+        assertEquals("local/payment/foo", fakeAwsClient.calls[0])
+
+        assertEquals("id_123", resolved["_secret.client_id"])
+        assertEquals("sec_456", resolved["_secret.client_secret"])
+    }
+
+    @Test
+    fun resolveAwsSecrets_resolves_raw_plain_text_when_target_field_is_blank_or_secret() = runTest {
+        val fakeAwsClient = FakeAwsSecretsManagerClient(
+            mapOf(
+                "prod/api/raw_token" to mapOf("secret" to "plain-token-999"),
+            ),
+        )
+        val service = SecretResolutionService(awsClient = fakeAwsClient)
+
+        val declarations = listOf(
+            SecretDeclaration(
+                name = "raw_token",
+                path = "prod/api/raw_token",
+                targetField = "",
+                enabled = true,
+                providerType = "aws-secrets-manager",
+            ),
+        )
+
+        val resolved = service.resolveAwsSecrets(
+            requiredSecretNames = setOf("raw_token"),
+            declarations = declarations,
+            accessKeyId = "test-access-key",
+            secretAccessKey = "test-secret-key",
+            client = fakeAwsClient,
+        )
+
+        assertEquals("plain-token-999", resolved["_secret.raw_token"])
+    }
+
+    @Test
+    fun resolveAwsSecrets_interpolates_and_evaluates_custom_filters() = runTest {
+        val fakeAwsClient = FakeAwsSecretsManagerClient(
+            mapOf(
+                "app/credentials" to mapOf(
+                    "stage" to "staging",
+                    "api_key" to "staging_key_123",
+                ),
+            ),
+        )
+        val service = SecretResolutionService(awsClient = fakeAwsClient)
+
+        val declarations = listOf(
+            SecretDeclaration(
+                name = "api_key",
+                path = "app/credentials",
+                targetField = "api_key",
+                customFilters = mapOf("stage" to "{{target_stage}}"),
+                enabled = true,
+                providerType = "aws-secrets-manager",
+            ),
+        )
+
+        val resolved = service.resolveAwsSecrets(
+            requiredSecretNames = setOf("api_key"),
+            declarations = declarations,
+            accessKeyId = "test-access-key",
+            secretAccessKey = "test-secret-key",
+            variableValues = mapOf("target_stage" to "staging"),
+            client = fakeAwsClient,
+        )
+
+        assertEquals("staging_key_123", resolved["_secret.api_key"])
+    }
+
+    @Test
+    fun resolveAwsSecrets_throws_when_custom_filter_does_not_match() = runTest {
+        val fakeAwsClient = FakeAwsSecretsManagerClient(
+            mapOf(
+                "app/credentials" to mapOf(
+                    "stage" to "production",
+                    "api_key" to "prod_key_123",
+                ),
+            ),
+        )
+        val service = SecretResolutionService(awsClient = fakeAwsClient)
+
+        val declarations = listOf(
+            SecretDeclaration(
+                name = "api_key",
+                path = "app/credentials",
+                targetField = "api_key",
+                customFilters = mapOf("stage" to "staging"),
+                enabled = true,
+                providerType = "aws-secrets-manager",
+            ),
+        )
+
+        val ex = assertFailsWith<IllegalStateException> {
+            service.resolveAwsSecrets(
+                requiredSecretNames = setOf("api_key"),
+                declarations = declarations,
+                accessKeyId = "test-access-key",
+                secretAccessKey = "test-secret-key",
+                client = fakeAwsClient,
+            )
+        }
+        assertTrue(ex.message!!.contains("did not match custom filter"))
+    }
+
+    @Test
+    fun resolveAwsSecrets_throws_when_target_field_not_found() = runTest {
+        val fakeAwsClient = FakeAwsSecretsManagerClient(
+            mapOf(
+                "app/credentials" to mapOf(
+                    "client_id" to "id_123",
+                ),
+            ),
+        )
+        val service = SecretResolutionService(awsClient = fakeAwsClient)
+
+        val declarations = listOf(
+            SecretDeclaration(
+                name = "missing_field",
+                path = "app/credentials",
+                targetField = "non_existent",
+                enabled = true,
+                providerType = "aws-secrets-manager",
+            ),
+        )
+
+        val ex = assertFailsWith<IllegalStateException> {
+            service.resolveAwsSecrets(
+                requiredSecretNames = setOf("missing_field"),
+                declarations = declarations,
+                accessKeyId = "test-access-key",
+                secretAccessKey = "test-secret-key",
+                client = fakeAwsClient,
+            )
+        }
+        assertTrue(ex.message!!.contains("Field 'non_existent' not found in AWS secret"))
+    }
+
+    @Test
+    fun resolveAwsSecrets_throws_when_credentials_missing() = runTest {
+        val service = SecretResolutionService()
+        val declarations = listOf(
+            SecretDeclaration(
+                name = "api_key",
+                path = "app/credentials",
+                enabled = true,
+                providerType = "aws-secrets-manager",
+            ),
+        )
+
+        val ex = assertFailsWith<IllegalStateException> {
+            service.resolveAwsSecrets(
+                requiredSecretNames = setOf("api_key"),
+                declarations = declarations,
+                accessKeyId = null,
+                secretAccessKey = null,
+            )
+        }
+        assertTrue(ex.message!!.contains("AWS Access Key ID is not configured"))
+    }
+
+    @Test
+    fun resolveAllSecrets_resolves_aws_secrets_via_direct_and_secret_variable() = runTest {
+        val fakeAwsClient = FakeAwsSecretsManagerClient(
+            mapOf(
+                "aws/tokens" to mapOf(
+                    "direct_token" to "direct_val_111",
+                    "sec_var_token" to "sec_var_val_222",
+                ),
+            ),
+        )
+        val service = SecretResolutionService(awsClient = fakeAwsClient)
+        val declarations = listOf(
+            SecretDeclaration(
+                name = "direct_token",
+                path = "aws/tokens",
+                targetField = "direct_token",
+                enabled = true,
+                providerType = "aws-secrets-manager",
+            ),
+            SecretDeclaration(
+                name = "AWS_SECRET_VAR",
+                path = "aws/tokens",
+                targetField = "sec_var_token",
+                enabled = true,
+                providerType = "aws-secrets-manager",
+            ),
+        )
+
+        val resolved = service.resolveAllSecrets(
+            texts = listOf("{{_secret.direct_token}} and {{AWS_SECRET_VAR}}"),
+            declarations = declarations,
+            secretVariableNames = setOf("AWS_SECRET_VAR"),
+            awsAccessKeyId = "test-key",
+            awsSecretAccessKey = "test-secret",
+            awsClient = fakeAwsClient,
+            processEnvProvider = { null }, // no process env override
+        )
+
+        assertEquals("direct_val_111", resolved["_secret.direct_token"])
+        assertEquals("sec_var_val_222", resolved["AWS_SECRET_VAR"])
     }
 }

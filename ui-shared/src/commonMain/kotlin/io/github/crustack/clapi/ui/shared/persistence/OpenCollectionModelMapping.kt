@@ -39,6 +39,7 @@ import io.github.crustack.clapi.core.model.opencollection.FormUrlEncodedBody
 import io.github.crustack.clapi.core.model.opencollection.GrpcMethodType
 import io.github.crustack.clapi.core.model.opencollection.HashicorpVaultExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.KeePassXcExternalSecret
+import io.github.crustack.clapi.core.model.opencollection.AwsSecretsManagerExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestBody
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestDetails
 import io.github.crustack.clapi.core.model.opencollection.HttpRequestHeader
@@ -337,6 +338,14 @@ fun Environment.toEnvState(): EnvState {
                 targetField = v.targetField,
                 customFilters = v.customFilters,
             )
+            is AwsSecretsManagerExternalSecret -> MutableExternalSecret(
+                name = v.name,
+                path = v.secretName,
+                description = v.description?.content ?: "",
+                enabled = v.disabled != true,
+                targetField = v.targetField,
+                customFilters = v.customFilters,
+            )
         }
     } ?: emptyList()
 
@@ -355,30 +364,48 @@ fun Environment.toEnvState(): EnvState {
 
 fun EnvState.toOpenCollectionEnvironment(): Environment {
     val isKeePassXc = externalSecretsProvider.equals("keepassxc", ignoreCase = true)
-    val extSecretList: List<ExternalSecretVariable> = if (isKeePassXc) {
-        externalSecrets
-            .filter { it.name.trim().isNotEmpty() && it.url.trim().isNotEmpty() }
-            .map {
-                KeePassXcExternalSecret(
-                    name = it.name.trim(),
-                    url = it.url.trim(),
-                    targetField = it.targetField.ifBlank { "password" }.trim(),
-                    customFilters = it.customFilters.toMap(),
-                    description = if (it.description.isNotBlank()) Description(content = it.description.trim()) else null,
-                    disabled = if (!it.enabled) true else null,
-                )
-            }
-    } else {
-        externalSecrets
-            .filter { it.name.trim().isNotEmpty() && it.path.trim().isNotEmpty() }
-            .map {
-                HashicorpVaultExternalSecret(
-                    name = it.name.trim(),
-                    path = it.path.trim(),
-                    description = if (it.description.isNotBlank()) Description(content = it.description.trim()) else null,
-                    disabled = if (!it.enabled) true else null,
-                )
-            }
+    val isAws = externalSecretsProvider.equals("aws-secrets-manager", ignoreCase = true)
+    val extSecretList: List<ExternalSecretVariable> = when {
+        isKeePassXc -> {
+            externalSecrets
+                .filter { it.name.trim().isNotEmpty() && it.url.trim().isNotEmpty() }
+                .map {
+                    KeePassXcExternalSecret(
+                        name = it.name.trim(),
+                        url = it.url.trim(),
+                        targetField = it.targetField.ifBlank { "password" }.trim(),
+                        customFilters = it.customFilters.toMap(),
+                        description = if (it.description.isNotBlank()) Description(content = it.description.trim()) else null,
+                        disabled = if (!it.enabled) true else null,
+                    )
+                }
+        }
+        isAws -> {
+            externalSecrets
+                .filter { it.name.trim().isNotEmpty() && (it.path.trim().isNotEmpty() || it.url.trim().isNotEmpty()) }
+                .map {
+                    AwsSecretsManagerExternalSecret(
+                        name = it.name.trim(),
+                        secretName = it.path.trim().ifBlank { it.url.trim() },
+                        targetField = it.targetField.trim(),
+                        customFilters = it.customFilters.toMap(),
+                        description = if (it.description.isNotBlank()) Description(content = it.description.trim()) else null,
+                        disabled = if (!it.enabled) true else null,
+                    )
+                }
+        }
+        else -> {
+            externalSecrets
+                .filter { it.name.trim().isNotEmpty() && it.path.trim().isNotEmpty() }
+                .map {
+                    HashicorpVaultExternalSecret(
+                        name = it.name.trim(),
+                        path = it.path.trim(),
+                        description = if (it.description.isNotBlank()) Description(content = it.description.trim()) else null,
+                        disabled = if (!it.enabled) true else null,
+                    )
+                }
+        }
     }
 
     val extSecrets = if (extSecretList.isNotEmpty()) {
@@ -495,6 +522,21 @@ fun EnvState.mergeFrom(incoming: Environment) {
                                 description = sec.description?.content.orEmpty(),
                                 enabled = sec.disabled != true,
                                 url = sec.url,
+                                targetField = sec.targetField,
+                                customFilters = sec.customFilters,
+                            )
+                        )
+                        existingSecretNames.add(sec.name)
+                    }
+                }
+                is AwsSecretsManagerExternalSecret -> {
+                    if (sec.name.isNotBlank() && sec.name !in existingSecretNames) {
+                        externalSecrets.add(
+                            MutableExternalSecret(
+                                name = sec.name,
+                                path = sec.secretName,
+                                description = sec.description?.content.orEmpty(),
+                                enabled = sec.disabled != true,
                                 targetField = sec.targetField,
                                 customFilters = sec.customFilters,
                             )

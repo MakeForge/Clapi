@@ -1,6 +1,7 @@
 package io.github.crustack.clapi.ui.shared.components.executor
 
 import io.github.crustack.clapi.core.model.AuthType
+import io.github.crustack.clapi.core.network.aws.AwsSecretsManagerClient
 import io.github.crustack.clapi.core.network.dynamicvar.DynamicVariableContext
 import io.github.crustack.clapi.core.network.dynamicvar.DynamicVariableRegistry
 import io.github.crustack.clapi.core.network.dynamicvar.OAuth2ResolvedConfig
@@ -22,6 +23,7 @@ internal suspend fun resolveExternalSecretsForTab(
     textsToScan: Iterable<String>,
     secretResolutionService: SecretResolutionService = SecretResolutionService(),
     keepassClient: KeePassXcClient? = null,
+    awsClient: AwsSecretsManagerClient? = null,
     processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
 ): Map<String, String>? {
     val secretVariableNames = state.selectedEnvironment?.variables
@@ -33,14 +35,16 @@ internal suspend fun resolveExternalSecretsForTab(
     val provider = state.selectedEnvironment?.externalSecretsProvider?.ifBlank { "hashicorp-vault-server" } ?: "hashicorp-vault-server"
 
     val declarations = state.selectedEnvironment?.externalSecrets?.map {
+        val defaultTarget = if (provider.equals("aws-secrets-manager", ignoreCase = true)) "" else "password"
         SecretDeclaration(
             name = it.name.trim(),
             path = it.path.trim(),
             enabled = it.enabled,
             providerType = provider,
             url = it.url.trim(),
-            targetField = it.targetField.ifBlank { "password" }.trim(),
+            targetField = it.targetField.ifBlank { defaultTarget }.trim(),
             customFilters = it.customFilters.toMap(),
+            secretId = it.path.trim(),
         )
     } ?: emptyList()
 
@@ -50,6 +54,13 @@ internal suspend fun resolveExternalSecretsForTab(
         ?: emptyMap()
 
     return try {
+        val awsSecretAccessKey = state.settings.awsSecretAccessKey.ifBlank {
+            PlatformStorage.getSecretString("clapi.settings.awsSecretAccessKey").orEmpty()
+        }
+        val awsSessionToken = state.settings.awsSessionToken.ifBlank {
+            PlatformStorage.getSecretString("clapi.settings.awsSessionToken").orEmpty()
+        }
+
         secretResolutionService.resolveAllSecrets(
             texts = textsToScan,
             declarations = declarations,
@@ -62,6 +73,13 @@ internal suspend fun resolveExternalSecretsForTab(
             namespace = state.settings.vaultNamespace.ifBlank { null },
             variableValues = envVarsMap,
             keepassClient = keepassClient,
+            awsRegion = state.settings.awsRegion.ifBlank { "us-east-1" },
+            awsAccessKeyId = state.settings.awsAccessKeyId.ifBlank { null },
+            awsSecretAccessKey = awsSecretAccessKey.ifBlank { null },
+            awsSessionToken = awsSessionToken.ifBlank { null },
+            awsEndpointUrl = state.settings.awsEndpointUrl.ifBlank { null },
+            awsVersionStage = state.settings.awsVersionStage.ifBlank { "AWSCURRENT" },
+            awsClient = awsClient,
             processEnvProvider = processEnvProvider,
         )
     } catch (e: Exception) {

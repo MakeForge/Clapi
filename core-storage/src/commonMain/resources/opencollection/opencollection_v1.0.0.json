@@ -2711,6 +2711,17 @@
         "secretName": {
           "type": "string",
           "description": "The name of the secret within AWS Secrets Manager"
+        },
+        "targetField": {
+          "type": "string",
+          "description": "The target key or attribute within the AWS secret"
+        },
+        "customFilters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Key-value filters to match against attributes"
         }
       },
       "required": ["name", "secretName"],

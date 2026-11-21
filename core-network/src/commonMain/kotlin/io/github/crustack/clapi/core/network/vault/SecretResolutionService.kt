@@ -1,5 +1,7 @@
 package io.github.crustack.clapi.core.network.vault
 
+import io.github.crustack.clapi.core.network.aws.AwsSecretsManagerClient
+import io.github.crustack.clapi.core.network.aws.KtorAwsSecretsManagerClient
 import io.github.crustack.clapi.core.network.getEnvironmentVariable
 import io.github.crustack.clapi.core.network.keepassxc.DefaultKeePassXcClientManager
 import io.github.crustack.clapi.core.network.keepassxc.KeePassXcClient
@@ -15,11 +17,13 @@ data class SecretDeclaration(
     val url: String = "",
     val targetField: String = "password",
     val customFilters: Map<String, String> = emptyMap(),
+    val secretId: String = path,
 )
 
 class SecretResolutionService(
     private val vaultClient: HashiCorpVaultClient = KtorHashiCorpVaultClient(),
     private val keepassClientManager: KeePassXcClientManager = DefaultKeePassXcClientManager.Shared,
+    private val awsClient: AwsSecretsManagerClient = KtorAwsSecretsManagerClient(),
 ) {
     private val variablePattern = Regex("\\{\\{\\s*([^{}]+?)\\s*\\}\\}")
 
@@ -235,6 +239,125 @@ class SecretResolutionService(
     }
 
     /**
+     * Resolves external secret tokens against AWS Secrets Manager.
+     *
+     * @param requiredSecretNames Set of secret names referenced in requests (e.g. `["client_id"]`).
+     * @param declarations List of declared external secrets in the environment.
+     * @param region AWS region (e.g. "us-east-1").
+     * @param accessKeyId AWS Access Key ID.
+     * @param secretAccessKey AWS Secret Access Key.
+     * @param sessionToken Optional AWS session token.
+     * @param endpointUrl Optional endpoint URL override (e.g. for LocalStack).
+     * @param versionStage Optional version stage (defaults to "AWSCURRENT").
+     * @param variableValues Active environment variables used for filter interpolation.
+     * @param client Optional client override.
+     * @return Map of `_secret.<name>` to resolved secret value.
+     */
+    suspend fun resolveAwsSecrets(
+        requiredSecretNames: Set<String>,
+        declarations: List<SecretDeclaration>,
+        region: String = "us-east-1",
+        accessKeyId: String?,
+        secretAccessKey: String?,
+        sessionToken: String? = null,
+        endpointUrl: String? = null,
+        versionStage: String? = "AWSCURRENT",
+        variableValues: Map<String, String> = emptyMap(),
+        client: AwsSecretsManagerClient? = null,
+    ): Map<String, String> {
+        if (requiredSecretNames.isEmpty()) {
+            return emptyMap()
+        }
+
+        if (accessKeyId.isNullOrBlank()) {
+            throw IllegalStateException("AWS Access Key ID is not configured. Please configure AWS Secrets Manager in Settings -> Secrets Manager.")
+        }
+        if (secretAccessKey.isNullOrBlank()) {
+            throw IllegalStateException("AWS Secret Access Key is not configured. Please configure AWS Secrets Manager in Settings -> Secrets Manager.")
+        }
+
+        val declarationMap = declarations.associateBy { it.name.trim() }
+
+        // Validate all required secrets exist and are enabled
+        for (name in requiredSecretNames) {
+            val decl = declarationMap[name]
+                ?: throw IllegalStateException("External secret '_secret.$name' is not defined in the active environment.")
+            if (!decl.enabled) {
+                throw IllegalStateException("External secret '_secret.$name' is disabled in the active environment.")
+            }
+            val secId = decl.secretId.ifBlank { decl.path }.trim()
+            if (secId.isBlank()) {
+                throw IllegalStateException("External secret '_secret.$name' does not have a Secret ID configured.")
+            }
+        }
+
+        // Group required secrets by their Secret ID to avoid duplicate network queries
+        val secretsBySecretId = mutableMapOf<String, MutableList<String>>()
+        for (name in requiredSecretNames) {
+            val decl = declarationMap.getValue(name)
+            val secId = decl.secretId.ifBlank { decl.path }.trim()
+            secretsBySecretId.getOrPut(secId) { mutableListOf() }.add(name)
+        }
+
+        val resolved = mutableMapOf<String, String>()
+        val aws = client ?: awsClient
+
+        for ((secretId, names) in secretsBySecretId) {
+            val secretData = aws.fetchSecret(
+                secretId = secretId,
+                accessKey = accessKeyId,
+                secretKey = secretAccessKey,
+                region = region.ifBlank { "us-east-1" },
+                sessionToken = sessionToken?.ifBlank { null },
+                endpointUrl = endpointUrl?.ifBlank { null },
+                versionStage = versionStage?.ifBlank { "AWSCURRENT" },
+            )
+
+            for (secName in names) {
+                val decl = declarationMap.getValue(secName)
+
+                // Interpolate variables in customFilters
+                val resolvedFilters = decl.customFilters.mapValues { (_, v) ->
+                    var text = v
+                    variableValues.forEach { (vk, vv) ->
+                        text = text.replace("{{$vk}}", vv)
+                    }
+                    text
+                }
+
+                for ((filterKey, expectedValue) in resolvedFilters) {
+                    val actualValue = secretData[filterKey]
+                    if (actualValue != expectedValue) {
+                        throw IllegalStateException(
+                            "AWS secret '$secretId' did not match custom filter '$filterKey'. Expected: '$expectedValue', found: '$actualValue'."
+                        )
+                    }
+                }
+
+                val target = decl.targetField.trim()
+                val value = when {
+                    target.isNotBlank() && secretData.containsKey(target) -> secretData.getValue(target)
+                    target.isNotBlank() && secretData.containsKey(target.lowercase()) -> secretData.getValue(target.lowercase())
+                    target.isBlank() && secretData.containsKey(secName) -> secretData.getValue(secName)
+                    target.isBlank() && secretData.containsKey("secret") -> secretData.getValue("secret")
+                    target.isBlank() && secretData.containsKey("value") -> secretData.getValue("value")
+                    target.isBlank() && secretData.size == 1 -> secretData.values.first()
+                    target.isNotBlank() -> throw IllegalStateException(
+                        "Field '$target' not found in AWS secret '$secretId'. Available keys: ${secretData.keys.joinToString(", ")}"
+                    )
+                    else -> throw IllegalStateException(
+                        "Target field is not specified and AWS secret '$secretId' contains multiple keys: ${secretData.keys.joinToString(", ")}"
+                    )
+                }
+
+                resolved["_secret.$secName"] = value
+            }
+        }
+
+        return resolved
+    }
+
+    /**
      * Resolves secret tokens from both direct `{{_secret.<name>}}` references and OpenCollection
      * `secret: true` environment variables referenced as `{{<name>}}`.
      *
@@ -255,6 +378,13 @@ class SecretResolutionService(
         namespace: String? = null,
         variableValues: Map<String, String> = emptyMap(),
         keepassClient: KeePassXcClient? = null,
+        awsRegion: String = "us-east-1",
+        awsAccessKeyId: String? = null,
+        awsSecretAccessKey: String? = null,
+        awsSessionToken: String? = null,
+        awsEndpointUrl: String? = null,
+        awsVersionStage: String? = "AWSCURRENT",
+        awsClient: AwsSecretsManagerClient? = null,
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
     ): Map<String, String> {
         val allTokens = extractAllVariableTokens(texts)
@@ -317,13 +447,14 @@ class SecretResolutionService(
 
         val vaultSecretsToFetch = mutableSetOf<String>()
         val keepassSecretsToFetch = mutableSetOf<String>()
+        val awsSecretsToFetch = mutableSetOf<String>()
 
         for (name in allSecretsToFetch) {
             val decl = declarationMap.getValue(name)
-            if (decl.providerType.equals("keepassxc", ignoreCase = true)) {
-                keepassSecretsToFetch.add(name)
-            } else {
-                vaultSecretsToFetch.add(name)
+            when {
+                decl.providerType.equals("keepassxc", ignoreCase = true) -> keepassSecretsToFetch.add(name)
+                decl.providerType.equals("aws-secrets-manager", ignoreCase = true) -> awsSecretsToFetch.add(name)
+                else -> vaultSecretsToFetch.add(name)
             }
         }
 
@@ -337,6 +468,32 @@ class SecretResolutionService(
             )
             for (name in keepassSecretsToFetch) {
                 val value = kpResolved["_secret.$name"] ?: continue
+                if (name in directSecretNames) {
+                    resolved["_secret.$name"] = value
+                }
+                if (name in secretVarToExternalSecret) {
+                    val varName = secretVarToExternalSecret.getValue(name)
+                    resolved[varName] = value
+                }
+            }
+        }
+
+        // Resolve AWS secrets
+        if (awsSecretsToFetch.isNotEmpty()) {
+            val awsResolved = resolveAwsSecrets(
+                requiredSecretNames = awsSecretsToFetch,
+                declarations = declarations,
+                region = awsRegion,
+                accessKeyId = awsAccessKeyId,
+                secretAccessKey = awsSecretAccessKey,
+                sessionToken = awsSessionToken,
+                endpointUrl = awsEndpointUrl,
+                versionStage = awsVersionStage,
+                variableValues = variableValues,
+                client = awsClient,
+            )
+            for (name in awsSecretsToFetch) {
+                val value = awsResolved["_secret.$name"] ?: continue
                 if (name in directSecretNames) {
                     resolved["_secret.$name"] = value
                 }

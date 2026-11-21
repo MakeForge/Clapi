@@ -2,6 +2,7 @@ package io.github.crustack.clapi.feature.requests
 
 import io.github.crustack.clapi.core.model.RequestBody
 import io.github.crustack.clapi.core.model.RequestDefinition
+import io.github.crustack.clapi.core.model.opencollection.AwsSecretsManagerExternalSecret
 import io.github.crustack.clapi.core.model.opencollection.ExternalSecretVariable
 import io.github.crustack.clapi.core.model.opencollection.FolderItem
 import io.github.crustack.clapi.core.model.opencollection.GraphQLRequestItem
@@ -40,6 +41,12 @@ class RequestExecutionService(
         vaultToken: String? = null,
         mountPath: String = "secret",
         namespace: String? = null,
+        awsRegion: String = "us-east-1",
+        awsAccessKeyId: String? = null,
+        awsSecretAccessKey: String? = null,
+        awsSessionToken: String? = null,
+        awsEndpointUrl: String? = null,
+        awsVersionStage: String? = "AWSCURRENT",
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
     ): Map<String, String> {
         val declarations = externalSecrets.mapNotNull { sec ->
@@ -48,6 +55,15 @@ class RequestExecutionService(
                     name = sec.name,
                     path = sec.path,
                     enabled = sec.disabled != true,
+                )
+                is AwsSecretsManagerExternalSecret -> SecretDeclaration(
+                    name = sec.name,
+                    path = sec.secretName,
+                    secretId = sec.secretName,
+                    targetField = sec.targetField,
+                    customFilters = sec.customFilters,
+                    enabled = sec.disabled != true,
+                    providerType = "aws-secrets-manager",
                 )
                 else -> null
             }
@@ -64,6 +80,12 @@ class RequestExecutionService(
             vaultToken = vaultToken,
             mountPath = mountPath,
             namespace = namespace,
+            awsRegion = awsRegion,
+            awsAccessKeyId = awsAccessKeyId,
+            awsSecretAccessKey = awsSecretAccessKey,
+            awsSessionToken = awsSessionToken,
+            awsEndpointUrl = awsEndpointUrl,
+            awsVersionStage = awsVersionStage,
             processEnvProvider = processEnvProvider,
         )
     }
@@ -77,6 +99,12 @@ class RequestExecutionService(
         vaultToken: String? = null,
         mountPath: String = "secret",
         namespace: String? = null,
+        awsRegion: String = "us-east-1",
+        awsAccessKeyId: String? = null,
+        awsSecretAccessKey: String? = null,
+        awsSessionToken: String? = null,
+        awsEndpointUrl: String? = null,
+        awsVersionStage: String? = "AWSCURRENT",
         processEnvProvider: (String) -> String? = ::getEnvironmentVariable,
     ): Flow<NetworkEvent> {
         val textsToScan = mutableListOf<String>()
@@ -92,6 +120,12 @@ class RequestExecutionService(
             vaultToken = vaultToken,
             mountPath = mountPath,
             namespace = namespace,
+            awsRegion = awsRegion,
+            awsAccessKeyId = awsAccessKeyId,
+            awsSecretAccessKey = awsSecretAccessKey,
+            awsSessionToken = awsSessionToken,
+            awsEndpointUrl = awsEndpointUrl,
+            awsVersionStage = awsVersionStage,
             processEnvProvider = processEnvProvider,
         )
         val effectiveLayers = if (secretMap.isNotEmpty()) listOf(secretMap) + variableLayers else variableLayers

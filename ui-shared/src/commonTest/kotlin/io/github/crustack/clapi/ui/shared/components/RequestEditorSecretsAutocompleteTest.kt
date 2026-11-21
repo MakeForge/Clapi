@@ -45,4 +45,39 @@ class RequestEditorSecretsAutocompleteTest {
         val apiEntry = available.first { it.first == "_secret.api_key" }
         assertEquals("https://api.example.com", apiEntry.second)
     }
+
+    @Test
+    fun getAvailableVariables_includes_aws_secrets_manager_external_secrets_with_prefix() {
+        val state = AppState()
+        val env = EnvState(
+            name = "AwsEnv",
+            externalSecretsProvider = "aws-secrets-manager",
+            externalSecrets = listOf(
+                MutableExternalSecret(
+                    name = "client_secret",
+                    path = "prod/payment/stripe",
+                    targetField = "secret_key",
+                    enabled = true,
+                ),
+                MutableExternalSecret(
+                    name = "disabled_stripe",
+                    path = "prod/payment/stripe",
+                    targetField = "secret_key",
+                    enabled = false,
+                ),
+            ),
+        )
+        state.environments.add(env)
+        state.selectedEnvIndex = 0
+
+        val tab = RequestTabState()
+        val available = getAvailableVariables(state, tab)
+
+        val secretKeys = available.map { it.first }
+        assertTrue(secretKeys.contains("_secret.client_secret"), "Enabled AWS secret must be in available variables")
+        assertFalse(secretKeys.contains("_secret.disabled_stripe"), "Disabled AWS secret must not be in available variables")
+
+        val stripeEntry = available.first { it.first == "_secret.client_secret" }
+        assertEquals("prod/payment/stripe", stripeEntry.second)
+    }
 }

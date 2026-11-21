@@ -12,8 +12,8 @@ import io.github.crustack.clapi.core.network.RetryPolicy
 import io.github.crustack.clapi.core.network.oauth2.KtorOAuth2TokenClient
 import io.github.crustack.clapi.core.network.oauth2.OAuth2TokenState
 import io.github.crustack.clapi.core.network.oauth2.extractJwtExpiryEpochMs
-import io.github.crustack.clapi.ui.shared.components.buildAuthConfig
-import io.github.crustack.clapi.ui.shared.components.ensureValidOAuth2Token
+import io.github.crustack.clapi.ui.shared.components.executor.buildAuthConfig
+import io.github.crustack.clapi.ui.shared.components.executor.ensureValidOAuth2Token
 import io.github.crustack.clapi.ui.shared.platform.currentTimeMillis
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.RequestTabState
