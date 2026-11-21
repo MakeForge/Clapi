@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,6 +38,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.isSecondaryPressed
@@ -83,6 +90,20 @@ fun Sidebar(
     val collectionsRevision = state.collectionsRevision
     val dragState = remember { SidebarDragState() }
 
+    DisposableEffect(state, dragState) {
+        state.cancelActiveSidebarDrag = {
+            if (dragState.isDragging) {
+                dragState.cancelDrag()
+                true
+            } else {
+                false
+            }
+        }
+        onDispose {
+            state.cancelActiveSidebarDrag = null
+        }
+    }
+
     // ── Sidebar LazyColumn state + bounds for edge-scroll ─────────────────
     val lazyListState = rememberLazyListState()
     var sidebarTopPx by remember { mutableStateOf(0f) }
@@ -123,21 +144,19 @@ fun Sidebar(
                     } else {
                         listOf(activeRequestId)
                     }
-                    val target = resolveClosestHitArea(
-                        areas = dragState.hitAreas.values.filter { it.id !in movingRequestIds },
+                    val target = resolveRequestDropTarget(
+                        allAreas = dragState.hitAreas.values,
+                        movingRequestIds = movingRequestIds,
                         cursorY = cursorY,
                     )
                     if (target != null) {
-                        if (target.isFolder) {
-                            dragState.dropTargetCollectionId = target.id
-                            dragState.dropTargetRequestId    = null
-                            dragState.dropInsertAfter        = false
-                        } else {
-                            val midY = (target.top + target.bottom) / 2f
-                            dragState.dropInsertAfter        = cursorY >= midY
-                            dragState.dropTargetRequestId    = target.id
-                            dragState.dropTargetCollectionId = target.parentCollectionId
-                        }
+                        dragState.dropTargetCollectionId = target.collectionId
+                        dragState.dropTargetRequestId    = target.requestId
+                        dragState.dropInsertAfter        = target.insertAfter
+                    } else {
+                        dragState.dropTargetCollectionId = null
+                        dragState.dropTargetRequestId    = null
+                        dragState.dropInsertAfter        = false
                     }
                 } else if (activeCollectionId != null) {
                     dragState.collectionHitAreas.keys.toList().forEach { id ->
@@ -148,18 +167,21 @@ fun Sidebar(
                     } else {
                         listOf(activeCollectionId)
                     }
-                    val target = resolveClosestHitArea(
-                        areas = dragState.collectionHitAreas.values.filter {
-                            it.id !in movingFolderIds &&
-                                it.parentCollectionId == dragState.collectionHitAreas[activeCollectionId]?.parentCollectionId &&
-                                isValidFolderGroupDropTarget(state.collections, movingFolderIds, it.id)
-                        },
+                    val target = resolveFolderDropTarget(
+                        allAreas = dragState.collectionHitAreas.values,
+                        movingFolderIds = movingFolderIds,
+                        parentCollectionId = dragState.collectionHitAreas[activeCollectionId]?.parentCollectionId,
                         cursorY = cursorY,
+                        isValidTarget = { candidateId ->
+                            isValidFolderGroupDropTarget(state.collections, movingFolderIds, candidateId)
+                        },
                     )
                     if (target != null) {
-                        val midY = (target.top + target.bottom) / 2f
-                        dragState.dropCollectionInsertAfter = cursorY >= midY
-                        dragState.dropCollectionTargetId    = target.id
+                        dragState.dropCollectionInsertAfter = target.insertAfter
+                        dragState.dropCollectionTargetId    = target.targetFolderId
+                    } else {
+                        dragState.dropCollectionTargetId    = null
+                        dragState.dropCollectionInsertAfter = false
                     }
                 }
             }
@@ -295,6 +317,20 @@ fun Sidebar(
             .fillMaxHeight()
             .background(ClapiColors.SurfaceVariant)
             .testTag("sidebar")
+            .onPreviewKeyEvent { event ->
+                event.type == KeyEventType.KeyDown &&
+                    event.key == Key.Escape &&
+                    dragState.isDragging &&
+                    run {
+                        dragState.cancelDrag()
+                        true
+                    }
+            }
+            .onKeyEvent { event ->
+                event.type == KeyEventType.KeyDown &&
+                    event.key == Key.Escape &&
+                    state.clearSidebarSelectionOnEscape()
+            }
             .onGloballyPositioned { coords ->
                 val rootPos = coords.positionInRoot()
                 sharedSidebarTooltipState.containerRootY = rootPos.y.toInt()

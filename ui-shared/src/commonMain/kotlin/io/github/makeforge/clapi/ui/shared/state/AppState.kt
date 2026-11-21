@@ -67,10 +67,25 @@ class AppState(openDefaultTab: Boolean = true) {
     val selectedRequestIds = mutableStateListOf<String>()
     var lastSelectedSidebarItemId by mutableStateOf<String?>(null)
 
+    val hasSidebarSelection: Boolean
+        get() = selectedFolderIds.isNotEmpty() || selectedRequestIds.isNotEmpty()
+
     fun clearSidebarSelection() {
         selectedFolderIds.clear()
         selectedRequestIds.clear()
         lastSelectedSidebarItemId = null
+    }
+
+    /**
+     * Clears any active sidebar folder/request selection when Escape is pressed
+     * (unless a modal dialog or alert is currently open). Returns `true` if a
+     * selection was cleared.
+     */
+    fun clearSidebarSelectionOnEscape(): Boolean {
+        if (dialogs.dialogs.isNotEmpty() || dialogs.alerts.isNotEmpty()) return false
+        if (!hasSidebarSelection) return false
+        clearSidebarSelection()
+        return true
     }
 
     fun pruneSidebarSelection(removedIds: Collection<String>) {
@@ -197,6 +212,13 @@ class AppState(openDefaultTab: Boolean = true) {
 
     /** Per-folder expanded state. Absent key → expanded (true) by default. */
     val collectionExpandedState = mutableStateMapOf<String, Boolean>()
+
+    /**
+     * Hook registered by [io.github.makeforge.clapi.ui.shared.components.sidebar.Sidebar]
+     * to cancel an active sidebar drag operation (e.g. when Escape is pressed).
+     * Returns `true` if a drag was active and cancelled.
+     */
+    var cancelActiveSidebarDrag: (() -> Boolean)? = null
 
     // ── split fractions ─
     var requestResponseSplit by mutableStateOf(0.50f)

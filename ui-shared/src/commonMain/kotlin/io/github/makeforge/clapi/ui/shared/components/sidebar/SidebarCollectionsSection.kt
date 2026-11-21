@@ -51,6 +51,38 @@ internal fun LazyListScope.sidebarCollectionsSection(
                     var showHeaderMenu by remember { mutableStateOf(false) }
                     IconButtonWithTooltip(
                         onClick = {
+                            if (!state.collectionsExpanded) {
+                                state.collectionsExpanded = true
+                                state.settings.collectionsExpanded = true
+                            }
+                            state.expandAllCollections()
+                        },
+                        tooltip = Strings.expandAll,
+                        tooltipTag = "sidebar-collections-expand-all-tooltip",
+                        modifier = Modifier.size(24.dp).testTag("sidebar-collections-expand-all-button"),
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_unfold_more),
+                            contentDescription = Strings.expandAll,
+                            tint = ClapiColors.OnSurfaceDim,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                    IconButtonWithTooltip(
+                        onClick = { state.collapseAllCollections() },
+                        tooltip = Strings.collapseAll,
+                        tooltipTag = "sidebar-collections-collapse-all-tooltip",
+                        modifier = Modifier.size(24.dp).testTag("sidebar-collections-collapse-all-button"),
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_unfold_less),
+                            contentDescription = Strings.collapseAll,
+                            tint = ClapiColors.OnSurfaceDim,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                    IconButtonWithTooltip(
+                        onClick = {
                             val created = state.createNewCollection()
                             onInlineRenamingIdChange(created.id)
                             if (!state.collectionsExpanded) {
@@ -322,40 +354,40 @@ internal fun LazyListScope.sidebarCollectionsSection(
                     dropTargetCollectionId = dragState.dropTargetCollectionId,
                     dropTargetRequestId = dragState.dropTargetRequestId,
                     dropInsertAfter = dragState.dropInsertAfter,
-                    onDragStart = { requestId ->
+                    onDragStart = { requestId, absY ->
                         dragState.draggedRequestId = requestId
                         dragState.dragOffsetY = 0f
-                        dragState.dragCursorAbsY = dragState.hitAreas[requestId]?.let { (it.top + it.bottom) / 2f } ?: 0f
-                        dragState.dropTargetCollectionId = null
-                        dragState.dropTargetRequestId = null
-                        dragState.dropInsertAfter = false
+                        dragState.dragCursorAbsY = absY
+                        val movingRequestIds = if (requestId in state.selectedRequestIds) {
+                            state.selectedRequestIds.toList()
+                        } else {
+                            listOf(requestId)
+                        }
+                        val target = resolveRequestDropTarget(
+                            allAreas = dragState.hitAreas.values,
+                            movingRequestIds = movingRequestIds,
+                            cursorY = absY,
+                        )
+                        dragState.dropTargetCollectionId = target?.collectionId
+                        dragState.dropTargetRequestId = target?.requestId
+                        dragState.dropInsertAfter = target?.insertAfter ?: false
                     },
-                    onDragDelta = { requestId, deltaY ->
+                    onDragMove = { requestId, absY ->
                         if (dragState.draggedRequestId == requestId) {
-                            dragState.dragOffsetY += deltaY
-                            dragState.dragCursorAbsY += deltaY
-                            val currentY = dragState.dragCursorAbsY
+                            dragState.dragCursorAbsY = absY
                             val movingRequestIds = if (requestId in state.selectedRequestIds) {
                                 state.selectedRequestIds.toList()
                             } else {
                                 listOf(requestId)
                             }
-                            val target = resolveClosestHitArea(
-                                areas = dragState.hitAreas.values.filter { it.id !in movingRequestIds },
-                                cursorY = currentY,
+                            val target = resolveRequestDropTarget(
+                                allAreas = dragState.hitAreas.values,
+                                movingRequestIds = movingRequestIds,
+                                cursorY = absY,
                             )
-                            if (target != null) {
-                                if (target.isFolder) {
-                                    dragState.dropTargetCollectionId = target.id
-                                    dragState.dropTargetRequestId = null
-                                    dragState.dropInsertAfter = false
-                                } else {
-                                    val midY = (target.top + target.bottom) / 2f
-                                    dragState.dropInsertAfter = currentY >= midY
-                                    dragState.dropTargetRequestId = target.id
-                                    dragState.dropTargetCollectionId = target.parentCollectionId
-                                }
-                            }
+                            dragState.dropTargetCollectionId = target?.collectionId
+                            dragState.dropTargetRequestId = target?.requestId
+                            dragState.dropInsertAfter = target?.insertAfter ?: false
                         }
                     },
                     onNodePositioned = { area -> dragState.hitAreas[area.id] = area },
@@ -388,49 +420,57 @@ internal fun LazyListScope.sidebarCollectionsSection(
                                 persistWorkspaceAsync()
                             }
                         }
-                        dragState.draggedRequestId = null
-                        dragState.dragOffsetY = 0f
-                        dragState.dropTargetCollectionId = null
-                        dragState.dropTargetRequestId = null
-                        dragState.dropInsertAfter = false
+                        dragState.cancelDrag()
                     },
+                    onDragCancel = { dragState.cancelDrag() },
                     // ── Collection-level drag callbacks ────────────────
                     draggedCollectionId = dragState.draggedCollectionId,
                     dropCollectionTargetId = dragState.dropCollectionTargetId,
                     dropCollectionInsertAfter = dragState.dropCollectionInsertAfter,
-                    onCollectionDragStart = { collectionId ->
+                    onCollectionDragStart = { collectionId, absY ->
                         dragState.draggedCollectionId = collectionId
                         dragState.dragCollectionOffsetY = 0f
-                        dragState.dragCursorAbsY = dragState.collectionHitAreas[collectionId]?.let { (it.top + it.bottom) / 2f } ?: 0f
-                        dragState.draggedFolderParentId = dragState.collectionHitAreas[collectionId]?.parentCollectionId
+                        dragState.dragCursorAbsY = absY
+                        val parentId = dragState.collectionHitAreas[collectionId]?.parentCollectionId
+                        dragState.draggedFolderParentId = parentId
                         dragState.draggedFolderParentIdSet = true
-                        dragState.dropCollectionTargetId = null
-                        dragState.dropCollectionInsertAfter = false
+                        val movingFolderIds = if (collectionId in state.selectedFolderIds) {
+                            state.selectedFolderIds.toList()
+                        } else {
+                            listOf(collectionId)
+                        }
+                        val target = resolveFolderDropTarget(
+                            allAreas = dragState.collectionHitAreas.values,
+                            movingFolderIds = movingFolderIds,
+                            parentCollectionId = parentId,
+                            cursorY = absY,
+                            isValidTarget = { candidateId ->
+                                isValidFolderGroupDropTarget(state.collections, movingFolderIds, candidateId)
+                            },
+                        )
+                        dragState.dropCollectionTargetId = target?.targetFolderId
+                        dragState.dropCollectionInsertAfter = target?.insertAfter ?: false
                     },
-                    onCollectionDragDelta = { collectionId, deltaY ->
+                    onCollectionDragMove = { collectionId, absY ->
                         if (dragState.draggedCollectionId == collectionId) {
-                            dragState.dragCollectionOffsetY += deltaY
-                            dragState.dragCursorAbsY += deltaY
-                            val currentY = dragState.dragCursorAbsY
+                            dragState.dragCursorAbsY = absY
                             val parentId = dragState.draggedFolderParentId
                             val movingFolderIds = if (collectionId in state.selectedFolderIds) {
                                 state.selectedFolderIds.toList()
                             } else {
                                 listOf(collectionId)
                             }
-                            val target = resolveClosestHitArea(
-                                areas = dragState.collectionHitAreas.values.filter {
-                                    it.id !in movingFolderIds &&
-                                        it.parentCollectionId == parentId &&
-                                        isValidFolderGroupDropTarget(state.collections, movingFolderIds, it.id)
+                            val target = resolveFolderDropTarget(
+                                allAreas = dragState.collectionHitAreas.values,
+                                movingFolderIds = movingFolderIds,
+                                parentCollectionId = parentId,
+                                cursorY = absY,
+                                isValidTarget = { candidateId ->
+                                    isValidFolderGroupDropTarget(state.collections, movingFolderIds, candidateId)
                                 },
-                                cursorY = currentY,
                             )
-                            if (target != null) {
-                                val midY = (target.top + target.bottom) / 2f
-                                dragState.dropCollectionInsertAfter = currentY >= midY
-                                dragState.dropCollectionTargetId = target.id
-                            }
+                            dragState.dropCollectionTargetId = target?.targetFolderId
+                            dragState.dropCollectionInsertAfter = target?.insertAfter ?: false
                         }
                     },
                     onCollectionHitAreaPositioned = { area -> dragState.collectionHitAreas[area.id] = area },
@@ -456,13 +496,9 @@ internal fun LazyListScope.sidebarCollectionsSection(
                                 persistWorkspaceAsync()
                             }
                         }
-                        dragState.draggedCollectionId = null
-                        dragState.dragCollectionOffsetY = 0f
-                        dragState.draggedFolderParentId = null
-                        dragState.draggedFolderParentIdSet = false
-                        dragState.dropCollectionTargetId = null
-                        dragState.dropCollectionInsertAfter = false
+                        dragState.cancelDrag()
                     },
+                    onCollectionDragCancel = { dragState.cancelDrag() },
                     inlineRenamingId = inlineRenamingId,
                     onStartInlineRename = { onInlineRenamingIdChange(it) },
                     onCommitInlineRename = onCommitInlineRename,

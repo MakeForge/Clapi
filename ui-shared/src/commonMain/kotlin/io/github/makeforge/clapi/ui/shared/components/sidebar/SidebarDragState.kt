@@ -22,6 +22,24 @@ internal class SidebarDragState {
     val hitAreas = HashMap<String, TreeNodeHitArea>()
     val collectionHitAreas = HashMap<String, TreeNodeHitArea>()
 
+    val isDragging: Boolean
+        get() = draggedRequestId != null || draggedCollectionId != null
+
+    fun cancelDrag() {
+        draggedRequestId = null
+        dragOffsetY = 0f
+        dragCursorAbsY = 0f
+        dropTargetCollectionId = null
+        dropTargetRequestId = null
+        dropInsertAfter = false
+        draggedCollectionId = null
+        dragCollectionOffsetY = 0f
+        draggedFolderParentId = null
+        draggedFolderParentIdSet = false
+        dropCollectionTargetId = null
+        dropCollectionInsertAfter = false
+    }
+
     fun clearHitAreas() {
         hitAreas.clear()
         collectionHitAreas.clear()

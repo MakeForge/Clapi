@@ -36,6 +36,7 @@ import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.utf16CodePoint
@@ -222,6 +223,16 @@ fun MainScreen(
             .fillMaxSize()
             .background(ClapiColors.Background)
             .testTag("main-screen")
+            .onPreviewKeyEvent { event ->
+                event.type == KeyEventType.KeyDown &&
+                    event.key == Key.Escape &&
+                    (state.cancelActiveSidebarDrag?.invoke() == true)
+            }
+            .onKeyEvent { event ->
+                event.type == KeyEventType.KeyDown &&
+                    event.key == Key.Escape &&
+                    state.clearSidebarSelectionOnEscape()
+            }
             .hotkeys {
                 on(AppHotkeys.Send) {
                     val activeTab = state.activeTab

@@ -125,8 +125,8 @@ internal fun SectionHeader(
             maxLines = 1,
             softWrap = false,
             overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
         )
-        Spacer(Modifier.weight(1f))
         trailing?.invoke()
     }
 }
