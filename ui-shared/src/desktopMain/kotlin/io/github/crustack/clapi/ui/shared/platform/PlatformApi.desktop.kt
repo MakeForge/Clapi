@@ -1,6 +1,18 @@
 package io.github.crustack.clapi.ui.shared.platform
 
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.awt.awtEventOrNull
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isAltPressed
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.utf16CodePoint
+import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerIcon
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -16,8 +28,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.UUID
 import java.util.prefs.Preferences
-import javax.swing.JFileChooser
-import javax.swing.filechooser.FileNameExtensionFilter
 
 actual fun generateUuid(): String = UUID.randomUUID().toString()
 
@@ -62,10 +72,11 @@ actual fun Modifier.platformResizeCursorStyle(isHorizontal: Boolean): Modifier =
 actual fun Modifier.platformDiagonalResizeCursorStyle(isNwSe: Boolean): Modifier = this
 
 actual fun pickFileForImport(onResult: (fileName: String, content: String) -> Unit) {
-    val dialog = FileDialog(null as Frame?, "", FileDialog.LOAD).apply {
-            filenameFilter = FilenameFilter { _, name ->
-                setOf("json", "yaml", "yml").any { ext -> name.endsWith(".$ext", ignoreCase = true) }
-            }
+    val dialog = FileDialog(null as Frame?, "Import Specification", FileDialog.LOAD).apply {
+        applyRememberedDirectory()
+        filenameFilter = FilenameFilter { _, name ->
+            setOf("json", "yaml", "yml").any { ext -> name.endsWith(".$ext", ignoreCase = true) }
+        }
         isVisible = true
     }
 
@@ -81,10 +92,14 @@ actual fun pickFileForImport(onResult: (fileName: String, content: String) -> Un
 }
 
 actual fun pickBinaryFileForRequest(onResult: (PickedBinaryFile) -> Unit) {
-    val chooser = JFileChooser()
-    chooser.applyRememberedDirectory()
-    if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-        val selected = chooser.selectedFile
+    val dialog = FileDialog(null as Frame?, "Select File", FileDialog.LOAD).apply {
+        applyRememberedDirectory()
+        isVisible = true
+    }
+    val selectedDir = dialog.directory
+    val selectedFile = dialog.file
+    if (selectedDir != null && selectedFile != null) {
+        val selected = File(selectedDir, selectedFile)
         rememberChooserDirectory(selected)
         runCatching { selected.readBytes() }
             .onSuccess { bytes ->
@@ -95,47 +110,60 @@ actual fun pickBinaryFileForRequest(onResult: (PickedBinaryFile) -> Unit) {
 }
 
 actual fun pickProtoFile(onResult: (filePath: String) -> Unit) {
-    val chooser = JFileChooser()
-    chooser.applyRememberedDirectory()
-    chooser.fileFilter = FileNameExtensionFilter("Protocol Buffer files (*.proto)", "proto")
-    if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-        val selected = chooser.selectedFile
+    val dialog = FileDialog(null as Frame?, "Select Proto File", FileDialog.LOAD).apply {
+        applyRememberedDirectory()
+        filenameFilter = FilenameFilter { _, name -> name.endsWith(".proto", ignoreCase = true) }
+        isVisible = true
+    }
+    val selectedDir = dialog.directory
+    val selectedFile = dialog.file
+    if (selectedDir != null && selectedFile != null) {
+        val selected = File(selectedDir, selectedFile)
         rememberChooserDirectory(selected)
         onResult(selected.absolutePath)
     }
 }
 
 actual fun saveFileForExport(content: String, defaultFilename: String) {
-    val chooser = JFileChooser()
-    chooser.applyRememberedDirectory()
-    chooser.selectedFile = File(chooser.currentDirectory, defaultFilename)
-    val ext = defaultFilename.substringAfterLast('.', "").lowercase()
-    if (ext == "yaml" || ext == "yml") {
-        chooser.fileFilter = FileNameExtensionFilter("YAML files (*.yaml, *.yml)", "yaml", "yml")
-        if (chooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-            var file = chooser.selectedFile
+    val dialog = FileDialog(null as Frame?, "Export", FileDialog.SAVE).apply {
+        applyRememberedDirectory()
+        file = defaultFilename
+        val ext = defaultFilename.substringAfterLast('.', "").lowercase()
+        if (ext == "yaml" || ext == "yml") {
+            filenameFilter = FilenameFilter { _, name ->
+                name.endsWith(".yaml", ignoreCase = true) || name.endsWith(".yml", ignoreCase = true)
+            }
+        } else if (ext == "json") {
+            filenameFilter = FilenameFilter { _, name ->
+                name.endsWith(".json", ignoreCase = true)
+            }
+        }
+        isVisible = true
+    }
+    val selectedDir = dialog.directory
+    val selectedFile = dialog.file
+    if (selectedDir != null && selectedFile != null) {
+        var file = File(selectedDir, selectedFile)
+        val ext = defaultFilename.substringAfterLast('.', "").lowercase()
+        if (ext == "yaml" || ext == "yml") {
             if (!file.name.endsWith(".yaml", ignoreCase = true) && !file.name.endsWith(".yml", ignoreCase = true)) {
                 file = File(file.absolutePath + ".yaml")
             }
-            rememberChooserDirectory(file)
-            runCatching { file.writeText(content) }
+        } else if (ext == "json") {
+            if (!file.name.endsWith(".json", ignoreCase = true)) {
+                file = File(file.absolutePath + ".json")
+            }
         }
-    } else {
-        chooser.fileFilter = FileNameExtensionFilter("JSON files (*.json)", "json")
-        if (chooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-            var file = chooser.selectedFile
-            if (!file.name.endsWith(".json", ignoreCase = true)) file = File(file.absolutePath + ".json")
-            rememberChooserDirectory(file)
-            runCatching { file.writeText(content) }
-        }
+        rememberChooserDirectory(file)
+        runCatching { file.writeText(content) }
     }
 }
 
-private fun JFileChooser.applyRememberedDirectory() {
+private fun FileDialog.applyRememberedDirectory() {
     val path = FileChooserMemory.directoryToOpen(PlatformStorage.getString(FileChooserMemory.LAST_DIR_KEY)) { candidate ->
         File(candidate).isDirectory
     }
-    if (path != null) currentDirectory = File(path)
+    if (path != null) directory = path
 }
 
 private fun rememberChooserDirectory(file: File) {
@@ -143,6 +171,71 @@ private fun rememberChooserDirectory(file: File) {
         File(candidate).isDirectory
     }
     if (path != null) PlatformStorage.putString(FileChooserMemory.LAST_DIR_KEY, path)
+}
+
+actual var testDoubleClickActive: Boolean = false
+
+// ── Key Event Handling ──────────────────────────────────────────
+
+private var lastDesktopCtrlSpaceMillis: Long = 0L
+
+actual fun isRecentCtrlSpaceTriggered(thresholdMs: Long): Boolean {
+    val elapsed = System.currentTimeMillis() - lastDesktopCtrlSpaceMillis
+    return elapsed in 0..thresholdMs
+}
+
+actual fun resetCtrlSpaceTrigger() {
+    lastDesktopCtrlSpaceMillis = 0L
+}
+
+actual fun handleCtrlSpaceKeyEvent(
+    event: androidx.compose.ui.input.key.KeyEvent,
+    onTrigger: () -> Unit,
+): Boolean {
+    val awt = event.awtEventOrNull
+    val isCtrlOrMeta = event.isCtrlPressed || event.isMetaPressed ||
+            (awt != null && (awt.isControlDown || awt.isMetaDown))
+
+    val isSpaceKey = event.key == androidx.compose.ui.input.key.Key.Spacebar ||
+            awt?.keyCode == java.awt.event.KeyEvent.VK_SPACE
+
+    // 1. KeyDown / KEY_PRESSED with Spacebar and Ctrl/Meta
+    if (isCtrlOrMeta && !event.isAltPressed && !event.isShiftPressed && isSpaceKey) {
+        if (event.type == androidx.compose.ui.input.key.KeyEventType.KeyDown ||
+            awt?.id == java.awt.event.KeyEvent.KEY_PRESSED
+        ) {
+            awt?.consume()
+            lastDesktopCtrlSpaceMillis = System.currentTimeMillis()
+            onTrigger()
+            return true
+        }
+        if (event.type == androidx.compose.ui.input.key.KeyEventType.KeyUp ||
+            awt?.id == java.awt.event.KeyEvent.KEY_RELEASED
+        ) {
+            awt?.consume()
+            return true
+        }
+    }
+
+    // 2. AWT KEY_TYPED or Compose Unknown event with space character
+    val isSpaceChar = event.utf16CodePoint == ' '.code || awt?.keyChar == ' '
+    val recent = isRecentCtrlSpaceTriggered()
+
+    if (isSpaceChar && (isCtrlOrMeta || recent)) {
+        awt?.consume()
+        resetCtrlSpaceTrigger()
+        return true
+    }
+
+    return false
+}
+
+actual fun isPointerDoubleClick(targetId: String, event: PointerEvent): Boolean {
+    val mouse = event.awtEventOrNull
+    if (mouse != null) {
+        return mouse.clickCount >= 2
+    }
+    return testDoubleClickActive
 }
 
 actual object PlatformStorage {

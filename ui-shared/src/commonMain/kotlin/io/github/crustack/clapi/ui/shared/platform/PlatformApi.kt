@@ -93,6 +93,37 @@ expect fun pickProtoFile(onResult: (filePath: String) -> Unit)
  */
 expect fun saveFileForExport(content: String, defaultFilename: String)
 
+/**
+ * Returns true if [event] on [targetId] corresponds to a double click.
+ */
+expect fun isPointerDoubleClick(targetId: String, event: androidx.compose.ui.input.pointer.PointerEvent): Boolean
+
+/**
+ * Flag used in Compose unit tests to simulate a double-click when AWT mouse events are not present.
+ */
+expect var testDoubleClickActive: Boolean
+
+// ── Key Event Handling ──────────────────────────────────────────
+
+/**
+ * Handles Ctrl+Space / Cmd+Space shortcut for variable dropdown, consuming native AWT
+ * events so that no whitespace character is typed into text components.
+ *
+ * @param event The Compose [androidx.compose.ui.input.key.KeyEvent].
+ * @param onTrigger Action to execute when the shortcut is triggered (on key down).
+ * @return True if the event was a Ctrl+Space event (down, typed, or up) and was consumed.
+ */
+expect fun handleCtrlSpaceKeyEvent(
+    event: androidx.compose.ui.input.key.KeyEvent,
+    onTrigger: () -> Unit,
+): Boolean
+
+/** Returns true if a Ctrl+Space shortcut was triggered recently within [thresholdMs]. */
+expect fun isRecentCtrlSpaceTriggered(thresholdMs: Long = 600L): Boolean
+
+/** Resets the recent Ctrl+Space trigger tracking. */
+expect fun resetCtrlSpaceTrigger()
+
 // ── Storage ─────────────────────────────────────────────────────
 
 /** Simple key-value string storage (Preferences on JVM, localStorage on web). */

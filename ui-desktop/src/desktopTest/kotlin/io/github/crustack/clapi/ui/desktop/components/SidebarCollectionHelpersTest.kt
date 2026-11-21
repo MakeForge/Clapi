@@ -190,6 +190,19 @@ class SidebarCollectionHelpersTest {
     }
 
     @Test
+    fun collectAllRequestIds_includes_folder_itself_and_nested_items() {
+        val collections = sampleCollections()
+        val nested = addSubfolderInCollections(collections, "c1", "Folder 1") ?: error("Expected folder")
+        val subnested = addSubfolderInCollections(collections, nested.id, "Folder 2") ?: error("Expected folder")
+        subnested.children.add(CollectionNode("r9", "Nested Request", method = HttpMethodType.GET, url = "/nested"))
+
+        val ids = collectAllRequestIds(nested)
+        assertTrue(ids.contains(nested.id), "Should include the target folder id")
+        assertTrue(ids.contains(subnested.id), "Should include subfolder id")
+        assertTrue(ids.contains("r9"), "Should include nested request id")
+    }
+
+    @Test
     fun countRequestsInFolder_counts_deep_nested_requests() {
         val collections = sampleCollections()
         val root = collections.first()

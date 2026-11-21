@@ -241,6 +241,8 @@ fun BodyEditor(tab: RequestTabState, state: AppState, onDirty: () -> Unit) {
             BodyCategory.FORM -> {
                 FormDataTableEditor(
                     rows = tab.formRows,
+                    state = state,
+                    tab = tab,
                     onAdd = { tab.formRows.add(MutableFormDataRow()); onDirty() },
                     onRowChange = { onDirty() },
                     onRemove = { row -> tab.formRows.remove(row); onDirty() },
@@ -251,6 +253,8 @@ fun BodyEditor(tab: RequestTabState, state: AppState, onDirty: () -> Unit) {
             BodyCategory.URL_ENCODED -> {
                 UrlencodedTableEditor(
                     rows = tab.urlencodedRows,
+                    state = state,
+                    tab = tab,
                     onAdd = { tab.urlencodedRows.add(MutableFormDataRow()); onDirty() },
                     onRowChange = { onDirty() },
                     onRemove = { row -> tab.urlencodedRows.remove(row); onDirty() },
@@ -272,6 +276,9 @@ fun BodyEditor(tab: RequestTabState, state: AppState, onDirty: () -> Unit) {
                 // vs red (unresolved) inside the code editor.
                 val definedVarNames: Set<String> = state?.activeVariableLayers(tab)
                     ?.flatMap { it.keys }?.toSet() ?: emptySet()
+                val availableVars = remember(state, tab, definedVarNames) {
+                    getAvailableVariables(state, tab)
+                }
 
                 val allowJson5 = state.settings.allowJson5InJsonBodies
                 val validationPaused = shouldPauseValidation(tab.bodyContent.length)
@@ -323,6 +330,7 @@ fun BodyEditor(tab: RequestTabState, state: AppState, onDirty: () -> Unit) {
                             lineVariableSpans = if (tab.bodyContent.contains("{{")) {
                                 { line, _ -> variableRangesForLine(line, definedVarNames) }
                             } else null,
+                            availableVariables = availableVars,
                             externalViewModel = bodyViewModel,
                         )
 
@@ -378,6 +386,8 @@ private fun FormDataTableEditor(
     onRowChange: () -> Unit,
     onRemove: (MutableFormDataRow) -> Unit,
     modifier: Modifier = Modifier,
+    state: AppState? = null,
+    tab: RequestTabState? = null,
 ) {
     Column(modifier = modifier) {
         AddRowButton(
@@ -397,6 +407,8 @@ private fun FormDataTableEditor(
                     showTypeColumn = true,
                     onRowChange = onRowChange,
                     onRemove = { onRemove(row) },
+                    state = state,
+                    tab = tab,
                 )
             }
         }
@@ -412,6 +424,8 @@ private fun UrlencodedTableEditor(
     onRowChange: () -> Unit,
     onRemove: (MutableFormDataRow) -> Unit,
     modifier: Modifier = Modifier,
+    state: AppState? = null,
+    tab: RequestTabState? = null,
 ) {
     Column(modifier = modifier) {
         AddRowButton(
@@ -431,6 +445,8 @@ private fun UrlencodedTableEditor(
                     showTypeColumn = false,
                     onRowChange = onRowChange,
                     onRemove = { onRemove(row) },
+                    state = state,
+                    tab = tab,
                 )
             }
         }
@@ -490,6 +506,8 @@ private fun FormDataRowItem(
     showTypeColumn: Boolean,
     onRowChange: () -> Unit,
     onRemove: () -> Unit,
+    state: AppState? = null,
+    tab: RequestTabState? = null,
 ) {
     Row(
         modifier = Modifier
@@ -518,6 +536,8 @@ private fun FormDataRowItem(
             onValueChange = { row.key = it; onRowChange() },
             placeholder = "key",
             modifier = Modifier.weight(2f),
+            state = state,
+            tab = tab,
         )
 
         // Type dropdown (form-data only)
@@ -546,6 +566,8 @@ private fun FormDataRowItem(
                 onValueChange = { row.value = it; onRowChange() },
                 placeholder = "value",
                 modifier = Modifier.weight(2f),
+                state = state,
+                tab = tab,
             )
         }
 
@@ -555,6 +577,8 @@ private fun FormDataRowItem(
             onValueChange = { row.description = it; onRowChange() },
             placeholder = "description",
             modifier = Modifier.weight(1.5f),
+            state = state,
+            tab = tab,
         )
 
         // Remove
@@ -580,23 +604,41 @@ private fun FormCellTextField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     modifier: Modifier = Modifier,
+    state: AppState? = null,
+    tab: RequestTabState? = null,
 ) {
-    BasicTextField(
-        value = value,
-        onValueChange = onValueChange,
-        singleLine = true,
-        textStyle = TextStyle(fontSize = 11.sp, color = ClapiColors.OnSurface),
-        modifier = modifier
-            .clip(RoundedCornerShape(3.dp))
-            .background(ClapiColors.SurfaceVariant)
-            .padding(horizontal = 6.dp, vertical = 4.dp),
-        decorationBox = { inner ->
-            if (value.isEmpty()) {
-                Text(placeholder, fontSize = 11.sp, color = ClapiColors.OnSurfaceDim)
-            }
-            inner()
-        },
-    )
+    if (state != null) {
+        VariableAwareTextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = placeholder,
+            textStyle = TextStyle(fontSize = 11.sp, color = ClapiColors.OnSurface),
+            singleLine = true,
+            state = state,
+            tab = tab,
+            modifier = modifier
+                .clip(RoundedCornerShape(3.dp))
+                .background(ClapiColors.SurfaceVariant)
+                .padding(horizontal = 6.dp, vertical = 4.dp),
+        )
+    } else {
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            textStyle = TextStyle(fontSize = 11.sp, color = ClapiColors.OnSurface),
+            modifier = modifier
+                .clip(RoundedCornerShape(3.dp))
+                .background(ClapiColors.SurfaceVariant)
+                .padding(horizontal = 6.dp, vertical = 4.dp),
+            decorationBox = { inner ->
+                if (value.isEmpty()) {
+                    Text(placeholder, fontSize = 11.sp, color = ClapiColors.OnSurfaceDim)
+                }
+                inner()
+            },
+        )
+    }
 }
 
 @Composable

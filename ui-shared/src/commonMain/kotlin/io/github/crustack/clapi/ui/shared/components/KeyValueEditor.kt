@@ -39,6 +39,7 @@ import io.github.crustack.clapi.ui.shared.i18n.Strings
 import io.github.crustack.clapi.ui.shared.state.AppState
 import io.github.crustack.clapi.ui.shared.state.HeaderKind
 import io.github.crustack.clapi.ui.shared.state.MutableKeyValue
+import io.github.crustack.clapi.ui.shared.state.RequestTabState
 import io.github.crustack.clapi.ui.shared.state.SystemHeaderRules
 import io.github.crustack.clapi.ui.shared.platform.PlatformLazyVerticalScrollbar
 import io.github.crustack.clapi.ui.shared.platform.insetScrollbar
@@ -57,6 +58,7 @@ fun KeyValueEditor(
     entries: MutableList<MutableKeyValue>,
     tag: String,
     state: AppState? = null,
+    tab: RequestTabState? = null,
     onDirty: () -> Unit,
 ) {
     val isHeaderEditor = tag == "header"
@@ -95,6 +97,7 @@ fun KeyValueEditor(
                         isHeaderEditor = isHeaderEditor,
                         showTypeColumn = showTypeColumn,
                         state = state,
+                        tab = tab,
                         testTag = "$tag-row-$idx",
                     )
                 }
@@ -138,6 +141,7 @@ private fun KeyValueRow(
     isHeaderEditor: Boolean,
     showTypeColumn: Boolean = false,
     state: AppState? = null,
+    tab: RequestTabState? = null,
     testTag: String,
 ) {
     val isSystemHeader = isHeaderEditor &&
@@ -171,6 +175,7 @@ private fun KeyValueRow(
             readOnly = isSystemHeader || isInherited,
             modifier = Modifier.weight(1f).testTag("$testTag-key"),
             state = state,
+            tab = tab,
         )
         InlineTextField(
             value = kv.value,
@@ -179,6 +184,7 @@ private fun KeyValueRow(
             readOnly = isInherited,
             modifier = Modifier.weight(1f).testTag("$testTag-value"),
             state = state,
+            tab = tab,
         )
 
         if (showTypeColumn) {
@@ -222,6 +228,7 @@ fun InlineTextField(
     placeholder: String,
     modifier: Modifier = Modifier,
     state: AppState? = null,
+    tab: RequestTabState? = null,
     readOnly: Boolean = false,
 ) {
     Box(
@@ -242,6 +249,7 @@ fun InlineTextField(
                     fontFamily = CodeFontFamily,
                 ),
                 state = state,
+                tab = tab,
                 readOnly = readOnly,
                 modifier = Modifier.fillMaxWidth(),
             )

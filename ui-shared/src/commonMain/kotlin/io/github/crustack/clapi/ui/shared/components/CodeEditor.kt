@@ -58,6 +58,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
+import io.github.crustack.clapi.ui.shared.platform.handleCtrlSpaceKeyEvent
 import androidx.compose.ui.input.key.isAltPressed
 import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.isMetaPressed
@@ -165,6 +166,7 @@ fun CodeEditor(
     onCursorTap: ((Int) -> Unit)? = null,
     lineVariableSpans: ((lineText: String, lineStartOffset: Int) -> List<Pair<IntRange, androidx.compose.ui.graphics.Color>>)? = null,
     allowJson5: Boolean = false,
+    availableVariables: List<Pair<String, String>> = emptyList(),
     /**
      * An already-created [EditorViewModel] to use instead of creating a new one.
      * When provided, [CodeEditor] does NOT dispose it on removal — the caller
@@ -246,6 +248,8 @@ fun CodeEditor(
     var activeMatchIndex by remember { mutableIntStateOf(0) }
     var showGoToLine by remember { mutableStateOf(false) }
     var goToLineText by remember { mutableStateOf("") }
+    var showVariableDropdown by remember { mutableStateOf(false) }
+    var selectedVariableIndex by remember { mutableIntStateOf(0) }
     val editorFocus = remember { FocusRequester() }
     // Bump a tick from click handlers; requestFocus in LaunchedEffect so it is
     // not nested inside IconButton/performClick (deadlocks desktop tests).
@@ -306,8 +310,45 @@ fun CodeEditor(
         modifier = modifier
             .testTag(testTagPrefix)
             .onPreviewKeyEvent { event ->
-                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 val isMeta = event.isMetaPressed || event.isCtrlPressed
+                if (handleCtrlSpaceKeyEvent(event) {
+                    if (!isReadOnly && availableVariables.isNotEmpty()) {
+                        selectedVariableIndex = 0
+                        showVariableDropdown = true
+                    }
+                }) {
+                    return@onPreviewKeyEvent true
+                }
+                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                if (showVariableDropdown) {
+                    when (event.key) {
+                        Key.DirectionDown -> {
+                            if (availableVariables.isNotEmpty()) {
+                                selectedVariableIndex = (selectedVariableIndex + 1).coerceAtMost(availableVariables.size - 1)
+                            }
+                            return@onPreviewKeyEvent true
+                        }
+                        Key.DirectionUp -> {
+                            if (availableVariables.isNotEmpty()) {
+                                selectedVariableIndex = (selectedVariableIndex - 1).coerceAtLeast(0)
+                            }
+                            return@onPreviewKeyEvent true
+                        }
+                        Key.Enter, Key.NumPadEnter -> {
+                            if (availableVariables.isNotEmpty() && selectedVariableIndex in availableVariables.indices) {
+                                val selectedVar = availableVariables[selectedVariableIndex].first
+                                viewModel.insertAtCursor("{{$selectedVar}}")
+                                showVariableDropdown = false
+                                restoreEditorFocus()
+                            }
+                            return@onPreviewKeyEvent true
+                        }
+                        Key.Escape -> {
+                            showVariableDropdown = false
+                            return@onPreviewKeyEvent true
+                        }
+                    }
+                }
                 if (enableSearch && isMeta && event.key == Key.F) {
                     toggleSearch()
                     true
@@ -451,39 +492,60 @@ fun CodeEditor(
         }
 
         // ── Content (GapBuffer + LazyColumn) ──
-        EditorRenderer(
-            viewModel      = viewModel,
-            isReadOnly     = isReadOnly,
-            language       = language.toLanguageMode(),
-            theme          = editorTheme(),
-            wordWrap       = wordWrap,
-            testTagPrefix  = testTagPrefix,
-            modifier       = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .testTag("$testTagPrefix-input"),
-            onTextChange   = onTextChange,
-            onPasteRequest = { readFromClipboard() },
-            onCopyRequest  = { text -> platformCopyToClipboard(text) },
-            searchMatchRangesByLine = searchMatchRangesByLine,
-            activeSearchMatch = activeSearchMatch,
-            onPrimaryTapOffset = onCursorTap,
-            lineVariableSpans = lineVariableSpans,
-            labels = EditorLabels(
-                expand = Strings.expand,
-                collapse = Strings.collapse,
-                diagnostic = Strings.diagnostic,
-                undo = Strings.undo,
-                redo = Strings.redo,
-                copy = Strings.copy,
-                cut = Strings.cut,
-                paste = Strings.paste,
-                selectAll = Strings.selectAll,
-                duplicateLine = Strings.duplicateLine,
-                toggleComment = Strings.toggleComment,
-            ),
-            focusRequester = editorFocus,
-        )
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            EditorRenderer(
+                viewModel      = viewModel,
+                isReadOnly     = isReadOnly,
+                language       = language.toLanguageMode(),
+                theme          = editorTheme(),
+                wordWrap       = wordWrap,
+                testTagPrefix  = testTagPrefix,
+                modifier       = Modifier
+                    .fillMaxSize()
+                    .testTag("$testTagPrefix-input"),
+                onTextChange   = onTextChange,
+                onPasteRequest = { readFromClipboard() },
+                onCopyRequest  = { text -> platformCopyToClipboard(text) },
+                searchMatchRangesByLine = searchMatchRangesByLine,
+                activeSearchMatch = activeSearchMatch,
+                onPrimaryTapOffset = onCursorTap,
+                lineVariableSpans = lineVariableSpans,
+                labels = EditorLabels(
+                    expand = Strings.expand,
+                    collapse = Strings.collapse,
+                    diagnostic = Strings.diagnostic,
+                    undo = Strings.undo,
+                    redo = Strings.redo,
+                    copy = Strings.copy,
+                    cut = Strings.cut,
+                    paste = Strings.paste,
+                    selectAll = Strings.selectAll,
+                    duplicateLine = Strings.duplicateLine,
+                    toggleComment = Strings.toggleComment,
+                ),
+                focusRequester = editorFocus,
+            )
+
+            if (showVariableDropdown && availableVariables.isNotEmpty()) {
+                Popup(
+                    alignment = Alignment.TopStart,
+                    offset = IntOffset(60, 40),
+                    properties = PopupProperties(focusable = false),
+                    onDismissRequest = { showVariableDropdown = false },
+                ) {
+                    VariableDropdownList(
+                        variables = availableVariables,
+                        selectedIndex = selectedVariableIndex,
+                        onSelect = { varName ->
+                            viewModel.insertAtCursor("{{$varName}}")
+                            showVariableDropdown = false
+                            restoreEditorFocus()
+                        },
+                        modifier = Modifier.testTag("code-editor-variable-dropdown"),
+                    )
+                }
+            }
+        }
 
         val cursorLine = viewModel.document.lineAt(
             editorState.cursorOffset.coerceIn(0, viewModel.document.length),

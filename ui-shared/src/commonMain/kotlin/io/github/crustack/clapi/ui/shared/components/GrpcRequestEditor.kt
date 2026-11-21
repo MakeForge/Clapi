@@ -684,6 +684,7 @@ private fun GrpcMessageEditor(
                 variableRangesForLine(lineText, definedVarNames)
             },
             allowJson5 = allowJson5,
+            availableVariables = getAvailableVariables(state, tab),
             externalViewModel = bodyViewModel,
         )
 
@@ -752,6 +753,7 @@ private fun GrpcScriptsTabContent(
                     },
                     title = "Pre-request Script",
                     showCursorPosition = state.settings.showEditorPositionIndicator,
+                    availableVariables = getAvailableVariables(state, tab),
                 )
             } else {
                 ScriptEditor(
@@ -762,6 +764,7 @@ private fun GrpcScriptsTabContent(
                     },
                     title = "Post-request Script",
                     showCursorPosition = state.settings.showEditorPositionIndicator,
+                    availableVariables = getAvailableVariables(state, tab),
                 )
             }
         }
