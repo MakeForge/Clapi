@@ -201,5 +201,5 @@ The `sample-server` module provides local endpoints for automated testing and ma
 - **Installation Guide**: [docs/guide/installation.md](docs/guide/installation.md)
 - **Architecture Reference**: [docs/reference/architecture.md](docs/reference/architecture.md)
 - **MCP Client Guide**: [docs/request-types/mcp/index.md](docs/request-types/mcp/index.md)
-- **Scripting Reference**: [docs/scripting/index.md](docs/scripting/index.md)
+- **Scripting Reference**: [docs/scripting/index.md](docs/automation/index.md)
 - **Keyboard Shortcuts**: [docs/reference/shortcuts.md](docs/reference/shortcuts.md)
