@@ -705,6 +705,92 @@ class AppState(openDefaultTab: Boolean = true, withDemoData: Boolean = false) {
     var collectionsRevision  by mutableStateOf(0)
     var historyRevision      by mutableStateOf(0)
 
+    val selectedFolderIds = mutableStateListOf<String>()
+    val selectedRequestIds = mutableStateListOf<String>()
+    var lastSelectedSidebarItemId by mutableStateOf<String?>(null)
+
+    fun clearSidebarSelection() {
+        selectedFolderIds.clear()
+        selectedRequestIds.clear()
+        lastSelectedSidebarItemId = null
+    }
+
+    fun selectSidebarFolder(
+        folderId: String,
+        isCtrlPressed: Boolean = false,
+        isShiftPressed: Boolean = false,
+        visibleFolders: List<String> = emptyList(),
+    ) {
+        selectedRequestIds.clear()
+        if (isCtrlPressed) {
+            if (folderId in selectedFolderIds) {
+                selectedFolderIds.remove(folderId)
+                if (lastSelectedSidebarItemId == folderId) {
+                    lastSelectedSidebarItemId = selectedFolderIds.lastOrNull()
+                }
+            } else {
+                selectedFolderIds.add(folderId)
+                lastSelectedSidebarItemId = folderId
+            }
+        } else if (isShiftPressed) {
+            val anchor = lastSelectedSidebarItemId
+            val anchorIdx = if (anchor != null) visibleFolders.indexOf(anchor) else -1
+            val targetIdx = visibleFolders.indexOf(folderId)
+            if (anchorIdx >= 0 && targetIdx >= 0) {
+                val range = minOf(anchorIdx, targetIdx)..maxOf(anchorIdx, targetIdx)
+                val toSelect = visibleFolders.slice(range)
+                selectedFolderIds.clear()
+                selectedFolderIds.addAll(toSelect)
+            } else {
+                selectedFolderIds.clear()
+                selectedFolderIds.add(folderId)
+                lastSelectedSidebarItemId = folderId
+            }
+        } else {
+            selectedFolderIds.clear()
+            selectedFolderIds.add(folderId)
+            lastSelectedSidebarItemId = folderId
+        }
+    }
+
+    fun selectSidebarRequest(
+        requestId: String,
+        isCtrlPressed: Boolean = false,
+        isShiftPressed: Boolean = false,
+        visibleRequests: List<String> = emptyList(),
+    ) {
+        selectedFolderIds.clear()
+        if (isCtrlPressed) {
+            if (requestId in selectedRequestIds) {
+                selectedRequestIds.remove(requestId)
+                if (lastSelectedSidebarItemId == requestId) {
+                    lastSelectedSidebarItemId = selectedRequestIds.lastOrNull()
+                }
+            } else {
+                selectedRequestIds.add(requestId)
+                lastSelectedSidebarItemId = requestId
+            }
+        } else if (isShiftPressed) {
+            val anchor = lastSelectedSidebarItemId
+            val anchorIdx = if (anchor != null) visibleRequests.indexOf(anchor) else -1
+            val targetIdx = visibleRequests.indexOf(requestId)
+            if (anchorIdx >= 0 && targetIdx >= 0) {
+                val range = minOf(anchorIdx, targetIdx)..maxOf(anchorIdx, targetIdx)
+                val toSelect = visibleRequests.slice(range)
+                selectedRequestIds.clear()
+                selectedRequestIds.addAll(toSelect)
+            } else {
+                selectedRequestIds.clear()
+                selectedRequestIds.add(requestId)
+                lastSelectedSidebarItemId = requestId
+            }
+        } else {
+            selectedRequestIds.clear()
+            selectedRequestIds.add(requestId)
+            lastSelectedSidebarItemId = requestId
+        }
+    }
+
     /** Per-folder expanded state. Absent key → expanded (true) by default. */
     val collectionExpandedState = mutableStateMapOf<String, Boolean>()
 

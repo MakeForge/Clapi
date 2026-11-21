@@ -81,8 +81,13 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.isPrimaryPressed
 import androidx.compose.ui.input.pointer.isSecondaryPressed
+import androidx.compose.ui.input.pointer.isCtrlPressed
+import androidx.compose.ui.input.pointer.isMetaPressed
+import androidx.compose.ui.input.pointer.isShiftPressed
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.testTag
@@ -227,8 +232,13 @@ fun Sidebar(state: AppState) {
                     hitAreas.keys.toList().forEach { id ->
                         hitAreas[id]?.let { hitAreas[id] = it.copy(top = it.top + shift, bottom = it.bottom + shift) }
                     }
+                    val movingRequestIds = if (activeRequestId in state.selectedRequestIds) {
+                        state.selectedRequestIds.toList()
+                    } else {
+                        listOf(activeRequestId)
+                    }
                     val target = resolveClosestHitArea(
-                        areas = hitAreas.values.filter { it.id != activeRequestId },
+                        areas = hitAreas.values.filter { it.id !in movingRequestIds },
                         cursorY = cursorY,
                     )
                     if (target != null) {
@@ -247,11 +257,16 @@ fun Sidebar(state: AppState) {
                     collectionHitAreas.keys.toList().forEach { id ->
                         collectionHitAreas[id]?.let { collectionHitAreas[id] = it.copy(top = it.top + shift, bottom = it.bottom + shift) }
                     }
+                    val movingFolderIds = if (activeCollectionId in state.selectedFolderIds) {
+                        state.selectedFolderIds.toList()
+                    } else {
+                        listOf(activeCollectionId)
+                    }
                     val target = resolveClosestHitArea(
                         areas = collectionHitAreas.values.filter {
-                            it.id != activeCollectionId &&
+                            it.id !in movingFolderIds &&
                                 it.parentCollectionId == collectionHitAreas[activeCollectionId]?.parentCollectionId &&
-                                isValidFolderDropTarget(state.collections, activeCollectionId, it.id)
+                                isValidFolderGroupDropTarget(state.collections, movingFolderIds, it.id)
                         },
                         cursorY = cursorY,
                     )
@@ -463,6 +478,77 @@ fun Sidebar(state: AppState) {
                 } else {
                     state.collections.mapNotNull { filterCollectionNode(it, query) }
                 }
+
+                val onDuplicateSelectedFolders: () -> Unit = {
+                    val toDuplicate = state.selectedFolderIds.toList()
+                    for (id in toDuplicate) {
+                        duplicateFolderInCollections(state.collections, id)
+                    }
+                    state.notifyCollectionsChanged()
+                    persistWorkspaceAsync()
+                    state.log("Folder(s) duplicated: ${toDuplicate.size}", LogLevel.SUCCESS)
+                }
+
+                val onDeleteSelectedFolders: () -> Unit = {
+                    val toDelete = state.selectedFolderIds.toList()
+                    val action = {
+                        val allRequestIdsToClose = mutableListOf<String>()
+                        for (id in toDelete) {
+                            val deleted = deleteFolderFromCollections(state.collections, id)
+                            if (deleted != null) {
+                                allRequestIdsToClose.addAll(collectAllRequestIds(deleted))
+                            }
+                        }
+                        state.closeTabsByIds(allRequestIdsToClose)
+                        state.selectedFolderIds.clear()
+                        state.notifyCollectionsChanged()
+                        persistWorkspaceAsync()
+                        state.log("Folder(s) deleted: ${toDelete.size}", LogLevel.INFO)
+                    }
+                    if (state.settings.confirmBeforeDelete) {
+                        state.showConfirm(
+                            title = "Delete folders?",
+                            message = "Delete ${toDelete.size} folder(s)? This cannot be undone.",
+                            action = action,
+                        )
+                    } else {
+                        action()
+                    }
+                }
+
+                val onDuplicateSelectedRequests: () -> Unit = {
+                    val toDuplicate = state.selectedRequestIds.toList()
+                    for (id in toDuplicate) {
+                        duplicateRequestInCollections(state.collections, id)
+                    }
+                    state.notifyCollectionsChanged()
+                    persistWorkspaceAsync()
+                    state.log("Request(s) duplicated: ${toDuplicate.size}", LogLevel.SUCCESS)
+                }
+
+                val onDeleteSelectedRequests: () -> Unit = {
+                    val toDelete = state.selectedRequestIds.toList()
+                    val action = {
+                        for (id in toDelete) {
+                            deleteRequestFromCollections(state.collections, id)
+                        }
+                        state.closeTabsByIds(toDelete)
+                        state.selectedRequestIds.clear()
+                        state.notifyCollectionsChanged()
+                        persistWorkspaceAsync()
+                        state.log("Request(s) deleted: ${toDelete.size}", LogLevel.INFO)
+                    }
+                    if (state.settings.confirmBeforeDelete) {
+                        state.showConfirm(
+                            title = "Delete requests?",
+                            message = "Delete ${toDelete.size} request(s)? This cannot be undone.",
+                            action = action,
+                        )
+                    } else {
+                        action()
+                    }
+                }
+
                 visibleCollections.forEach { node ->
                     item(key = node.id) {
                         CollectionTreeNode(
@@ -508,6 +594,7 @@ fun Sidebar(state: AppState) {
                                         // Close all tabs belonging to requests in the deleted folder
                                         val deletedIds = collectAllRequestIds(deleted)
                                         state.closeTabsByIds(deletedIds)
+                                        state.selectedFolderIds.remove(target.id)
                                         state.notifyCollectionsChanged()
                                         persistWorkspaceAsync()
                                         state.log("Folder deleted: ${target.name}", LogLevel.INFO)
@@ -552,6 +639,7 @@ fun Sidebar(state: AppState) {
                                 val action = {
                                     deleteRequestFromCollections(state.collections, target.id)
                                     state.closeTabsByIds(listOf(target.id))
+                                    state.selectedRequestIds.remove(target.id)
                                     state.notifyCollectionsChanged()
                                     persistWorkspaceAsync()
                                     state.log("Request deleted: ${target.name}", LogLevel.INFO)
@@ -572,6 +660,10 @@ fun Sidebar(state: AppState) {
                                     persistWorkspaceAsync()
                                 }
                             },
+                            onDuplicateSelectedFolders = onDuplicateSelectedFolders,
+                            onDeleteSelectedFolders = onDeleteSelectedFolders,
+                            onDuplicateSelectedRequests = onDuplicateSelectedRequests,
+                            onDeleteSelectedRequests = onDeleteSelectedRequests,
                             draggedRequestId = draggedRequestId,
                             dropTargetCollectionId = dropTargetCollectionId,
                             dropTargetRequestId = dropTargetRequestId,
@@ -591,8 +683,13 @@ fun Sidebar(state: AppState) {
                                     // Use absolute cursor position — avoids drift when the list
                                     // has scrolled (baseCenter + offsetY is wrong after a scroll).
                                     val currentY = dragCursorAbsY
+                                    val movingRequestIds = if (requestId in state.selectedRequestIds) {
+                                        state.selectedRequestIds.toList()
+                                    } else {
+                                        listOf(requestId)
+                                    }
                                     val target = resolveClosestHitArea(
-                                        areas = hitAreas.values.filter { it.id != requestId },
+                                        areas = hitAreas.values.filter { it.id !in movingRequestIds },
                                         cursorY = currentY,
                                     )
                                     if (target != null) {
@@ -613,18 +710,25 @@ fun Sidebar(state: AppState) {
                             onDragEnd = {
                                 dragCursorAbsY = 0f
                                 val sourceId = draggedRequestId
+                                val movingRequestIds = if (sourceId != null && sourceId in state.selectedRequestIds) {
+                                    state.selectedRequestIds.toList()
+                                } else if (sourceId != null) {
+                                    listOf(sourceId)
+                                } else {
+                                    emptyList()
+                                }
                                 val targetRequestId = dropTargetRequestId
                                 val targetCollectionId = dropTargetCollectionId
-                                if (sourceId != null) {
+                                if (movingRequestIds.isNotEmpty()) {
                                     val moved = when {
-                                        targetRequestId != null && targetRequestId != sourceId ->
+                                        targetRequestId != null && targetRequestId !in movingRequestIds ->
                                             if (dropInsertAfter) {
-                                                moveRequestAfterRequest(state.collections, sourceId, targetRequestId)
+                                                moveRequestsAfterRequest(state.collections, movingRequestIds, targetRequestId)
                                             } else {
-                                                moveRequestBeforeRequest(state.collections, sourceId, targetRequestId)
+                                                moveRequestsBeforeRequest(state.collections, movingRequestIds, targetRequestId)
                                             }
                                         targetCollectionId != null ->
-                                            moveRequestToCollection(state.collections, sourceId, targetCollectionId)
+                                            moveRequestsToCollection(state.collections, movingRequestIds, targetCollectionId)
                                         else -> false
                                     }
                                     if (moved) {
@@ -657,11 +761,16 @@ fun Sidebar(state: AppState) {
                                     dragCursorAbsY        += deltaY
                                     val currentY = dragCursorAbsY
                                     val parentId = draggedFolderParentId
+                                    val movingFolderIds = if (collectionId in state.selectedFolderIds) {
+                                        state.selectedFolderIds.toList()
+                                    } else {
+                                        listOf(collectionId)
+                                    }
                                     val target = resolveClosestHitArea(
                                         areas = collectionHitAreas.values.filter {
-                                            it.id != collectionId &&
+                                            it.id !in movingFolderIds &&
                                                 it.parentCollectionId == parentId &&
-                                                isValidFolderDropTarget(state.collections, collectionId, it.id)
+                                                isValidFolderGroupDropTarget(state.collections, movingFolderIds, it.id)
                                         },
                                         cursorY = currentY,
                                     )
@@ -677,11 +786,18 @@ fun Sidebar(state: AppState) {
                                 dragCursorAbsY = 0f
                                 val sourceId = draggedCollectionId
                                 val targetId = dropCollectionTargetId
-                                if (sourceId != null && targetId != null) {
+                                val movingFolderIds = if (sourceId != null && sourceId in state.selectedFolderIds) {
+                                    state.selectedFolderIds.toList()
+                                } else if (sourceId != null) {
+                                    listOf(sourceId)
+                                } else {
+                                    emptyList()
+                                }
+                                if (movingFolderIds.isNotEmpty() && targetId != null && targetId !in movingFolderIds) {
                                     val moved = if (dropCollectionInsertAfter) {
-                                        moveFolderAfterFolder(state.collections, sourceId, targetId)
+                                        moveFoldersAfterFolder(state.collections, movingFolderIds, targetId)
                                     } else {
-                                        moveFolderBeforeFolder(state.collections, sourceId, targetId)
+                                        moveFoldersBeforeFolder(state.collections, movingFolderIds, targetId)
                                     }
                                     if (moved) {
                                         state.notifyCollectionsChanged()
@@ -1228,6 +1344,10 @@ private fun CollectionTreeNode(
     onRenameRequest: (CollectionNode) -> Unit,
     onDeleteRequest: (CollectionNode) -> Unit,
     onMoveRequest: (requestId: String, direction: Int) -> Unit,
+    onDuplicateSelectedFolders: () -> Unit = {},
+    onDeleteSelectedFolders: () -> Unit = {},
+    onDuplicateSelectedRequests: () -> Unit = {},
+    onDeleteSelectedRequests: () -> Unit = {},
     draggedRequestId: String?,
     dropTargetCollectionId: String?,
     dropTargetRequestId: String?,
@@ -1257,16 +1377,56 @@ private fun CollectionTreeNode(
     val isCollectionRoot = depth == 0 && node.isFolder
     val isRequest = !node.isFolder && node.method != null && node.url != null
     val isSelectedRequest = isRequest && state.selectedRequestId == node.id
+    val isSidebarFolderSelected = isFolderNode && node.id in state.selectedFolderIds
+    val isSidebarRequestSelected = isRequest && node.id in state.selectedRequestIds
+    val isSidebarSelected = isSidebarFolderSelected || isSidebarRequestSelected
+    val hasMultipleFolderSelection = isSidebarFolderSelected && state.selectedFolderIds.size > 1
+    val hasMultipleRequestSelection = isSidebarRequestSelected && state.selectedRequestIds.size > 1
+
     val isDragSource = draggedRequestId == node.id
+    val isDragSourceGroup = draggedRequestId != null && (isDragSource || (isRequest && node.id in state.selectedRequestIds && draggedRequestId in state.selectedRequestIds))
     val isCollectionDragSource = isFolderNode && draggedCollectionId == node.id
+    val isCollectionDragSourceGroup = draggedCollectionId != null && (isCollectionDragSource || (isFolderNode && node.id in state.selectedFolderIds && draggedCollectionId in state.selectedFolderIds))
+
     val isDropCollectionTarget = node.isFolder && node.id == dropTargetCollectionId
-    val isDropTarget = isRequest && node.id == dropTargetRequestId && node.id != draggedRequestId
+    val isDropTarget = isRequest && node.id == dropTargetRequestId && !isDragSourceGroup
     val showInsertionAbove = isDropTarget && !dropInsertAfter
     val showInsertionBelow = isDropTarget && dropInsertAfter
     val showCollectionInsertionAbove = isFolderNode && node.id == dropCollectionTargetId && !dropCollectionInsertAfter
     val showCollectionInsertionBelow = isFolderNode && node.id == dropCollectionTargetId && dropCollectionInsertAfter
 
     var showMenu by remember { mutableStateOf(false) }
+    var modifierHeldOnPress by remember { mutableStateOf(false) }
+
+    val handleRowPointerPress: (PointerEvent) -> Unit = { event ->
+        if (event.buttons.isSecondaryPressed && (isFolderNode || isRequest)) {
+            showMenu = true
+        } else if (event.buttons.isPrimaryPressed && (isFolderNode || isRequest)) {
+            val isCtrl = event.keyboardModifiers.isCtrlPressed || event.keyboardModifiers.isMetaPressed
+            val isShift = event.keyboardModifiers.isShiftPressed
+            if (isCtrl || isShift) {
+                modifierHeldOnPress = true
+                if (isFolderNode) {
+                    state.selectSidebarFolder(
+                        folderId = node.id,
+                        isCtrlPressed = isCtrl,
+                        isShiftPressed = isShift,
+                        visibleFolders = getVisibleFolderIds(state.collections, state.collectionExpandedState, state.sidebarSearchQuery),
+                    )
+                } else if (isRequest) {
+                    state.selectSidebarRequest(
+                        requestId = node.id,
+                        isCtrlPressed = isCtrl,
+                        isShiftPressed = isShift,
+                        visibleRequests = getVisibleRequestIds(state.collections, state.collectionExpandedState, state.sidebarSearchQuery),
+                    )
+                }
+            } else {
+                modifierHeldOnPress = false
+            }
+        }
+    }
+
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val density = androidx.compose.ui.platform.LocalDensity.current
     val indentPx = with(density) { indent.roundToPx() }
@@ -1319,13 +1479,14 @@ private fun CollectionTreeNode(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .alpha(if (isDragSource || isCollectionDragSource) 0.4f else 1f)
+                .alpha(if (isDragSourceGroup || isCollectionDragSourceGroup) 0.4f else 1f)
                 .bringIntoViewRequester(bringIntoViewRequester)
                 .background(
                     color = when {
-                        isSelectedRequest -> ClapiColors.SelectedItem
                         isDropCollectionTarget -> ClapiColors.Primary.copy(alpha = 0.14f)
-                        isDragSource || isCollectionDragSource -> ClapiColors.SurfaceHigh
+                        isDragSourceGroup || isCollectionDragSourceGroup -> ClapiColors.SurfaceHigh
+                        isSidebarSelected -> ClapiColors.HoverOverlay
+                        isSelectedRequest -> ClapiColors.SelectedItem
                         isHovered -> ClapiColors.HoverOverlay
                         else -> Color.Transparent
                     },
@@ -1366,11 +1527,7 @@ private fun CollectionTreeNode(
                     }
                 }
                 .hoverable(interactionSource)
-                .onPointerEvent(PointerEventType.Press) {
-                    if (it.buttons.isSecondaryPressed && (isFolderNode || isRequest)) {
-                        showMenu = true
-                    }
-                }
+                .onPointerEvent(PointerEventType.Press) { handleRowPointerPress(it) }
                 .pointerInput(node.id, isRequest, isFolderNode) {
                     when {
                         isRequest -> detectDragGestures(
@@ -1394,9 +1551,23 @@ private fun CollectionTreeNode(
                     }
                 }
                 .clickable {
+                    if (modifierHeldOnPress) {
+                        modifierHeldOnPress = false
+                        return@clickable
+                    }
                     if (node.isFolder) {
+                        state.selectSidebarFolder(
+                            folderId = node.id,
+                            isCtrlPressed = false,
+                            isShiftPressed = false,
+                        )
                         state.openFolder(node.id)
                     } else if (node.method != null && node.url != null) {
+                        state.selectSidebarRequest(
+                            requestId = node.id,
+                            isCtrlPressed = false,
+                            isShiftPressed = false,
+                        )
                         state.openRequest(requestId = node.id, name = node.name, method = node.method, url = node.url)
                     }
                 }
@@ -1479,10 +1650,22 @@ private fun CollectionTreeNode(
                     .then(
                         if (node.isFolder) {
                             Modifier
+                                .onPointerEvent(PointerEventType.Press) { handleRowPointerPress(it) }
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null,
-                                    onClick = { state.openFolder(node.id) },
+                                    onClick = {
+                                        if (modifierHeldOnPress) {
+                                            modifierHeldOnPress = false
+                                            return@clickable
+                                        }
+                                        state.selectSidebarFolder(
+                                            folderId = node.id,
+                                            isCtrlPressed = false,
+                                            isShiftPressed = false,
+                                        )
+                                        state.openFolder(node.id)
+                                    },
                                 )
                                 .testTag("folder-name-${node.id}")
                         } else {
@@ -1540,7 +1723,45 @@ private fun CollectionTreeNode(
                     onDismissRequest = { showMenu = false },
                     scrollState = rememberScrollState(),
                 ) {
-                    if (isFolderNode) {
+                    if (hasMultipleFolderSelection) {
+                        DropdownMenuItem(
+                            text = { Text(Strings.duplicateFolder) },
+                            leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            onClick = {
+                                showMenu = false
+                                onDuplicateSelectedFolders()
+                            },
+                            modifier = Modifier.testTag("collection-menu-multi-duplicate"),
+                        )
+                        DropdownMenuItem(
+                            text = { Text(Strings.delete) },
+                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            onClick = {
+                                showMenu = false
+                                onDeleteSelectedFolders()
+                            },
+                            modifier = Modifier.testTag("collection-menu-multi-delete"),
+                        )
+                    } else if (hasMultipleRequestSelection) {
+                        DropdownMenuItem(
+                            text = { Text(Strings.t("duplicate_request")) },
+                            leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            onClick = {
+                                showMenu = false
+                                onDuplicateSelectedRequests()
+                            },
+                            modifier = Modifier.testTag("collection-menu-multi-duplicate"),
+                        )
+                        DropdownMenuItem(
+                            text = { Text(Strings.t("delete_request")) },
+                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            onClick = {
+                                showMenu = false
+                                onDeleteSelectedRequests()
+                            },
+                            modifier = Modifier.testTag("collection-menu-multi-delete"),
+                        )
+                    } else if (isFolderNode) {
                         DropdownMenuItem(
                             text = { Text(Strings.t("add_folder")) },
                             leadingIcon = { Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(16.dp)) },
@@ -1704,6 +1925,10 @@ private fun CollectionTreeNode(
                         onDeleteRequest = onDeleteRequest,
                         onAddFolder = onAddFolder,
                         onMoveRequest = onMoveRequest,
+                        onDuplicateSelectedFolders = onDuplicateSelectedFolders,
+                        onDeleteSelectedFolders = onDeleteSelectedFolders,
+                        onDuplicateSelectedRequests = onDuplicateSelectedRequests,
+                        onDeleteSelectedRequests = onDeleteSelectedRequests,
                         draggedRequestId = draggedRequestId,
                         dropTargetCollectionId = dropTargetCollectionId,
                         dropTargetRequestId = dropTargetRequestId,
@@ -1982,6 +2207,38 @@ fun filterCollectionNode(node: CollectionNode, query: String): CollectionNode? {
     }
 }
 
+fun getVisibleSidebarNodes(
+    collections: List<CollectionNode>,
+    expandedState: Map<String, Boolean>,
+    query: String = "",
+): List<CollectionNode> {
+    val q = normalizeSidebarSearchQuery(query)
+    val rootNodes = if (q.isBlank()) collections else collections.mapNotNull { filterCollectionNode(it, q) }
+    val result = mutableListOf<CollectionNode>()
+    fun traverse(nodes: List<CollectionNode>) {
+        for (node in nodes) {
+            result.add(node)
+            if (node.isFolder && (expandedState[node.id] ?: true)) {
+                traverse(node.children)
+            }
+        }
+    }
+    traverse(rootNodes)
+    return result
+}
+
+fun getVisibleFolderIds(
+    collections: List<CollectionNode>,
+    expandedState: Map<String, Boolean>,
+    query: String = "",
+): List<String> = getVisibleSidebarNodes(collections, expandedState, query).filter { it.isFolder }.map { it.id }
+
+fun getVisibleRequestIds(
+    collections: List<CollectionNode>,
+    expandedState: Map<String, Boolean>,
+    query: String = "",
+): List<String> = getVisibleSidebarNodes(collections, expandedState, query).filter { !it.isFolder }.map { it.id }
+
 fun duplicateRequestInCollections(collections: MutableList<CollectionNode>, requestId: String): String? {
     return duplicateRequestInNodeList(collections, requestId)
 }
@@ -2094,6 +2351,28 @@ private fun renameFolderInNodeList(
     return false
 }
 
+fun duplicateFolderInCollections(collections: MutableList<CollectionNode>, folderId: String): String? {
+    return duplicateFolderInNodeList(collections, folderId)
+}
+
+private fun duplicateFolderInNodeList(nodes: MutableList<CollectionNode>, folderId: String): String? {
+    nodes.indices.forEach { index ->
+        val node = nodes[index]
+        if (node.isFolder && node.id == folderId) {
+            val siblingNames = nodes.filter { it.isFolder }.map { it.name }.toSet()
+            val duplicateName = ImportExportNaming.generateUniqueCollectionName(node.name, siblingNames)
+            val duplicated = duplicateNode(node, rootNameOverride = duplicateName)
+            nodes.add(index + 1, duplicated)
+            return duplicateName
+        }
+        if (node.children.isNotEmpty()) {
+            val duplicatedName = duplicateFolderInNodeList(node.children, folderId)
+            if (duplicatedName != null) return duplicatedName
+        }
+    }
+    return null
+}
+
 fun deleteFolderFromCollections(
     collections: MutableList<CollectionNode>,
     folderId: String,
@@ -2150,15 +2429,43 @@ fun moveRequestInCollections(collections: MutableList<CollectionNode>, requestId
     return false
 }
 
+fun moveRequestsBeforeRequest(
+    collections: MutableList<CollectionNode>,
+    requestIds: List<String>,
+    targetRequestId: String,
+): Boolean {
+    if (requestIds.isEmpty() || targetRequestId in requestIds) return false
+    val extracted = mutableListOf<CollectionNode>()
+    for (id in requestIds) {
+        val node = extractRequestNode(collections, id) ?: return false
+        extracted.add(node)
+    }
+    val target = findRequestParentAndIndex(collections, targetRequestId) ?: return false
+    val insertIndex = target.second.coerceIn(0, target.first.size)
+    target.first.addAll(insertIndex, extracted)
+    return true
+}
+
 fun moveRequestBeforeRequest(
     collections: MutableList<CollectionNode>,
     requestId: String,
     targetRequestId: String,
+): Boolean = moveRequestsBeforeRequest(collections, listOf(requestId), targetRequestId)
+
+fun moveRequestsAfterRequest(
+    collections: MutableList<CollectionNode>,
+    requestIds: List<String>,
+    targetRequestId: String,
 ): Boolean {
-    val extracted = extractRequestNode(collections, requestId) ?: return false
+    if (requestIds.isEmpty() || targetRequestId in requestIds) return false
+    val extracted = mutableListOf<CollectionNode>()
+    for (id in requestIds) {
+        val node = extractRequestNode(collections, id) ?: return false
+        extracted.add(node)
+    }
     val target = findRequestParentAndIndex(collections, targetRequestId) ?: return false
-    val insertIndex = target.second.coerceIn(0, target.first.size)
-    target.first.add(insertIndex, extracted)
+    val insertIndex = (target.second + 1).coerceIn(0, target.first.size)
+    target.first.addAll(insertIndex, extracted)
     return true
 }
 
@@ -2166,12 +2473,21 @@ fun moveRequestAfterRequest(
     collections: MutableList<CollectionNode>,
     requestId: String,
     targetRequestId: String,
+): Boolean = moveRequestsAfterRequest(collections, listOf(requestId), targetRequestId)
+
+fun moveRequestsToCollection(
+    collections: MutableList<CollectionNode>,
+    requestIds: List<String>,
+    targetCollectionId: String,
 ): Boolean {
-    val extracted = extractRequestNode(collections, requestId) ?: return false
-    val target = findRequestParentAndIndex(collections, targetRequestId) ?: return false
-    // After extraction the target index may shift by 1 if the source was before the target in the same list
-    val insertIndex = (target.second + 1).coerceIn(0, target.first.size)
-    target.first.add(insertIndex, extracted)
+    if (requestIds.isEmpty()) return false
+    val targetCollection = findCollectionById(collections, targetCollectionId) ?: return false
+    val extracted = mutableListOf<CollectionNode>()
+    for (id in requestIds) {
+        val node = extractRequestNode(collections, id) ?: return false
+        extracted.add(node)
+    }
+    targetCollection.children.addAll(extracted)
     return true
 }
 
@@ -2179,12 +2495,7 @@ fun moveRequestToCollection(
     collections: MutableList<CollectionNode>,
     requestId: String,
     targetCollectionId: String,
-): Boolean {
-    val extracted = extractRequestNode(collections, requestId) ?: return false
-    val targetCollection = findCollectionById(collections, targetCollectionId) ?: return false
-    targetCollection.children.add(extracted)
-    return true
-}
+): Boolean = moveRequestsToCollection(collections, listOf(requestId), targetCollectionId)
 
 private fun extractRequestNode(nodes: MutableList<CollectionNode>, requestId: String): CollectionNode? {
     val index = nodes.indexOfFirst { !it.isFolder && it.id == requestId }
@@ -2294,20 +2605,59 @@ fun moveCollectionAfterCollection(
 
 // ── Folder drag-to-reorder helpers (roots + nested folders) ─────────────────
 
+fun isValidFolderGroupDropTarget(
+    collections: List<CollectionNode>,
+    movingFolderIds: List<String>,
+    targetFolderId: String,
+): Boolean {
+    if (targetFolderId in movingFolderIds) return false
+    for (id in movingFolderIds) {
+        val node = findCollectionById(collections, id) ?: return false
+        if (!node.isFolder) return false
+        if (containsFolderId(node, targetFolderId)) return false
+    }
+    return true
+}
+
+fun moveFoldersBeforeFolder(
+    collections: MutableList<CollectionNode>,
+    folderIds: List<String>,
+    targetFolderId: String,
+): Boolean {
+    if (folderIds.isEmpty() || targetFolderId in folderIds) return false
+    if (!isValidFolderGroupDropTarget(collections, folderIds, targetFolderId)) return false
+    val extracted = mutableListOf<CollectionNode>()
+    for (id in folderIds) {
+        val node = extractFolderNode(collections, id) ?: return false
+        extracted.add(node)
+    }
+    val target = findFolderParentAndIndex(collections, targetFolderId) ?: return false
+    val insertIndex = target.second.coerceIn(0, target.first.size)
+    target.first.addAll(insertIndex, extracted)
+    return true
+}
+
 fun moveFolderBeforeFolder(
     collections: MutableList<CollectionNode>,
     folderId: String,
     targetFolderId: String,
-): Boolean {
-    if (folderId == targetFolderId) return false
-    val sourceNode = findCollectionById(collections, folderId) ?: return false
-    if (!sourceNode.isFolder) return false
-    if (containsFolderId(sourceNode, targetFolderId)) return false
+): Boolean = moveFoldersBeforeFolder(collections, listOf(folderId), targetFolderId)
 
-    val extracted = extractFolderNode(collections, folderId) ?: return false
+fun moveFoldersAfterFolder(
+    collections: MutableList<CollectionNode>,
+    folderIds: List<String>,
+    targetFolderId: String,
+): Boolean {
+    if (folderIds.isEmpty() || targetFolderId in folderIds) return false
+    if (!isValidFolderGroupDropTarget(collections, folderIds, targetFolderId)) return false
+    val extracted = mutableListOf<CollectionNode>()
+    for (id in folderIds) {
+        val node = extractFolderNode(collections, id) ?: return false
+        extracted.add(node)
+    }
     val target = findFolderParentAndIndex(collections, targetFolderId) ?: return false
-    val insertIndex = target.second.coerceIn(0, target.first.size)
-    target.first.add(insertIndex, extracted)
+    val insertIndex = (target.second + 1).coerceIn(0, target.first.size)
+    target.first.addAll(insertIndex, extracted)
     return true
 }
 
@@ -2315,18 +2665,7 @@ fun moveFolderAfterFolder(
     collections: MutableList<CollectionNode>,
     folderId: String,
     targetFolderId: String,
-): Boolean {
-    if (folderId == targetFolderId) return false
-    val sourceNode = findCollectionById(collections, folderId) ?: return false
-    if (!sourceNode.isFolder) return false
-    if (containsFolderId(sourceNode, targetFolderId)) return false
-
-    val extracted = extractFolderNode(collections, folderId) ?: return false
-    val target = findFolderParentAndIndex(collections, targetFolderId) ?: return false
-    val insertIndex = (target.second + 1).coerceIn(0, target.first.size)
-    target.first.add(insertIndex, extracted)
-    return true
-}
+): Boolean = moveFoldersAfterFolder(collections, listOf(folderId), targetFolderId)
 
 private fun extractFolderNode(nodes: MutableList<CollectionNode>, folderId: String): CollectionNode? {
     val index = nodes.indexOfFirst { it.isFolder && it.id == folderId }
