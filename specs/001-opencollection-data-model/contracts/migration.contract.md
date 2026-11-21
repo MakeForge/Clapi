@@ -5,16 +5,16 @@
 **Module**: `core-storage`
 
 ## 1. Overview
-Defines the migration engine interface for upgrading legacy Clapi/ReqLab collections and workspaces (`type: "clapiCollection"`, `type: "clapiWorkspace"`) to the canonical OpenCollection format.
+Defines the migration engine interface for upgrading legacy Clapi/Clapi collections and workspaces (`type: "clapiCollection"`, `type: "clapiWorkspace"`) to the canonical OpenCollection format.
 
 ---
 
 ## 2. Interface Definitions
 
 ```kotlin
-package io.github.crustack.core.storage.migration
+package io.github.crustack.clapi.core.storage.migration
 
-import io.github.crustack.core.model.OpenCollectionDocument
+import io.github.crustack.clapi.core.model.OpenCollectionDocument
 
 sealed interface MigrationTarget {
     data class WorkspaceStorage(val storageKey: String = "clapi.workspace") : MigrationTarget

@@ -178,7 +178,7 @@ Map Clapi's authentication types to OpenCollection v1.0.0 `Auth` union:
 - Pre-request script -> OpenCollection `Script(type = "before-request", code = ...)` in `runtime.scripts` (for request) or `request.scripts` (for collection/folder).
 - Test/Post-request script -> OpenCollection `Script(type = "after-response", code = ...)` or `Script(type = "tests", code = ...)`.
 - Declarative assertions (if defined) -> OpenCollection `Assertion` objects in `runtime.assertions`.
-- The existing JavaScript execution engine (`ClapiScriptEngine`), `reqlab.*` namespace, and `clapi.*` scripting API are kept 100% unchanged (FR-020).
+- The existing JavaScript execution engine (`ClapiScriptEngine`), `clapi.*` namespace, and `clapi.*` scripting API are kept 100% unchanged (FR-020).
 
 ### Rationale
 - Maps cleanly to OpenCollection v1.0.0 lifecycle script types (`before-request`, `after-response`, `tests`).
