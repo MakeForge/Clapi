@@ -37,6 +37,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.makeforge.clapi.core.network.azure.AzureKeyVaultConfig
+import io.github.makeforge.clapi.core.network.azure.KtorAzureKeyVaultClient
 import io.github.makeforge.clapi.core.network.keepassxc.createKeePassXcClient
 import io.github.makeforge.clapi.core.network.keeper.createKeeperClient
 import io.github.makeforge.clapi.ui.shared.components.VariableAwareTextField
@@ -87,6 +89,80 @@ internal fun EnvAzureSecretRow(
     }
 
     var filtersExpanded by remember { mutableStateOf(false) }
+    var matchState by remember { mutableStateOf("—") }
+    var refreshTrigger by remember { mutableStateOf(0) }
+
+    val azureTenantId = state?.settings?.azureTenantId.orEmpty()
+    val azureClientId = state?.settings?.azureClientId.orEmpty()
+    val azureClientSecret = state?.settings?.azureClientSecret.orEmpty()
+    val azureVaultName = state?.settings?.azureVaultName.orEmpty()
+    val azureAuthorityHost = state?.settings?.azureAuthorityHost.orEmpty()
+    val azureApiVersion = state?.settings?.azureApiVersion.orEmpty()
+
+    LaunchedEffect(
+        secret.path,
+        secret.url,
+        secret.targetField,
+        secret.customFilters.toMap(),
+        refreshTrigger,
+        azureTenantId,
+        azureClientId,
+        azureClientSecret,
+        azureVaultName,
+    ) {
+        val effectiveVault = secret.url.ifBlank { azureVaultName }.trim()
+        if (effectiveVault.isBlank() || azureTenantId.isBlank() || azureClientId.isBlank() || azureClientSecret.isBlank()) {
+            matchState = "Not Connected"
+            return@LaunchedEffect
+        }
+        val trimmedSecretName = secret.path.trim()
+        if (trimmedSecretName.isBlank()) {
+            matchState = "—"
+            return@LaunchedEffect
+        }
+        matchState = "Checking..."
+        delay(350)
+        try {
+            val config = AzureKeyVaultConfig(
+                vaultName = effectiveVault,
+                secretName = trimmedSecretName,
+                tenantId = azureTenantId,
+                clientId = azureClientId,
+                clientSecret = azureClientSecret,
+                authorityHost = azureAuthorityHost.ifBlank { "https://login.microsoftonline.com" },
+                apiVersion = azureApiVersion.ifBlank { "7.4" },
+            )
+            val secretData = KtorAzureKeyVaultClient.Shared.fetchSecret(config)
+            val resolvedFilters = secret.customFilters.mapValues { (_, v) ->
+                var text = v
+                workingVars.forEach { kv ->
+                    if (kv.key.isNotBlank()) {
+                        text = text.replace("{{${kv.key.trim()}}}", kv.value)
+                    }
+                }
+                text
+            }
+            val filterMismatch = resolvedFilters.any { (k, v) -> secretData[k] != v }
+            if (filterMismatch) {
+                matchState = "✖ 0 found"
+            } else {
+                val target = secret.targetField.trim()
+                if (target.isNotBlank()) {
+                    val hasField = secretData.containsKey(target) || secretData.containsKey(target.lowercase())
+                    matchState = if (hasField) "✔ 1 match" else "✖ Field not found"
+                } else {
+                    matchState = "✔ 1 match"
+                }
+            }
+        } catch (e: Exception) {
+            val msg = e.message.orEmpty()
+            matchState = if (msg.contains("SecretNotFound", ignoreCase = true) || msg.contains("404") || msg.contains("not found", ignoreCase = true)) {
+                "✖ 0 found"
+            } else {
+                "Error"
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -139,7 +215,7 @@ internal fun EnvAzureSecretRow(
                 onValueChange = { secret.url = it },
                 placeholder = "vault override (optional)",
                 tag = "env-secret-row-$index-vault",
-                modifier = Modifier.weight(1.1f),
+                modifier = Modifier.weight(1.0f),
                 state = state,
                 extraVariables = extraVars,
                 excludeVariables = excludeSecretVars,
@@ -150,10 +226,18 @@ internal fun EnvAzureSecretRow(
                 onValueChange = { secret.targetField = it },
                 placeholder = "target key (optional)",
                 tag = "env-secret-row-$index-target-field",
-                modifier = Modifier.weight(0.9f),
+                modifier = Modifier.weight(0.8f),
                 state = state,
                 extraVariables = extraVars,
                 excludeVariables = excludeSecretVars,
+            )
+
+            EnvSecretStatusCell(
+                status = matchState,
+                modifier = Modifier.weight(0.9f),
+                statusTag = "env-secret-row-$index-match-count",
+                refreshTag = "env-secret-row-$index-refresh-status",
+                onRefresh = { refreshTrigger++ },
             )
 
             Box(
@@ -198,7 +282,7 @@ internal fun EnvAzureSecretRow(
                 onValueChange = { secret.description = it },
                 placeholder = "Description (optional)",
                 tag = "env-secret-row-$index-desc",
-                modifier = Modifier.weight(1.0f),
+                modifier = Modifier.weight(0.9f),
                 state = state,
                 extraVariables = extraVars,
                 excludeVariables = excludeSecretVars,

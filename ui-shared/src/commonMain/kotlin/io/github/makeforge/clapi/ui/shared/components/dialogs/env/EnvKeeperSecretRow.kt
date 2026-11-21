@@ -38,6 +38,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.makeforge.clapi.core.network.keepassxc.createKeePassXcClient
+import io.github.makeforge.clapi.core.network.keeper.KeeperRecordFilter
 import io.github.makeforge.clapi.core.network.keeper.createKeeperClient
 import io.github.makeforge.clapi.ui.shared.components.VariableAwareTextField
 import io.github.makeforge.clapi.ui.shared.components.handPointerHover
@@ -91,9 +92,13 @@ internal fun EnvKeeperSecretRow(
     var refreshTrigger by remember { mutableStateOf(0) }
 
     val configJson = state?.settings?.keeperConfigJson.orEmpty()
-    LaunchedEffect(secret.path, secret.customFilters.toMap(), refreshTrigger, configJson) {
+    LaunchedEffect(secret.path, secret.targetField, secret.customFilters.toMap(), refreshTrigger, configJson) {
+        if (configJson.isBlank()) {
+            matchState = "Not Connected"
+            return@LaunchedEffect
+        }
         val trimmedTitle = secret.path.trim()
-        if (trimmedTitle.isBlank() || configJson.isBlank()) {
+        if (trimmedTitle.isBlank()) {
             matchState = "—"
             return@LaunchedEffect
         }
@@ -110,11 +115,20 @@ internal fun EnvKeeperSecretRow(
                 }
                 text
             }
-            val count = client.countMatchingRecords(trimmedTitle, resolvedFilters)
-            matchState = when {
-                count == 0 -> "✖ 0 found"
-                count == 1 -> "✔ 1 match"
-                else -> "✔ $count matches"
+            val records = client.getRecords()
+            val matched = KeeperRecordFilter.filterRecords(records, trimmedTitle, resolvedFilters)
+            if (matched.isEmpty()) {
+                matchState = "✖ 0 found"
+            } else {
+                val target = secret.targetField.trim().ifBlank { "password" }
+                val withField = matched.filter {
+                    KeeperRecordFilter.extractTargetFieldValue(it, target) != null
+                }
+                matchState = when {
+                    withField.isEmpty() -> "✖ Field not found"
+                    withField.size == 1 -> "✔ 1 match"
+                    else -> "✔ ${withField.size} matches"
+                }
             }
         } catch (e: Exception) {
             matchState = "Error"
@@ -178,36 +192,13 @@ internal fun EnvKeeperSecretRow(
                 excludeVariables = excludeSecretVars,
             )
 
-            Row(
+            EnvSecretStatusCell(
+                status = matchState,
                 modifier = Modifier.weight(1.0f),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    text = matchState,
-                    fontSize = 11.sp,
-                    maxLines = 1,
-                    color = when {
-                        matchState.startsWith("✔") -> ClapiColors.Primary
-                        matchState.startsWith("✖") -> ClapiColors.Error
-                        matchState == "Checking..." -> ClapiColors.OnSurfaceDim
-                        else -> ClapiColors.OnSurfaceDim
-                    },
-                    modifier = Modifier.testTag("env-secret-row-$index-match-count"),
-                )
-
-                IconButton(
-                    onClick = { refreshTrigger++ },
-                    modifier = Modifier.size(20.dp).testTag("env-secret-row-$index-refresh-status"),
-                ) {
-                    Icon(
-                        painter = painterResource(Res.drawable.ic_refresh),
-                        contentDescription = "Refresh status",
-                        tint = ClapiColors.OnSurfaceDim,
-                        modifier = Modifier.size(12.dp),
-                    )
-                }
-            }
+                statusTag = "env-secret-row-$index-match-count",
+                refreshTag = "env-secret-row-$index-refresh-status",
+                onRefresh = { refreshTrigger++ },
+            )
 
             Box(
                 modifier = Modifier.weight(0.9f),

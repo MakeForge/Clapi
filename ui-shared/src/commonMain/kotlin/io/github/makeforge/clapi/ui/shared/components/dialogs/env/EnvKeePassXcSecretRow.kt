@@ -90,7 +90,7 @@ internal fun EnvKeePassXcSecretRow(
     var matchState by remember { mutableStateOf("—") }
     var refreshTrigger by remember { mutableStateOf(0) }
 
-    LaunchedEffect(secret.url, secret.customFilters.toMap(), refreshTrigger) {
+    LaunchedEffect(secret.url, secret.targetField, secret.customFilters.toMap(), refreshTrigger) {
         val trimmedUrl = secret.url.trim()
         if (trimmedUrl.isBlank()) {
             matchState = "—"
@@ -183,36 +183,13 @@ internal fun EnvKeePassXcSecretRow(
                 excludeVariables = excludeSecretVars,
             )
 
-            Row(
+            EnvSecretStatusCell(
+                status = matchState,
                 modifier = Modifier.weight(1.0f),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    text = matchState,
-                    fontSize = 11.sp,
-                    maxLines = 1,
-                    color = when {
-                        matchState.startsWith("✔") -> ClapiColors.Primary
-                        matchState.startsWith("✖") -> ClapiColors.Error
-                        matchState == "Checking..." -> ClapiColors.OnSurfaceDim
-                        else -> ClapiColors.OnSurfaceDim
-                    },
-                    modifier = Modifier.testTag("env-secret-row-$index-match-count"),
-                )
-
-                IconButton(
-                    onClick = { refreshTrigger++ },
-                    modifier = Modifier.size(20.dp).testTag("env-secret-row-$index-refresh-status"),
-                ) {
-                    Icon(
-                        painter = painterResource(Res.drawable.ic_refresh),
-                        contentDescription = "Refresh status",
-                        tint = ClapiColors.OnSurfaceDim,
-                        modifier = Modifier.size(12.dp),
-                    )
-                }
-            }
+                statusTag = "env-secret-row-$index-match-count",
+                refreshTag = "env-secret-row-$index-refresh-status",
+                onRefresh = { refreshTrigger++ },
+            )
 
             Box(
                 modifier = Modifier.weight(0.9f),
