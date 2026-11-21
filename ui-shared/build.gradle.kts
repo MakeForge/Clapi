@@ -16,7 +16,7 @@ val generateI18nBundles by tasks.registering {
     outputs.dir(outputDir)
 
     doLast {
-        val outFile = outputDir.get().file("io/github/crustack/ui/shared/i18n/GeneratedTranslationBundles.kt").asFile
+        val outFile = outputDir.get().file("io/github/makeforge/clapi/ui/shared/i18n/GeneratedTranslationBundles.kt").asFile
         outFile.parentFile.mkdirs()
 
         fun encodeKotlinString(raw: String): String {
@@ -43,7 +43,7 @@ val generateI18nBundles by tasks.registering {
 
         outFile.writeText(
             """
-            package io.github.crustack.ui.shared.i18n
+            package io.github.makeforge.clapi.ui.shared.i18n
 
             internal object GeneratedTranslationBundles {
                 private val bundles: Map<String, String> = mapOf(
@@ -68,12 +68,12 @@ val generateBuildInfo by tasks.registering {
     outputs.dir(outputDir)
 
     doLast {
-        val outFile = outputDir.get().file("io/github/crustack/ui/shared/build/GeneratedBuildInfo.kt").asFile
+        val outFile = outputDir.get().file("io/github/makeforge/clapi/ui/shared/build/GeneratedBuildInfo.kt").asFile
         outFile.parentFile.mkdirs()
 
         outFile.writeText(
             """
-            package io.github.crustack.ui.shared.build
+            package io.github.makeforge.clapi.ui.shared.build
 
             internal object GeneratedBuildInfo {
                 const val APP_VERSION: String = "$appVersion"
@@ -84,11 +84,14 @@ val generateBuildInfo by tasks.registering {
 }
 
 kotlin {
-    jvm("desktop")
+    jvm("desktop") {
+        compilerOptions {
+            freeCompilerArgs.add("-Xskip-metadata-version-check")
+        }
+    }
 
-    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
-    wasmJs {
-        browser()
+    compilerOptions {
+        freeCompilerArgs.add("-Xskip-metadata-version-check")
     }
 
     sourceSets {
@@ -99,21 +102,24 @@ kotlin {
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
-            implementation(compose.materialIconsExtended)
             implementation(compose.components.resources)
+            implementation(compose.components.uiToolingPreview)
+
             api(project(":core-model"))
             api(project(":editor-core"))
             api(project(":editor-ui"))
             api(project(":core-network"))
-            api(project(":feature-requests"))
+            api(project(":core-storage"))
+            api(project(":mcp-server"))
             implementation(project(":core-scripting"))
             implementation(libs.coroutines.core)
             implementation(libs.serialization.json)
+            implementation(libs.ksafe)
             implementation(libs.kotlinx.datetime)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
-            implementation(libs.ktor.client.logging)
+            implementation(libs.kotlin.logging)
             }
         }
         commonTest.dependencies {
@@ -122,13 +128,14 @@ kotlin {
         }
         val desktopMain by getting {
             dependencies {
+                implementation(libs.ksafe)
                 implementation(libs.ktor.client.cio)
-                implementation(libs.coroutines.swing)
-            }
-        }
-        val wasmJsMain by getting {
-            dependencies {
-                implementation(libs.ktor.client.js)
+                implementation(libs.slf4j.api)
+                implementation(libs.filekit.dialogs)
+                implementation(libs.nucleus.application)
+                implementation(libs.nucleus.decorated.window.material3)
+
+                implementation(compose.desktop.currentOs)
             }
         }
     }
@@ -139,4 +146,13 @@ tasks.matching {
 }.configureEach {
     dependsOn(generateI18nBundles)
     dependsOn(generateBuildInfo)
+}
+
+tasks.withType<Test>().configureEach {
+    useJUnit()
+    systemProperty("java.util.prefs.userRoot", layout.buildDirectory.dir("tmp/prefs").get().asFile.absolutePath)
+}
+
+compose.resources {
+    packageOfResClass = "io.github.makeforge.clapi.ui.shared.generated.resources"
 }

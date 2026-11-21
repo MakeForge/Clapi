@@ -1,38 +1,25 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.kotlinSerialization)
-    alias(libs.plugins.androidLibrary)
 }
 
 kotlin {
-    androidTarget()
     jvm("desktop")
-    iosX64()
-    iosArm64()
-    iosSimulatorArm64()
-    js(IR) {
-        browser()
-        binaries.library()
-    }
-
-    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
-    wasmJs {
-        browser()
-    }
 
     sourceSets {
         commonMain.dependencies {
             implementation(project(":core-model"))
+            api(project(":core-scripting"))
             implementation(libs.coroutines.core)
             implementation(libs.serialization.json)
             implementation(libs.kotlinx.datetime)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
-            implementation(libs.ktor.client.logging)
             implementation(libs.ktor.client.websockets)
             implementation(libs.ktor.client.auth)
             implementation(libs.koin.core)
+            implementation(libs.kotlin.logging)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -40,31 +27,27 @@ kotlin {
             implementation(libs.ktor.client.mock)
         }
         val desktopMain by getting {
-            dependencies { implementation(libs.ktor.client.cio) }
+            dependencies {
+                implementation(libs.slf4j.api)
+                implementation(libs.ktor.client.cio)
+                implementation(libs.grpc.okhttp)
+                implementation(libs.grpc.protobuf)
+                implementation(libs.grpc.stub)
+                implementation(libs.protobuf.java)
+                implementation(libs.protobuf.java.util)
+                implementation(libs.protoc.jar)
+                implementation(libs.coroutines.guava)
+                implementation(libs.guava)
+                implementation(libs.keepassxc.proxy.access)
+                implementation(libs.org.json)
+                implementation(libs.keeper.secrets.manager.core)
+                implementation(libs.amqp.client)
+            }
         }
-        val androidMain by getting {
-            dependencies { implementation(libs.ktor.client.okhttp) }
+        val desktopTest by getting {
+            dependencies {
+                implementation(libs.grpc.netty.shaded)
+            }
         }
-        val iosMain by creating {
-            dependsOn(commonMain.get())
-            dependencies { implementation(libs.ktor.client.darwin) }
-        }
-        val iosX64Main by getting { dependsOn(iosMain) }
-        val iosArm64Main by getting { dependsOn(iosMain) }
-        val iosSimulatorArm64Main by getting { dependsOn(iosMain) }
-        val jsMain by getting {
-            dependencies { implementation(libs.ktor.client.js) }
-        }
-        val wasmJsMain by getting {
-            dependencies { implementation(libs.ktor.client.js) }
-        }
-    }
-}
-
-android {
-    namespace = "io.github.crustack.core.network"
-    compileSdk = libs.versions.android.compileSdk.get().toInt()
-    defaultConfig {
-        minSdk = libs.versions.android.minSdk.get().toInt()
     }
 }

@@ -1,19 +1,76 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform) apply false
     alias(libs.plugins.kotlinSerialization) apply false
-    alias(libs.plugins.androidApplication) apply false
-    alias(libs.plugins.androidLibrary) apply false
     alias(libs.plugins.composeMultiplatform) apply false
     alias(libs.plugins.composeCompiler) apply false
+    alias(libs.plugins.nucleus) apply false
+    alias(libs.plugins.cyclonedx.bom)
+}
+
+tasks.named<org.cyclonedx.gradle.CyclonedxAggregateTask>("cyclonedxBom") {
+    schemaVersion = org.cyclonedx.Version.VERSION_16
+    projectType = org.cyclonedx.model.Component.Type.APPLICATION
+    jsonOutput = layout.buildDirectory.file("reports/sbom/bom.json")
+}
+
+allprojects {
+    tasks.withType<org.cyclonedx.gradle.CyclonedxDirectTask>().configureEach {
+        if (project.name in listOf("qa-tests", "sample-server")) {
+            enabled = false
+        } else {
+            schemaVersion = org.cyclonedx.Version.VERSION_16
+            projectType = org.cyclonedx.model.Component.Type.APPLICATION
+            includeConfigs = listOf(
+                "runtimeClasspath",
+                "desktopRuntimeClasspath",
+                "jvmRuntimeClasspath"
+            )
+            skipConfigs = listOf(
+                "(?i).*test.*"
+            )
+        }
+    }
 }
 
 // ─── Centralized version ─────────────────────────────────────────────────────
 // Change the version only in gradle.properties: appVersion=x.y.z
 val appVersion: String by project
+val guavaVersion = libs.versions.guava.get()
+val jsonVersion = libs.versions.json.get()
 
 allprojects {
-    group = "io.github.crustack"
+    group = "io.github.makeforge"
     version = appVersion
+
+    configurations.configureEach {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "com.google.guava" && requested.name == "guava") {
+                useVersion(guavaVersion)
+                because("Fix CVE-2026-102554")
+            }
+            if (requested.group == "org.json" && requested.name == "json") {
+                useVersion(jsonVersion)
+                because("Fix CVE-2026-59171")
+            }
+        }
+    }
+
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
+        compilerOptions {
+            freeCompilerArgs.add("-Xskip-metadata-version-check")
+        }
+    }
+
+    plugins.withType<org.jetbrains.kotlin.gradle.plugin.KotlinBasePluginWrapper> {
+        extensions.configure<org.jetbrains.kotlin.gradle.dsl.KotlinBaseExtension> {
+            jvmToolchain(25)
+        }
+    }
+
+    tasks.withType<Test>().configureEach {
+        systemProperty("clapi.dir", "${project.layout.buildDirectory.get().asFile.absolutePath}/test-clapi-storage")
+        systemProperty("skiko.data.path", "/tmp/skiko")
+    }
 }
 
 // Force a single instance of every CodeMirror sub-package so that

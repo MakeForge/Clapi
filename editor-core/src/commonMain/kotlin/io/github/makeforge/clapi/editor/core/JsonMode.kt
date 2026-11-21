@@ -1,0 +1,184 @@
+package io.github.makeforge.clapi.editor.core
+
+import io.github.makeforge.clapi.core.model.opencollection.VariableType
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+
+private const val JSON_UNWRAP_MAX_DEPTH = 8
+
+object JsonMode : LanguageModeProvider {
+    override val mode = LanguageMode.JSON
+    override val displayName = "JSON"
+    override val fileExtensions = listOf("json", "jsonc", "geojson")
+    override val mimeTypes = listOf("application/json", "text/json")
+    override val foldingStyle = FoldingStyle.BRACE
+
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    private val prettyJson = Json { prettyPrint = true; prettyPrintIndent = "  " }
+
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    override fun format(text: String): String = try {
+        val element = prettyJson.decodeFromString(JsonElement.serializer(), text)
+        prettyJson.encodeToString(JsonElement.serializer(), unwrapEmbeddedJson(element))
+    } catch (_: Throwable) { text }
+
+    /**
+     * Recursively replace string values that are JSON objects/arrays with the parsed value
+     * so Pretty/Format match viewers that expand nested JSON.
+     */
+    internal fun unwrapEmbeddedJson(element: JsonElement, depth: Int = 0): JsonElement {
+        if (depth >= JSON_UNWRAP_MAX_DEPTH) return element
+        return when (element) {
+            is JsonObject -> JsonObject(element.mapValues { (_, value) -> unwrapEmbeddedJson(value, depth + 1) })
+            is JsonArray -> JsonArray(element.map { unwrapEmbeddedJson(it, depth + 1) })
+            is JsonPrimitive -> unwrapJsonString(element, depth)
+        }
+    }
+
+    private fun unwrapJsonString(primitive: JsonPrimitive, depth: Int): JsonElement {
+        if (!primitive.isString) return primitive
+        val trimmed = primitive.content.trim()
+        if (trimmed.isEmpty() || (trimmed[0] != '{' && trimmed[0] != '[')) return primitive
+        val parsed = runCatching { prettyJson.parseToJsonElement(trimmed) }.getOrNull() ?: return primitive
+        return when (parsed) {
+            is JsonObject, is JsonArray -> unwrapEmbeddedJson(parsed, depth + 1)
+            else -> primitive
+        }
+    }
+
+    override fun tokenizeLine(line: String, lineNumber: Int, state: Any?): Pair<List<Token>, Any?> {
+        val tokens = mutableListOf<Token>()
+        var i = 0
+        val inStringFromPrev = (state as? Boolean) ?: false
+        var inString = inStringFromPrev
+
+        if (inString) {
+            val endQuote = findStringEnd(line, 0)
+            tokens.add(Token(0, endQuote, TokenType.STRING))
+            i = endQuote
+            if (endQuote < line.length) inString = false
+        }
+
+        while (i < line.length) {
+            val c = line[i]
+            when {
+                c.isWhitespace() -> i++
+                c == '"' -> {
+                    val end = findStringEnd(line, i + 1)
+                    tokens.add(Token(i, end, TokenType.STRING))
+                    i = end
+                    inString = end >= line.length && line.lastOrNull() != '"'
+                }
+                c == '{' && i + 1 < line.length && line[i + 1] == '{' -> {
+                    val closeIdx = JsonTemplateMasker.findTemplateTokenEnd(line, i + 2)
+                    if (closeIdx > i + 2) {
+                        tokens.add(Token(i, closeIdx + 2, TokenType.VALUE))
+                        i = closeIdx + 2
+                    } else {
+                        tokens.add(Token(i, i + 1, TokenType.PUNCTUATION)); i++
+                    }
+                }
+                c == ':' || c == ',' -> { tokens.add(Token(i, i + 1, TokenType.PUNCTUATION)); i++ }
+                c == '{' || c == '}' || c == '[' || c == ']' -> { tokens.add(Token(i, i + 1, TokenType.PUNCTUATION)); i++ }
+                c == 't' || c == 'f' -> {
+                    val word = if (c == 't') "true" else "false"
+                    if (line.startsWith(word, i)) { tokens.add(Token(i, i + word.length, TokenType.KEYWORD)); i += word.length }
+                    else { tokens.add(Token(i, i + 1, TokenType.ERROR)); i++ }
+                }
+                c == 'n' -> {
+                    if (line.startsWith("null", i)) { tokens.add(Token(i, i + 4, TokenType.KEYWORD)); i += 4 }
+                    else { tokens.add(Token(i, i + 1, TokenType.ERROR)); i++ }
+                }
+                c == '-' || c.isDigit() -> { val end = scanNumber(line, i); tokens.add(Token(i, end, TokenType.NUMBER)); i = end }
+                else -> { tokens.add(Token(i, i + 1, TokenType.ERROR)); i++ }
+            }
+        }
+        return tokens to inString
+    }
+
+    private fun findStringEnd(line: String, start: Int): Int {
+        var i = start
+        while (i < line.length) { when (line[i]) { '\\' -> i += 2; '"' -> return i + 1; else -> i++ } }
+        return line.length
+    }
+
+    private fun scanNumber(line: String, start: Int): Int {
+        var i = start
+        if (i < line.length && line[i] == '-') i++
+        while (i < line.length && line[i].isDigit()) i++
+        if (i < line.length && line[i] == '.') { i++; while (i < line.length && line[i].isDigit()) i++ }
+        if (i < line.length && (line[i] == 'e' || line[i] == 'E')) {
+            i++; if (i < line.length && (line[i] == '+' || line[i] == '-')) i++
+            while (i < line.length && line[i].isDigit()) i++
+        }
+        return i
+    }
+
+    override fun foldingRegions(document: EditorDocument): List<FoldRegion> {
+        val regions = mutableListOf<FoldRegion>()
+        val stack = ArrayDeque<Int>()
+        val text = document.text
+        var line = 1; var inStr = false; var escaped = false
+        var i = 0
+        while (i < text.length) {
+            val ch = text[i]
+            if (escaped) { escaped = false; i++; continue }
+            if (ch == '\\' && inStr) { escaped = true; i++; continue }
+            if (ch == '"') { inStr = !inStr; i++; continue }
+            if (inStr) { if (ch == '\n') line++; i++; continue }
+            when {
+                ch == '{' && i + 1 < text.length && text[i + 1] == '{' -> {
+                    val closeIdx = JsonTemplateMasker.findTemplateTokenEnd(text, i + 2)
+                    if (closeIdx > i + 2) {
+                        i = closeIdx + 2
+                    } else {
+                        stack.addLast(line); i++
+                    }
+                }
+                ch == '{' || ch == '[' -> { stack.addLast(line); i++ }
+                ch == '}' || ch == ']' -> { if (stack.isNotEmpty()) { val s = stack.removeLast(); if (line > s) regions.add(FoldRegion(s, line)) }; i++ }
+                ch == '\n' -> { line++; i++ }
+                else -> i++
+            }
+        }
+        return regions.sortedBy { it.startLine }
+    }
+
+    override fun validate(text: String): List<InlineEditorError> =
+        validate(text, emptyMap())
+
+    override fun validate(text: String, variableTypes: Map<String, VariableType>): List<InlineEditorError> {
+        if (text.isBlank()) return emptyList()
+        return validateFull(text, variableTypes)
+    }
+
+    private fun validateFull(text: String, variableTypes: Map<String, VariableType>): List<InlineEditorError> {
+        val masked = JsonTemplateMasker.maskAndCheckVariables(text, allowJson5 = false, variableTypes = variableTypes)
+        val parseErrors = try {
+            Json.parseToJsonElement(masked.maskedText)
+            emptyList()
+        } catch (e: Throwable) {
+            val offset = extractOffset(e.message.orEmpty())?.coerceIn(0, text.length) ?: 0
+            val pos = offsetToLineCol(text, offset)
+            listOf(InlineEditorError(pos.first, pos.second, e.message ?: "Invalid JSON"))
+        }
+        return parseErrors + masked.templateDiagnostics
+    }
+
+    private fun extractOffset(message: String): Int? {
+        val idx = message.indexOf("offset ")
+        if (idx == -1) return null
+        val start = idx + 7
+        var end = start; while (end < message.length && message[end].isDigit()) end++
+        return message.substring(start, end).toIntOrNull()
+    }
+
+    private fun offsetToLineCol(text: String, offset: Int): Pair<Int, Int> {
+        var line = 1; var col = 1
+        for (i in 0 until minOf(offset, text.length)) { if (text[i] == '\n') { line++; col = 1 } else col++ }
+        return line to col
+    }
+}

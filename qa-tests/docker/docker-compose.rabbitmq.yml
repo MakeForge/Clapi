@@ -1,0 +1,15 @@
+services:
+  rabbitmq:
+    image: rabbitmq:4-alpine
+    container_name: local-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: clapi
+      RABBITMQ_DEFAULT_PASS: clapi-secret
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - "5672:5672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20

@@ -1,0 +1,196 @@
+package io.github.makeforge.clapi.core.network
+
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlinx.datetime.Clock
+
+class VariableResolverTest {
+
+    @Test
+    fun resolves_variables_from_first_matching_layer() {
+        val value = "{{baseUrl}}/v1/users/{{userId}}"
+        val resolved = VariableResolver.resolve(
+            value = value,
+            variableLayers = listOf(
+                mapOf("baseUrl" to "https://prod.api"),
+                mapOf("baseUrl" to "https://staging.api", "userId" to "42")
+            )
+        )
+
+        assertEquals("https://prod.api/v1/users/42", resolved)
+    }
+
+    @Test
+    fun resolves_dynamic_timestamp_and_iso_timestamp_tokens() {
+        val value = "ts={{\$timestamp}};iso={{\$isoTimestamp}}"
+        val resolved = VariableResolver.resolve(value = value, variableLayers = emptyList())
+
+        val parts = resolved.split(";")
+        val ts = parts[0].substringAfter("ts=")
+        val iso = parts[1].substringAfter("iso=")
+
+        assertTrue(ts.toLongOrNull() != null)
+        assertTrue(iso.contains("T"))
+    }
+
+    @Test
+    fun resolves_timestamp_ms_from_now_and_before_now() {
+        val nowBefore = Clock.System.now().toEpochMilliseconds()
+        val value = "after={{\$timestampMsFromNow(100)}};before={{\$timestampMsBeforeNow(100)}}"
+        val resolved = VariableResolver.resolve(value = value, variableLayers = emptyList())
+        val nowAfter = Clock.System.now().toEpochMilliseconds()
+
+        val parts = resolved.split(";")
+        val afterTs = parts[0].substringAfter("after=").toLong()
+        val beforeTs = parts[1].substringAfter("before=").toLong()
+
+        assertTrue(afterTs >= nowBefore + 100)
+        assertTrue(afterTs <= nowAfter + 100)
+        assertTrue(beforeTs <= nowAfter - 100)
+        assertTrue(beforeTs >= nowBefore - 100)
+        assertTrue(afterTs > beforeTs)
+    }
+
+    @Test
+    fun resolves_iso_timestamp_ms_from_now_and_before_now() {
+        val value = "after={{\$isoTimestampFromNowMs(100)}};before={{\$isoTimestampBeforeNowMs(100)}}"
+        val resolved = VariableResolver.resolve(value = value, variableLayers = emptyList())
+
+        val parts = resolved.split(";")
+        val afterIso = parts[0].substringAfter("after=")
+        val beforeIso = parts[1].substringAfter("before=")
+
+        assertTrue(afterIso.contains("T"))
+        assertTrue(afterIso.endsWith("Z"))
+        assertTrue(beforeIso.contains("T"))
+        assertTrue(beforeIso.endsWith("Z"))
+
+        val afterInstant = kotlinx.datetime.Instant.parse(afterIso)
+        val beforeInstant = kotlinx.datetime.Instant.parse(beforeIso)
+        assertTrue(afterInstant.toEpochMilliseconds() > beforeInstant.toEpochMilliseconds())
+    }
+
+    @Test
+    fun resolves_new_dynamic_variables_without_dollar_prefix_and_case_insensitive() {
+        val resolved = VariableResolver.resolve(
+            value = "{{timestampMsFromNow(50)}}|{{isotimestampfromnowms(50)}}",
+            variableLayers = emptyList(),
+        )
+        val parts = resolved.split("|")
+        assertTrue(parts[0].toLongOrNull() != null)
+        assertTrue(parts[1].contains("T"))
+    }
+
+    @Test
+    fun resolves_dynamic_random_int_within_requested_range() {
+        val value = "{{ \$randomInt(10, 20) }}"
+        val resolved = VariableResolver.resolve(value = value, variableLayers = emptyList())
+        val number = resolved.toInt()
+
+        assertTrue(number in 10..20)
+    }
+
+    @Test
+    fun keeps_unresolved_tokens_when_variable_not_found() {
+        val value = "{{missingValue}}"
+        val resolved = VariableResolver.resolve(value = value, variableLayers = emptyList())
+
+        assertEquals("{{missingValue}}", resolved)
+    }
+
+    // ── Global variable layer tests (F2) ────────────────────────
+
+    @Test
+    fun environment_vars_override_global_vars() {
+        // Layer 0 = environment, Layer 1 = global
+        // First layer wins for same key
+        val resolved = VariableResolver.resolve(
+            value = "{{apiUrl}}",
+            variableLayers = listOf(
+                mapOf("apiUrl" to "https://env.api.com"),  // environment
+                mapOf("apiUrl" to "https://global.api.com"),  // global
+            )
+        )
+        assertEquals("https://env.api.com", resolved)
+    }
+
+    @Test
+    fun global_vars_used_when_not_in_environment() {
+        val resolved = VariableResolver.resolve(
+            value = "{{appName}}/{{apiVersion}}",
+            variableLayers = listOf(
+                mapOf("otherKey" to "envValue"),  // environment has no appName/apiVersion
+                mapOf("appName" to "Clapi", "apiVersion" to "v1"),  // global
+            )
+        )
+        assertEquals("Clapi/v1", resolved)
+    }
+
+    @Test
+    fun multiple_global_vars_in_single_url() {
+        val resolved = VariableResolver.resolve(
+            value = "{{baseUrl}}/{{apiVersion}}/{{resource}}",
+            variableLayers = listOf(
+                emptyMap(),  // empty environment
+                mapOf("baseUrl" to "https://api.example.com", "apiVersion" to "v2", "resource" to "users"),
+            )
+        )
+        assertEquals("https://api.example.com/v2/users", resolved)
+    }
+
+    @Test
+    fun keeps_random_int_token_when_range_is_invalid() {
+        val resolved = VariableResolver.resolve(
+            value = "{{\$randomInt(20, 10)}}",
+            variableLayers = emptyList(),
+        )
+
+        assertEquals("{{\$randomInt(20, 10)}}", resolved)
+    }
+
+    @Test
+    fun resolves_random_int_without_dollar_prefix() {
+        val resolved = VariableResolver.resolve(
+            value = "{{randomInt(1, 3)}}",
+            variableLayers = emptyList(),
+        )
+
+        val value = resolved.toIntOrNull()
+        assertTrue(value != null && value in 1..3)
+    }
+
+    @Test
+    fun blank_value_is_returned_as_is() {
+        assertEquals("", VariableResolver.resolve("", emptyList()))
+        assertEquals("   ", VariableResolver.resolve("   ", emptyList()))
+    }
+
+    @Test
+    fun resolves_guid_and_uuid_tokens() {
+        val resolved = VariableResolver.resolve(
+            value = "id1={{\$guid}};id2={{\$uuid}}",
+            variableLayers = emptyList(),
+        )
+        val parts = resolved.split(";")
+        val id1 = parts[0].substringAfter("id1=")
+        val id2 = parts[1].substringAfter("id2=")
+        assertEquals(36, id1.length)
+        assertEquals(36, id2.length)
+    }
+
+    @Test
+    fun dynamic_variables_metadata_and_token_checks() {
+        assertTrue(VariableResolver.isDynamicToken("\$timestamp"))
+        assertTrue(VariableResolver.isDynamicToken("timestamp"))
+        assertTrue(VariableResolver.isDynamicToken("\$isoTimestamp"))
+        assertTrue(VariableResolver.isDynamicToken("\$randomInt"))
+        assertTrue(VariableResolver.isDynamicToken("\$randomInt(1, 10)"))
+        assertTrue(VariableResolver.isDynamicToken("\$guid"))
+        assertTrue(VariableResolver.dynamicVariables.size >= 5)
+        assertEquals(
+            Clock.System.now().toEpochMilliseconds().toString().take(6),
+            VariableResolver.resolveDynamicToken("\$timestamp")?.take(6)
+        )
+    }
+}

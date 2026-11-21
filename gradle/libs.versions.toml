@@ -1,36 +1,55 @@
 [versions]
-kotlin = "2.1.21"
-agp = "8.7.3"
-compose = "1.8.1"
-android-compileSdk = "35"
-android-minSdk = "26"
-android-targetSdk = "35"
-ktor = "3.1.2"
+kotlin = "2.4.10"
+compose = "1.12.0"
+ktor = "3.6.1"
 coroutines = "1.10.2"
 serialization = "1.8.1"
 datetime = "0.6.2"
 koin = "4.0.2"
-sqldelight = "2.0.2"
-graalvm = "24.1.1"
+javet = "6.0.3"
+networknt = "3.0.9"
+kaml = "0.104.0"
+swagger-parser = "2.1.48"
+grpc = "1.85.1"
+protobuf = "4.36.2"
+protoc-jar = "3.11.4"
+ksafe = "3.3.0"
+keepassxc-proxy-access = "1.2.9" # higher versions require java >=21
+json = "20260719"
+guava = "33.7.2-android"
+cyclonedxBom = "3.5.1"
+jackson = "2.22.4"
+keeper-secrets-manager = "17.2.0"
+roborazzi = "1.70.0"
+composable-preview-scanner = "0.9.1"
+compose-ui-tooling-preview = "1.10.3"
+tinylog = "2.8.1"
+slf4j = "2.0.17"
+kotlin-logging = "8.0.7"
+nucleus = "2.5.18"
+filekit = "0.14.2"
+amqp-client = "5.37.1"
 
 [libraries]
+tinylog-api = { module = "org.tinylog:tinylog-api", version.ref = "tinylog" }
+tinylog-impl = { module = "org.tinylog:tinylog-impl", version.ref = "tinylog" }
+slf4j-tinylog = { module = "org.tinylog:slf4j-tinylog", version.ref = "tinylog" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+kotlin-logging = { module = "io.github.oshai:kotlin-logging", version.ref = "kotlin-logging" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "coroutines" }
+coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+coroutines-guava = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-guava", version.ref = "coroutines" }
 serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "datetime" }
 
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
-ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
 ktor-client-auth = { module = "io.ktor:ktor-client-auth", version.ref = "ktor" }
 ktor-client-websockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
-ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
-ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
-ktor-client-js = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
 ktor-server-netty = { module = "io.ktor:ktor-server-netty", version.ref = "ktor" }
@@ -41,17 +60,50 @@ junit4 = { module = "junit:junit", version = "4.13.2" }
 
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 
-sqldelight-runtime = { module = "app.cash.sqldelight:runtime", version.ref = "sqldelight" }
-sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
 
-graalvm-polyglot = { module = "org.graalvm.polyglot:polyglot", version.ref = "graalvm" }
-graalvm-js = { module = "org.graalvm.polyglot:js-community", version.ref = "graalvm" }
+networknt-json-schema = { module = "com.networknt:json-schema-validator", version.ref = "networknt" }
+kaml = { module = "com.charleskorn.kaml:kaml", version.ref = "kaml" }
+swagger-parser = { module = "io.swagger.parser.v3:swagger-parser", version.ref = "swagger-parser" }
+
+javet = { module = "com.caoccao.javet:javet", version.ref = "javet" }
+javet-v8-linux-x8664 = { module = "com.caoccao.javet:javet-v8-linux-x86_64", version.ref = "javet" }
+javet-v8-linux-arm64 = { module = "com.caoccao.javet:javet-v8-linux-arm64", version.ref = "javet" }
+javet-v8-macos-x8664 = { module = "com.caoccao.javet:javet-v8-macos-x86_64", version.ref = "javet" }
+javet-v8-macos-arm64 = { module = "com.caoccao.javet:javet-v8-macos-arm64", version.ref = "javet" }
+javet-v8-windows-x8664 = { module = "com.caoccao.javet:javet-v8-windows-x86_64", version.ref = "javet" }
+
+grpc-netty-shaded = { module = "io.grpc:grpc-netty-shaded", version.ref = "grpc" }
+grpc-okhttp = { module = "io.grpc:grpc-okhttp", version.ref = "grpc" }
+grpc-protobuf = { module = "io.grpc:grpc-protobuf", version.ref = "grpc" }
+grpc-stub = { module = "io.grpc:grpc-stub", version.ref = "grpc" }
+protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobuf" }
+protobuf-java-util = { module = "com.google.protobuf:protobuf-java-util", version.ref = "protobuf" }
+protoc-jar = { module = "com.github.os72:protoc-jar", version.ref = "protoc-jar" }
+ksafe = { module = "eu.anifantakis:ksafe", version.ref = "ksafe" }
+keepassxc-proxy-access = { module = "org.purejava:keepassxc-proxy-access", version.ref = "keepassxc-proxy-access" }
+jackson-bom = { module = "com.fasterxml.jackson:jackson-bom", version.ref = "jackson" }
+keeper-secrets-manager-core = { module = "com.keepersecurity.secrets-manager:core", version.ref = "keeper-secrets-manager" }
+org-json = { module = "org.json:json", version.ref = "json" }
+guava = { module = "com.google.guava:guava", version.ref = "guava" }
+compose-ui-test-junit4-desktop = { module = "org.jetbrains.compose.ui:ui-test-junit4-desktop", version.ref = "compose" }
+compose-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "compose-ui-tooling-preview" }
+roborazzi-compose-desktop-preview-scanner-support = { module = "io.github.takahirom.roborazzi:roborazzi-compose-desktop-preview-scanner-support", version.ref = "roborazzi" }
+composable-preview-scanner-android = { module = "io.github.sergio-sastre.ComposablePreviewScanner:android", version.ref = "composable-preview-scanner" }
+nucleus-application = { module = "dev.nucleusframework:nucleus.nucleus-application", version.ref = "nucleus" }
+nucleus-aot-runtime = { module = "dev.nucleusframework:nucleus.aot-runtime", version.ref = "nucleus" }
+nucleus-core-runtime = { module = "dev.nucleusframework:nucleus.core-runtime", version.ref = "nucleus" }
+nucleus-decorated-window-tao = { module = "dev.nucleusframework:nucleus.decorated-window-tao", version.ref = "nucleus" }
+nucleus-decorated-window-jni = { module = "dev.nucleusframework:nucleus.decorated-window-jni", version.ref = "nucleus" }
+nucleus-decorated-window-material3 = { module = "dev.nucleusframework:nucleus.decorated-window-material3", version.ref = "nucleus" }
+filekit-dialogs = { module = "io.github.vinceglb:filekit-dialogs", version.ref = "filekit" }
+amqp-client = { module = "com.rabbitmq:amqp-client", version.ref = "amqp-client" }
 
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-androidApplication = { id = "com.android.application", version.ref = "agp" }
-androidLibrary = { id = "com.android.library", version.ref = "agp" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+cyclonedx-bom = { id = "org.cyclonedx.bom", version.ref = "cyclonedxBom" }
+roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
+nucleus = { id = "dev.nucleusframework", version.ref = "nucleus" }

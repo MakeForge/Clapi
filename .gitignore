@@ -4,6 +4,7 @@
 
 # ── Gradle ───────────────────────────────────────────────────
 .gradle/
+.gradle-home/
 build/
 **/build/
 gradle-app.setting
@@ -42,6 +43,8 @@ replay_pid*
 
 # ── Node (ui-web / KMP JS) ───────────────────────────────────
 node_modules/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -73,8 +76,22 @@ local.properties
 .env.*
 *.pem
 secrets.properties
+.clapi-dev/
+*.clapi-dev/
 
 # ── Test outputs ─────────────────────────────────────────────
 test-results/
 reports/
 coverage/
+*.sarif
+*.log
+*.log.gz
+logs/
+
+# ── Python / Scripts ─────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+scratch

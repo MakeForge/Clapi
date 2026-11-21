@@ -1,48 +1,31 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidLibrary)
 }
 
 kotlin {
-    androidTarget()
     jvm("desktop")
-    iosX64()
-    iosArm64()
-    iosSimulatorArm64()
-    js(IR) {
-        browser()
-        binaries.library()
-    }
-
-    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
-    wasmJs {
-        browser()
-    }
 
     sourceSets {
         commonMain.dependencies {
             implementation(project(":core-model"))
             implementation(libs.coroutines.core)
+            implementation(libs.serialization.json)
             implementation(libs.koin.core)
+            implementation(libs.kaml)
         }
-        // SQLDelight only for targets that support it (not wasmJs)
         val desktopMain by getting {
             dependencies {
-                implementation(libs.sqldelight.runtime)
-                implementation(libs.sqldelight.coroutines)
+                implementation(project.dependencies.platform(libs.jackson.bom))
+                implementation(libs.networknt.json.schema)
+                implementation(libs.swagger.parser.get().toString()) {
+                    exclude(group = "io.swagger.parser.v3", module = "swagger-parser-v2-converter")
+                }
+                implementation("io.swagger.core.v3:swagger-models:2.2.28")
             }
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.coroutines.test)
         }
-    }
-}
-
-android {
-    namespace = "io.github.crustack.core.storage"
-    compileSdk = libs.versions.android.compileSdk.get().toInt()
-    defaultConfig {
-        minSdk = libs.versions.android.minSdk.get().toInt()
     }
 }

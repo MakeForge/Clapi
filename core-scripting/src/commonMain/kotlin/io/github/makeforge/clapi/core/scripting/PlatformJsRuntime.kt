@@ -1,0 +1,22 @@
+package io.github.makeforge.clapi.core.scripting
+
+/**
+ * Evaluates a JavaScript program string and returns the result as a string.
+ *
+ * Each platform provides a concrete implementation:
+ * - **Desktop / Android (JVM):** Javet V8 JS engine
+ * - **wasmJs / js (Browser):** Native `eval()`
+ * - **iOS (Native):** JavaScriptCore (`JSContext`)
+ *
+ * The input [script] is a complete IIFE produced by [ScriptBootstrap.build]
+ * that returns a JSON string with test results, logs, and variable changes.
+ */
+internal expect fun evaluateJs(script: String): String
+
+internal expect fun evaluateJsWithTimeout(script: String, timeoutMs: Long): String
+
+internal expect fun evaluateJsWithGlobals(
+    script: String,
+    globals: Map<String, String?>,
+    timeoutMs: Long = 5_000L,
+): String

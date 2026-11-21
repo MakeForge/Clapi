@@ -15,6 +15,15 @@ docker ps                  rtk docker ps
 kubectl get pods           rtk kubectl pods
 ```
 
+## Build & Test Execution Rule
+Whenever you run Gradle commands (such as tests, builds, linting, or formatting checks), **always omit the `./` prefix and always prefix with `rtk`** so output is token-filtered.
+
+Examples:
+- Instead of `./gradlew test` -> Use `rtk gradlew test`
+- Instead of `./gradlew :app:testDebugUnitTest` -> Use `rtk gradlew :app:testDebugUnitTest`
+- Instead of `./gradlew ktfmtCheck` -> Use `rtk gradlew ktfmtCheck`
+- Never use raw `./gradlew` unless debugging command output issues.
+- 
 ## Meta commands (use directly)
 
 ```bash
@@ -23,3 +32,11 @@ rtk gain --history    # Per-command savings history
 rtk discover          # Find missed rtk opportunities
 rtk proxy <cmd>       # Run raw (no filtering) but track usage
 ```
+
+## IntelliJ MCP
+You can utilize connected IntelliJ MCP to e.g. easily search through external library code, find files more easily. Leverage it whenever useful.
+
+## Changelog & Versioning
+After implementing any feature, bug fix, or notable CI/test/build fix, update `CHANGELOG.md` (and `gradle.properties` `appVersion` if starting a new SemVer version) following the **Changelog & Versioning Policy** in [AGENTS.md](../AGENTS.md):
+- Format: `## [X.Y.Z] - TBD` (unreleased) or `## [X.Y.Z] - YYYY-MM-DD` (released), with `### New Features` and `### Fixes` subsections and clickable GitHub issue links where applicable.
+- If the topmost version in `CHANGELOG.md` is already released (dated or has a `vX.Y.Z` Git tag), create a new SemVer-bumped `## [X.Y.Z] - TBD` section and update `appVersion` in `gradle.properties` to match.

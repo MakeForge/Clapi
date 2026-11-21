@@ -1,0 +1,2 @@
+io.github.makeforge.clapi.ui.desktop.logging.UiDiagnosticsLogWriter
+io.github.makeforge.clapi.ui.desktop.logging.ClapiRollingFileWriter

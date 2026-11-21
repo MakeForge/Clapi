@@ -4,7 +4,7 @@ plugins {
 }
 
 application {
-    mainClass.set("io.github.crustack.server.ApplicationKt")
+    mainClass.set("io.github.makeforge.clapi.server.ApplicationKt")
 }
 
 dependencies {
@@ -50,7 +50,7 @@ tasks.register<JavaExec>("installMcpCommand") {
     description = "Installs `sample-server` on PATH as an MCP stdio server"
     dependsOn("installDist", "classes")
     classpath = sourceSets.main.get().runtimeClasspath
-    mainClass.set("io.github.crustack.server.InstallMcpCommandKt")
+    mainClass.set("io.github.makeforge.clapi.server.InstallMcpCommandKt")
     val unixLauncher = layout.projectDirectory.file("mcp-stdio")
     val windowsLauncher = layout.buildDirectory.file("install/sample-server/bin/sample-server.bat")
     args(unixLauncher.asFile.absolutePath, windowsLauncher.get().asFile.absolutePath)

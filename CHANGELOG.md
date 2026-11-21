@@ -4,113 +4,23 @@ All notable changes to Clapi are documented here.
 
 ---
 
-## [1.20.2] — 2026-10-15
+## [1.0.0] - TBD
 
-### Added
+### New Features
 
-- **Packaged runtime smoke test**: release builds execute the exact
-  self-contained JAR in headless shutdown mode before artifacts are uploaded.
-- **Complete release quality gate**: release CI covers core networking, editor
-  core, editor UI, shared UI, desktop UI, web, and QA suites.
-- **Compact find/replace actions**: editable editors provide localized,
-  accessible icon actions. `Enter` replaces the current match and
-  `Alt/Option+Enter` replaces all matches.
+- **Core API Client & Protocols**: Desktop-native multi-protocol API client with HTTP/REST, Server-Sent Events (SSE), LLM streaming, GraphQL ([#30](https://github.com/MakeForge/Clapi/issues/30)), WebSocket ([#29](https://github.com/MakeForge/Clapi/issues/29)), gRPC with collection-level Protobuf management and proto folder workflow ([#21](https://github.com/MakeForge/Clapi/issues/21), [#23](https://github.com/MakeForge/Clapi/issues/23)), and RabbitMQ messaging (Publish/Subscribe & RPC).
+- **OpenCollection Data Model & Multiple Collections**: Canonical OpenCollection storage format with support for managing multiple collections and folder-level settings/request defaults inheritance ([#7](https://github.com/MakeForge/Clapi/issues/7), [#19](https://github.com/MakeForge/Clapi/issues/19), [#24](https://github.com/MakeForge/Clapi/issues/24)).
+- **Collection Import**: Import collections and environments from OpenAPI, OpenCollection, Postman, and Insomnia v5 ([#20](https://github.com/MakeForge/Clapi/issues/20), [#41](https://github.com/MakeForge/Clapi/issues/41)).
+- **Git-Native Sync**: Built-in Git collection synchronization workflow ([#25](https://github.com/MakeForge/Clapi/issues/25)).
+- **Authentication & OAuth2**: Support for Basic, Bearer, API Key, and OAuth2 authentication flows with dynamic OAuth2 access token variables ([#26](https://github.com/MakeForge/Clapi/issues/26), [#27](https://github.com/MakeForge/Clapi/issues/27)).
+- **External Secret Managers**: External secret variable resolution ([#22](https://github.com/MakeForge/Clapi/issues/22)) with integrations for KeePassXC ([#28](https://github.com/MakeForge/Clapi/issues/28)), AWS Secrets Manager ([#31](https://github.com/MakeForge/Clapi/issues/31)), Azure Key Vault ([#32](https://github.com/MakeForge/Clapi/issues/32)), GCP Secret Manager ([#33](https://github.com/MakeForge/Clapi/issues/33)), and Keeper Security Cloud ([#34](https://github.com/MakeForge/Clapi/issues/34)).
+- **Environments & Dynamic Variables**: Environment inheritance, visual customization, import/export enhancements ([#42](https://github.com/MakeForge/Clapi/issues/42)), user-defined scriptable dynamic variables ([#43](https://github.com/MakeForge/Clapi/issues/43)), and typed dynamic variables with modernized variable editor UI ([#44](https://github.com/MakeForge/Clapi/issues/44)).
+- **Built-in MCP Server & Client**: Embedded Model Context Protocol (MCP) server for AI agent integration alongside MCP client request support ([#45](https://github.com/MakeForge/Clapi/issues/45)).
+- **Scripting & Code Editor**: Javet V8 JavaScript pre/post-request scripting engine and custom Compose code editor with syntax highlighting, find/replace, go-to-line, folding, and diagnostics.
+- **Desktop Workspace UX**: Drag-and-drop request tab reordering, collapsible/detachable response viewer, desktop UI polish ([#37](https://github.com/MakeForge/Clapi/issues/37)), native window titlebar integration, and JDK 25 AOT-cached native installers (macOS `.dmg`, Linux `.deb`, Windows `.exe`, and universal Fat JAR).
+- **Undoable Action Snackbar**: Bottom-right action snackbar with one-click Undo for deleting (requests, folders with nested contents, collections, environments, history items), moving, and renaming items, enforcing single-snackbar replacement with a configurable auto-dismiss duration (1–60 seconds, default 5s) in General Global Settings.
+- **Persistent Logging & Documentation**: Asynchronous persistent file and diagnostics logging ([#46](https://github.com/MakeForge/Clapi/issues/46)) and VitePress documentation site ([#40](https://github.com/MakeForge/Clapi/issues/40)).
 
-### Changed
-
-- **Response formatting**: read-only API responses are formatted by default at
-  every size, with large payload formatting kept off the UI thread.
-- **Large-line rendering**: unwrapped lines use bounded viewport windows
-  without truncating content or showing a misleading truncation banner.
-- **Editor diagnostics and styling**: syntax colors follow the active theme,
-  lexer revisions reject stale results, and diagnostics are owned consistently
-  by the editor view model and renderer.
-- **Editor polish**: line/column status is opt-in, gutter and scrolling are
-  more reliable, and light-theme bracket/indent highlights remain visible.
-- **Request and copy fidelity**: Send and Copy share URL/query encoding,
-  headers, API-key placement, and supported body preparation. Repeated query
-  values and headers retain their order.
-- **Request persistence**: disabled, repeated, and secret query/header rows,
-  API-key placement, and same-length/same-count edits survive save, reopen,
-  import/export, duplication, and autosave.
-- **Packaging and documentation**: release packaging starts from a clean build;
-  the README, MCP guide, editor architecture, and testing guides reflect the
-  current behavior and release checks.
-- **CI execution**: mandatory suites run sequentially where shared resources
-  require it, and Linux desktop tests run under a virtual Xvfb display so
-  clipboard and file-dialog coverage is exercised reliably.
-
-### Fixed
-
-- Response search navigation now responds correctly to Up/Down arrows and keeps the active match in view.
-- Request editor find/replace controls no longer occupy the body editor together when replacement is not requested.
-- Quoted strings no longer fall back to white or stale styling after edits, dots, URLs, escapes, Unicode, or delayed background lexing.
-- Clicking editor whitespace clears bracket-match emphasis instead of leaving a distracting highlight behind.
-- Desktop shutdown no longer relies on an accidentally stale application bundle; the packaged runtime verifies lifecycle cleanup before release.
+### Fixes
 
 ---
-
-## [1.19.0] — 2026-09-25
-
-### Added
-
-- **Environment editor upgrades**: resize from every edge or corner, maximize/restore, and remember the preferred size. Search immediately filters variable keys and values (including masked secrets) without exposing secret contents; `Cmd/Ctrl+F` focuses search, and search results retain safe row identity while editing.
-- **Editor find/replace**: `Cmd/Ctrl+F` opens find; editable editors also get Replace and Replace All (one undo). `F3` / `Shift+F3` step matches; `Esc` closes the bar.
-- **Go to line** (`Cmd/Ctrl+G`) and an optional status strip with `Ln X, Col Y` plus the diagnostic on the current line. Position display is off by default and can be enabled in Editor Settings.
-- **Line operations**: duplicate (`Cmd/Ctrl+Shift+D`), move (`Alt+↑/↓`), toggle comment (`Cmd/Ctrl+/`), select line (`Cmd/Ctrl+L`). Context menu includes Duplicate and Toggle comment.
-- **Bracket match** and 2-space indent guides in the editor canvas. Diagnostic ticks in the gutter with hover tooltips. Truncation banner when a line exceeds 50,000 characters.
-
-### Changed
-
-- Tab inserts **2 spaces** (and Shift+Tab removes 2), matching JSON format. On Windows/Linux, `Ctrl+←/→` jumps by word; on macOS, `⌘+←/→` still goes to line start/end.
-- **Request fidelity**: Send and Copy now share request preparation for URL/query encoding, headers, API-key placement, and supported body formats. Repeated query values and headers retain their order.
-- **API-key authentication**: choose Header or Query placement; the choice survives duplicate, save/reopen, import/export, and Postman imports.
-- **Request persistence**: tabs and collections retain disabled, repeated, and secret query/header rows. Autosave tracks same-length text and same-count row edits reliably.
-- **Documentation**: refreshed README and MCP guide, including updated dark and light product screenshots.
-
-### Fixed
-
-- **Repeated query parameters**: requests such as `x=1&x=2` now reach the server as distinct, ordered values. URL replacement from scripts also clears stale query rows before applying new parameters.
-- **URL and copy encoding**: literal spaces, plus signs, percent signs, ampersands, equals signs, Unicode, empty values, fragments, and unresolved variables are handled consistently for Send and Copy.
-- **GraphQL request body**: normal GraphQL request tabs now send the editor content in the GraphQL query envelope instead of as unused raw content.
-- **Copy as request**: generated cURL commands preserve repeated headers and supported bodies; formats that cannot faithfully represent duplicate headers or embedded file/binary bodies are clearly marked unavailable.
-- **Editor stability**: background lexing uses immutable revisions so cancelled work cannot publish stale styles. Bracket highlighting is lighter in light theme and clears when clicking whitespace after a line’s content.
-- **Application cleanup**: shutdown and UI disposal clean up cached editor state, request work, and MCP sessions safely.
-
----
-
-## [1.18.0] — 2026-08-29
-
-### Added
-
-- **MCP client**: saved MCP connections as first-class collection/tab items. Connect over Streamable HTTP (2025-06-18, stateful or stateless), legacy HTTP+SSE (2024-11-05, auto-detected), or stdio (desktop only). Browse and call tools, resources, and prompts; subscribe to resource updates; inspect notifications, progress, and a JSON-RPC timeline. Auth, headers, and params reuse the REST editors; tool/prompt arguments and results use the shared code editor and response viewer (body, headers, timing). Activity is mirrored to the Console.
-- **Bidirectional MCP**: the client answers `sampling/createMessage`, `roots/list`, and `elicitation/create` so you can test servers that call back.
-- **OAuth 2.1 for MCP**: metadata discovery, Dynamic Client Registration, PKCE S256, client-credentials, refresh, and an OAuth debugger log. Interactive authorization-code is desktop-first (loopback); the browser uses paste/non-interactive grants.
-- **Sample-server MCP mock**: `POST /mcp`, `POST /mcp/authed` (Bearer + API key), legacy `GET /mcp/sse`, OAuth-protected `POST /mcp/secure`, and `sample-server --stdio` with deterministic tools (`echo`, `add`, `fail`, `slow`, triggers).
-
-### Changed
-
-- MCP workspace uses the same request/response split as HTTP. Connections survive tab switches and disconnect only when the tab is closed.
-
----
-
-## [1.17.0] — 2026-08-29
-
-### Added
-
-- **HTTP streaming in the request tab**: SSE (`text/event-stream`) and NDJSON responses are read line by line on a single POST instead of buffering the full body. Tokens appear live while the request is in flight. After completion, Body shows the assembled answer, RAW shows each event payload, and Timing reports TTFB, time to first token, and time to last token.
-- **LLM script helpers**: Post-request scripts can assert on `clapi.response.streamEvents`, `clapi.response.llm.assembledText`, `clapi.response.llm.finishReason`, `clapi.response.llm.usage`, and `clapi.response.llm.jsonContent()`.
-- **OpenAI-compatible sample-server mocks**: `GET /v1/models`, `POST /v1/chat/completions` (stream and non-stream), `POST /v1/chat/ndjson`, `POST /v1/embeddings`, plus tool calls, JSON mode, 401/429/500, slow, and early-close paths. `?demo=true` streams a multi-token assistant reply (~200ms per token) so streaming is visible in the UI; `?chunkMs=` overrides the delay.
-- **LLM collection fixtures**: Folder **LLM (OpenAI-compatible)** in `qa-tests/fixtures/clapi-test-collection.json`, with environment variables `llmBaseUrl`, `llmApiKey`, and `llmModel`. Use **LLM Chat Completions Stream (visible)** to watch tokens arrive.
-
----
-
-## [1.16.0] — 2026-06-07
-
-### Fixed
-
-- **Response Headers tab — text not selectable**: Header key/value `Text` nodes were not wrapped in `SelectionContainer`, making it impossible to select or copy header content. Each header row is now individually wrapped so text can be selected and copied.
-- **Response Cookies tab — text not selectable**: Same issue as above applied to cookie rows. Each cookie row is now individually wrapped in `SelectionContainer`.
-- **Search bar — no auto-focus on open**: When the search bar was opened via the toolbar button or `Cmd/Ctrl+F`, the text field was not focused automatically and the user had to click on it before typing. The search input now receives focus immediately on appearance via `FocusRequester`, allowing instant typing after the shortcut.
-- **Selected environment not restored on restart**: After closing and reopening the app, the active environment always reset to the first one in the list. The selected environment name is now persisted via `SettingsRepository` (`settings.selectedEnvName`) and resolved back to the correct environment by name after the workspace is loaded on startup.
-- **System header values not editable (`Accept`, `User-Agent`)**: `syncSystemHeaders()` was unconditionally overwriting the values of `Accept` and `User-Agent` back to their defaults on every body-type change and request send, discarding any user edits. Only `Content-Type` is now force-updated (it derives from the selected body type); `Accept` and `User-Agent` are only inserted when missing, preserving any values the user has set.
