@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.key.Key
@@ -44,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.makeforge.clapi.core.model.RequestKind
 import io.github.makeforge.clapi.ui.shared.components.BottomPanel
+import io.github.makeforge.clapi.ui.shared.components.CollapsedResponseStrip
 import io.github.makeforge.clapi.ui.shared.components.CollectionEditor
 import io.github.makeforge.clapi.ui.shared.components.ConfirmDeleteDialog
 import io.github.makeforge.clapi.ui.shared.components.DirtyCloseDialog
@@ -454,7 +456,19 @@ private fun ColumnScope.HttpWorkspaceContent(
                                 )
                             }
                         } else if (tab.kind == RequestKind.MCP) {
-                            if (state.settings.responseLayout == ResponseLayout.RIGHT) {
+                            if (state.isResponseCollapsed || state.isResponseDetached) {
+                                Row(modifier = Modifier.fillMaxSize().testTag("mcp-workspace")) {
+                                    Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                                        McpPanel(state, tab)
+                                    }
+                                    if (state.isResponseCollapsed) {
+                                        CollapsedResponseStrip(
+                                            onExpand = { state.expandResponse() },
+                                            modifier = Modifier.fillMaxHeight(),
+                                        )
+                                    }
+                                }
+                            } else if (state.settings.responseLayout == ResponseLayout.RIGHT) {
                                 HorizontalSplitPane(
                                     modifier = Modifier.fillMaxSize().testTag("mcp-workspace"),
                                     splitFraction = state.requestResponseSplit,
@@ -470,6 +484,27 @@ private fun ColumnScope.HttpWorkspaceContent(
                                     first = { McpPanel(state, tab) },
                                     second = { McpWorkspaceResponse(state, tab) },
                                 )
+                            }
+                        } else if (state.isResponseCollapsed || state.isResponseDetached) {
+                            key(tab.id) {
+                                Row(modifier = Modifier.fillMaxSize()) {
+                                    Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                                        RequestEditor(
+                                            tab = tab,
+                                            state = state,
+                                            onSend = { sendRequest(scope, state, tab) },
+                                            onCancel = { tab.currentJob?.cancel(); tab.isLoading = false },
+                                            onSave = { saveRequest(scope, state, tab) },
+                                            modifier = Modifier.fillMaxSize(),
+                                        )
+                                    }
+                                    if (state.isResponseCollapsed) {
+                                        CollapsedResponseStrip(
+                                            onExpand = { state.expandResponse() },
+                                            modifier = Modifier.fillMaxHeight(),
+                                        )
+                                    }
+                                }
                             }
                         } else if (state.settings.responseLayout == ResponseLayout.RIGHT) {
                             HorizontalSplitPane(
@@ -489,7 +524,11 @@ private fun ColumnScope.HttpWorkspaceContent(
                                 },
                                 second = {
                                     key(tab.id) {
-                                        ResponseViewer(tab, showCursorPosition = state.settings.showEditorPositionIndicator)
+                                        ResponseViewer(
+                                            tab = tab,
+                                            showCursorPosition = state.settings.showEditorPositionIndicator,
+                                            state = state,
+                                        )
                                     }
                                 },
                             )
@@ -511,7 +550,11 @@ private fun ColumnScope.HttpWorkspaceContent(
                                 },
                                 second = {
                                     key(tab.id) {
-                                        ResponseViewer(tab, showCursorPosition = state.settings.showEditorPositionIndicator)
+                                        ResponseViewer(
+                                            tab = tab,
+                                            showCursorPosition = state.settings.showEditorPositionIndicator,
+                                            state = state,
+                                        )
                                     }
                                 },
                             )

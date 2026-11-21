@@ -151,6 +151,8 @@
   "add_folder": "Ordner hinzufügen",
   "expand": "Ausklappen",
   "collapse": "Einklappen",
+  "detach": "Abtrennen",
+  "reattach": "Wieder anheften",
   "duplicate_collection": "Ordner duplizieren",
   "duplicate_folder": "Ordner duplizieren",
   "duplicate_request": "Anfrage duplizieren",

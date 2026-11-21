@@ -47,6 +47,9 @@ enum class LogLevel { INFO, SUCCESS, WARNING, ERROR }
 enum class AppTheme { DARK, LIGHT, SYSTEM }
 enum class ResponseLayout { RIGHT, BOTTOM }
 
+/** Display mode for the response view panel (expanded in main window, collapsed to top-right strip, or detached into floating window). */
+enum class ResponseDisplayMode { EXPANDED, COLLAPSED, DETACHED }
+
 /** Top-level workspace mode — determines which main panel is shown. */
 enum class WorkspaceMode(val label: String) {
     HTTP("HTTP"),

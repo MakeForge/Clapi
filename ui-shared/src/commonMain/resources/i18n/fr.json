@@ -151,6 +151,8 @@
   "add_folder": "Ajouter un dossier",
   "expand": "Développer",
   "collapse": "Réduire",
+  "detach": "Détacher",
+  "reattach": "Rattacher",
   "duplicate_collection": "Dupliquer le dossier",
   "duplicate_folder": "Dupliquer le dossier",
   "duplicate_request": "Dupliquer la requête",

@@ -19,15 +19,21 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,11 +45,17 @@ import androidx.compose.ui.unit.sp
 import io.github.makeforge.clapi.core.model.RequestKind
 import io.github.makeforge.clapi.core.model.ResponseDefinition
 import io.github.makeforge.clapi.ui.shared.generated.resources.Res
+import io.github.makeforge.clapi.ui.shared.generated.resources.ic_close
+import io.github.makeforge.clapi.ui.shared.generated.resources.ic_close_fullscreen
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_error_outline
+import io.github.makeforge.clapi.ui.shared.generated.resources.ic_more_vert
+import io.github.makeforge.clapi.ui.shared.generated.resources.ic_open_in_full
+import io.github.makeforge.clapi.ui.shared.generated.resources.ic_open_in_new
 import io.github.makeforge.clapi.ui.shared.i18n.Strings
 import io.github.makeforge.clapi.ui.shared.platform.PlatformColumnVerticalScrollbar
 import io.github.makeforge.clapi.ui.shared.platform.PlatformLazyVerticalScrollbar
 import io.github.makeforge.clapi.ui.shared.platform.saveFileForExport
+import io.github.makeforge.clapi.ui.shared.state.AppState
 import io.github.makeforge.clapi.ui.shared.state.RequestTabState
 import io.github.makeforge.clapi.ui.shared.state.ResponseTab
 import io.github.makeforge.clapi.ui.shared.theme.ClapiColors
@@ -58,7 +70,18 @@ fun ResponseViewer(
     tab: RequestTabState,
     modifier: Modifier = Modifier,
     showCursorPosition: Boolean = true,
+    state: AppState? = null,
+    onCollapse: (() -> Unit)? = null,
+    onDetach: (() -> Unit)? = null,
+    onReattach: (() -> Unit)? = null,
+    onClose: (() -> Unit)? = null,
+    isDetached: Boolean = false,
 ) {
+    val actualOnCollapse = onCollapse ?: state?.let { { it.collapseResponse() } }
+    val actualOnDetach = onDetach ?: state?.let { { it.detachResponse() } }
+    val actualOnReattach = onReattach ?: state?.let { { it.reattachResponse() } }
+    val actualOnClose = onClose ?: state?.let { { it.closeDetachedResponse() } }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -68,10 +91,26 @@ fun ResponseViewer(
         val response = tab.response
 
         if (response == null) {
-            EmptyResponseState(tab)
+            EmptyResponseHeader(
+                isDetached = isDetached,
+                onCollapse = actualOnCollapse,
+                onDetach = actualOnDetach,
+                onReattach = actualOnReattach,
+                onClose = actualOnClose,
+            )
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                EmptyResponseState(tab)
+            }
         } else {
             // ── Status bar ──────────────────────────────────────
-            ResponseStatusBar(response)
+            ResponseStatusBar(
+                response = response,
+                isDetached = isDetached,
+                onCollapse = actualOnCollapse,
+                onDetach = actualOnDetach,
+                onReattach = actualOnReattach,
+                onClose = actualOnClose,
+            )
 
             if (!tab.lastError.isNullOrBlank()) {
                 SelectionContainer {
@@ -180,16 +219,53 @@ private fun EmptyResponseState(tab: RequestTabState) {
     }
 }
 
-// ── Status Bar ──────────────────────────────────────────────────
+// ── Status Bar & Empty Header ───────────────────────────────────
 
 @Composable
-private fun ResponseStatusBar(response: ResponseDefinition) {
+private fun EmptyResponseHeader(
+    isDetached: Boolean,
+    onCollapse: (() -> Unit)?,
+    onDetach: (() -> Unit)?,
+    onReattach: (() -> Unit)?,
+    onClose: (() -> Unit)?,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(ClapiColors.Surface)
+            .padding(start = 12.dp, end = 6.dp, top = 4.dp, bottom = 4.dp)
+            .testTag("response-empty-header"),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Spacer(Modifier.weight(1f))
+
+        ResponseMoreActionsButton(
+            isDetached = isDetached,
+            onCollapse = onCollapse,
+            onDetach = onDetach,
+            onReattach = onReattach,
+            onClose = onClose,
+        )
+    }
+
+    Box(Modifier.fillMaxWidth().height(1.dp).background(ClapiColors.Border))
+}
+
+@Composable
+private fun ResponseStatusBar(
+    response: ResponseDefinition,
+    isDetached: Boolean,
+    onCollapse: (() -> Unit)?,
+    onDetach: (() -> Unit)?,
+    onReattach: (() -> Unit)?,
+    onClose: (() -> Unit)?,
+) {
     SelectionContainer {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(ClapiColors.Surface)
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .padding(start = 12.dp, end = 6.dp, top = 4.dp, bottom = 4.dp)
                 .testTag("response-status-bar"),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -224,10 +300,126 @@ private fun ResponseStatusBar(response: ResponseDefinition) {
             MetricChip(formatBytes(response.metrics.responseSizeBytes), ClapiColors.Tertiary)
 
             Spacer(Modifier.weight(1f))
+
+            DisableSelection {
+                ResponseMoreActionsButton(
+                    isDetached = isDetached,
+                    onCollapse = onCollapse,
+                    onDetach = onDetach,
+                    onReattach = onReattach,
+                    onClose = onClose,
+                )
+            }
         }
     }
 
     Box(Modifier.fillMaxWidth().height(1.dp).background(ClapiColors.Border))
+}
+
+@Composable
+private fun ResponseMoreActionsButton(
+    isDetached: Boolean,
+    onCollapse: (() -> Unit)?,
+    onDetach: (() -> Unit)?,
+    onReattach: (() -> Unit)?,
+    onClose: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box(modifier = modifier) {
+        IconButtonWithTooltip(
+            tooltip = "Response options",
+            tooltipTag = "response-more-options-tooltip",
+            onClick = { expanded = !expanded },
+            modifier = Modifier
+                .size(28.dp)
+                .testTag("response-more-options-button"),
+        ) {
+            Icon(
+                painter = painterResource(Res.drawable.ic_more_vert),
+                contentDescription = "Response options",
+                tint = ClapiColors.OnSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .background(ClapiColors.SurfaceContainer)
+                .testTag("response-more-options-menu"),
+        ) {
+            if (!isDetached) {
+                DropdownMenuItem(
+                    text = { Text(Strings.collapse, fontSize = 13.sp, color = ClapiColors.OnSurface) },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_close_fullscreen),
+                            contentDescription = Strings.collapse,
+                            modifier = Modifier.size(16.dp),
+                            tint = ClapiColors.OnSurfaceVariant,
+                        )
+                    },
+                    onClick = {
+                        expanded = false
+                        onCollapse?.invoke()
+                    },
+                    modifier = Modifier.testTag("response-menu-collapse"),
+                )
+                DropdownMenuItem(
+                    text = { Text(Strings.detach, fontSize = 13.sp, color = ClapiColors.OnSurface) },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_open_in_new),
+                            contentDescription = Strings.detach,
+                            modifier = Modifier.size(16.dp),
+                            tint = ClapiColors.OnSurfaceVariant,
+                        )
+                    },
+                    onClick = {
+                        expanded = false
+                        onDetach?.invoke()
+                    },
+                    modifier = Modifier.testTag("response-menu-detach"),
+                )
+            } else {
+                DropdownMenuItem(
+                    text = { Text(Strings.reattach, fontSize = 13.sp, color = ClapiColors.OnSurface) },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_open_in_full),
+                            contentDescription = Strings.reattach,
+                            modifier = Modifier.size(16.dp),
+                            tint = ClapiColors.OnSurfaceVariant,
+                        )
+                    },
+                    onClick = {
+                        expanded = false
+                        onReattach?.invoke()
+                    },
+                    modifier = Modifier.testTag("response-menu-reattach"),
+                )
+                DropdownMenuItem(
+                    text = { Text(Strings.close, fontSize = 13.sp, color = ClapiColors.OnSurface) },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_close),
+                            contentDescription = Strings.close,
+                            modifier = Modifier.size(16.dp),
+                            tint = ClapiColors.OnSurfaceVariant,
+                        )
+                    },
+                    onClick = {
+                        expanded = false
+                        onClose?.invoke()
+                    },
+                    modifier = Modifier.testTag("response-menu-close"),
+                )
+            }
+        }
+    }
 }
 
 @Composable

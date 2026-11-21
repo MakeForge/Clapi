@@ -132,6 +132,8 @@
   "add_folder": "Add Folder",
   "expand": "Expand",
   "collapse": "Collapse",
+  "detach": "Detach",
+  "reattach": "Reattach",
   "duplicate_collection": "Duplicate Folder",
   "duplicate_folder": "Duplicate Folder",
   "duplicate_request": "Duplicate Request",
