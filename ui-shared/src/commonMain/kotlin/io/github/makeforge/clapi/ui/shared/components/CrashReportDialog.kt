@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import io.github.makeforge.clapi.ui.shared.build.GeneratedBuildInfo
+import io.github.makeforge.clapi.ui.shared.components.executor.SecretLogRedactor
 import io.github.makeforge.clapi.ui.shared.generated.resources.Res
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_content_copy
 import io.github.makeforge.clapi.ui.shared.generated.resources.ic_open_in_new
@@ -145,8 +146,9 @@ fun formatCrashDetails(
     throwable: Throwable,
     version: String = GeneratedBuildInfo.APP_VERSION,
     operatingSystem: String = getOperatingSystemString(),
+    secretValues: Set<String> = emptySet(),
 ): String {
-    return buildString {
+    val raw = buildString {
         appendLine("Clapi Version: $version")
         appendLine("Operating System: $operatingSystem")
         appendLine("Exception: ${throwable::class.qualifiedName ?: throwable::class.simpleName}: ${throwable.message}")
@@ -154,6 +156,7 @@ fun formatCrashDetails(
         appendLine("Stack Trace:")
         append(throwable.stackTraceToString())
     }
+    return SecretLogRedactor.redact(raw, secretValues)
 }
 
 /**
@@ -169,17 +172,20 @@ fun CrashReportContent(
     operatingSystem: String = getOperatingSystemString(),
     onReportBug: ((url: String) -> Unit)? = null,
     onCopyDetails: ((String) -> Unit)? = null,
+    secretValues: Set<String> = emptySet(),
 ) {
     var copied by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    val stackTrace = remember(throwable) { throwable.stackTraceToString() }
-    val exceptionTitle = remember(throwable) {
-        throwable.message?.takeIf { it.isNotBlank() } ?: (throwable::class.simpleName ?: "Unexpected Error")
+    val rawStackTrace = remember(throwable) { throwable.stackTraceToString() }
+    val stackTrace = remember(rawStackTrace, secretValues) { SecretLogRedactor.redact(rawStackTrace, secretValues) }
+    val exceptionTitle = remember(throwable, secretValues) {
+        val rawTitle = throwable.message?.takeIf { it.isNotBlank() } ?: (throwable::class.simpleName ?: "Unexpected Error")
+        SecretLogRedactor.redact(rawTitle, secretValues)
     }
 
-    val fullCrashDetails = remember(throwable, appVersion, operatingSystem) {
-        formatCrashDetails(throwable, appVersion, operatingSystem)
+    val fullCrashDetails = remember(throwable, appVersion, operatingSystem, secretValues) {
+        formatCrashDetails(throwable, appVersion, operatingSystem, secretValues)
     }
 
     Column(
@@ -308,11 +314,15 @@ fun CrashReportContent(
                     .clip(RoundedCornerShape(6.dp))
                     .background(ClapiColors.Primary)
                     .clickable {
+                        val safeTitle = SecretLogRedactor.redact(
+                            "Crash: ${throwable::class.simpleName ?: "Unexpected Error"}: ${throwable.message?.take(60) ?: ""}".trim(),
+                            secretValues,
+                        )
                         val issueUrl = buildGitHubIssueUrl(
                             stackTrace = stackTrace,
                             version = appVersion,
                             operatingSystem = operatingSystem,
-                            title = "Crash: ${throwable::class.simpleName ?: "Unexpected Error"}: ${throwable.message?.take(60) ?: ""}".trim(),
+                            title = safeTitle,
                         )
                         if (onReportBug != null) {
                             onReportBug(issueUrl)
@@ -384,6 +394,7 @@ fun CrashReportDialog(
     operatingSystem: String = getOperatingSystemString(),
     onReportBug: ((url: String) -> Unit)? = null,
     onCopyDetails: ((String) -> Unit)? = null,
+    secretValues: Set<String> = emptySet(),
 ) {
     val dragState = rememberDraggableDialogState()
 
@@ -403,6 +414,7 @@ fun CrashReportDialog(
                 operatingSystem = operatingSystem,
                 onReportBug = onReportBug,
                 onCopyDetails = onCopyDetails,
+                secretValues = secretValues,
             )
         }
     }

@@ -66,7 +66,9 @@ object AppStateExamples {
         MutableKeyValue("apiVersion", "v1"),
     )
 
-    fun historyItems(now: Long = currentTimeMillis()): List<HistoryItem> = listOf(
+    private const val PREVIEW_FIXED_EPOCH_MS: Long = 1_700_000_000_000L
+
+    fun historyItems(now: Long = PREVIEW_FIXED_EPOCH_MS): List<HistoryItem> = listOf(
         HistoryItem(
             requestId = "r1",
             method = HttpMethodType.GET,
@@ -214,7 +216,7 @@ object AppStateExamples {
      * Example AppState with an HTTP GET request tab open with complete headers, params, and response.
      */
     fun http(): AppState {
-        val now = currentTimeMillis()
+        val now = PREVIEW_FIXED_EPOCH_MS
         val state = AppState(openDefaultTab = false)
         state.collectionsExpanded = true
         state.environmentsExpanded = false
@@ -331,7 +333,7 @@ object AppStateExamples {
      * Example AppState with a gRPC request tab open showing proto, method, message payload, and response.
      */
     fun grpc(): AppState {
-        val now = currentTimeMillis()
+        val now = PREVIEW_FIXED_EPOCH_MS
         val state = AppState(openDefaultTab = false)
         state.collectionsExpanded = true
         state.environmentsExpanded = false
@@ -446,7 +448,7 @@ object AppStateExamples {
      * Example AppState with a WebSocket request tab open showing active connection, message variants, and live events.
      */
     fun webSocket(): AppState {
-        val now = currentTimeMillis()
+        val now = PREVIEW_FIXED_EPOCH_MS
         val state = AppState(openDefaultTab = false)
         state.collectionsExpanded = true
         state.environmentsExpanded = false
@@ -565,7 +567,7 @@ object AppStateExamples {
      * Example AppState with a GraphQL request tab open showing query, variables, and response.
      */
     fun graphQl(): AppState {
-        val now = currentTimeMillis()
+        val now = PREVIEW_FIXED_EPOCH_MS
         val state = AppState(openDefaultTab = false)
         state.collectionsExpanded = true
         state.environmentsExpanded = false
@@ -670,7 +672,7 @@ object AppStateExamples {
      * Example AppState with an MCP connection tab open.
      */
     fun mcp(): AppState {
-        val now = currentTimeMillis()
+        val now = PREVIEW_FIXED_EPOCH_MS
         val state = AppState(openDefaultTab = false)
         state.collectionsExpanded = true
         state.environmentsExpanded = false
@@ -832,7 +834,7 @@ object AppStateExamples {
      * Example AppState with a RabbitMQ Publish request tab open.
      */
     fun rabbitMqPublish(): AppState {
-        val now = currentTimeMillis()
+        val now = PREVIEW_FIXED_EPOCH_MS
         val state = AppState(openDefaultTab = false)
         state.collectionsExpanded = true
         state.environmentsExpanded = false
@@ -912,7 +914,7 @@ object AppStateExamples {
      * Example AppState with a RabbitMQ Subscribe request tab open showing active subscription and deliveries.
      */
     fun rabbitMqSubscribe(): AppState {
-        val now = currentTimeMillis()
+        val now = PREVIEW_FIXED_EPOCH_MS
         val state = AppState(openDefaultTab = false)
         state.collectionsExpanded = true
         state.environmentsExpanded = false
@@ -1010,7 +1012,7 @@ object AppStateExamples {
      * Example AppState with a RabbitMQ RPC request tab open showing correlated reply payload and metrics.
      */
     fun rabbitMqRpc(): AppState {
-        val now = currentTimeMillis()
+        val now = PREVIEW_FIXED_EPOCH_MS
         val state = AppState(openDefaultTab = false)
         state.collectionsExpanded = true
         state.environmentsExpanded = false

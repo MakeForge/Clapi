@@ -39,13 +39,20 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Run mandatory tests
+      - name: Start Docker Compose test services
+        run: ./gradlew :qa-tests:dockerComposeUp --no-daemon --stacktrace
+
+      - name: Run mandatory tests across all 10 modules
         run: |
           xvfb-run -a --server-args="-screen 0 1920x1080x24" \
             ./gradlew \
+            :core-model:allTests \
             :core-network:desktopTest \
+            :core-scripting:desktopTest \
+            :core-storage:allTests \
             :editor-core:desktopTest \
             :editor-ui:allTests \
+            :mcp-server:allTests \
             :ui-shared:desktopTest \
             :ui-desktop:desktopTest \
             :qa-tests:jvmTest \
@@ -54,6 +61,11 @@ jobs:
             --stacktrace \
             --info \
             --console=plain
+
+      - name: Verify Roborazzi visual baselines
+        run: |
+          xvfb-run -a --server-args="-screen 0 1920x1080x24" \
+            ./gradlew :ui-desktop:verifyRoborazziDesktop --no-daemon --stacktrace
 
       - name: Diagnose Docker Compose failure
         if: failure()
@@ -165,8 +177,10 @@ jobs:
           ./gradlew \
             clean \
             :ui-desktop:${{ matrix.package-task }} \
+            :ui-desktop:createDistributable \
             :ui-desktop:packageClapiJar \
             :ui-desktop:verifyPackagedRuntime \
+            :ui-desktop:verifyDistributableRuntime \
             --no-daemon --stacktrace
 
       # ── 6b. Build – Windows ───────────────────────────────────────────────────
@@ -177,8 +191,10 @@ jobs:
           .\gradlew.bat `
             clean `
             :ui-desktop:${{ matrix.package-task }} `
+            :ui-desktop:createDistributable `
             :ui-desktop:packageClapiJar `
             :ui-desktop:verifyPackagedRuntime `
+            :ui-desktop:verifyDistributableRuntime `
             --no-daemon --stacktrace
 
       # ── 7. Collect, rename, and stage artifacts ───────────────────────────────

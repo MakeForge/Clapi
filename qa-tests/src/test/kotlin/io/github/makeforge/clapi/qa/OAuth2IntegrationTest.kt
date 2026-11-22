@@ -27,7 +27,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.junit.Assume
+import io.github.makeforge.clapi.testsupport.CiTestGuard
 import org.junit.Before
 import org.junit.Test
 import java.net.InetSocketAddress
@@ -56,9 +56,11 @@ class OAuth2IntegrationTest {
 
     @Before
     fun checkKeycloakUp() {
-        Assume.assumeTrue(
-            "Keycloak server must be running on localhost:8080 (qa-tests/keycloak-oauth2-compose.yml)",
-            isKeycloakAvailable(),
+        CiTestGuard.requireServiceOrSkip(
+            serviceName = "Keycloak OAuth2",
+            endpoint = "$KEYCLOAK_HOST:$KEYCLOAK_PORT",
+            isReachable = isKeycloakAvailable(),
+            localHint = "qa-tests/docker/keycloak-oauth2-compose.yml",
         )
     }
 

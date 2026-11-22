@@ -648,6 +648,140 @@ class KtorApiClientTest {
         assertEquals("a+b", parsed["variables"]?.jsonObject?.get("id")?.jsonPrimitive?.content)
     }
 
+    @Test
+    fun binary_body_sends_decoded_base64_bytes_and_filename_header() = runTest {
+        val rawBytes = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x00, 0xFF.toByte())
+        val base64 = rawBytes.encodeBase64()
+        var capturedBytes: ByteArray? = null
+        var capturedFilename: String? = null
+
+        val mockEngine = MockEngine { request ->
+            capturedBytes = request.body.toByteArray()
+            capturedFilename = request.headers["X-Clapi-Filename"]
+            respond(content = "uploaded", status = HttpStatusCode.OK)
+        }
+        val apiClient = KtorApiClient(
+            httpClient = HttpClient(mockEngine) { expectSuccess = false },
+            retryPolicy = RetryPolicy(maxAttempts = 1),
+        )
+
+        val events = apiClient.execute(
+            RequestDefinition(
+                id = "req-bin-b64",
+                name = "Binary Upload",
+                method = HttpMethodType.POST,
+                url = "https://api.test/upload",
+                body = RequestBody(
+                    type = BodyType.BINARY,
+                    binaryName = "sample.png",
+                    binaryBytesBase64 = base64,
+                ),
+                createdAtEpochMillis = 1L,
+                updatedAtEpochMillis = 1L,
+            ),
+        ).toList()
+
+        assertTrue(events.last() is NetworkEvent.Success)
+        assertEquals("sample.png", capturedFilename)
+        assertTrue(rawBytes.contentEquals(capturedBytes), "Decoded binary bytes must match wire payload exactly")
+
+        // Fallback to raw content UTF-8 bytes when binaryBytesBase64 is null
+        capturedBytes = null
+        capturedFilename = null
+        val fallbackEvents = apiClient.execute(
+            RequestDefinition(
+                id = "req-bin-fallback",
+                name = "Binary Fallback",
+                method = HttpMethodType.POST,
+                url = "https://api.test/upload",
+                body = RequestBody(type = BodyType.BINARY, content = "raw-bytes-fallback"),
+                createdAtEpochMillis = 1L,
+                updatedAtEpochMillis = 1L,
+            ),
+        ).toList()
+
+        assertTrue(fallbackEvents.last() is NetworkEvent.Success)
+        assertEquals(null, capturedFilename)
+        assertEquals("raw-bytes-fallback", capturedBytes?.decodeToString())
+    }
+
+    @Test
+    fun all_http_methods_including_trace_and_connect_map_to_wire_method() = runTest {
+        val capturedMethods = mutableListOf<String>()
+        val mockEngine = MockEngine { request ->
+            capturedMethods += request.method.value
+            respond(content = "ok", status = HttpStatusCode.OK)
+        }
+        val apiClient = KtorApiClient(
+            httpClient = HttpClient(mockEngine) { expectSuccess = false },
+            retryPolicy = RetryPolicy(maxAttempts = 1),
+        )
+
+        for (method in HttpMethodType.entries) {
+            val events = apiClient.execute(
+                RequestDefinition(
+                    id = "req-${method.name}",
+                    name = method.name,
+                    method = method,
+                    url = "https://api.test/methods",
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1L,
+                ),
+            ).toList()
+            assertTrue(events.last() is NetworkEvent.Success, "Method ${method.name} should succeed")
+        }
+
+        assertEquals(HttpMethodType.entries.map { it.name }, capturedMethods)
+    }
+
+    @Test
+    fun jwt_auth_and_graphql_mutation_with_operation_name_and_errors_response() = runTest {
+        var capturedAuth: String? = null
+        var capturedBody = ""
+        val mockEngine = MockEngine { request ->
+            capturedAuth = request.headers[HttpHeaders.Authorization]
+            capturedBody = request.body.toByteArray().decodeToString()
+            respond(
+                content = """{"data":null,"errors":[{"message":"Validation failed","path":["createUser"]}]}""",
+                status = HttpStatusCode.OK,
+                headers = io.ktor.http.headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+            )
+        }
+        val apiClient = KtorApiClient(
+            httpClient = HttpClient(mockEngine) { expectSuccess = false },
+            retryPolicy = RetryPolicy(maxAttempts = 1),
+        )
+
+        val events = apiClient.execute(
+            RequestDefinition(
+                id = "req-gql-mutation",
+                name = "CreateUser Mutation",
+                method = HttpMethodType.POST,
+                url = "https://api.test/graphql",
+                auth = AuthConfig(type = AuthType.JWT, params = mapOf("token" to "eyJ.jwt.sig")),
+                body = RequestBody(
+                    type = BodyType.GRAPHQL,
+                    graphQl = GraphQlBody(
+                        query = "mutation CreateUser(\$name: String!) { createUser(name: \$name) { id } }",
+                        operationName = "CreateUser",
+                        variablesJson = """{"name":"Ada"}""",
+                    ),
+                ),
+                createdAtEpochMillis = 1L,
+                updatedAtEpochMillis = 1L,
+            ),
+        ).toList()
+
+        val success = events.last() as NetworkEvent.Success
+        assertEquals("Bearer eyJ.jwt.sig", capturedAuth)
+        val parsedReq = Json.parseToJsonElement(capturedBody).jsonObject
+        assertEquals("CreateUser", parsedReq["operationName"]?.jsonPrimitive?.content)
+        assertTrue(parsedReq["query"]?.jsonPrimitive?.content?.contains("mutation CreateUser") == true)
+        assertEquals("Ada", parsedReq["variables"]?.jsonObject?.get("name")?.jsonPrimitive?.content)
+        assertEquals(200, success.response.statusCode)
+        assertTrue(success.response.bodyText.contains("Validation failed"))
+    }
+
     private fun capturingClient(
         allowJson5: Boolean = true,
         onCapture: (String) -> Unit,

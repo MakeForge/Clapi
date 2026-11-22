@@ -31,7 +31,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import org.junit.Assume
+import io.github.makeforge.clapi.testsupport.CiTestGuard
 import org.junit.Before
 import org.junit.Test
 import java.net.InetSocketAddress
@@ -59,7 +59,12 @@ class RabbitMqEndToEndTest {
                 true
             }
         }.getOrDefault(false)
-        Assume.assumeTrue("Skipping RabbitMqEndToEndTest: RabbitMQ not reachable at $host:$port", reachable)
+        CiTestGuard.requireServiceOrSkip(
+            serviceName = "RabbitMQ broker",
+            endpoint = "$host:$port",
+            isReachable = reachable,
+            localHint = "qa-tests/docker/docker-compose.rabbitmq.yml",
+        )
     }
 
     @Test

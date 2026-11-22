@@ -45,6 +45,7 @@ import io.github.makeforge.clapi.ui.desktop.logging.GlobalCrashHandler
 import io.github.makeforge.clapi.ui.desktop.logging.LogDirectoryConfigurator
 import io.github.makeforge.clapi.ui.desktop.logging.UiLogDispatcher
 import io.github.makeforge.clapi.ui.shared.MainScreen
+import io.github.makeforge.clapi.ui.shared.components.executor.runScriptEngineSmokeCheck
 import io.github.makeforge.clapi.ui.shared.components.BrandIcon
 import io.github.makeforge.clapi.ui.shared.components.CrashReportContent
 import io.github.makeforge.clapi.ui.shared.components.ResponseViewer
@@ -140,6 +141,44 @@ fun main(args: Array<String>) {
         runBlocking {
             AppState(openDefaultTab = false).disposeAndAwait()
         }
+        LogDirectoryConfigurator.shutdown()
+        return
+    }
+
+    if ("--packaged-smoke-test" in args) {
+        runBlocking {
+            // 1. Storage round-trip in isolated storageDir
+            val writeState = AppState(openDefaultTab = false)
+            writeState.settings.requestTimeoutSec = 42
+            SettingsRepository.save(writeState.settings)
+            writeState.createNewCollection("Smoke Collection")
+            val col = writeState.collections.first()
+            writeState.addRequestToCollection(col.id)
+            writeState.activeTab?.url = "http://127.0.0.1/smoke-check"
+            WorkspaceRepository.save(writeState)
+            TabsRepository.save(writeState)
+
+            val readState = AppState(openDefaultTab = false)
+            SettingsRepository.load(readState.settings)
+            WorkspaceRepository.load(readState)
+            TabsRepository.load(readState)
+            check(readState.collections.any { it.name == "Smoke Collection" }) {
+                "STORAGE_ROUNDTRIP failed: Smoke Collection not reloaded from $storageDir"
+            }
+            check(readState.openTabs.any { it.url == "http://127.0.0.1/smoke-check" }) {
+                "STORAGE_ROUNDTRIP failed: smoke tab not reloaded"
+            }
+
+            // 2. Javet V8 script engine check
+            runScriptEngineSmokeCheck()
+
+            // 3. Clean AppState dispose
+            writeState.disposeAndAwait()
+            readState.disposeAndAwait()
+        }
+        println("CLAPI_SMOKE_OK checks=STORAGE_ROUNDTRIP,SCRIPT_ENGINE_V8,APP_DISPOSE")
+        System.out.flush()
+        LogDirectoryConfigurator.shutdown()
         return
     }
 
@@ -330,6 +369,7 @@ fun main(args: Array<String>) {
                                         activeCrash = null
                                         GlobalCrashHandler.restartApplication()
                                     },
+                                    secretValues = io.github.makeforge.clapi.ui.shared.components.executor.SecretLogRedactor.collectSecretValues(state),
                                 )
                             }
                         }

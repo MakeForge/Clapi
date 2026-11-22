@@ -142,6 +142,7 @@ fun RabbitMqConnectionBar(
                 RabbitMqOperationMode.entries.forEach { mode ->
                     DenseDropdownMenuItem(
                         text = { Text("${mode.badge} — ${mode.value.replaceFirstChar { it.uppercase() }}") },
+                        modifier = Modifier.testTag("rabbitmq-mode-option-${mode.value}"),
                         onClick = {
                             tab.rabbitMqMode = mode
                             if (mode == RabbitMqOperationMode.SUBSCRIBE && tab.selectedRabbitMqTab == RabbitMqEditorTab.MESSAGE) {

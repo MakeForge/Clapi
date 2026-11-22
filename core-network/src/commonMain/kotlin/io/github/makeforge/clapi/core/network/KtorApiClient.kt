@@ -363,6 +363,9 @@ class KtorApiClient(
                 body.binaryName
                     ?.takeIf { it.isNotBlank() }
                     ?.let { builder.header("X-Clapi-Filename", it) }
+                if (builder.headers[HttpHeaders.ContentType].isNullOrBlank()) {
+                    builder.contentType(ContentType.Application.OctetStream)
+                }
                 builder.setBody(payloadBytes)
             }
         }

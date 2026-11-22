@@ -2,6 +2,10 @@
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import dev.nucleusframework.desktop.application.dsl.TargetFormat
 import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URI
+import java.nio.file.Files
+import java.util.concurrent.TimeUnit
 import java.util.jar.Attributes
 import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
@@ -56,9 +60,15 @@ kotlin {
                 }
                 implementation(libs.ktor.server.core)
                 implementation(libs.ktor.server.netty)
+                implementation(libs.ktor.server.websockets)
                 implementation(libs.ktor.client.core)
                 implementation(libs.ktor.client.cio)
                 implementation(libs.serialization.json)
+                implementation(libs.grpc.netty.shaded)
+                implementation(libs.grpc.protobuf)
+                implementation(libs.grpc.stub)
+                implementation(libs.protobuf.java)
+                implementation(libs.amqp.client)
                 implementation(libs.compose.ui.tooling.preview)
                 implementation(libs.roborazzi.compose.desktop.preview.scanner.support)
                 implementation(libs.composable.preview.scanner.android)
@@ -68,19 +78,19 @@ kotlin {
 }
 
 roborazzi {
+    outputDir.set(file("src/desktopTest/snapshots/roborazzi"))
     @OptIn(ExperimentalRoborazziApi::class)
     generateComposePreviewDesktopTests {
         enable = true
         packages = listOf("io.github.makeforge.clapi.ui.desktop.preview")
-
     }
 }
 
 val copyScreenshots = tasks.register<Copy>("copyScreenshots") {
     group = "roborazzi"
-    description = "Copies preview screenshots from build/outputs/roborazzi to docs/public/generated/screenshots"
+    description = "Copies preview screenshots from src/desktopTest/snapshots/roborazzi to docs/public/generated/screenshots"
     mustRunAfter("recordRoborazziDesktop")
-    from(layout.buildDirectory.dir("outputs/roborazzi")) {
+    from(layout.projectDirectory.dir("src/desktopTest/snapshots/roborazzi")) {
         include(
             "*MainScreenPreviews*",
             "*GitSyncPreviews*",
@@ -520,27 +530,200 @@ val packageClapiJar = tasks.register<PackageClapiJarTask>("packageClapiJar") {
 }
 
 /**
- * Executes the exact fat JAR produced for release in headless shutdown mode.
- * This catches incomplete/stale runtime contents (for example, a missing
- * generated coroutine lambda) before an artifact is uploaded.
+ * Helper used by both fat-JAR and jlink native-distributable runtime smoke verification tasks.
  */
-tasks.register<Exec>("verifyPackagedRuntime") {
+fun runPackagedSmokeSuite(
+    launcherPrefix: List<String>,
+    workDir: File,
+    runStdioMcp: Boolean,
+    runShutdownOnly: Boolean,
+) {
+    fun runChecked(label: String, args: List<String>, timeoutSec: Long = 60L): String {
+        val pb = ProcessBuilder(launcherPrefix + args).directory(workDir).redirectErrorStream(true)
+        val proc = pb.start()
+        val output = proc.inputStream.bufferedReader().readText()
+        if (!proc.waitFor(timeoutSec, TimeUnit.SECONDS)) {
+            proc.destroyForcibly()
+            throw GradleException("$label timed out after ${timeoutSec}s. Output:\n$output")
+        }
+        if (proc.exitValue() != 0) {
+            throw GradleException("$label failed with exit=${proc.exitValue()}. Output:\n$output")
+        }
+        return output
+    }
+
+    val smokeDir = Files.createTempDirectory("clapi-packaged-smoke-").toFile()
+    try {
+        if (runShutdownOnly) {
+            runChecked("shutdown-smoke-test", listOf("--shutdown-smoke-test", "--dir", smokeDir.absolutePath))
+        }
+
+        val packagedOut = runChecked("packaged-smoke-test", listOf("--packaged-smoke-test", "--dir", smokeDir.absolutePath))
+        if (!packagedOut.contains("CLAPI_SMOKE_OK checks=STORAGE_ROUNDTRIP,SCRIPT_ENGINE_V8,APP_DISPOSE")) {
+            throw GradleException("packaged-smoke-test missing CLAPI_SMOKE_OK marker. Output:\n$packagedOut")
+        }
+
+        // Verify --mcp-http-headless live HTTP JSON-RPC initialize + clean stdin-EOF exit
+        val mcpHttpDir = File(smokeDir, "mcp-http").apply { mkdirs() }
+        val httpProc = ProcessBuilder(
+            launcherPrefix + listOf("--mcp-http-headless", "--mcp-port", "0", "--dir", mcpHttpDir.absolutePath)
+        ).directory(workDir).redirectErrorStream(true).start()
+        try {
+            val reader = httpProc.inputStream.bufferedReader()
+            var readyUrl: String? = null
+            val allLines = mutableListOf<String>()
+            val deadline = System.currentTimeMillis() + 30_000L
+            while (System.currentTimeMillis() < deadline) {
+                val line = reader.readLine() ?: break
+                allLines += line
+                val match = Regex("""CLAPI_MCP_READY\s+url=(\S+)""").find(line)
+                if (match != null) {
+                    readyUrl = match.groupValues[1]
+                    break
+                }
+            }
+            if (readyUrl == null) {
+                throw GradleException("mcp-http-headless did not print CLAPI_MCP_READY. Output:\n${allLines.joinToString("\n")}")
+            }
+
+            val conn = URI(readyUrl).toURL().openConnection() as HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.doOutput = true
+            conn.connectTimeout = 5_000
+            conn.readTimeout = 5_000
+            conn.setRequestProperty("Content-Type", "application/json")
+            conn.setRequestProperty("Accept", "application/json, text/event-stream")
+            val initBody = """{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"smoke","version":"1.0"}}}"""
+            conn.outputStream.use { it.write(initBody.toByteArray()) }
+            val code = conn.responseCode
+            val respBody = (if (code in 200..299) conn.inputStream else conn.errorStream)?.bufferedReader()?.readText().orEmpty()
+            conn.disconnect()
+            if (code != 200 || !respBody.contains("protocolVersion")) {
+                throw GradleException("mcp-http-headless initialize failed: HTTP $code body=$respBody")
+            }
+
+            // Trigger clean shutdown via stdin EOF
+            httpProc.outputStream.close()
+            if (!httpProc.waitFor(15, TimeUnit.SECONDS)) {
+                httpProc.destroyForcibly()
+                throw GradleException("mcp-http-headless did not exit cleanly after stdin EOF")
+            }
+            if (httpProc.exitValue() != 0) {
+                throw GradleException("mcp-http-headless exited with non-zero code ${httpProc.exitValue()}")
+            }
+        } finally {
+            if (httpProc.isAlive) httpProc.destroyForcibly()
+        }
+
+        if (runStdioMcp) {
+            val mcpStdioDir = File(smokeDir, "mcp-stdio").apply { mkdirs() }
+            val stdioProc = ProcessBuilder(
+                launcherPrefix + listOf("--mcp", "--dir", mcpStdioDir.absolutePath)
+            ).directory(workDir).start()
+            try {
+                val initLine = """{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"smoke","version":"1.0"}}}"""
+                stdioProc.outputStream.bufferedWriter().use { w ->
+                    w.write(initLine)
+                    w.newLine()
+                    w.flush()
+                }
+                val stdout = stdioProc.inputStream.bufferedReader().readText()
+                val stderr = stdioProc.errorStream.bufferedReader().readText()
+                if (!stdioProc.waitFor(20, TimeUnit.SECONDS)) {
+                    stdioProc.destroyForcibly()
+                    throw GradleException("mcp stdio smoke test timed out. stdout=$stdout stderr=$stderr")
+                }
+                if (stdioProc.exitValue() != 0 || !stdout.contains("protocolVersion")) {
+                    throw GradleException("mcp stdio smoke test failed (exit=${stdioProc.exitValue()}). stdout=$stdout stderr=$stderr")
+                }
+            } finally {
+                if (stdioProc.isAlive) stdioProc.destroyForcibly()
+            }
+        }
+    } finally {
+        smokeDir.deleteRecursively()
+    }
+}
+
+/**
+ * Executes the exact fat JAR produced for release through legal-file verification,
+ * storage/Javet V8 packaged smoke checks, and live MCP HTTP & stdio handshakes.
+ */
+tasks.register("verifyPackagedRuntime") {
     dependsOn(packageClapiJar)
-    val jarFile = packageClapiJar.flatMap { it.outputJar }
+    notCompatibleWithConfigurationCache("Inspects fat JAR legal files and launches external smoke test processes")
+    val jarFileProvider = packageClapiJar.flatMap { it.outputJar }
     val javaToolchains = project.extensions.getByType<JavaToolchainService>()
     val javaExecutable = javaToolchains.launcherFor {
         languageVersion.set(JavaLanguageVersion.of(25))
     }.get().executablePath.asFile.absolutePath
+    val rootDirFile = project.rootDir
 
-    workingDir = project.rootDir
-    commandLine(
-        javaExecutable,
-        "-jar",
-        jarFile.get().asFile.absolutePath,
-        "--shutdown-smoke-test",
-    )
-    description = "Runs the packaged Clapi JAR through its headless shutdown path."
+    description = "Verifies packaged Clapi fat JAR legal files, storage/V8 smoke test, and MCP HTTP/stdio handshakes."
     group = "verification"
+
+    doLast {
+        val jarFile = jarFileProvider.get().asFile
+        if (!jarFile.exists()) {
+            throw GradleException("Packaged fat JAR not found at ${jarFile.absolutePath}")
+        }
+        ZipFile(jarFile).use { zip ->
+            if (zip.getEntry("META-INF/LICENSE") == null) {
+                throw GradleException("Missing META-INF/LICENSE in ${jarFile.name}")
+            }
+            if (zip.getEntry("META-INF/NOTICE") == null) {
+                throw GradleException("Missing META-INF/NOTICE in ${jarFile.name}")
+            }
+        }
+        runPackagedSmokeSuite(
+            launcherPrefix = listOf(javaExecutable, "-jar", jarFile.absolutePath),
+            workDir = rootDirFile,
+            runStdioMcp = true,
+            runShutdownOnly = true,
+        )
+    }
+}
+
+/**
+ * Executes the jlink-trimmed native distributable launcher produced by `createDistributable`
+ * to verify JPMS modules, native libs, bundled legal files, storage/V8, and MCP HTTP handshake.
+ */
+tasks.register("verifyDistributableRuntime") {
+    dependsOn("createDistributable")
+    notCompatibleWithConfigurationCache("Inspects unpacked native distributable and launches native smoke processes")
+    val appDirProvider = layout.buildDirectory.dir("compose/binaries/main/app")
+    val rootDirFile = project.rootDir
+
+    description = "Verifies unpacked jlink native distributable legal files, storage/V8 smoke test, and MCP HTTP handshake."
+    group = "verification"
+
+    doLast {
+        val appDir = appDirProvider.get().asFile
+        if (!appDir.exists()) {
+            throw GradleException("Unpacked distributable directory not found at ${appDir.absolutePath}")
+        }
+        val osName = System.getProperty("os.name").lowercase()
+        val launcher: File = when {
+            osName.contains("mac") -> File(appDir, "Clapi.app/Contents/MacOS/Clapi")
+            osName.contains("win") -> File(appDir, "Clapi/Clapi.exe")
+            else -> File(appDir, "Clapi/bin/Clapi")
+        }
+        if (!launcher.exists()) {
+            val listing = appDir.walkTopDown().maxDepth(4).joinToString("\n") { it.relativeTo(appDir).path }
+            throw GradleException("Native launcher not found at ${launcher.absolutePath}. Found:\n$listing")
+        }
+        val hasLicense = appDir.walkTopDown().any { it.isFile && it.name.equals("LICENSE", ignoreCase = true) }
+        val hasNotice = appDir.walkTopDown().any { it.isFile && it.name.equals("NOTICE", ignoreCase = true) }
+        if (!hasLicense || !hasNotice) {
+            throw GradleException("Missing bundled LICENSE ($hasLicense) or NOTICE ($hasNotice) under ${appDir.absolutePath}")
+        }
+        runPackagedSmokeSuite(
+            launcherPrefix = listOf(launcher.absolutePath),
+            workDir = rootDirFile,
+            runStdioMcp = false,
+            runShutdownOnly = false,
+        )
+    }
 }
 
 tasks.register<Exec>("runClapiJar") {

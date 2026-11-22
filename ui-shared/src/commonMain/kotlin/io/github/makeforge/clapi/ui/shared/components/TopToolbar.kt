@@ -282,6 +282,7 @@ private fun EnvironmentChip(state: AppState) {
                 state.environments.forEachIndexed { index, env ->
                     val envColor = env.color?.let { parseHexColor(it) } ?: (if (index == state.selectedEnvIndex) ClapiColors.Secondary else ClapiColors.OnSurfaceDim)
                     DenseDropdownMenuItem(
+                        modifier = Modifier.testTag("env-dropdown-item-$index"),
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Box(

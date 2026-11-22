@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   unit-tests:
-    name: Unit & Integration Tests
+    name: Unit, UI & Integration Tests
     runs-on: ubuntu-latest
     timeout-minutes: 90
 
@@ -37,16 +37,36 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Run unit tests
+      - name: Start Docker Compose test services
+        run: ./gradlew :qa-tests:dockerComposeUp --no-daemon --stacktrace
+
+      - name: Run full 10-module test suite
         run: |
           xvfb-run -a --server-args="-screen 0 1920x1080x24" \
             ./gradlew \
-            :editor-core:desktopTest \
-            :editor-ui:desktopTest \
+            :core-model:allTests \
+            :core-network:desktopTest \
             :core-scripting:desktopTest \
+            :core-storage:allTests \
+            :editor-core:desktopTest \
+            :editor-ui:allTests \
+            :mcp-server:allTests \
             :ui-shared:desktopTest \
+            :ui-desktop:desktopTest \
             :qa-tests:jvmTest \
-            --no-daemon --stacktrace --continue
+            --no-parallel \
+            --no-daemon \
+            --stacktrace \
+            --continue
+
+      - name: Verify Roborazzi visual baselines
+        run: |
+          xvfb-run -a --server-args="-screen 0 1920x1080x24" \
+            ./gradlew :ui-desktop:verifyRoborazziDesktop --no-daemon --stacktrace
+
+      - name: Stop Docker Compose test services
+        if: always()
+        run: ./gradlew :qa-tests:dockerComposeDown --no-daemon --stacktrace
 
       - name: Upload test reports on failure
         if: failure()
@@ -56,4 +76,5 @@ jobs:
           path: |
             **/build/reports/tests/
             **/build/test-results/
+            ui-desktop/build/outputs/roborazzi/
           retention-days: 7

@@ -10,6 +10,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -108,25 +109,14 @@ fun RequestBar(
     /** Per-tab undo stack for the URL field. Pass [RequestTabState.urlUndoStack]. */
     urlUndoStack: ArrayDeque<String>? = null,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(ClapiColors.Surface)
-            .padding(horizontal = 6.dp, vertical = 6.dp)
-            .testTag("request-bar"),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        MethodDropdown(method, onMethodChanged)
-
+    val urlInputBox: @Composable (Modifier) -> Unit = { boxModifier ->
         // URL input (variable-aware: highlights {{token}} in orange)
         var showPreviewPopup by remember { mutableStateOf(false) }
         var urlTextWidth by remember { mutableStateOf(0) }
         val density = LocalDensity.current
 
         Box(
-            modifier = Modifier
-                .weight(1f)
+            modifier = boxModifier
                 .clip(RoundedCornerShape(8.dp))
                 .background(ClapiColors.SurfaceContainer)
                 .border(1.dp, ClapiColors.Border, RoundedCornerShape(8.dp))
@@ -268,19 +258,69 @@ fun RequestBar(
                 }
             }
         }
+    }
 
-        SendButton(isLoading, onSend, onCancel)
-        SaveButton(isLoading = isLoading, onClick = onSave)
-        RetryControlsButton(
-            retryEnabled = retryEnabled,
-            retryCount = retryCount,
-            retryDelayMs = retryDelayMs,
-            isLoading = isLoading,
-            onRetryEnabledChanged = onRetryEnabledChanged,
-            onRetryCountChanged = onRetryCountChanged,
-            onRetryDelayChanged = onRetryDelayChanged,
-        )
-        CopyCurlButton(isLoading = isLoading, copyFormats = copyFormats)
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(ClapiColors.Surface)
+            .padding(horizontal = 6.dp, vertical = 6.dp)
+            .testTag("request-bar"),
+    ) {
+        if (maxWidth < 400.dp) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    MethodDropdown(method, onMethodChanged)
+                    urlInputBox(Modifier.weight(1f))
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
+                ) {
+                    SendButton(isLoading, onSend, onCancel)
+                    SaveButton(isLoading = isLoading, onClick = onSave)
+                    RetryControlsButton(
+                        retryEnabled = retryEnabled,
+                        retryCount = retryCount,
+                        retryDelayMs = retryDelayMs,
+                        isLoading = isLoading,
+                        onRetryEnabledChanged = onRetryEnabledChanged,
+                        onRetryCountChanged = onRetryCountChanged,
+                        onRetryDelayChanged = onRetryDelayChanged,
+                    )
+                    CopyCurlButton(isLoading = isLoading, copyFormats = copyFormats)
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                MethodDropdown(method, onMethodChanged)
+                urlInputBox(Modifier.weight(1f))
+                SendButton(isLoading, onSend, onCancel)
+                SaveButton(isLoading = isLoading, onClick = onSave)
+                RetryControlsButton(
+                    retryEnabled = retryEnabled,
+                    retryCount = retryCount,
+                    retryDelayMs = retryDelayMs,
+                    isLoading = isLoading,
+                    onRetryEnabledChanged = onRetryEnabledChanged,
+                    onRetryCountChanged = onRetryCountChanged,
+                    onRetryDelayChanged = onRetryDelayChanged,
+                )
+                CopyCurlButton(isLoading = isLoading, copyFormats = copyFormats)
+            }
+        }
     }
 }
 

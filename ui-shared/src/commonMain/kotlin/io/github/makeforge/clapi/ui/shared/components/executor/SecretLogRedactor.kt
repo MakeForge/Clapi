@@ -13,22 +13,39 @@ object SecretLogRedactor {
 
     /**
      * Collects all active secret values for [tab] from [resolvedSecrets] (Vault, AWS, GCP, Azure,
-     * KeePassXC, Keeper) and enabled `secret = true` environment variables.
+     * KeePassXC, Keeper), enabled `secret = true` variables in the active environment and all
+     * inherited parent environments (`extends` chain), and enabled `secret = true` global variables.
      */
     fun collectSecretValues(
         state: AppState,
         tab: RequestTabState? = null,
         resolvedSecrets: Map<String, String>? = null,
     ): Set<String> = buildSet {
-        resolvedSecrets?.values?.forEach { value ->
-            if (value.isNotBlank() && value.length >= MIN_SECRET_LENGTH) {
+        fun addIfValid(value: String?) {
+            if (!value.isNullOrBlank() && value.length >= MIN_SECRET_LENGTH) {
                 add(value)
             }
         }
-        state.selectedEnvironment?.variables?.forEach { kv ->
-            if (kv.enabled && kv.secret && kv.value.isNotBlank() && kv.value.length >= MIN_SECRET_LENGTH) {
-                add(kv.value)
+        resolvedSecrets?.values?.forEach { addIfValid(it) }
+
+        // Walk active environment + inherited parent environments safely (cycle-protected)
+        val visitedEnvs = mutableSetOf<String>()
+        var currentEnv = state.selectedEnvironment
+        while (currentEnv != null && visitedEnvs.add(currentEnv.name)) {
+            currentEnv.variables.forEach { kv ->
+                if (kv.enabled && kv.secret) addIfValid(kv.value)
             }
+            val parentName = currentEnv.extends?.trim()
+            currentEnv = if (!parentName.isNullOrEmpty()) {
+                state.environments.firstOrNull { it.name == parentName }
+            } else {
+                null
+            }
+        }
+
+        // Global secret variables
+        state.globalVariables.forEach { kv ->
+            if (kv.enabled && kv.secret) addIfValid(kv.value)
         }
     }
 
