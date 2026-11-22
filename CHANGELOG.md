@@ -24,6 +24,4 @@ All notable changes to Clapi are documented here.
 
 ### Fixes
 
-- **Apache 2.0 License Compliance & Packaging**: Bundled `LICENSE` and `NOTICE` in native installers and the runnable fat JAR (preserving third-party dependency notices/licenses), added License & Attribution details to Help & About, preserved upstream ReqLab copyright attribution in `NOTICE`, and added modification notices to ReqLab-derived source files.
-
 ---

@@ -25,6 +25,7 @@ import androidx.compose.ui.input.key.utf16CodePoint
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.semantics.semantics
+import dev.nucleusframework.window.tao.TaoDragAndDropPayload
 import eu.anifantakis.lib.ksafe.KSafe
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.PlatformFile
@@ -568,9 +569,9 @@ actual fun Modifier.fileDropTarget(
         object : DragAndDropTarget {
             override fun onDrop(event: DragAndDropEvent): Boolean {
                 try {
-                    val taoFiles = extractTaoDroppedFiles(event.nativeEvent)
+                    val payload = event.nativeEvent as? TaoDragAndDropPayload
                     val files: List<File> = when {
-                        taoFiles != null -> taoFiles
+                        payload != null -> payload.files.map { File(it) }
                         else -> {
                             val transferable = runCatching { event.awtTransferable }.getOrNull()
                             if (transferable != null && transferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
@@ -622,14 +623,5 @@ actual fun Modifier.fileDropTarget(
         .semantics {
             set(FileDropSemanticsKey, currentOnFileDropped)
         }
-}
-
-private fun extractTaoDroppedFiles(nativeEvent: Any?): List<File>? {
-    if (nativeEvent == null) return null
-    if (nativeEvent.javaClass.name != "dev.nucleusframework.window.tao.TaoDragAndDropPayload") return null
-    val paths = runCatching {
-        nativeEvent.javaClass.getMethod("getFiles").invoke(nativeEvent) as? List<*>
-    }.getOrNull() ?: return null
-    return paths.filterIsInstance<String>().map { File(it) }
 }
 
