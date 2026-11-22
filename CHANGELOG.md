@@ -5,7 +5,7 @@ All notable changes to Clapi are documented here.
 
 ---
 
-## [1.0.0] - TBD
+## [1.0.0] - 2026-11-23
 
 ### New Features
 
