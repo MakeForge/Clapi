@@ -403,13 +403,17 @@ class McpHttpE2ETest {
             "io.github.makeforge.clapi.server.ApplicationKt",
             "--stdio",
         ).start()
-        try {
-            val inbound = Channel<String>(Channel.UNLIMITED)
-            val readerJob = launch(Dispatchers.IO) {
+        val inbound = Channel<String>(Channel.UNLIMITED)
+        val readerJob = launch(Dispatchers.IO) {
+            try {
                 process.inputStream.bufferedReader().useLines { lines ->
                     lines.forEach { inbound.trySend(it) }
                 }
+            } catch (_: java.io.IOException) {
+                // Expected when the child process is destroyed during teardown.
             }
+        }
+        try {
             val transport = NdjsonStdioTransport(
                 scope = this,
                 incomingLines = inbound,
@@ -417,7 +421,10 @@ class McpHttpE2ETest {
                     process.outputStream.write((it + "\n").toByteArray(Charsets.UTF_8))
                     process.outputStream.flush()
                 },
-                onClose = { process.destroy() },
+                onClose = {
+                    readerJob.cancel()
+                    process.destroy()
+                },
             )
             val client = McpClient(this, stdioFactory = { transport }, callTimeoutMs = 30_000)
             val init = client.connect(
@@ -427,8 +434,8 @@ class McpHttpE2ETest {
             val echo = client.callTool("echo", buildJsonObject { put("text", "hi") })
             assertEquals("hi", echo.content.single().text)
             client.close()
-            readerJob.cancel()
         } finally {
+            readerJob.cancel()
             process.destroyForcibly()
         }
     }
@@ -591,13 +598,17 @@ class McpHttpE2ETest {
             "io.github.makeforge.clapi.server.ApplicationKt",
             "--stdio",
         ).start()
-        try {
-            val inbound = Channel<String>(Channel.UNLIMITED)
-            val readerJob = launch(Dispatchers.IO) {
+        val inbound = Channel<String>(Channel.UNLIMITED)
+        val readerJob = launch(Dispatchers.IO) {
+            try {
                 process.inputStream.bufferedReader().useLines { lines ->
                     lines.forEach { inbound.trySend(it) }
                 }
+            } catch (_: java.io.IOException) {
+                // Expected when the child process is destroyed during teardown.
             }
+        }
+        try {
             val transport = NdjsonStdioTransport(
                 scope = this,
                 incomingLines = inbound,
@@ -605,7 +616,10 @@ class McpHttpE2ETest {
                     process.outputStream.write((it + "\n").toByteArray(Charsets.UTF_8))
                     process.outputStream.flush()
                 },
-                onClose = { process.destroy() },
+                onClose = {
+                    readerJob.cancel()
+                    process.destroy()
+                },
             )
             val client = McpClient(this, stdioFactory = { transport }, callTimeoutMs = 30_000)
             client.connect(
@@ -624,8 +638,8 @@ class McpHttpE2ETest {
                 mustNotContain = listOf("Invalid request"),
             )
             client.close()
-            readerJob.cancel()
         } finally {
+            readerJob.cancel()
             process.destroyForcibly()
         }
     }

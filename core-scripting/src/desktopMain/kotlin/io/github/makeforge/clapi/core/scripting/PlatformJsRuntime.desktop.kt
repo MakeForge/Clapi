@@ -7,6 +7,8 @@ import com.caoccao.javet.interop.V8Host
 import com.caoccao.javet.interop.V8Runtime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.concurrent.Callable
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
@@ -14,9 +16,12 @@ import java.util.concurrent.TimeUnit
 /**
  * Javet V8 JS runtime for Desktop (JVM).
  *
- * Reuses a single synchronized [V8Runtime] isolate under active load and calls `resetContext()`
- * between evaluations for full JS global sandbox isolation. After [IDLE_CLOSE_DELAY_MS] of
- * inactivity, the isolate is closed so V8 releases its native heap back to the OS.
+ * All [V8Runtime] operations (creation, script evaluation, context reset, and disposal) are
+ * pinned to a single dedicated OS thread ([v8Executor]) to satisfy V8's strict isolate
+ * thread-affinity requirements and prevent cross-thread native crashes (`SIGSEGV`).
+ * Between evaluations, `resetContext()` provides full JS global sandbox isolation; after
+ * [IDLE_CLOSE_DELAY_MS] of inactivity, the isolate is closed on the same owning thread so
+ * V8 releases its native heap back to the OS.
  * Large strings (such as response bodies) can be bound directly onto `globalThis` via
  * [evaluateJsWithGlobals] without escaping them into JS source literals.
  */
@@ -26,31 +31,57 @@ private const val IDLE_CLOSE_DELAY_MS = 10_000L
 private const val LARGE_PAYLOAD_GC_HINT_THRESHOLD = 64_000
 
 private object PooledV8RuntimeHolder {
-    private val lock = Any()
+    // All mutable state below is accessed exclusively on the single v8Executor thread.
+    @Volatile
+    private var v8Thread: Thread? = null
     private var runtime: V8Runtime? = null
     private var idleCloseTask: ScheduledFuture<*>? = null
+    private var generation: Long = 0L
 
-    private val idleScheduler = Executors.newSingleThreadScheduledExecutor { runnable ->
-        Thread(runnable, "clapi-v8-idle-reaper").apply { isDaemon = true }
+    private val v8Executor = Executors.newSingleThreadScheduledExecutor { runnable ->
+        Thread(runnable, "clapi-v8-worker").apply {
+            isDaemon = true
+            v8Thread = this
+        }
     }
 
     init {
-        Runtime.getRuntime().addShutdownHook(Thread {
-            synchronized(lock) {
-                idleCloseTask?.cancel(false)
-                idleCloseTask = null
-                runCatching { runtime?.close() }
-                runtime = null
-                runCatching { idleScheduler.shutdownNow() }
+        Runtime.getRuntime().addShutdownHook(Thread({
+            runCatching {
+                v8Executor.submit {
+                    idleCloseTask?.cancel(false)
+                    idleCloseTask = null
+                    runCatching { runtime?.close() }
+                    runtime = null
+                }.get(2, TimeUnit.SECONDS)
             }
-        })
+            runCatching { v8Executor.shutdownNow() }
+        }, "clapi-v8-shutdown"))
     }
 
     fun execute(
         script: String,
         timeoutMs: Long,
         globals: Map<String, String?> = emptyMap(),
-    ): String = synchronized(lock) {
+    ): String {
+        if (Thread.currentThread() === v8Thread) {
+            return executeOnV8Thread(script, timeoutMs, globals)
+        }
+        return try {
+            v8Executor.submit(Callable {
+                executeOnV8Thread(script, timeoutMs, globals)
+            }).get()
+        } catch (e: ExecutionException) {
+            throw e.cause ?: e
+        }
+    }
+
+    private fun executeOnV8Thread(
+        script: String,
+        timeoutMs: Long,
+        globals: Map<String, String?>,
+    ): String {
+        val currentGen = ++generation
         idleCloseTask?.cancel(false)
         idleCloseTask = null
 
@@ -61,12 +92,13 @@ private object PooledV8RuntimeHolder {
 
         try {
             if (globals.isNotEmpty()) {
-                val globalObj = v8.globalObject
-                for ((key, value) in globals) {
-                    if (value == null) {
-                        globalObj.setNull(key)
-                    } else {
-                        globalObj.set(key, value)
+                v8.globalObject.use { globalObj ->
+                    for ((key, value) in globals) {
+                        if (value == null) {
+                            globalObj.setNull(key)
+                        } else {
+                            globalObj.set(key, value)
+                        }
                     }
                 }
             }
@@ -77,8 +109,8 @@ private object PooledV8RuntimeHolder {
             if (totalPayloadChars >= LARGE_PAYLOAD_GC_HINT_THRESHOLD) {
                 v8.lowMemoryNotification()
             }
-            scheduleIdleClose()
-            result
+            scheduleIdleClose(currentGen)
+            return result
         } catch (e: JavetTerminatedException) {
             // Isolate was forcefully terminated; discard and recreate on next call.
             runCatching { v8.close() }
@@ -91,7 +123,7 @@ private object PooledV8RuntimeHolder {
                 runCatching { v8.close() }
                 runtime = null
             } else {
-                scheduleIdleClose()
+                scheduleIdleClose(currentGen)
             }
             throw e
         }
@@ -120,16 +152,15 @@ private object PooledV8RuntimeHolder {
         }
     }
 
-    private fun scheduleIdleClose() {
-        idleCloseTask = idleScheduler.schedule({
-            synchronized(lock) {
-                val current = runtime
-                if (current != null && !current.isClosed) {
-                    runCatching { current.close() }
-                }
-                runtime = null
-                idleCloseTask = null
+    private fun scheduleIdleClose(expectedGen: Long) {
+        idleCloseTask = v8Executor.schedule({
+            if (generation != expectedGen) return@schedule
+            val current = runtime
+            if (current != null && !current.isClosed) {
+                runCatching { current.close() }
             }
+            runtime = null
+            idleCloseTask = null
             trimNativeHeapIfLinux()
         }, IDLE_CLOSE_DELAY_MS, TimeUnit.MILLISECONDS)
     }
