@@ -1,51 +1,91 @@
-import DefaultTheme from 'vitepress/theme';
+import DefaultTheme, {VPButton} from 'vitepress/theme';
+import {h} from 'vue';
 import ThemedScreenshot from './components/ThemedScreenshot.vue';
 import HeroProtocolIcons from './components/HeroProtocolIcons.vue';
 import './custom.css';
-import { h } from 'vue';
-import { VPButton } from 'vitepress/theme';
+
+function scrollActiveSidebarItem(behavior: ScrollBehavior = 'smooth') {
+  if (typeof window === 'undefined') return;
+
+  // Delay slightly so VitePress finishes expanding collapsible groups and updating .is-active
+  setTimeout(() => {
+    const sidebar = document.querySelector<HTMLElement>('.VPSidebar');
+    const activeLink = document.querySelector<HTMLElement>(
+        '.VPSidebar .VPSidebarItem.is-active > .item .link'
+    );
+
+    if (!sidebar || !activeLink) return;
+
+    const sidebarRect = sidebar.getBoundingClientRect();
+    const linkRect = activeLink.getBoundingClientRect();
+
+    // Only scroll if the active item is near/outside the visible sidebar area
+    const isOutOfView =
+        linkRect.top < sidebarRect.top + 80 ||
+        linkRect.bottom > sidebarRect.bottom - 40;
+
+    if (isOutOfView) {
+      activeLink.scrollIntoView({
+        behavior,
+        block: 'center',
+      });
+    }
+  }, 120);
+}
 
 export default {
   extends: DefaultTheme,
   enhanceApp({app, router}) {
     app.component('ThemedScreenshot', ThemedScreenshot);
 
-    if (typeof window !== 'undefined' && !(window as any).__clapi_nav_listener_registered) {
-      (window as any).__clapi_nav_listener_registered = true;
+    if (typeof window !== 'undefined') {
+      // Scroll active sidebar item into view on initial page load
+      scrollActiveSidebarItem('instant');
 
-      window.addEventListener(
-          'click',
-          (e) => {
-            const target = e.target as HTMLElement | null;
-            if (!target) return;
+      // Scroll active sidebar item into view whenever the user navigates to another subpage
+      const prevAfterRouteChange = router.onAfterRouteChange;
+      router.onAfterRouteChange = (to) => {
+        prevAfterRouteChange?.(to);
+        scrollActiveSidebarItem('smooth');
+      };
 
-            // When pressing a navigation bar group topic (e.g. Getting Started, Request Types)
-            const navGroupBtn = target.closest('.VPNavBarMenuGroup > .button');
-            if (!navGroupBtn) return;
+      if (!(window as any).__clapi_nav_listener_registered) {
+        (window as any).__clapi_nav_listener_registered = true;
 
-            const groupEl = navGroupBtn.closest('.VPNavBarMenuGroup');
-            if (!groupEl) return;
+        window.addEventListener(
+            'click',
+            (e) => {
+              const target = e.target as HTMLElement | null;
+              if (!target) return;
 
-            // Find the first link belonging to that group in the flyout menu
-            const firstLink = groupEl.querySelector<HTMLAnchorElement>('.menu a[href]');
-            if (!firstLink) return;
+              // When pressing a navigation bar group topic (e.g. Getting Started, Request Types)
+              const navGroupBtn = target.closest('.VPNavBarMenuGroup > .button');
+              if (!navGroupBtn) return;
 
-            const url = firstLink.getAttribute('href');
-            if (!url) return;
+              const groupEl = navGroupBtn.closest('.VPNavBarMenuGroup');
+              if (!groupEl) return;
 
-            if (e.metaKey || e.ctrlKey || e.shiftKey) {
-              window.open(url, '_blank');
-              return;
-            }
+              // Find the first link belonging to that group in the flyout menu
+              const firstLink = groupEl.querySelector<HTMLAnchorElement>('.menu a[href]');
+              if (!firstLink) return;
 
-            e.preventDefault();
-            e.stopPropagation();
+              const url = firstLink.getAttribute('href');
+              if (!url) return;
 
-            (navGroupBtn as HTMLElement).blur();
-            router.go(url);
-          },
-          true
-      );
+              if (e.metaKey || e.ctrlKey || e.shiftKey) {
+                window.open(url, '_blank');
+                return;
+              }
+
+              e.preventDefault();
+              e.stopPropagation();
+
+              (navGroupBtn as HTMLElement).blur();
+              router.go(url);
+            },
+            true
+        );
+      }
     }
   },
   Layout() {
@@ -61,10 +101,10 @@ export default {
                   text: 'Download',
                   href: 'https://github.com/MakeForge/Clapi/releases/latest',
                   theme: 'brand', // 'brand' | 'alt' | 'sponsor'
-                  size: 'medium'  // 'medium' | 'big'
-                })
+                  size: 'medium', // 'medium' | 'big'
+                }),
               ]
-          )
-    })
-  }
+          ),
+    });
+  },
 };

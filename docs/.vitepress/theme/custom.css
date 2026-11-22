@@ -1,5 +1,5 @@
 /**
- * Custom Material 3 Styling Tokens for Clapi Documentation
+- Custom Material 3 Styling Tokens for Clapi Documentation
  */
 
 :root {
@@ -152,7 +152,6 @@ html.dark .light-only,
   max-width: 700px !important;
   height: auto !important;
   min-height: unset !important;
-  transform: none !important;
   display: flex !important;
   align-items: center;
   justify-content: center;
@@ -433,4 +432,76 @@ html.dark .light-only,
 
 .dark .hero-protocol-icon.monochrome {
   filter: invert(1);
+}
+
+/* Hero image slide-up + fade-in animation */
+@keyframes heroSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(60px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.VPHome .VPHero .image {
+  animation: heroSlideUp 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .VPHome .VPHero .image {
+    animation: none;
+  }
+}
+
+/* Animated gradient flow on the "Clapi" hero title */
+@keyframes heroGradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.VPHome .VPHero .name,
+.VPHome .VPHero .clip {
+  background-image: linear-gradient(
+      135deg,
+      #6750a4 0%,
+      #006874 50%,
+      #6750a4 100%
+  ) !important;
+  background-size: 200% auto !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  animation: heroGradientFlow 9s ease-in-out infinite !important;
+}
+
+.dark .VPHome .VPHero .name,
+.dark .VPHome .VPHero .clip {
+  background-image: linear-gradient(
+      135deg,
+      #d0bcff 0%,
+      #4fd8eb 50%,
+      #d0bcff 100%
+  ) !important;
+  background-size: 200% auto !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  animation: heroGradientFlow 6s ease-in-out infinite !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .VPHome .VPHero .name,
+  .VPHome .VPHero .clip {
+    animation: none !important;
+  }
 }
