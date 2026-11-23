@@ -20,7 +20,7 @@ dependencies {
     implementation(libs.serialization.json)
 
     // Logging (required by Netty)
-    implementation("ch.qos.logback:logback-classic:1.5.13")
+    implementation("ch.qos.logback:logback-classic:1.6.8")
 
     testImplementation(libs.kotlin.test)
     testImplementation(libs.junit4)
