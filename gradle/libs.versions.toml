@@ -19,7 +19,7 @@ keepassxc-proxy-access = "1.2.9" # higher versions require java >=21
 json = "20260719"
 guava = "33.7.2-android"
 cyclonedxBom = "3.5.1"
-jackson = "2.22.4"
+jackson = "2.23.0"
 keeper-secrets-manager = "17.2.0"
 roborazzi = "1.70.0"
 composable-preview-scanner = "0.9.1"
