@@ -28,7 +28,7 @@ tinylog = "2.8.1"
 slf4j = "2.0.17"
 kotlin-logging = "8.0.7"
 nucleus = "3.0.0-dev-202611222143"
-filekit = "0.14.2"
+filekit = "0.17.1"
 amqp-client = "5.37.1"
 
 [libraries]
