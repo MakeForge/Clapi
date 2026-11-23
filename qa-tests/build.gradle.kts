@@ -144,10 +144,16 @@ val dockerComposeDown = tasks.register<DockerComposeTask>("dockerComposeDown") {
     composeSubcommand.set(listOf("down", "-v", "--remove-orphans"))
 }
 
-// 4. Hook into test lifecycle
+// 4. Hook into test lifecycle (disabled when CI manages compose up/down across multiple test modules)
+val externalDockerCompose = providers.gradleProperty("externalDockerCompose")
+    .map { it.equals("true", ignoreCase = true) }
+    .getOrElse(false)
+
 tasks.named<Test>("jvmTest") { // Or tasks.named<Test>("test")
-    dependsOn(dockerComposeUp)
-    finalizedBy(dockerComposeDown)
+    if (!externalDockerCompose) {
+        dependsOn(dockerComposeUp)
+        finalizedBy(dockerComposeDown)
+    }
 }
 
 tasks.register<JavaExec>("runDummyServer") {

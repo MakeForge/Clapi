@@ -456,7 +456,7 @@ class SidebarCollectionHelpersTest {
         val i18n = io.github.makeforge.clapi.ui.shared.i18n.I18nProvider()
         assertEquals("Folders", i18n.get("collections"))
         assertEquals("Folders", i18n.get("folders"))
-        assertEquals("New Folder", i18n.get("new_collection"))
+        assertEquals("New Collection", i18n.get("new_collection"))
         assertEquals("New Folder", i18n.get("new_folder"))
         assertEquals("Export Folder", i18n.get("export_collection"))
         assertEquals("Export Folder", i18n.get("export_folder"))

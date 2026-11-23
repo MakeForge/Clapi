@@ -1,10 +1,8 @@
 <!-- Modified by MakeForge (2026) -->
-<p align="center">
-  <img src="ui-desktop/src/desktopMain/resources/icons/clapi-icon-128.png" alt="Clapi" width="100" />
-</p>
-
 <h1 align="center">
-  Clapi
+  <img src="ui-desktop/src/desktopMain/resources/icons/clapi-icon-128.png" alt="Clapi" width="100" />
+  <br/>
+  <a href="https://makeforge.github.io/Clapi/" target="_blank">Clapi</a>
   <br/>
   <a href="https://makeforge.github.io/Clapi/request-types/http/" title="HTTP / REST"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/public/icons/request-types/http-light.svg" /><img src="docs/public/icons/request-types/http.svg" alt="HTTP / REST" width="32" height="32" /></picture></a>
   &nbsp;&nbsp;

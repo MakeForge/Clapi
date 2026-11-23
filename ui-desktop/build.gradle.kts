@@ -86,6 +86,11 @@ roborazzi {
     }
 }
 
+tasks.withType<Test>().configureEach {
+    // Ensure deterministic UTC timestamp rendering in Roborazzi previews and tests across dev & CI machines.
+    systemProperty("user.timezone", "UTC")
+}
+
 val copyScreenshots = tasks.register<Copy>("copyScreenshots") {
     group = "roborazzi"
     description = "Copies preview screenshots from src/desktopTest/snapshots/roborazzi to docs/public/generated/screenshots"

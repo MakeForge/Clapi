@@ -46,12 +46,25 @@ class OAuth2IntegrationTest {
     }
 
     private fun isKeycloakAvailable(): Boolean {
-        return runCatching {
-            Socket().use { socket ->
-                socket.connect(InetSocketAddress(KEYCLOAK_HOST, KEYCLOAK_PORT), 1500)
-                true
-            }
-        }.getOrDefault(false)
+        val isCi = System.getenv("CI").equals("true", ignoreCase = true)
+        val deadline = System.currentTimeMillis() + if (isCi) 30_000L else 0L
+        while (true) {
+            val ready = runCatching {
+                val conn = java.net.URI("http://$KEYCLOAK_HOST:$KEYCLOAK_PORT/realms/test-realm/.well-known/openid-configuration")
+                    .toURL()
+                    .openConnection() as java.net.HttpURLConnection
+                conn.connectTimeout = 1500
+                conn.readTimeout = 1500
+                try {
+                    conn.responseCode == 200
+                } finally {
+                    conn.disconnect()
+                }
+            }.getOrDefault(false)
+            if (ready) return true
+            if (System.currentTimeMillis() >= deadline) return false
+            Thread.sleep(500)
+        }
     }
 
     @Before
