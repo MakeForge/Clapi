@@ -1,11 +1,11 @@
 # Modified by MakeForge (2026)
 [versions]
-kotlin = "2.4.10"
+kotlin = "2.4.21"
 compose = "1.12.0"
 ktor = "3.6.1"
-coroutines = "1.10.2"
-serialization = "1.8.1"
-datetime = "0.6.2"
+coroutines = "1.11.0"
+serialization = "1.13.0"
+datetime = "0.8.0"
 koin = "4.0.2"
 javet = "6.0.3"
 networknt = "3.0.9"
