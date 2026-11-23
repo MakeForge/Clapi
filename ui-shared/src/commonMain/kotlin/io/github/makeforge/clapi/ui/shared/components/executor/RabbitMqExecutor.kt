@@ -214,7 +214,8 @@ fun executeRabbitMqRpcTab(scope: CoroutineScope, state: AppState, tab: RequestTa
 }
 
 fun startRabbitMqSubscriptionTab(scope: CoroutineScope, state: AppState, tab: RequestTabState) {
-    scope.launch {
+    tab.currentJob?.cancel()
+    tab.currentJob = scope.launch {
         tab.rabbitMqActiveSession?.close()
         tab.rabbitMqActiveSession = null
         tab.rabbitMqError = null
@@ -301,6 +302,8 @@ fun startRabbitMqSubscriptionTab(scope: CoroutineScope, state: AppState, tab: Re
 }
 
 fun stopRabbitMqSubscriptionTab(scope: CoroutineScope, tab: RequestTabState) {
+    tab.currentJob?.cancel()
+    tab.currentJob = null
     scope.launch {
         tab.rabbitMqActiveSession?.close()
         tab.rabbitMqActiveSession = null

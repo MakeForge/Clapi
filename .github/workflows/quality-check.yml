@@ -54,6 +54,7 @@ jobs:
             :ui-shared:desktopTest \
             :ui-desktop:desktopTest \
             :qa-tests:jvmTest \
+            -PexternalDockerCompose=true \
             --no-parallel \
             --no-daemon \
             --stacktrace \

@@ -205,7 +205,7 @@ class RabbitMqUiE2ETest {
             rabbitMqSettings = io.github.makeforge.clapi.core.model.opencollection.RabbitMqRequestSettings(
                 declareTopology = true,
             )
-            bodyContent = """{"event":"ui-live-pub"}"""
+            webSocketOutgoingPayload = """{"event":"ui-live-pub"}"""
             authType = io.github.makeforge.clapi.core.model.AuthType.BASIC
             authUsername = brokerUser
             authPassword = brokerPass
@@ -248,7 +248,7 @@ class RabbitMqUiE2ETest {
         }
         factory.newConnection().use { conn ->
             conn.createChannel().use { ch ->
-                ch.queueDeclare(rpcQueue, false, false, true, null)
+                ch.queueDeclare(rpcQueue, false, true, true, null)
                 val deliver = DeliverCallback { _, delivery ->
                     val props = AMQP.BasicProperties.Builder()
                         .correlationId(delivery.properties.correlationId)
@@ -266,7 +266,7 @@ class RabbitMqUiE2ETest {
                     rabbitMqConnection = RabbitMqConnectionConfig(host = brokerHost, port = brokerPort, vhost = "/")
                     rabbitMqExchange = RabbitMqExchangeConfig(name = "", type = RabbitMqExchangeType.DIRECT)
                     rabbitMqRoutingKey = rpcQueue
-                    bodyContent = """{"ping":"rpc"}"""
+                    webSocketOutgoingPayload = """{"ping":"rpc"}"""
                     authType = io.github.makeforge.clapi.core.model.AuthType.BASIC
                     authUsername = brokerUser
                     authPassword = brokerPass

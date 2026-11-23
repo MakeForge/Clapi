@@ -70,7 +70,7 @@ fun RabbitMqRequestEditor(
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val scope = rememberCoroutineScope()
+    val scope = state.appScope
     val markDirty = { tab.markDirty() }
     var splitFraction by remember { mutableStateOf(0.55f) }
 
